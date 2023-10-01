@@ -61,6 +61,11 @@ header {
     height: 0px;
     font-size: 0px;
 }
+.nav-content ul li {
+    width: 0px;
+    height: 0px;
+    font-size: 0px;
+}
 @media screen and (max-width:800px) {
     header {
         padding:10px;
