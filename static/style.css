@@ -162,4 +162,13 @@ header {
       .logo-area img {
         height: 30px;
       }
+      .dt-ul-menu {
+        width: 0px;
+        height: 0px;
+      }
+      .dt-ul-menu li {
+        width: 0px;
+        height: 0px;
+        font-size: 0px;
+      }
     }
