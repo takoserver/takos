@@ -25,13 +25,13 @@ export default function Error404() {
         </div>
         <a className="logo-area"><img src="/logo.png" alt="takoserver logo" className="logo-img" /></a>
         </div>
-          <ul className="menu-menu">
+        {/*↓デスクトップ用*/}
+          <ul className="dt-ul-menu">
             <li className="dt-nav-menu">test</li>
             <li className="dt-nav-menu">test</li>
             <li className="dt-nav-menu">test</li>
           </ul>
         </div>
-        {/*↓デスクトップ用*/}
       </header>
     </html>
     </>

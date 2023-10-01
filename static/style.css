@@ -42,16 +42,12 @@ header {
   .logo-area img {
     height: 30px;
   }
-.dt-nav-area {
-    margin: auto;
-    width: 100%;
-}
 .dt-nav-menu {
     color: #fff;
     display: inline-block;
     margin-right: 60px;
 }
-.header-menu-menu {
+.dt-ul-menu {
     width: 70%;
   }
 .header-menu {
