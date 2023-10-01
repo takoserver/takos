@@ -17,8 +17,8 @@ export default function Error404() {
             <label className="nav-unshown" id="nav-close" for="nav-input"></label>
             <div id="nav-content">
             <ul className="">
-              <li>ロリ</li>
-              <li>ショタ</li>
+              <li>ロリコン</li>
+              <li>ショタコン</li>
               <li>ホモ</li>
             </ul>
             </div>
@@ -27,15 +27,19 @@ export default function Error404() {
         </div>
         {/*↓デスクトップ用*/}
           <ul className="dt-ul-menu">
-            <li className="dt-nav-menu">test</li>
-            <li className="dt-nav-menu">test</li>
-            <li className="dt-nav-menu">test</li>
+            <li className="dt-nav-menu">ロリコン</li>
+            <li className="dt-nav-menu">ショタコン</li>
+            <li className="dt-nav-menu">ホモ</li>
           </ul>
         </div>
       </header>
+      <section className="pt-10 pb-10">
+        <h1 className="text-5xl text-center text-white">404 Not Found</h1>
+        <p className="text-xl text-center text-white">このページはないんやで</p>
+      </section>
       <footer>
         <p className="text-white text-center">Copyright © 2021-2023 Takoserver All Rights Reserved.</p>
-        <p><a href="https://aranpect.com">Aranpect</a></p>
+        <p className="text-white text-center"><a href="https://aranpect.com">Aranpect</a></p>
       </footer>
     </html>
     </>
