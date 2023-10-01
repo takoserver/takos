@@ -54,9 +54,6 @@ header {
 .header-menu-menu {
     width: 70%;
   }
-.menu-menu {
-    margin-right: 0px;
-}
 .header-menu {
     display: flex;
 }
