@@ -10,7 +10,7 @@ export default function Error404() {
       </head>
       <header>
         <div className="header-menu">
-        <div className="header-logo-menu">
+        <div className="header-logo-menu pr-3">
         <div id="nav-drawer">
             <input id="nav-input" type="checkbox" className="nav-unshown" />
             <label id="nav-open" for="nav-input"><span></span></label>
@@ -33,6 +33,10 @@ export default function Error404() {
           </ul>
         </div>
       </header>
+      <footer>
+        <p className="text-white text-center">Copyright © 2021-2023 Takoserver All Rights Reserved.</p>
+        <p><a href="https://aranpect.com">Aranpect</a></p>
+      </footer>
     </html>
     </>
   );

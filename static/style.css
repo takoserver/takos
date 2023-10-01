@@ -29,7 +29,6 @@ header {
     box-shadow: 6px 0 25px rgba(0,0,0,.15);
   }
   .header-logo-menu{
-   width: 30%;
    display: flex;
   }
   
@@ -51,8 +50,7 @@ header {
     width: 70%;
   }
 .header-menu {
-    display: flex;
-    justify-content: space-between;
+  display:  flex;
 }
 @media screen and (max-width:800px) {
     header {
