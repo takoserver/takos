@@ -2,7 +2,8 @@ body {
     background-color: #0D1117;
 }
 header {
-    padding:16px;
+    padding-top:16px;
+    padding-bottom:16px;
     background: black;
   }
   
@@ -47,10 +48,13 @@ header {
     margin-right: 60px;
 }
 .dt-ul-menu {
-    width: 70%;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end; /* 要素を右寄せに配置してるんやでby aranpect */
   }
 .header-menu {
   display:  flex;
+  padding-left: 1rem;
 }
 @media screen and (max-width:800px) {
     header {

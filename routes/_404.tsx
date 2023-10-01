@@ -9,7 +9,7 @@ export default function Error404() {
         <link rel="stylesheet" href="/style.css"></link>
       </head>
       <header>
-        <div className="header-menu">
+        <div className="header-menu w-full">
         <div className="header-logo-menu pr-3">
         <div id="nav-drawer">
             <input id="nav-input" type="checkbox" className="nav-unshown" />
@@ -17,9 +17,9 @@ export default function Error404() {
             <label className="nav-unshown" id="nav-close" for="nav-input"></label>
             <div id="nav-content">
             <ul className="">
-              <li>test</li>
-              <li>test</li>
-              <li>test</li>
+              <li>ロリ</li>
+              <li>ショタ</li>
+              <li>ホモ</li>
             </ul>
             </div>
         </div>
