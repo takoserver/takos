@@ -3,25 +3,39 @@ import { Head } from "$fresh/runtime.ts";
 export default function Error404() {
   return (
     <>
-      <Head>
-        <title>404 - Page not found</title>
-      </Head>
-      <div class="px-4 py-8 mx-auto bg-[#86efac]">
-        <div class="max-w-screen-md mx-auto flex flex-col items-center justify-center">
-          <img
-            class="my-6"
-            src="/logo.svg"
-            width="128"
-            height="128"
-            alt="the Fresh logo: a sliced lemon dripping with juice"
-          />
-          <h1 class="text-4xl font-bold">404 - Page not found</h1>
-          <p class="my-4">
-            The page you were looking for doesn't exist.
-          </p>
-          <a href="/" class="underline">Go back home</a>
+    <html>
+      <head>
+        <title>404 Not Found</title>
+        <link rel="stylesheet" href="/style.css"></link>
+      </head>
+      <header>
+        <div className="header-menu">
+        <div className="header-logo-menu">
+        <div id="nav-drawer">
+            <input id="nav-input" type="checkbox" className="nav-unshown" />
+            <label id="nav-open" for="nav-input"><span></span></label>
+            <label className="nav-unshown" id="nav-close" for="nav-input"></label>
+            <div id="nav-content">
+            <ul className="">
+              <li>test</li>
+              <li>test</li>
+              <li>test</li>
+            </ul>
+            </div>
         </div>
-      </div>
+        <a className="logo-area"><img src="/logo.png" alt="takoserver logo" className="logo-img" /></a>
+        </div>
+          <div className="header-menu-menu">
+            <ul className="menu-menu">
+              <li className="dt-nav-menu">test</li>
+              <li className="dt-nav-menu">test</li>
+              <li className="dt-nav-menu">test</li>
+            </ul>
+          </div>
+        </div>
+        {/*↓デスクトップ用*/}
+      </header>
+    </html>
     </>
   );
 }
