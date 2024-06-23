@@ -47,7 +47,7 @@ export const handler = {
             const lastUpdate = new Date(CacheServerData.lastUpdate)
             const now = new Date()
             //一時間以上経っていたら更新
-            if (now.getTime() - lastUpdate.getTime() > 3600000) {
+            if (now.getTime() - lastUpdate.getTime() > 60 * 60 ) {
                 //ユーザーの数を取得
                 const usersCount = await users.countDocuments()
                 //リモートサーバーの数を取得
