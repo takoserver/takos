@@ -15,4 +15,5 @@ await mongoose.connect(url).then(() => {
 }).catch((err) => {
     console.log(err)
 })
+
 await dev(import.meta.url, "./main.ts", config)

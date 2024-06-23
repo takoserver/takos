@@ -246,158 +246,164 @@ async function sendMessage(
         )
         return
     }
-    if (session.roomType === "friend") {
-        if (message.length > maxMessage) {
-            return
-        }
-        const result = await messages.create({
-            userid: session.uuid,
-            roomid: roomID,
-            message,
-            read: [],
-            messageType: MessageType,
-            messageid: crypto.randomUUID(),
-        })
-        const time = result.timestamp
-        pubClient.publish(
-            redisch,
-            JSON.stringify({
+    if(MessageType == "text") {
+        if (session.roomType === "friend") {
+            if (message.length > maxMessage) {
+                return
+            }
+            const result = await messages.create({
+                userid: session.uuid,
                 roomid: roomID,
-                message: message,
-                type: "message",
-                sender: session.uuid,
-                time,
-                messageid: result.messageid,
+                message,
+                read: [],
                 messageType: MessageType,
-            }),
-        )
-        updateActivity(sessionid)
-        ws.send(
-            JSON.stringify({
-                status: true,
-            }),
-        )
-    } else if (session.roomType === "remotefriend") {
-        const roomMenber = await rooms.findOne({
-            uuid: roomID,
-        })
-        if (!roomMenber) {
-            ws.send(
+                messageid: crypto.randomUUID(),
+            })
+            const time = result.timestamp
+            pubClient.publish(
+                redisch,
                 JSON.stringify({
-                    status: false,
-                    explain: "Room Not Found",
-                }),
-            )
-            return
-        }
-        const friend = roomMenber.users.find((user) => user.userid !== session.uuid)
-        if (!friend) {
-            ws.send(
-                JSON.stringify({
-                    status: false,
-                    explain: "Friend Not Found",
-                }),
-            )
-            return
-        }
-        if (typeof friend.userid !== "string") {
-            ws.send(
-                JSON.stringify({
-                    status: false,
-                    explain: "Friend Not Found",
-                }),
-            )
-            return
-        }
-        const frienduuid = friend.userid
-        const messageid = crypto.randomUUID()
-        if (message.length > maxMessage) {
-            return
-        }
-        updateActivity(sessionid)
-        await messages.create({
-            userid: session.uuid,
-            roomid: roomID,
-            message,
-            read: [],
-            messageType: MessageType,
-            messageid,
-        })
-        pubClient.publish(
-            redisch,
-            JSON.stringify({
-                roomid: roomID,
-                message: message,
-                type: "message",
-                sender: session.uuid,
-                time: new Date().toISOString(),
-                messageid,
-                messageType: MessageType,
-            }),
-        )
-        const takosTokenArray = new Uint8Array(16)
-        const randomarray = crypto.getRandomValues(takosTokenArray)
-        const takosToken = Array.from(
-            randomarray,
-            (byte) => byte.toString(16).padStart(2, "0"),
-        ).join("")
-        takostoken.create({
-            token: takosToken,
-            origin: splitUserName(frienduuid).domain,
-        })
-        const sendFriendServer = await takosfetch(
-            `${splitUserName(frienduuid).domain}/api/v1/server/talk/send`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
                     roomid: roomID,
+                    message: message,
+                    type: "message",
                     sender: session.uuid,
-                    token: takosToken,
-                    message,
-                    uuid: session.uuid,
+                    time,
+                    messageid: result.messageid,
                     messageType: MessageType,
-                    messageid,
-                }),
-            },
-        )
-        if (!sendFriendServer) {
-            ws.send(
-                JSON.stringify({
-                    status: false,
-                    explain: "Failed to send message",
                 }),
             )
-            return
-        }
-        if (sendFriendServer.status !== 200) {
-            //メッセージ削除
-            await messages.deleteOne({
+            updateActivity(sessionid)
+            ws.send(
+                JSON.stringify({
+                    status: true,
+                }),
+            )
+        } else if (session.roomType === "remotefriend") {
+            const roomMenber = await rooms.findOne({
+                uuid: roomID,
+            })
+            if (!roomMenber) {
+                ws.send(
+                    JSON.stringify({
+                        status: false,
+                        explain: "Room Not Found",
+                    }),
+                )
+                return
+            }
+            const friend = roomMenber.users.find((user) => user.userid !== session.uuid)
+            if (!friend) {
+                ws.send(
+                    JSON.stringify({
+                        status: false,
+                        explain: "Friend Not Found",
+                    }),
+                )
+                return
+            }
+            if (typeof friend.userid !== "string") {
+                ws.send(
+                    JSON.stringify({
+                        status: false,
+                        explain: "Friend Not Found",
+                    }),
+                )
+                return
+            }
+            const frienduuid = friend.userid
+            const messageid = crypto.randomUUID()
+            if (message.length > maxMessage) {
+                return
+            }
+            updateActivity(sessionid)
+            await messages.create({
+                userid: session.uuid,
+                roomid: roomID,
+                message,
+                read: [],
+                messageType: MessageType,
                 messageid,
             })
+            pubClient.publish(
+                redisch,
+                JSON.stringify({
+                    roomid: roomID,
+                    message: message,
+                    type: "message",
+                    sender: session.uuid,
+                    time: new Date().toISOString(),
+                    messageid,
+                    messageType: MessageType,
+                }),
+            )
+            const takosTokenArray = new Uint8Array(16)
+            const randomarray = crypto.getRandomValues(takosTokenArray)
+            const takosToken = Array.from(
+                randomarray,
+                (byte) => byte.toString(16).padStart(2, "0"),
+            ).join("")
+            takostoken.create({
+                token: takosToken,
+                origin: splitUserName(frienduuid).domain,
+            })
+            const sendFriendServer = await takosfetch(
+                `${splitUserName(frienduuid).domain}/api/v1/server/talk/send`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        roomid: roomID,
+                        sender: session.uuid,
+                        token: takosToken,
+                        message,
+                        uuid: session.uuid,
+                        messageType: MessageType,
+                        messageid,
+                    }),
+                },
+            )
+            if (!sendFriendServer) {
+                ws.send(
+                    JSON.stringify({
+                        status: false,
+                        explain: "Failed to send message",
+                    }),
+                )
+                return
+            }
+            if (sendFriendServer.status !== 200) {
+                //メッセージ削除
+                await messages.deleteOne({
+                    messageid,
+                })
+                ws.send(
+                    JSON.stringify({
+                        status: false,
+                        explain: "Failed to send message",
+                    }),
+                )
+                return
+            }
+            ws.send(
+                JSON.stringify({
+                    status: true,
+                }),
+            )
+        } else {
             ws.send(
                 JSON.stringify({
                     status: false,
-                    explain: "Failed to send message",
+                    explain: "Room Type is not found",
                 }),
             )
             return
         }
-        ws.send(
-            JSON.stringify({
-                status: true,
-            }),
-        )
-    } else {
-        ws.send(
-            JSON.stringify({
-                status: false,
-                explain: "Room Type is not found",
-            }),
-        )
-        return
+    } else if(MessageType == "image") {
+        if(session.roomType === "friend") {
+            //
+        }
     }
 }
 async function sendConecctingUserMessage(

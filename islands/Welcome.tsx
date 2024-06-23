@@ -234,7 +234,7 @@ export default function Welcome({ sitekey }: { sitekey: string }) {
             <div class="flex w-full h-screen">
                 <div class="relative lg:w-1/3 w-full lg:ml-16 mx-4 lg:mr-16 px-0 py-[50px]">
                     <div class="w-full bg-white text-black rounded-lg shadow-[0_12px_32px_#00000040] p-5">
-                        <div class="lg:flex">
+                        <div class="lg:flex mb-4">
                             <div class="lg:w-2/3">
                                 <div class="flex items-center mb-4">
                                     <img
@@ -246,12 +246,12 @@ export default function Welcome({ sitekey }: { sitekey: string }) {
                                         takos.jp
                                     </h1>
                                 </div>
-                                <div class="text-base text-gray-700 mb-6">
+                                <div class="text-base text-gray-700 mb-6 w-11/12">
                                     takos.jpは、次世代の分散型チャットサービスを提供する日本発のプロジェクトです。このサービスは、ユーザーの意見を反映したサーバーに登録や移行が可能で、無駄な機能を排除し、本当に必要な機能のみを実装することを目指しています。
                                 </div>
                             </div>
-                            <div class="lg:w-1/3">
-                                <div class="mb-6">
+                            <div class="lg:w-1/3 lg:mt-4">
+                                <div class="">
                                     <RegisterForm
                                         token={recaptchaToken}
                                         sitekey={sitekey}
@@ -260,7 +260,7 @@ export default function Welcome({ sitekey }: { sitekey: string }) {
                                         onClick={() => {
                                             alert("まだ実装してない！！！")
                                         }}
-                                        class="bg-[#192320] text-white rounded-3xl py-2 px-4 hover:bg-[#192320] border w-full mt-3"
+                                        class="bg-[#192320] text-white rounded-3xl py-2 px-4 hover:bg-[#192320] border w-full lg:mt-4 mt-3"
                                     >
                                         他のサーバーを探す
                                     </button>

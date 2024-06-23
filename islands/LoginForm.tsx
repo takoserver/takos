@@ -104,7 +104,7 @@ export default function RegisterForm(
         <>
             <button
                 onClick={handleButtonClick}
-                class="bg-[#192320] text-white rounded-3xl py-2 px-4 hover:bg-[#192320] border w-full mt-3"
+                class="bg-[#192320] text-white rounded-3xl py-2 px-4 hover:bg-[#192320] border w-full lg:mt-4 mt-3"
             >
                 ログイン
             </button>
