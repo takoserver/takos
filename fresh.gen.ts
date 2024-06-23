@@ -84,19 +84,14 @@ const manifest = {
         "./routes/api/v1/logins/logout.js": $api_v1_logins_logout,
         "./routes/api/v1/logins/register.js": $api_v1_logins_register,
         "./routes/api/v1/main.ts": $api_v1_main,
-        "./routes/api/v1/server/friends/[ID]/icon.ts":
-            $api_v1_server_friends_ID_icon,
-        "./routes/api/v1/server/friends/[ID]/profile.ts":
-            $api_v1_server_friends_ID_profile,
-        "./routes/api/v1/server/friends/request.ts":
-            $api_v1_server_friends_request,
+        "./routes/api/v1/server/friends/[ID]/icon.ts": $api_v1_server_friends_ID_icon,
+        "./routes/api/v1/server/friends/[ID]/profile.ts": $api_v1_server_friends_ID_profile,
+        "./routes/api/v1/server/friends/request.ts": $api_v1_server_friends_request,
         "./routes/api/v1/server/talk/read.ts": $api_v1_server_talk_read,
         "./routes/api/v1/server/talk/send.ts": $api_v1_server_talk_send,
         "./routes/api/v1/server/token.ts": $api_v1_server_token,
-        "./routes/api/v1/server/users/[ID]/name.ts":
-            $api_v1_server_users_ID_name,
-        "./routes/api/v1/server/users/[ID]/uuid.ts":
-            $api_v1_server_users_ID_uuid,
+        "./routes/api/v1/server/users/[ID]/name.ts": $api_v1_server_users_ID_name,
+        "./routes/api/v1/server/users/[ID]/uuid.ts": $api_v1_server_users_ID_uuid,
         "./routes/api/v1/setting/index.ts": $api_v1_setting_index,
         "./routes/api/v1/users/icon.ts": $api_v1_users_icon,
         "./routes/api/v1/users/info/icon.ts": $api_v1_users_info_icon,

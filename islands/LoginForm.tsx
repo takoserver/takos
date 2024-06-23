@@ -109,7 +109,7 @@ export default function RegisterForm(
                 ログイン
             </button>
             {showModal && (
-                <div class="fixed z-50 w-full h-full overflow-hidden bg-[rgba(75,92,108,0.4)] left-0 top-0 text-black">
+                <div class="fixed z-50 w-full h-full bg-[rgba(75,92,108,0.4)] left-0 top-0 text-black">
                     <div class="bg-[#f0f0f5] lg:w-1/3 w-full h-full lg:h-4/6 mx-auto lg:my-[6.5%] p-5 lg:rounded-xl">
                         <div class="flex justify-end">
                             <span
