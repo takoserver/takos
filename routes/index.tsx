@@ -61,8 +61,6 @@ export default function Home({ data }: { data: any }) {
                             content="日本産オープンソース分散型チャットアプリ「tako's」"
                         />
                         <link rel="stylesheet" href="/stylesheet.css"></link>
-                        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js">
-                        </script>
                     </head>
                     <Welcom sitekey={sitekey} />
                 </>
