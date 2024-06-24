@@ -22,6 +22,7 @@ import * as $api_v1_main from "./routes/api/v1/main.ts"
 import * as $api_v1_server_friends_ID_icon from "./routes/api/v1/server/friends/[ID]/icon.ts"
 import * as $api_v1_server_friends_ID_profile from "./routes/api/v1/server/friends/[ID]/profile.ts"
 import * as $api_v1_server_friends_request from "./routes/api/v1/server/friends/request.ts"
+import * as $api_v1_server_talk_image from "./routes/api/v1/server/talk/image.ts"
 import * as $api_v1_server_talk_read from "./routes/api/v1/server/talk/read.ts"
 import * as $api_v1_server_talk_send from "./routes/api/v1/server/talk/send.ts"
 import * as $api_v1_server_token from "./routes/api/v1/server/token.ts"
@@ -87,6 +88,7 @@ const manifest = {
         "./routes/api/v1/server/friends/[ID]/icon.ts": $api_v1_server_friends_ID_icon,
         "./routes/api/v1/server/friends/[ID]/profile.ts": $api_v1_server_friends_ID_profile,
         "./routes/api/v1/server/friends/request.ts": $api_v1_server_friends_request,
+        "./routes/api/v1/server/talk/image.ts": $api_v1_server_talk_image,
         "./routes/api/v1/server/talk/read.ts": $api_v1_server_talk_read,
         "./routes/api/v1/server/talk/send.ts": $api_v1_server_talk_send,
         "./routes/api/v1/server/token.ts": $api_v1_server_token,

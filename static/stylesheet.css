@@ -5,6 +5,7 @@ html,body {
     position: relative;
     background-image: url("/main-bg2.png");
     background-size: cover;
+    background-attachment: fixed;
 }
 @keyframes marquee {
     0% { transform: translateX(100%); }

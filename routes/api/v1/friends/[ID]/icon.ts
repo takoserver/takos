@@ -63,7 +63,6 @@ export const handler = {
                     status: 400,
                 })
             }
-
             try {
                 const filePath = `./files/userIcons/${mailSpilit(FriendInfo.uuid)}.jpeg`
                 const result = await Deno.readFile(filePath)
@@ -79,7 +78,6 @@ export const handler = {
                 })
             }
         }
-
         if (isuseAddFriendKey === "true") {
             if (!friendName) {
                 return new Response(JSON.stringify({ status: "No userName" }), {
@@ -125,7 +123,6 @@ export const handler = {
                 })
             }
         }
-
         if (!friendName) {
             return new Response(JSON.stringify({ status: "No userName" }), {
                 headers: { "Content-Type": "application/json" },

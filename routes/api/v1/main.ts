@@ -98,6 +98,7 @@ export const handler = {
                                 data.roomid,
                                 socket,
                                 data.messageType,
+                                data.image,
                             )
                             break
                         case "login":
@@ -226,6 +227,7 @@ async function sendMessage(
     roomID: string,
     ws: WebSocket,
     MessageType: string,
+    image?: string,
 ) {
     const session = sessions.get(sessionid)
     if (!session) {
@@ -402,7 +404,34 @@ async function sendMessage(
         }
     } else if(MessageType == "image") {
         if(session.roomType === "friend") {
-            //
+            if(image === undefined) return
+            const result = await messages.create({
+                userid: session.uuid,
+                roomid: roomID,
+                message,
+                read: [],
+                messageType: MessageType,
+                messageid: crypto.randomUUID(),
+            })
+            const time = result.timestamp
+            pubClient.publish(
+                redisch,
+                JSON.stringify({
+                    roomid: roomID,
+                    message: message,
+                    type: "message",
+                    sender: session.uuid,
+                    time,
+                    messageid: result.messageid,
+                    messageType: MessageType,
+                }),
+            )
+            updateActivity(sessionid)
+            ws.send(
+                JSON.stringify({
+                    status: true,
+                }),
+            )
         }
     }
 }
