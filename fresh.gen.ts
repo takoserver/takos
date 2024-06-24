@@ -25,6 +25,7 @@ import * as $api_v1_server_friends_request from "./routes/api/v1/server/friends/
 import * as $api_v1_server_talk_image from "./routes/api/v1/server/talk/image.ts"
 import * as $api_v1_server_talk_read from "./routes/api/v1/server/talk/read.ts"
 import * as $api_v1_server_talk_send from "./routes/api/v1/server/talk/send.ts"
+import * as $api_v1_server_talk_talkdata from "./routes/api/v1/server/talk/talkdata.ts"
 import * as $api_v1_server_token from "./routes/api/v1/server/token.ts"
 import * as $api_v1_server_users_ID_name from "./routes/api/v1/server/users/[ID]/name.ts"
 import * as $api_v1_server_users_ID_uuid from "./routes/api/v1/server/users/[ID]/uuid.ts"
@@ -91,6 +92,7 @@ const manifest = {
         "./routes/api/v1/server/talk/image.ts": $api_v1_server_talk_image,
         "./routes/api/v1/server/talk/read.ts": $api_v1_server_talk_read,
         "./routes/api/v1/server/talk/send.ts": $api_v1_server_talk_send,
+        "./routes/api/v1/server/talk/talkdata.ts": $api_v1_server_talk_talkdata,
         "./routes/api/v1/server/token.ts": $api_v1_server_token,
         "./routes/api/v1/server/users/[ID]/name.ts": $api_v1_server_users_ID_name,
         "./routes/api/v1/server/users/[ID]/uuid.ts": $api_v1_server_users_ID_uuid,

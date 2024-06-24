@@ -137,7 +137,6 @@ export const handler = {
                 status: 400,
             })
         }
-
         if (friendDomain === env["serverDomain"]) {
             const friend: Friend | null = await friends.findOne({
                 user: ctx.state.data.userid,
@@ -151,7 +150,6 @@ export const handler = {
                     },
                 )
             }
-
             const friendNameInfo: User | null = await users.findOne({
                 userName: friendUserName,
             })
