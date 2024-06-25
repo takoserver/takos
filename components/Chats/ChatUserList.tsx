@@ -1,5 +1,12 @@
 export default function User(
-    { userName, latestMessage, icon, onClick, userName2, isNewMessage },
+    { userName, latestMessage, icon, onClick, userName2, isNewMessage }: {
+        userName: string
+        latestMessage: string
+        icon: string
+        onClick?: () => void
+        userName2?: string
+        isNewMessage: boolean
+    },
 ) {
     let resultLatestMessage
     if (latestMessage.length > 17) {
@@ -40,7 +47,7 @@ export default function User(
     )
 }
 
-const isOnClickUndefind = (fn) => {
+const isOnClickUndefind = (fn: (() => void) | null | undefined) => {
     if (fn === undefined || fn === null) {
         return () => {}
     }

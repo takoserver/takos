@@ -1,4 +1,9 @@
-const ChatSendMessage = ({ message, time, isRead, isPrimary }) => {
+const ChatSendMessage = ({ message, time, isRead, isPrimary }: {
+    message: string
+    time: string
+    isRead: boolean
+    isPrimary: boolean
+}) => {
     const isPrimaryClass = isPrimary ? "c-talk-chat self primary" : "c-talk-chat self"
     return (
         <li class={isPrimaryClass}>
@@ -19,7 +24,7 @@ const ChatSendMessage = ({ message, time, isRead, isPrimary }) => {
     )
 }
 export default ChatSendMessage
-function convertTime(time) {
+function convertTime(time: string | number | Date) {
     const date = new Date(time)
     const hours = date.getHours()
     const minutes = date.getMinutes()
@@ -30,7 +35,7 @@ function convertTime(time) {
     return `${ampm} ${zeroPaddingHour}:${zeroPaddingMinutes}`
 }
 //preactで動作する改行を反映させるために、改行コードをbrタグに変換する関数
-function convertLineBreak(message) {
+function convertLineBreak(message: string | null | undefined) {
     if (message === null || message === undefined) return
     return message.split("\n").map((line, index) => (
         <span key={index}>

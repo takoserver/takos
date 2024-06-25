@@ -10,7 +10,7 @@ import { takosfetch } from "../../../../../util/takosfetch.ts"
 リクエスト先のユーザー名：recipientUsername
 */
 import { load } from "$std/dotenv/mod.ts"
-import User from "../../../../../components/Chats/ChatUserList.jsx"
+import User from "../../../../../components/Chats/ChatUserList.tsx"
 const env = await load()
 export const handler = {
     async POST(req: Request, ctx: any) {

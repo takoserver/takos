@@ -2,7 +2,7 @@ import users from "../../../../models/users.ts"
 import { crypto } from "$std/crypto/crypto.ts"
 
 export const handler = {
-    async GET(req, ctx) {
+    async GET(req: { url: string | URL }, ctx: { state: { data: { loggedIn: any; userid: any } } }) {
         const requrl = new URL(req.url)
         const reload = requrl.searchParams.get("reload") || ""
         if (!ctx.state.data.loggedIn) {

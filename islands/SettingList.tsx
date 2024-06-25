@@ -1,4 +1,4 @@
-import User from "../components/Chats/ChatUserList.jsx"
+import User from "../components/Chats/ChatUserList.tsx"
 import Friends from "./Settings/Profile.tsx"
 import { useState } from "preact/hooks"
 //"p-talk is-inview" : "p-talk"

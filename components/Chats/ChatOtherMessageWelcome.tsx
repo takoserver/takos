@@ -1,5 +1,10 @@
 const ChatOtherMessage = (
-    { sender, message, time, isPrimary, senderNickName },
+    { message, time, isPrimary, senderNickName }: {
+        message: string
+        time: string
+        isPrimary: boolean
+        senderNickName: string
+    },
 ) => {
     const isPrimaryClass = isPrimary ? "c-talk-chat other primary" : "c-talk-chat other"
     return (
@@ -30,7 +35,7 @@ const ChatOtherMessage = (
     )
 }
 //preactで動作する改行を反映させるために、改行コードをbrタグに変換する関数
-function convertLineBreak(message) {
+function convertLineBreak(message: string | null | undefined) {
     if (message === null || message === undefined) return
     return message.split("\n").map((line, index) => (
         <span key={index}>
@@ -40,7 +45,7 @@ function convertLineBreak(message) {
     ))
 }
 //Date型のデータを受け取り、午前か午後何時何分かを返す関数
-function convertTime(time) {
+function convertTime(time: string | number | Date) {
     const date = new Date(time)
     const hours = date.getHours()
     const minutes = date.getMinutes()

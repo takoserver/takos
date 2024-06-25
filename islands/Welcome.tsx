@@ -2,8 +2,8 @@ import RegisterForm from "../islands/RegisterForm.tsx"
 import LoginForm from "../islands/LoginForm.tsx"
 import { useEffect, useState } from "preact/hooks"
 import Footer from "../components/Footer.tsx"
-import ChatOtherMessage from "../components/Chats/ChatOtherMessageWelcome.jsx"
-import ChatSendMessage from "../components/Chats/ChatSendMessage.jsx"
+import ChatOtherMessage from "../components/Chats/ChatOtherMessageWelcome.tsx"
+import ChatSendMessage from "../components/Chats/ChatSendMessage.tsx"
 declare global {
     interface Window {
         grecaptcha: {

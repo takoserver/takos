@@ -4,7 +4,7 @@ import { load } from "$std/dotenv/mod.ts"
 import Chat from "../../islands/Chats/Chat.tsx"
 import { useSignal } from "@preact/signals"
 
-import User from "../../components/Chats/ChatUserList.jsx"
+import User from "../../components/Chats/ChatUserList.tsx"
 const env = await load()
 const sitekey = env["recaptcha_site_key"]
 const wsSSL = env["wsSSL"]

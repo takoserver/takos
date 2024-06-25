@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks"
-import User from "../../components/Chats/ChatUserList.jsx"
+import User from "../../components/Chats/ChatUserList.tsx"
 
 export default function ChatList(props: { friendList: any; setFriendList: any; ws: { send: (arg0: string) => void }; sessionid: any; setIsChoiceUser: (arg0: boolean) => void }) {
     const friendList = props.friendList
