@@ -1,6 +1,6 @@
 import ChatDate from "../../components/Chats/ChatDate.tsx"
 import ChatSendMessage from "../../components/Chats/ChatSendMessage.jsx"
-import ChatOtherMessage from "../../components/Chats/ChatOtherMessage.jsx"
+import ChatOtherMessage from "../../components/Chats/ChatOtherMessage.tsx"
 export default function ChatTalk(props: any) {
     if (props.isSelectUser) {
         return (

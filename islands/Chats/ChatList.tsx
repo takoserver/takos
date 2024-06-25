@@ -1,90 +1,93 @@
 import { useEffect, useState } from "preact/hooks"
 import User from "../../components/Chats/ChatUserList.jsx"
 
-export default function ChatList(props) {
+export default function ChatList(props: { friendList: any; setFriendList: any; ws: { send: (arg0: string) => void }; sessionid: any; setIsChoiceUser: (arg0: boolean) => void }) {
     const friendList = props.friendList
     const setFriendList = props.setFriendList
-    useEffect(async () => {
-        const origin = window.location.protocol + "//" + window.location.host
-        const csrftokenres = await fetch(
-            `${origin}/api/v1/csrftoken?origin=${origin}`,
-        )
-        const csrftoken = await csrftokenres.json()
-        const result = await fetch(origin + "/api/v1/chats/friendList", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                csrftoken: csrftoken.csrftoken,
-            }),
-        })
-        const res = await result.json()
-        if (res.status == "You are alone") {
-            setFriendList(
-                [
-                    {
-                        userName: "友達がいません",
-                        latestMessage: "友達を追加してみましょう！",
-                        icon: "/people.png",
-                    },
-                ],
+    useEffect(() => {
+        async function fetchData() {
+            const origin = window.location.protocol + "//" + window.location.host
+            const csrftokenres = await fetch(
+                `${origin}/api/v1/csrftoken?origin=${origin}`,
             )
-            return
+            const csrftoken = await csrftokenres.json()
+            const result = await fetch(origin + "/api/v1/chats/friendList", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    csrftoken: csrftoken.csrftoken,
+                }),
+            })
+            const res = await result.json()
+            if (res.status == "You are alone") {
+                setFriendList(
+                    [
+                        {
+                            userName: "友達がいません",
+                            latestMessage: "友達を追加してみましょう！",
+                            icon: "/people.png",
+                        },
+                    ],
+                )
+                return
+            }
+            const friendListTemp: { roomName: any; latestMessage: any; icon: any; roomid: any; userName: any; isNewMessage: any; latestMessageTime: any }[] = []
+            res.chatRooms.map((room: { type: string; lastMessage: any; roomName: any; roomIcon: any; roomID: any; userName: any; isNewMessage: any; latestMessageTime: any }) => {
+                console.log(room)
+                if (room.type == "localfriend") {
+                    let lastMessage = room.lastMessage
+                    if (
+                        lastMessage === undefined || lastMessage === null ||
+                        lastMessage === ""
+                    ) {
+                        lastMessage = "メッセージがありません"
+                    }
+                    const friend = {
+                        roomName: room.roomName,
+                        latestMessage: lastMessage,
+                        icon: room.roomIcon,
+                        roomid: room.roomID,
+                        userName: room.userName,
+                        isNewMessage: room.isNewMessage,
+                        latestMessageTime: room.latestMessageTime,
+                    }
+                    friendListTemp.push(friend)
+                }
+                if (room.type == "remotefriend") {
+                    let lastMessage = room.lastMessage
+                    if (
+                        lastMessage === undefined || lastMessage === null ||
+                        lastMessage === ""
+                    ) {
+                        lastMessage = "メッセージがありません"
+                    }
+                    const friend = {
+                        roomName: room.roomName,
+                        latestMessage: lastMessage,
+                        icon: room.roomIcon,
+                        roomid: room.roomID,
+                        userName: room.userName,
+                        isNewMessage: room.isNewMessage,
+                        latestMessageTime: room.latestMessageTime,
+                    }
+                    friendListTemp.push(friend)
+                }
+            })
+            //latestMessageTimeが新しい順に並び替え
+            friendListTemp.sort((a, b) => {
+                if (a.latestMessageTime < b.latestMessageTime) {
+                    return 1
+                }
+                if (a.latestMessageTime > b.latestMessageTime) {
+                    return -1
+                }
+                return 0
+            })
+            setFriendList(friendListTemp)
         }
-        const friendListTemp = []
-        res.chatRooms.map((room) => {
-            console.log(room)
-            if (room.type == "localfriend") {
-                let lastMessage = room.lastMessage
-                if (
-                    lastMessage === undefined || lastMessage === null ||
-                    lastMessage === ""
-                ) {
-                    lastMessage = "メッセージがありません"
-                }
-                const friend = {
-                    roomName: room.roomName,
-                    latestMessage: lastMessage,
-                    icon: room.roomIcon,
-                    roomid: room.roomID,
-                    userName: room.userName,
-                    isNewMessage: room.isNewMessage,
-                    latestMessageTime: room.latestMessageTime,
-                }
-                friendListTemp.push(friend)
-            }
-            if (room.type == "remotefriend") {
-                let lastMessage = room.lastMessage
-                if (
-                    lastMessage === undefined || lastMessage === null ||
-                    lastMessage === ""
-                ) {
-                    lastMessage = "メッセージがありません"
-                }
-                const friend = {
-                    roomName: room.roomName,
-                    latestMessage: lastMessage,
-                    icon: room.roomIcon,
-                    roomid: room.roomID,
-                    userName: room.userName,
-                    isNewMessage: room.isNewMessage,
-                    latestMessageTime: room.latestMessageTime,
-                }
-                friendListTemp.push(friend)
-            }
-        })
-        //latestMessageTimeが新しい順に並び替え
-        friendListTemp.sort((a, b) => {
-            if (a.latestMessageTime < b.latestMessageTime) {
-                return 1
-            }
-            if (a.latestMessageTime > b.latestMessageTime) {
-                return -1
-            }
-            return 0
-        })
-        setFriendList(friendListTemp)
+        fetchData()
     }, [])
     return (
         <>
@@ -102,7 +105,7 @@ export default function ChatList(props) {
                 </div>
                 <div class="p-talk-list-rooms">
                     <ul class="p-talk-list-rooms__ul">
-                        {friendList.map((friend) => {
+                        {friendList.map((friend: { roomName: any; latestMessage: any; userName: any; isNewMessage: boolean; icon: string; roomid: string }) => {
                             return (
                                 <li>
                                     <User
@@ -138,11 +141,12 @@ export default function ChatList(props) {
         </>
     )
 }
-const AddFriendForm = (props) => {
-    const [addFriendInfo, setAddFriendInfo] = useState([])
+const AddFriendForm = (props: { addFriendKey: string; setShowAddFriendForm: (arg0: boolean) => void }) => {
+    const [addFriendInfo, setAddFriendInfo] = useState({} as any)
     const [isRequested, setIsRequested] = useState(false)
-    useEffect(async () => {
-        const addFriendKey = props.addFriendKey
+    useEffect(() => {
+        async function fetchData() {
+            const addFriendKey = props.addFriendKey
         const addFriendInfoTemp = await fetch(
             "/api/v1/friends/" + addFriendKey + "/info",
             {
@@ -151,6 +155,8 @@ const AddFriendForm = (props) => {
         )
         const res = await addFriendInfoTemp.json()
         setAddFriendInfo(res)
+        }
+        fetchData()
     }, [])
     return (
         <>

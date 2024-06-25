@@ -7,7 +7,7 @@ import { v4 } from "$std/uuid/mod.ts"
 const env = await load()
 const secretKey = env["rechapcha_seecret_key"]
 export const handler = {
-    async POST(req) {
+    async POST(req: { json: () => any }) {
         const data = await req.json()
         const rechapcha = data.rechapchaToken
         const isSecsusRechapcha = await fetch(
@@ -50,7 +50,7 @@ export const handler = {
                         const array2 = new Uint32Array(1)
                         self.crypto.getRandomValues(array2)
                         const checkCode = array2[0]
-                        if (isMailDuplicationTemp(email)) {
+                        if (await isMailDuplicationTemp(email)) {
                             await tempUsers.deleteOne({ mail: email })
                         }
                         await tempUsers.create({
@@ -257,7 +257,8 @@ export const handler = {
             //tempUsersから削除
             await tempUsers.deleteOne({ mail: mail })
             return new Response(JSON.stringify({ status: true }), {
-                headers: { "Content-Type": "application/json", status: 200 },
+                headers: { "Content-Type": "application/json",  },
+                status: 200
             })
         } else if (requirments === "checkMail") {
             const mailToken = await data.mailToken
@@ -341,16 +342,20 @@ export const handler = {
         }
     },
 }
-function ispassword(password) {
-    if (password.length < 8) {
-        return false
+function ispassword(password: string | any[]) {
+    if (typeof password === 'string') {
+        if (password.length < 8) {
+            return false;
+        }
+        if (!/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
+            return false;
+        }
+        return true;
+    } else {
+        return false;
     }
-    if (!/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
-        return false
-    }
-    return true
 }
-function splitMail(mail) {
+function splitMail(mail: string) {
     const mailSplit = mail.split("@")
     return mailSplit[0]
 }

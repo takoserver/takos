@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks"
 import ChatHeader from "./ChatHeader.tsx"
-import ChatList from "./ChatList.jsx"
+import ChatList from "./ChatList.tsx"
 import ChatTalk from "./ChatTalk.tsx"
 import SettingList from "../SettingList.tsx"
 import GetAddFriendKey from "./getAddFriendKey.tsx"

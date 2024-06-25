@@ -2,7 +2,7 @@ import { getCookies } from "$std/http/cookie.ts"
 import sessionID from "../../../../models/sessionid.ts"
 import csrftoken from "../../../../models/csrftoken.ts"
 export const handler = {
-    async POST(req, ctx) {
+    async POST(req: { json: () => any; headers: Headers }, ctx: { state: { data: { loggedIn: any; sessionid: any } } }) {
         if (!ctx.state.data.loggedIn) {
             return new Response(JSON.stringify({ "status": "Please Login" }), {
                 headers: { "Content-Type": "application/json" },
@@ -44,17 +44,17 @@ export const handler = {
                 return new Response(JSON.stringify({ "status": true }), {
                     headers: {
                         "Content-Type": "application/json",
-                        status: 200,
                         "Set-Cookie": `sessionid=; Path=/; Max-Age=0;`,
                     },
+                    status: 200,
                 })
             } else {
                 return new Response(JSON.stringify({ "status": false }), {
                     headers: {
                         "Content-Type": "application/json",
-                        status: 500,
                         "Set-Cookie": `sessionid=; Path=/; Max-Age=0;`,
                     },
+                    status: 500,
                 })
             }
         } catch (e) {
