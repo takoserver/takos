@@ -39,7 +39,7 @@ export default function RegisterForm(props: any) {
                     </div>
                     <div class="c-talk-rooms-box">
                         <div class="c-talk-rooms-name">
-                            <p>招待urlを作成</p>
+                            <p>招待URLを作成</p>
                         </div>
                         <div class="c-talk-rooms-msg">
                             <p></p>
@@ -48,23 +48,23 @@ export default function RegisterForm(props: any) {
                 </a>
             </li>
             {showModal && (
-                <div class="fixed z-50 w-full h-full overflow-hidden bg-[rgba(75,92,108,0.4)] left-0 top-0">
-                    <div class="bg-[#f0f0f5] lg:w-1/3 w-full h-full lg:h-4/6 mx-auto lg:my-[6.5%] p-5 lg:rounded-xl">
-                        <div class="flex justify-end">
+                <div class="fixed z-50 w-full h-full overflow-hidden bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-5">
+                    <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 max-w-md max-h-[320px] w-full h-full p-5 rounded-xl shadow-lg relative">
+                        <div class="absolute right-0 top-0 p-4">
                             <span
-                                class="ml-0 text-3xl text-black font-[bold] no-underline cursor-pointer"
+                                class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
                                 onClick={handleButtonClick}
                             >
                                 ×
                             </span>
                         </div>
-                        <div class="w-4/5 mx-auto my-0">
-                            <div class="text-center text-sm">
-                                <p class="text-black hover:underline font-medium text-3xl mt-8 mb-10">
+                        <div class="h-full px-2 lg:px-3 flex flex-col">
+                            <div class="text-sm">
+                                <p class="text-black dark:text-white font-bold text-3xl mt-4 mb-5">
                                     友達追加用URLを作成
                                 </p>
                             </div>
-                            <div>
+                            <div class="flex-grow flex flex-col justify-center">
                                 <Input
                                     value={value}
                                     setValue={setValue}
@@ -78,10 +78,11 @@ export default function RegisterForm(props: any) {
         </>
     )
 }
-async function copyToClipboard(value: string) {
+async function copyToClipboard(value: string, setIsCopied: any) {
     try {
         await navigator.clipboard.writeText(value)
-        alert("urlをコピーしました！")
+        setIsCopied(true)
+        setTimeout(() => setIsCopied(false), 3000)
     } catch (err) {
         alert("Failed to copy!")
     }
@@ -108,40 +109,67 @@ function Input({
         }
         updateurl()
     }
+
+    const [isCopied, setIsCopied] = useState(null)
     return (
         <>
             <label
                 for="email"
-                class="block mb-2 text-sm font-medium text-black"
+                class="block mb-2 text-sm font-medium text-black dark:text-white"
             >
                 友達登録用URL
             </label>
             <div class="w-full">
                 <input
                     value={value}
-                    class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                    class="bg-white border border-[rgba(0,0,0,5%)] shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_0_rgba(0,122,255,50%)] focus:shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_3px_rgba(0,122,255,50%)] text-gray-900 text-sm rounded-lg focus:ring-2 ring-1 ring-[rgba(0,0,0,5%)] outline-none block w-full p-2.5"
                     readonly
                 />
             </div>
-            <div class="flex w-full">
+            <div class="flex w-full pt-3 justify-between">
+                <div class="1/2">
+                    <button
+                        onClick={() => {
+                            copyToClipboard(value, setIsCopied)
+                        }}
+                        type="submit"
+                        class="rounded-lg bg-white ring-1 ring-[rgba(0,0,0,5%)] shadow-[0_0.5px_2.5px_rgba(0,0,0,30%)] px-5 py-2 hover:bg-gray-100 dark:bg-[#181818] dark:hover:bg-[#2b2b2b]"
+                    >
+                        コピー
+                    </button>
+                    <div class={isCopied ? "flex items-center mt-1" : "flex items-center mt-1 opacity-0"}>
+                        <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="16" height="16" viewBox="0 0 256 256" xml:space="preserve">
+                            <defs>
+                            </defs>
+                            <g
+                                style="stroke: none; stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 10; fill: none; fill-rule: nonzero; opacity: 1;"
+                                transform="translate(1.4065934065934016 1.4065934065934016) scale(2.81 2.81)"
+                            >
+                                <circle
+                                    cx="45"
+                                    cy="45"
+                                    r="45"
+                                    style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 10; fill: #259c5e; fill-rule: nonzero; opacity: 1;"
+                                    transform="  matrix(1 0 0 1 0 0) "
+                                />
+                                <path
+                                    d="M 38.478 64.5 c -0.01 0 -0.02 0 -0.029 0 c -1.3 -0.009 -2.533 -0.579 -3.381 -1.563 L 21.59 47.284 c -1.622 -1.883 -1.41 -4.725 0.474 -6.347 c 1.884 -1.621 4.725 -1.409 6.347 0.474 l 10.112 11.744 L 61.629 27.02 c 1.645 -1.862 4.489 -2.037 6.352 -0.391 c 1.862 1.646 2.037 4.49 0.391 6.352 l -26.521 30 C 40.995 63.947 39.767 64.5 38.478 64.5 z"
+                                    style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 10; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;"
+                                    transform=" matrix(1 0 0 1 0 0) "
+                                    stroke-linecap="round"
+                                />
+                            </g>
+                        </svg>
+                        <p class="text-sm text-[#259c5e] ml-1">コピーしました！</p>
+                    </div>
+                </div>
                 <div class="1/2">
                     <button
                         onClick={handleChangeUrl}
                         type="submit"
-                        class="text-white h-10 bg-blue-700 hover:bg-blue-800 focus:ring-4 p-2.5 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                        class="rounded-lg text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none"
                     >
-                        urlを変更
-                    </button>
-                </div>
-                <div class="1/2">
-                    <button
-                        onClick={() => {
-                            copyToClipboard(value)
-                        }}
-                        type="submit"
-                        class="text-white h-10 bg-blue-700 hover:bg-blue-800 focus:ring-4 p-2.5 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                    >
-                        コピー
+                        URLを変更
                     </button>
                 </div>
             </div>

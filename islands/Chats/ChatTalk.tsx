@@ -35,44 +35,47 @@ function TalkArea(props: any) {
     let DateState: any
     return (
         <>
-            <div class="p-talk-chat-title">
-                <button
-                    class="p-talk-chat-prev"
-                    onClick={() => {
-                        //なぜか送れない
-                        props.ws.send(
-                            JSON.stringify({
-                                type: "leave",
-                                sessionid: props.sessionid,
-                            }),
-                        )
-                        props.setIsChoiceUser(false)
-                        props.setRoomid("")
-                        //urlを変更
-                        history.pushState("", "", "/talk")
-                    }}
-                >
-                    <svg
-                        role="img"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        aria-labelledby="chevronLeftIconTitle"
-                        stroke="#000000"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        fill="none"
-                    >
-                        <title id="chevronLeftIconTitle">Chevron Left</title> <polyline points="14 18 8 12 14 6 14 6" />
-                    </svg>
-                </button>
-                <p>{props.roomName}</p>
-            </div>
             <div class="p-talk-chat-main" id="chat-area">
+                <div class="p-talk-chat-title">
+                    <div class="p-1 h-full">
+                        <button
+                            class="p-talk-chat-prev"
+                            onClick={() => {
+                                //なぜか送れない
+                                props.ws.send(
+                                    JSON.stringify({
+                                        type: "leave",
+                                        sessionid: props.sessionid,
+                                    }),
+                                )
+                                props.setIsChoiceUser(false)
+                                props.setRoomid("")
+                                //urlを変更
+                                history.pushState("", "", "/talk")
+                            }}
+                        >
+                            <svg
+                                role="img"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                stroke="#000000"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                fill="none"
+                            >
+                                <polyline points="14 18 8 12 14 6 14 6" />
+                            </svg>
+                        </button>
+                    </div>
+                    <p>{props.roomName}</p>
+                </div>
                 <ul class="p-talk-chat-main__ul">
-                    {props.talkData.map((data: any) => {
+                    {props.talkData.map((data: any, index: number) => {
+                        const date = new Date(data.time)
+
                         const isEncodeDate = new Date(DateState).toLocaleDateString() !==
-                            new Date(data.time).toLocaleDateString()
+                            date.toLocaleDateString()
                         DateState = data.time
                         if (data.type == "message") {
                             if (data.sender == props.userName) {
@@ -87,14 +90,36 @@ function TalkArea(props: any) {
                                                 />
                                             )}
                                             <ChatSendMessage
-                                                message={data.message}
-                                                time={data.time}
                                                 isRead={data.isRead}
+                                                time={data.time}
+                                                message={data.message}
                                                 isPrimary={true}
+                                                isSendPrimary={true}
                                             />
                                         </>
                                     )
                                 }
+                                // 前のメッセージから1分以上経過のものはprimaryに
+                                const prevDate = new Date(props.talkData[index - 1].time)
+                                if (date.getTime() - prevDate.getTime() > 60000) {
+                                    return (
+                                        <>
+                                            {isEncodeDate && (
+                                                <ChatDate
+                                                    date={new Date(data.time)}
+                                                />
+                                            )}
+                                            <ChatSendMessage
+                                                isRead={data.isRead}
+                                                time={data.time}
+                                                message={data.message}
+                                                isPrimary={true}
+                                                isSendPrimary={false}
+                                            />
+                                        </>
+                                    )
+                                }
+
                                 return (
                                     <>
                                         {isEncodeDate && (
@@ -103,10 +128,11 @@ function TalkArea(props: any) {
                                             />
                                         )}
                                         <ChatSendMessage
-                                            message={data.message}
-                                            time={data.time}
                                             isRead={data.isRead}
+                                            time={data.time}
+                                            message={data.message}
                                             isPrimary={false}
+                                            isSendPrimary={false}
                                         />
                                     </>
                                 )
@@ -122,11 +148,31 @@ function TalkArea(props: any) {
                                                 />
                                             )}
                                             <ChatOtherMessage
-                                                message={data.message}
                                                 time={data.time}
+                                                message={data.message}
                                                 sender={data.sender}
-                                                senderNickName={data
-                                                    .senderNickName}
+                                                senderNickName={data.senderNickName}
+                                                isPrimary={true}
+                                            />
+                                        </>
+                                    )
+                                }
+
+                                // 前のメッセージから1分以上経過のものはprimaryに
+                                const prevDate = new Date(props.talkData[index - 1].time)
+                                if (date.getTime() - prevDate.getTime() > 60000) {
+                                    return (
+                                        <>
+                                            {isEncodeDate && (
+                                                <ChatDate
+                                                    date={new Date(data.time)}
+                                                />
+                                            )}
+                                            <ChatOtherMessage
+                                                time={data.time}
+                                                message={data.message}
+                                                sender={data.sender}
+                                                senderNickName={data.senderNickName}
                                                 isPrimary={true}
                                             />
                                         </>
@@ -140,11 +186,11 @@ function TalkArea(props: any) {
                                             />
                                         )}
                                         <ChatOtherMessage
-                                            message={data.message}
                                             time={data.time}
+                                            message={data.message}
                                             sender={data.sender}
                                             senderNickName={data.senderNickName}
-                                            isPrimary={false} // Add isPrimary prop based on the index of the data
+                                            isPrimary={false}
                                         />
                                     </>
                                 )

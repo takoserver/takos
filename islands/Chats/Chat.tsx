@@ -8,6 +8,8 @@ import FriendRequest from "./FriendRequest.tsx"
 import User from "./AddFriend.tsx"
 import RequestFriendById from "./RequestFriendById.tsx"
 import messages from "../../models/messages.ts"
+import React from "https://esm.sh/preact@10.22.0/compat"
+import { setRenderState } from "$fresh/src/server/rendering/preact_hooks.ts"
 type TalkDataItem = {
     type: string
     message: string
@@ -28,7 +30,8 @@ interface FriendList {
 export default function Home(
     props: any,
 ) {
-    const [Message, setMessage] = useState("")
+    const [inputMessage, setInputMessage] = useState("")
+    const [isValidInput, setIsValidInput] = useState(false)
     const [page, setPage] = useState(props.page)
     const [isChoiceUser, setIsChoiceUser] = useState(
         props.roomid !== undefined && props.roomid !== "",
@@ -45,6 +48,84 @@ export default function Home(
     const [sessionid, setSessionid] = useState("")
     const [roomName, setRoomName] = useState("")
     const [talkData, setTalkData] = useState<TalkDataItem[]>([])
+
+    const sendHandler = () => {
+        if (inputMessage) {
+            if (
+                inputMessage.length > 100
+            ) {
+                alert(
+                    "100文字以内で入力してください",
+                )
+                return
+            }
+            const data = {
+                type: "message",
+                message: inputMessage,
+                roomid: roomid,
+                sessionid: sessionid,
+                messageType: "text",
+            }
+            ws?.send(
+                JSON.stringify(
+                    data,
+                ),
+            )
+            setInputMessage("")
+            setFriendList(
+                (prev: any) => {
+                    let temp = prev
+                    temp.map(
+                        (
+                            data: any,
+                        ) => {
+                            if (
+                                data.roomid ==
+                                    roomid
+                            ) {
+                                data.latestMessage = inputMessage
+                                data.latestMessageTime = new Date()
+                                    .toString()
+                                data.isNewMessage = false
+                            }
+                        },
+                    )
+                    temp.sort(
+                        (
+                            a: {
+                                latestMessageTime: number
+                            },
+                            b: {
+                                latestMessageTime: number
+                            },
+                        ) => {
+                            if (
+                                a.latestMessageTime <
+                                    b.latestMessageTime
+                            ) {
+                                return 1
+                            }
+                            if (
+                                a.latestMessageTime >
+                                    b.latestMessageTime
+                            ) {
+                                return -1
+                            }
+                            return 0
+                        },
+                    )
+                    return temp
+                },
+            )
+        }
+    }
+
+    useEffect(() => {
+        // 改行のみでないか
+        if (inputMessage && !/^[\n]+$/.test(inputMessage) && inputMessage.length <= 100) setIsValidInput(true)
+        else setIsValidInput(false)
+    }, [inputMessage])
+
     useEffect(() => {
         if (roomid !== null && roomid !== undefined && roomid !== "") {
             const fetchData = async () => {
@@ -224,7 +305,7 @@ export default function Home(
                                     friendList={friendList}
                                     setFriendList={setFriendList}
                                     setIsChoiceUser={setIsChoiceUser}
-                                    setRoomid={setRoomid}
+                                    roomid={roomid}
                                     ws={ws}
                                     sessionid={sessionid}
                                 />
@@ -272,18 +353,29 @@ export default function Home(
                                                     class="p-talk-chat-send__dummy"
                                                     aria-hidden="true"
                                                 >
+                                                    {inputMessage.split("\n").map((row, index) => (
+                                                        <React.Fragment key={index}>
+                                                            {row}
+                                                            <br />
+                                                        </React.Fragment>
+                                                    ))}
                                                 </div>
                                                 <label>
                                                     <textarea
                                                         class="p-talk-chat-send__textarea"
                                                         placeholder="メッセージを入力"
-                                                        value={Message}
-                                                        onChange={(e) => {
+                                                        value={inputMessage}
+                                                        onInput={(e) => {
                                                             if (e.target) {
-                                                                setMessage(
-                                                                    (e.target as HTMLTextAreaElement)
-                                                                        .value,
+                                                                setInputMessage(
+                                                                    (e.target as HTMLTextAreaElement).value,
                                                                 )
+                                                            }
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter" && !e.shiftKey) {
+                                                                e.preventDefault()
+                                                                sendHandler()
                                                             }
                                                         }}
                                                     >
@@ -291,82 +383,17 @@ export default function Home(
                                                 </label>
                                             </div>
                                             <div
-                                                class="p-talk-chat-send__file"
-                                                onClick={() => {
-                                                    if (Message) {
-                                                        if (
-                                                            Message.length > 100
-                                                        ) {
-                                                            alert(
-                                                                "100文字以内で入力してください",
-                                                            )
-                                                            return
-                                                        }
-                                                        const data = {
-                                                            type: "message",
-                                                            message: Message,
-                                                            roomid: roomid,
-                                                            sessionid: sessionid,
-                                                            messageType: "text",
-                                                        }
-                                                        ws?.send(
-                                                            JSON.stringify(
-                                                                data,
-                                                            ),
-                                                        )
-                                                        setMessage("")
-                                                        setFriendList(
-                                                            (prev: any) => {
-                                                                let temp = prev
-                                                                temp.map(
-                                                                    (
-                                                                        data: any,
-                                                                    ) => {
-                                                                        if (
-                                                                            data.roomid ==
-                                                                                roomid
-                                                                        ) {
-                                                                            data.latestMessage = Message
-                                                                            data.latestMessageTime = new Date()
-                                                                                .toString()
-                                                                            data.isNewMessage = false
-                                                                        }
-                                                                    },
-                                                                )
-                                                                temp.sort(
-                                                                    (
-                                                                        a: {
-                                                                            latestMessageTime: number
-                                                                        },
-                                                                        b: {
-                                                                            latestMessageTime: number
-                                                                        },
-                                                                    ) => {
-                                                                        if (
-                                                                            a.latestMessageTime <
-                                                                                b.latestMessageTime
-                                                                        ) {
-                                                                            return 1
-                                                                        }
-                                                                        if (
-                                                                            a.latestMessageTime >
-                                                                                b.latestMessageTime
-                                                                        ) {
-                                                                            return -1
-                                                                        }
-                                                                        return 0
-                                                                    },
-                                                                )
-                                                                return temp
-                                                            },
-                                                        )
-                                                    }
-                                                }}
+                                                class={isValidInput ? "p-talk-chat-send__button is-active" : "p-talk-chat-send__button"}
+                                                onClick={sendHandler}
                                             >
-                                                <img
-                                                    src="/ei-send.svg"
-                                                    alt="file"
-                                                />
+                                                <svg width="800px" height="800px" viewBox="0 0 28 28" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                                                    <g stroke="none" stroke-width="1" fill="none">
+                                                        <g fill="#000000">
+                                                            <path d="M3.78963301,2.77233335 L24.8609339,12.8499121 C25.4837277,13.1477699 25.7471402,13.8941055 25.4492823,14.5168992 C25.326107,14.7744476 25.1184823,14.9820723 24.8609339,15.1052476 L3.78963301,25.1828263 C3.16683929,25.4806842 2.42050372,25.2172716 2.12264586,24.5944779 C1.99321184,24.3238431 1.96542524,24.015685 2.04435886,23.7262618 L4.15190935,15.9983421 C4.204709,15.8047375 4.36814355,15.6614577 4.56699265,15.634447 L14.7775879,14.2474874 C14.8655834,14.2349166 14.938494,14.177091 14.9721837,14.0981464 L14.9897199,14.0353553 C15.0064567,13.9181981 14.9390703,13.8084248 14.8334007,13.7671556 L14.7775879,13.7525126 L4.57894108,12.3655968 C4.38011873,12.3385589 4.21671819,12.1952832 4.16392965,12.0016992 L2.04435886,4.22889788 C1.8627142,3.56286745 2.25538645,2.87569101 2.92141688,2.69404635 C3.21084015,2.61511273 3.51899823,2.64289932 3.78963301,2.77233335 Z">
+                                                            </path>
+                                                        </g>
+                                                    </g>
+                                                </svg>
                                             </div>
                                         </form>
                                     </div>

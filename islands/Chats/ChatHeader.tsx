@@ -51,7 +51,7 @@ export default function ChatHeader(
                         </a>
                     </li>
                     <li
-                        class="l-header__ul-item is-active"
+                        class={props.page === 1 ? "l-header__ul-item is-active" : "l-header__ul-item"}
                         onClick={() => {
                             props.setPage(1)
                             props.reset()
@@ -85,7 +85,7 @@ export default function ChatHeader(
                         </a>
                     </li>
                     <li
-                        class="l-header__ul-item"
+                        class={props.page === 2 ? "l-header__ul-item is-active" : "l-header__ul-item"}
                         onClick={() => {
                             props.setPage(2)
                             props.reset()
@@ -121,7 +121,7 @@ export default function ChatHeader(
                         </a>
                     </li>
                     <li
-                        class="l-header__ul-item"
+                        class={props.page === 3 ? "l-header__ul-item is-active" : "l-header__ul-item"}
                         onClick={() => {
                             props.setPage(3)
                             props.reset()
