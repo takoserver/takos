@@ -375,7 +375,7 @@ export default function Welcome({ sitekey }: { sitekey: string }) {
                                 </label>
                             </div>
                             <div
-                                class="p-talk-chat-send__file"
+                                class="p-talk-chat-send__button"
                                 onClick={() => {
                                     if (!message) return
                                     setChatData(

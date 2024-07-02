@@ -1,11 +1,12 @@
 export default function User(
-    { userName, latestMessage, icon, onClick, userName2, isNewMessage }: {
+    { userName, latestMessage, icon, onClick, userName2, isNewMessage, isSelected }: {
         userName: string
         latestMessage: string
         icon: string
         onClick?: () => void
         userName2?: string
         isNewMessage: boolean
+        isSelected: boolean
     },
 ) {
     let resultLatestMessage
@@ -14,24 +15,25 @@ export default function User(
     } else {
         resultLatestMessage = latestMessage
     }
+
+    const className = isSelected ? "c-talk-rooms is-active" : "c-talk-rooms"
+
     return (
         <>
-            <li class="c-talk-rooms" onClick={isOnClickUndefind(onClick)}>
+            <li class={className} onClick={isOnClickUndefind(onClick)}>
                 <a>
-                    <div class="flex">
-                        <div class="c-talk-rooms-icon">
-                            <img src={icon} />
-                        </div>
-                        <div class="c-talk-rooms-box">
-                            <div class="c-talk-rooms-name flex">
-                                <p>{userName}</p>
-                                <p class="ml-2" style={{ color: "gray" }}>
-                                    {userName2 == undefined ? ("") : userName2}
-                                </p>
-                            </div>
-                            <div class="c-talk-rooms-msg">
-                                <p>{resultLatestMessage}</p>
-                            </div>
+                    <div class="c-talk-rooms-icon">
+                        <img src={icon} />
+                    </div>
+                    <div class="c-talk-rooms-box">
+                        <p class="c-talk-rooms-name">
+                            <span class="c-talk-rooms-nickname">{userName}</span>
+                            <span class="c-talk-rooms-locate">
+                                {userName2 == undefined ? ("") : userName2}
+                            </span>
+                        </p>
+                        <div class="c-talk-rooms-msg">
+                            <p>{resultLatestMessage}</p>
                         </div>
                     </div>
                     {isNewMessage

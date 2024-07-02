@@ -499,7 +499,7 @@ html,body {
     position: relative;
 }
 
-.p-talk-chat-send__file {
+.p-talk-chat-send__button {
     height: 44px;
     width: 44px;
     padding: 6px;
@@ -507,7 +507,7 @@ html,body {
     flex-shrink: 0;
 }
 
-.p-talk-chat-send__file img {
+.p-talk-chat-send__button img {
     border-radius: 100px;
     padding: 4px;
     width: 100%;
@@ -515,7 +515,7 @@ html,body {
     cursor: pointer;
 }
 
-.p-talk-chat-send__file img:hover {
+.p-talk-chat-send__button img:hover {
     background-color: #ededf3;
 }
 

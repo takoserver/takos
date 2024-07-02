@@ -248,7 +248,7 @@ async function sendMessage(
         )
         return
     }
-    if(MessageType == "text") {
+    if (MessageType == "text") {
         if (session.roomType === "friend") {
             if (message.length > maxMessage) {
                 return
@@ -402,9 +402,9 @@ async function sendMessage(
             )
             return
         }
-    } else if(MessageType == "image") {
-        if(session.roomType === "friend") {
-            if(image === undefined) return
+    } else if (MessageType == "image") {
+        if (session.roomType === "friend") {
+            if (image === undefined) return
             const result = await messages.create({
                 userid: session.uuid,
                 roomid: roomID,

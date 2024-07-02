@@ -1,7 +1,9 @@
 import { useEffect, useState } from "preact/hooks"
 import User from "../../components/Chats/ChatUserList.tsx"
 
-export default function ChatList(props: { friendList: any; setFriendList: any; ws: { send: (arg0: string) => void }; sessionid: any; setIsChoiceUser: (arg0: boolean) => void }) {
+export default function ChatList(
+    props: { friendList: any; setFriendList: any; ws: { send: (arg0: string) => void } | null; sessionid: any; setIsChoiceUser: (arg0: boolean) => void; roomid: string | null },
+) {
     const friendList = props.friendList
     const setFriendList = props.setFriendList
     useEffect(() => {
@@ -25,7 +27,7 @@ export default function ChatList(props: { friendList: any; setFriendList: any; w
                 setFriendList(
                     [
                         {
-                            userName: "友達がいません",
+                            roomName: "友達がいません",
                             latestMessage: "友達を追加してみましょう！",
                             icon: "/people.png",
                         },
@@ -98,7 +100,7 @@ export default function ChatList(props: { friendList: any; setFriendList: any; w
                         <label>
                             <input
                                 type="text"
-                                placeholder="トークルーム・メッセージを検索"
+                                placeholder="検索"
                             />
                         </label>
                     </form>
@@ -106,16 +108,18 @@ export default function ChatList(props: { friendList: any; setFriendList: any; w
                 <div class="p-talk-list-rooms">
                     <ul class="p-talk-list-rooms__ul">
                         {friendList.map((friend: { roomName: any; latestMessage: any; userName: any; isNewMessage: boolean; icon: string; roomid: string }) => {
+                            console.log(friend.roomid, props.roomid)
                             return (
-                                <li>
-                                    <User
-                                        userName={friend.roomName}
-                                        latestMessage={friend.latestMessage}
-                                        userName2={friend.userName}
-                                        isNewMessage={friend.isNewMessage}
-                                        icon={window.location.protocol + "//" +
-                                            window.location.host + friend.icon}
-                                        onClick={() => {
+                                <User
+                                    userName={friend.roomName}
+                                    latestMessage={friend.latestMessage}
+                                    userName2={friend.userName}
+                                    isNewMessage={friend.isNewMessage}
+                                    icon={window.location.protocol + "//" +
+                                        window.location.host + friend.icon}
+                                    isSelected={friend.roomid === props.roomid}
+                                    onClick={() => {
+                                        if (props.ws) {
                                             props.ws.send(
                                                 JSON.stringify({
                                                     type: "joinRoom",
@@ -130,9 +134,9 @@ export default function ChatList(props: { friendList: any; setFriendList: any; w
                                             )
                                             props.setIsChoiceUser(true)
                                             friend.isNewMessage = false
-                                        }}
-                                    />
-                                </li>
+                                        }
+                                    }}
+                                />
                             )
                         })}
                     </ul>
@@ -147,14 +151,14 @@ const AddFriendForm = (props: { addFriendKey: string; setShowAddFriendForm: (arg
     useEffect(() => {
         async function fetchData() {
             const addFriendKey = props.addFriendKey
-        const addFriendInfoTemp = await fetch(
-            "/api/v1/friends/" + addFriendKey + "/info",
-            {
-                method: "GET",
-            },
-        )
-        const res = await addFriendInfoTemp.json()
-        setAddFriendInfo(res)
+            const addFriendInfoTemp = await fetch(
+                "/api/v1/friends/" + addFriendKey + "/info",
+                {
+                    method: "GET",
+                },
+            )
+            const res = await addFriendInfoTemp.json()
+            setAddFriendInfo(res)
         }
         fetchData()
     }, [])

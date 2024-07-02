@@ -257,8 +257,8 @@ export const handler = {
             //tempUsersから削除
             await tempUsers.deleteOne({ mail: mail })
             return new Response(JSON.stringify({ status: true }), {
-                headers: { "Content-Type": "application/json",  },
-                status: 200
+                headers: { "Content-Type": "application/json" },
+                status: 200,
             })
         } else if (requirments === "checkMail") {
             const mailToken = await data.mailToken
@@ -343,16 +343,16 @@ export const handler = {
     },
 }
 function ispassword(password: string | any[]) {
-    if (typeof password === 'string') {
+    if (typeof password === "string") {
         if (password.length < 8) {
-            return false;
+            return false
         }
         if (!/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
-            return false;
+            return false
         }
-        return true;
+        return true
     } else {
-        return false;
+        return false
     }
 }
 function splitMail(mail: string) {

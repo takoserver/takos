@@ -1,27 +1,34 @@
 const ChatOtherMessage = (
-    { sender, message, time, isPrimary, senderNickName }: {
-        sender: string
-        message: string
+    { time, message, sender, senderNickName, isPrimary }: {
         time: string
-        isPrimary: boolean
+        message: string
+        sender: string
         senderNickName: string
-        },
+        isPrimary: boolean
+    },
 ) => {
-    const isPrimaryClass = isPrimary ? "c-talk-chat other primary" : "c-talk-chat other"
+    const isPrimaryClass = isPrimary ? "c-talk-chat other primary" : "c-talk-chat other subsequent"
+
     return (
         <li class={isPrimaryClass}>
             <div class="c-talk-chat-box">
-                <div class="c-talk-chat-icon">
-                    <img
-                        src={`/api/v1/friends/${sender}/icon/`}
-                        alt=""
-                        class="rounded-full text-white dark:text-black"
-                    />
-                </div>
-                <div class="c-talk-chat-right">
-                    <div class="c-talk-chat-name">
-                        <p>{senderNickName}</p>
+                {isPrimary && (
+                    <div class="c-talk-chat-icon">
+                        <img
+                            src={`/api/v1/friends/${sender}/icon/`}
+                            alt=""
+                            class="rounded-full text-white dark:text-black"
+                        />
                     </div>
+                )}
+
+                <div class="c-talk-chat-right">
+                    {isPrimary && (
+                        <div class="c-talk-chat-name">
+                            <p>{senderNickName}</p>
+                        </div>
+                    )}
+
                     <div class="c-talk-chat-msg">
                         <p>
                             {convertLineBreak(message)}
