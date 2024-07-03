@@ -37,10 +37,22 @@ import * as $api_v1_users_nickname from "./routes/api/v1/users/nickname.ts"
 import * as $api_v1_users_username from "./routes/api/v1/users/username.ts"
 import * as $api_v1_welcome from "./routes/api/v1/welcome.ts"
 import * as $api_v2_client_csrftoken from "./routes/api/v2/client/csrftoken.ts"
+import * as $api_v2_client_friends_request_friend from "./routes/api/v2/client/friends/request/friend.ts"
+import * as $api_v2_client_friends_request_join_room from "./routes/api/v2/client/friends/request/join/room.ts"
+import * as $api_v2_client_main from "./routes/api/v2/client/main.ts"
+import * as $api_v2_client_sessions_login from "./routes/api/v2/client/sessions/login.ts"
+import * as $api_v2_client_sessions_logout from "./routes/api/v2/client/sessions/logout.ts"
+import * as $api_v2_client_sessions_registers_auth from "./routes/api/v2/client/sessions/registers/auth.ts"
+import * as $api_v2_client_sessions_registers_check from "./routes/api/v2/client/sessions/registers/check.ts"
+import * as $api_v2_client_sessions_registers_temp from "./routes/api/v2/client/sessions/registers/temp.ts"
 import * as $api_v2_client_talks_ID_image from "./routes/api/v2/client/talks/[ID]/image.ts"
 import * as $api_v2_client_talks_friendlist from "./routes/api/v2/client/talks/friendlist.ts"
 import * as $api_v2_client_welcome from "./routes/api/v2/client/welcome.ts"
-import * as $api_v2_main from "./routes/api/v2/main.ts"
+import * as $api_v2_server_talks_data_load from "./routes/api/v2/server/talks/data/load.ts"
+import * as $api_v2_server_talks_data_start from "./routes/api/v2/server/talks/data/start.ts"
+import * as $api_v2_server_talks_delete from "./routes/api/v2/server/talks/delete.ts"
+import * as $api_v2_server_talks_read from "./routes/api/v2/server/talks/read.ts"
+import * as $api_v2_server_talks_send from "./routes/api/v2/server/talks/send.ts"
 import * as $api_v2_server_token from "./routes/api/v2/server/token.ts"
 import * as $home_roomid_ from "./routes/home/[roomid].tsx"
 import * as $home_index from "./routes/home/index.tsx"
@@ -107,10 +119,22 @@ const manifest = {
     "./routes/api/v1/users/username.ts": $api_v1_users_username,
     "./routes/api/v1/welcome.ts": $api_v1_welcome,
     "./routes/api/v2/client/csrftoken.ts": $api_v2_client_csrftoken,
+    "./routes/api/v2/client/friends/request/friend.ts": $api_v2_client_friends_request_friend,
+    "./routes/api/v2/client/friends/request/join/room.ts": $api_v2_client_friends_request_join_room,
+    "./routes/api/v2/client/main.ts": $api_v2_client_main,
+    "./routes/api/v2/client/sessions/login.ts": $api_v2_client_sessions_login,
+    "./routes/api/v2/client/sessions/logout.ts": $api_v2_client_sessions_logout,
+    "./routes/api/v2/client/sessions/registers/auth.ts": $api_v2_client_sessions_registers_auth,
+    "./routes/api/v2/client/sessions/registers/check.ts": $api_v2_client_sessions_registers_check,
+    "./routes/api/v2/client/sessions/registers/temp.ts": $api_v2_client_sessions_registers_temp,
     "./routes/api/v2/client/talks/[ID]/image.ts": $api_v2_client_talks_ID_image,
     "./routes/api/v2/client/talks/friendlist.ts": $api_v2_client_talks_friendlist,
     "./routes/api/v2/client/welcome.ts": $api_v2_client_welcome,
-    "./routes/api/v2/main.ts": $api_v2_main,
+    "./routes/api/v2/server/talks/data/load.ts": $api_v2_server_talks_data_load,
+    "./routes/api/v2/server/talks/data/start.ts": $api_v2_server_talks_data_start,
+    "./routes/api/v2/server/talks/delete.ts": $api_v2_server_talks_delete,
+    "./routes/api/v2/server/talks/read.ts": $api_v2_server_talks_read,
+    "./routes/api/v2/server/talks/send.ts": $api_v2_server_talks_send,
     "./routes/api/v2/server/token.ts": $api_v2_server_token,
     "./routes/home/[roomid].tsx": $home_roomid_,
     "./routes/home/index.tsx": $home_index,
