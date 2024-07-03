@@ -13,6 +13,8 @@ export default function Setting(props: any) {
         onClick={() => {
           setSettingPage("profile")
         }}
+        isNewMessage={false}
+        isSelected={false}
       />
       <Friends
         isShow={settingPage === "profile"}
@@ -27,9 +29,15 @@ export default function Setting(props: any) {
           props.setSettingPage("friends")
           props.setIsChoiceUser(true)
         }}
+        isNewMessage={false}
+        isSelected={false}
+        userName2={""}
       />
       <User
         userName="ログアウト"
+        isNewMessage={false}
+        isSelected={false}
+        userName2={""}
         latestMessage="ログアウトします"
         icon="/people.webp"
         onClick={() => {
