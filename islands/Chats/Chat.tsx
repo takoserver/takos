@@ -48,7 +48,6 @@ export default function Home(
   const [sessionid, setSessionid] = useState("")
   const [roomName, setRoomName] = useState("")
   const [talkData, setTalkData] = useState<TalkDataItem[]>([])
-
   const sendHandler = () => {
     if (inputMessage) {
       if (
