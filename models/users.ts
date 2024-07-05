@@ -72,35 +72,6 @@ const usersSchema = new mongoose.Schema({
   addFriendKey: {
     type: String,
   },
-  config: {
-    type: {
-      theme: {
-        type: String,
-        enum: ["light", "dark"],
-        default: "light",
-      },
-      language: {
-        type: String,
-        enum: ["ja", "en"],
-        default: "ja",
-      },
-      notification: {
-        type: Boolean,
-        default: true,
-      },
-      //外部サーバーのユーザーを許可するかどうか
-      allowOtherUser: {
-        type: Boolean,
-        default: true,
-      },
-      //idによる友達追加を許可するかどうか
-      allowAddFriendByID: {
-        type: Boolean,
-        default: true,
-      },
-      //
-    },
-  },
   timestamp: { type: Date, default: Date.now },
 })
 const users = mongoose.model("users", usersSchema)
