@@ -1,30 +1,29 @@
 interface serverRequest {
-    host: string;
-    body: string;
+  host: string
+  body: string
 }
 interface profileRequest {
-    userName?: string;
-    userId?: string;
-    friendName?: string;
-    friendId?: string;
+  userName?: string
+  userId?: string
+  friendName?: string
+  friendId?: string
 }
 interface profileResonse {
-    userName: string;
-    userId: string;
-    nickName: string;
+  userName: string
+  userId: string
+  nickName: string
 }
 interface Profile {
-    userName: string;
-    userId: string;
-    nickName: string;
-    age?: number;
+  userName: string
+  userId: string
+  nickName: string
+  age?: number
 }
 const types = {
-    client: {
-        block: {
-            user: {
-            }
-        },
-    }
+  client: {
+    block: {
+      user: {},
+    },
+  },
 }
-export default types;
+export default types

@@ -8,3 +8,4 @@ node_modules/
 # Fresh build directory
 _fresh/
 files/
+old.env

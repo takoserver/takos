@@ -7,7 +7,7 @@ export const activitySchama = new mongoose.Schema({
   activity: {
     type: String,
     required: true,
-    enum: ["login", "logout", "register", "delete", "update","accept","group","block","create","delete","flag","ignore","invite","join","read","req","talk","update"],
+    enum: ["login", "logout", "register", "delete", "update", "accept", "group", "block", "create", "delete", "flag", "ignore", "invite", "join", "read", "req", "talk", "update"],
   },
   activityObject: {
     type: Object,
