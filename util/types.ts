@@ -19,3 +19,12 @@ interface Profile {
     nickName: string;
     age?: number;
 }
+const types = {
+    client: {
+        block: {
+            user: {
+            }
+        },
+    }
+}
+export default types;

@@ -68,13 +68,10 @@ import * as $api_v2_client_users_icon from "./routes/api/v2/client/users/icon.ts
 import * as $api_v2_client_users_profile from "./routes/api/v2/client/users/profile.ts"
 import * as $api_v2_client_users_settings from "./routes/api/v2/client/users/settings.ts"
 import * as $api_v2_client_welcome from "./routes/api/v2/client/welcome.ts"
+import * as $api_v2_server_activity_accept_community from "./routes/api/v2/server/activity/accept/community.ts"
 import * as $api_v2_server_activity_accept_friend from "./routes/api/v2/server/activity/accept/friend.ts"
 import * as $api_v2_server_activity_accept_group from "./routes/api/v2/server/activity/accept/group.ts"
 import * as $api_v2_server_activity_block_user from "./routes/api/v2/server/activity/block/user.ts"
-import * as $api_v2_server_activity_create_community from "./routes/api/v2/server/activity/create/community.ts"
-import * as $api_v2_server_activity_create_group from "./routes/api/v2/server/activity/create/group.ts"
-import * as $api_v2_server_activity_delete_community from "./routes/api/v2/server/activity/delete/community.ts"
-import * as $api_v2_server_activity_delete_group from "./routes/api/v2/server/activity/delete/group.ts"
 import * as $api_v2_server_activity_delete_message from "./routes/api/v2/server/activity/delete/message.ts"
 import * as $api_v2_server_activity_flag_community from "./routes/api/v2/server/activity/flag/community.ts"
 import * as $api_v2_server_activity_flag_group from "./routes/api/v2/server/activity/flag/group.ts"
@@ -83,10 +80,9 @@ import * as $api_v2_server_activity_ignore_friend from "./routes/api/v2/server/a
 import * as $api_v2_server_activity_ignore_group from "./routes/api/v2/server/activity/ignore/group.ts"
 import * as $api_v2_server_activity_invite_group from "./routes/api/v2/server/activity/invite/group.ts"
 import * as $api_v2_server_activity_join_community from "./routes/api/v2/server/activity/join/community.ts"
-import * as $api_v2_server_activity_join_group from "./routes/api/v2/server/activity/join/group.ts"
 import * as $api_v2_server_activity_read_message from "./routes/api/v2/server/activity/read/message.ts"
-import * as $api_v2_server_activity_read_request from "./routes/api/v2/server/activity/read/request.ts"
-import * as $api_v2_server_activity_req_friend from "./routes/api/v2/server/activity/req/friend.ts"
+import * as $api_v2_server_activity_request_community from "./routes/api/v2/server/activity/request/community.ts"
+import * as $api_v2_server_activity_request_friend from "./routes/api/v2/server/activity/request/friend.ts"
 import * as $api_v2_server_activity_talk_audio from "./routes/api/v2/server/activity/talk/audio.ts"
 import * as $api_v2_server_activity_talk_image from "./routes/api/v2/server/activity/talk/image.ts"
 import * as $api_v2_server_activity_talk_text from "./routes/api/v2/server/activity/talk/text.ts"
@@ -95,11 +91,13 @@ import * as $api_v2_server_activity_update_profile from "./routes/api/v2/server/
 import * as $api_v2_server_activity_update_text from "./routes/api/v2/server/activity/update/text.ts"
 import * as $api_v2_server_blocked from "./routes/api/v2/server/blocked.ts"
 import * as $api_v2_server_info from "./routes/api/v2/server/info.ts"
-import * as $api_v2_server_information_users_ID_icon_friend from "./routes/api/v2/server/information/users/[ID]/icon/friend.ts"
-import * as $api_v2_server_information_users_ID_icon_friendcode from "./routes/api/v2/server/information/users/[ID]/icon/friendcode.ts"
-import * as $api_v2_server_information_users_ID_icon_group from "./routes/api/v2/server/information/users/[ID]/icon/group.ts"
-import * as $api_v2_server_information_users_ID_name from "./routes/api/v2/server/information/users/[ID]/name.ts"
-import * as $api_v2_server_information_users_ID_uuid from "./routes/api/v2/server/information/users/[ID]/uuid.ts"
+import * as $api_v2_server_information_talk_ID_image from "./routes/api/v2/server/information/talk/[ID]/image.ts"
+import * as $api_v2_server_information_talk_ID_index from "./routes/api/v2/server/information/talk/[ID]/index.ts"
+import * as $api_v2_server_information_users_friendID_icon_friend from "./routes/api/v2/server/information/users/[friendid]/icon/friend.ts"
+import * as $api_v2_server_information_users_friendID_icon_friendcode from "./routes/api/v2/server/information/users/[friendid]/icon/friendcode.ts"
+import * as $api_v2_server_information_users_friendID_icon_group from "./routes/api/v2/server/information/users/[friendid]/icon/group.ts"
+import * as $api_v2_server_information_users_friendID_name from "./routes/api/v2/server/information/users/[friendid]/name.ts"
+import * as $api_v2_server_information_users_friendID_uuid from "./routes/api/v2/server/information/users/[friendid]/uuid.ts"
 import * as $api_v2_server_information_users_profile from "./routes/api/v2/server/information/users/profile.ts"
 import * as $api_v2_server_pubkey from "./routes/api/v2/server/pubkey.ts"
 import * as $home_roomid_ from "./routes/home/[roomid].tsx"
@@ -198,13 +196,10 @@ const manifest = {
     "./routes/api/v2/client/users/profile.ts": $api_v2_client_users_profile,
     "./routes/api/v2/client/users/settings.ts": $api_v2_client_users_settings,
     "./routes/api/v2/client/welcome.ts": $api_v2_client_welcome,
+    "./routes/api/v2/server/activity/accept/community.ts": $api_v2_server_activity_accept_community,
     "./routes/api/v2/server/activity/accept/friend.ts": $api_v2_server_activity_accept_friend,
     "./routes/api/v2/server/activity/accept/group.ts": $api_v2_server_activity_accept_group,
     "./routes/api/v2/server/activity/block/user.ts": $api_v2_server_activity_block_user,
-    "./routes/api/v2/server/activity/create/community.ts": $api_v2_server_activity_create_community,
-    "./routes/api/v2/server/activity/create/group.ts": $api_v2_server_activity_create_group,
-    "./routes/api/v2/server/activity/delete/community.ts": $api_v2_server_activity_delete_community,
-    "./routes/api/v2/server/activity/delete/group.ts": $api_v2_server_activity_delete_group,
     "./routes/api/v2/server/activity/delete/message.ts": $api_v2_server_activity_delete_message,
     "./routes/api/v2/server/activity/flag/community.ts": $api_v2_server_activity_flag_community,
     "./routes/api/v2/server/activity/flag/group.ts": $api_v2_server_activity_flag_group,
@@ -213,10 +208,9 @@ const manifest = {
     "./routes/api/v2/server/activity/ignore/group.ts": $api_v2_server_activity_ignore_group,
     "./routes/api/v2/server/activity/invite/group.ts": $api_v2_server_activity_invite_group,
     "./routes/api/v2/server/activity/join/community.ts": $api_v2_server_activity_join_community,
-    "./routes/api/v2/server/activity/join/group.ts": $api_v2_server_activity_join_group,
     "./routes/api/v2/server/activity/read/message.ts": $api_v2_server_activity_read_message,
-    "./routes/api/v2/server/activity/read/request.ts": $api_v2_server_activity_read_request,
-    "./routes/api/v2/server/activity/req/friend.ts": $api_v2_server_activity_req_friend,
+    "./routes/api/v2/server/activity/request/community.ts": $api_v2_server_activity_request_community,
+    "./routes/api/v2/server/activity/request/friend.ts": $api_v2_server_activity_request_friend,
     "./routes/api/v2/server/activity/talk/audio.ts": $api_v2_server_activity_talk_audio,
     "./routes/api/v2/server/activity/talk/image.ts": $api_v2_server_activity_talk_image,
     "./routes/api/v2/server/activity/talk/text.ts": $api_v2_server_activity_talk_text,
@@ -225,11 +219,13 @@ const manifest = {
     "./routes/api/v2/server/activity/update/text.ts": $api_v2_server_activity_update_text,
     "./routes/api/v2/server/blocked.ts": $api_v2_server_blocked,
     "./routes/api/v2/server/info.ts": $api_v2_server_info,
-    "./routes/api/v2/server/information/users/[ID]/icon/friend.ts": $api_v2_server_information_users_ID_icon_friend,
-    "./routes/api/v2/server/information/users/[ID]/icon/friendcode.ts": $api_v2_server_information_users_ID_icon_friendcode,
-    "./routes/api/v2/server/information/users/[ID]/icon/group.ts": $api_v2_server_information_users_ID_icon_group,
-    "./routes/api/v2/server/information/users/[ID]/name.ts": $api_v2_server_information_users_ID_name,
-    "./routes/api/v2/server/information/users/[ID]/uuid.ts": $api_v2_server_information_users_ID_uuid,
+    "./routes/api/v2/server/information/talk/[ID]/image.ts": $api_v2_server_information_talk_ID_image,
+    "./routes/api/v2/server/information/talk/[ID]/index.ts": $api_v2_server_information_talk_ID_index,
+    "./routes/api/v2/server/information/users/[friendID]/icon/friend.ts": $api_v2_server_information_users_friendID_icon_friend,
+    "./routes/api/v2/server/information/users/[friendID]/icon/friendcode.ts": $api_v2_server_information_users_friendID_icon_friendcode,
+    "./routes/api/v2/server/information/users/[friendID]/icon/group.ts": $api_v2_server_information_users_friendID_icon_group,
+    "./routes/api/v2/server/information/users/[friendID]/name.ts": $api_v2_server_information_users_friendID_name,
+    "./routes/api/v2/server/information/users/[friendID]/uuid.ts": $api_v2_server_information_users_friendID_uuid,
     "./routes/api/v2/server/information/users/profile.ts": $api_v2_server_information_users_profile,
     "./routes/api/v2/server/pubkey.ts": $api_v2_server_pubkey,
     "./routes/home/[roomid].tsx": $home_roomid_,
