@@ -3,7 +3,7 @@ import remoteServers from "../../../../models/remoteServers.ts"
 import serverInfo from "../../../../models/serverInfo.ts"
 import { load } from "$std/dotenv/mod.ts"
 const env = await load()
-const serverDomain = env["serverDomain"]
+const serverDomain = env["DOMAIN"]
 // Denoの標準ライブラリから必要な関数をインポート
 
 async function loadDenoConfig() {

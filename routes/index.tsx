@@ -84,7 +84,7 @@ export default function Home({ data }: { data: any }) {
             isAddFriendForm={true}
             AddFriendKey={data.key}
             userNickName={data.nickName}
-            userName={data.userName + "@" + env["serverDomain"]}
+            userName={data.userName + "@" + env["DOMAIN"]}
             wsSSL={wsSSL}
           >
           </Chat>
@@ -95,7 +95,7 @@ export default function Home({ data }: { data: any }) {
             isAddFriendForm={false}
             index={true}
             userNickName={data.nickName}
-            userName={data.userName + "@" + env["serverDomain"]}
+            userName={data.userName + "@" + env["DOMAIN"]}
           >
           </Chat>
         )}

@@ -15,6 +15,16 @@ export const serverInfoSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  privatekey: {
+    type: String,
+  },
+  publickey: {
+    type: String,
+  },
+  lastupdatekey: {
+    type: Date,
+    default: Date.now,
+  },
 })
 const ssessionID = mongoose.model("serverInfo", serverInfoSchema)
 export default ssessionID

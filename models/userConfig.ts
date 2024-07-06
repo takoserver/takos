@@ -14,23 +14,23 @@ export const friendConfigSchama = new mongoose.Schema({
     type: [String],
     required: true,
     validate: {
-      validator: function(v: string[]) {
-        const unique = new Set(v);
-        return unique.size === v.length;
+      validator: function (v: string[]) {
+        const unique = new Set(v)
+        return unique.size === v.length
       },
-      message: (props: { value: any }) => `${props.value} contains duplicate entries!`
-    }
+      message: (props: { value: any }) => `${props.value} contains duplicate entries!`,
+    },
   },
   blockServers: {
     type: [String],
     required: true,
     validate: {
-      validator: function(v: string[]) {
-        const unique = new Set(v);
-        return unique.size === v.length;
+      validator: function (v: string[]) {
+        const unique = new Set(v)
+        return unique.size === v.length
       },
-      message: (props: { value: any }) => `${props.value} contains duplicate entries!`
-    }
+      message: (props: { value: any }) => `${props.value} contains duplicate entries!`,
+    },
   },
   allowOtherServerUsers: {
     type: Boolean,

@@ -14,11 +14,11 @@ export const handler = {
     }
     const body = await req.json()
     const domain = body.domain
-    if(await takos.checkCsrfToken(body.csrftoken) === false) {
-        return new Response(JSON.stringify({ status: false, message: "Invalid CSRF token" }), {
-            headers: { "Content-Type": "application/json" },
-            status: 400,
-        })
+    if (await takos.checkCsrfToken(body.csrftoken) === false) {
+      return new Response(JSON.stringify({ status: false, message: "Invalid CSRF token" }), {
+        headers: { "Content-Type": "application/json" },
+        status: 400,
+      })
     }
     if (typeof domain !== "string") {
       return new Response(JSON.stringify({ status: false, message: "Invalid domain" }), {

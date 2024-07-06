@@ -103,7 +103,7 @@ export default function Home({ data }: { data: any }) {
         roomid={data.roomid}
         settings={settings}
         userNickName={data.nickName}
-        userName={data.userName + "@" + env["serverDomain"]}
+        userName={data.userName + "@" + env["DOMAIN"]}
         wsSSL={wsSSL}
       >
       </Chat>
