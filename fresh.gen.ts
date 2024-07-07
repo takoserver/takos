@@ -5,39 +5,10 @@
 import * as $_404 from "./routes/_404.tsx"
 import * as $_app from "./routes/_app.tsx"
 import * as $_middleware from "./routes/_middleware.ts"
-import * as $addFriend_roomid_ from "./routes/addFriend/[roomid].tsx"
-import * as $addFriend_index from "./routes/addFriend/index.tsx"
-import * as $api_v1_chats_ID_image from "./routes/api/v1/chats/[ID]/image.ts"
-import * as $api_v1_chats_friendList from "./routes/api/v1/chats/friendList.ts"
-import * as $api_v1_chats_friendkey from "./routes/api/v1/chats/friendkey.ts"
-import * as $api_v1_chats_talkdata from "./routes/api/v1/chats/talkdata.ts"
-import * as $api_v1_csrftoken from "./routes/api/v1/csrftoken.ts"
-import * as $api_v1_friends_ID_icon from "./routes/api/v1/friends/[ID]/icon.ts"
-import * as $api_v1_friends_ID_info from "./routes/api/v1/friends/[ID]/info.ts"
-import * as $api_v1_friends_reqLists from "./routes/api/v1/friends/reqLists.ts"
-import * as $api_v1_friends_request from "./routes/api/v1/friends/request.ts"
-import * as $api_v1_logins_login from "./routes/api/v1/logins/login.ts"
-import * as $api_v1_logins_logout from "./routes/api/v1/logins/logout.ts"
-import * as $api_v1_logins_register from "./routes/api/v1/logins/register.ts"
-import * as $api_v1_main from "./routes/api/v1/main.ts"
-import * as $api_v1_server_friends_ID_icon from "./routes/api/v1/server/friends/[ID]/icon.ts"
-import * as $api_v1_server_friends_ID_profile from "./routes/api/v1/server/friends/[ID]/profile.ts"
-import * as $api_v1_server_friends_request from "./routes/api/v1/server/friends/request.ts"
-import * as $api_v1_server_talk_image from "./routes/api/v1/server/talk/image.ts"
-import * as $api_v1_server_talk_read from "./routes/api/v1/server/talk/read.ts"
-import * as $api_v1_server_talk_send from "./routes/api/v1/server/talk/send.ts"
-import * as $api_v1_server_talk_talkdata from "./routes/api/v1/server/talk/talkdata.ts"
-import * as $api_v1_server_token from "./routes/api/v1/server/token.ts"
-import * as $api_v1_server_users_ID_name from "./routes/api/v1/server/users/[ID]/name.ts"
-import * as $api_v1_server_users_ID_uuid from "./routes/api/v1/server/users/[ID]/uuid.ts"
-import * as $api_v1_setting_index from "./routes/api/v1/setting/index.ts"
-import * as $api_v1_users_icon from "./routes/api/v1/users/icon.ts"
-import * as $api_v1_users_info_icon from "./routes/api/v1/users/info/icon.ts"
-import * as $api_v1_users_nickname from "./routes/api/v1/users/nickname.ts"
-import * as $api_v1_users_username from "./routes/api/v1/users/username.ts"
-import * as $api_v1_welcome from "./routes/api/v1/welcome.ts"
 import * as $api_v2_client_block_server from "./routes/api/v2/client/block/server.ts"
 import * as $api_v2_client_block_user from "./routes/api/v2/client/block/user.ts"
+import * as $api_v2_client_create_community from "./routes/api/v2/client/create/community.ts"
+import * as $api_v2_client_create_group from "./routes/api/v2/client/create/group.ts"
 import * as $api_v2_client_csrftoken from "./routes/api/v2/client/csrftoken.ts"
 import * as $api_v2_client_friends_info_ID_icon_friend from "./routes/api/v2/client/friends/info/[ID]/icon/friend.ts"
 import * as $api_v2_client_friends_info_ID_icon_friendcode from "./routes/api/v2/client/friends/info/[ID]/icon/friendcode.ts"
@@ -64,8 +35,9 @@ import * as $api_v2_client_talks_sending_update from "./routes/api/v2/client/tal
 import * as $api_v2_client_talks_sending_video from "./routes/api/v2/client/talks/sending/video.ts"
 import * as $api_v2_client_unblock_server from "./routes/api/v2/client/unblock/server.ts"
 import * as $api_v2_client_unblock_user from "./routes/api/v2/client/unblock/user.ts"
-import * as $api_v2_client_users_icon from "./routes/api/v2/client/users/[uuid]/icon.ts"
-import * as $api_v2_client_users_profile from "./routes/api/v2/client/users/[uuid]/index.ts"
+import * as $api_v2_client_users_uuid_icon from "./routes/api/v2/client/users/[uuid]/icon.ts"
+import * as $api_v2_client_users_icon from "./routes/api/v2/client/users/icon.ts"
+import * as $api_v2_client_users_profile from "./routes/api/v2/client/users/profile.ts"
 import * as $api_v2_client_users_settings from "./routes/api/v2/client/users/settings.ts"
 import * as $api_v2_client_welcome from "./routes/api/v2/client/welcome.ts"
 import * as $api_v2_server_activity_accept_community from "./routes/api/v2/server/activity/accept/community.ts"
@@ -93,39 +65,11 @@ import * as $api_v2_server_blocked from "./routes/api/v2/server/blocked.ts"
 import * as $api_v2_server_info from "./routes/api/v2/server/info.ts"
 import * as $api_v2_server_information_talk_ID_image from "./routes/api/v2/server/information/talk/[ID]/image.ts"
 import * as $api_v2_server_information_talk_ID_index from "./routes/api/v2/server/information/talk/[ID]/index.ts"
-import * as $api_v2_server_information_users_friendID_icon_friend from "./routes/api/v2/server/information/users/[friendid]/icon/friend.ts"
-import * as $api_v2_server_information_users_friendID_icon_friendcode from "./routes/api/v2/server/information/users/[friendid]/icon/friendcode.ts"
-import * as $api_v2_server_information_users_friendID_icon_group from "./routes/api/v2/server/information/users/[friendid]/icon/group.ts"
-import * as $api_v2_server_information_users_friendID_name from "./routes/api/v2/server/information/users/[friendid]/name.ts"
-import * as $api_v2_server_information_users_friendID_uuid from "./routes/api/v2/server/information/users/[friendid]/uuid.ts"
+import * as $api_v2_server_information_users_icon from "./routes/api/v2/server/information/users/icon.ts"
 import * as $api_v2_server_information_users_profile from "./routes/api/v2/server/information/users/profile.ts"
 import * as $api_v2_server_pubkey from "./routes/api/v2/server/pubkey.ts"
-import * as $home_roomid_ from "./routes/home/[roomid].tsx"
-import * as $home_index from "./routes/home/index.tsx"
 import * as $index from "./routes/index.tsx"
-import * as $privacypolicy from "./routes/privacypolicy.tsx"
-import * as $setting_roomid_ from "./routes/setting/[roomid].tsx"
-import * as $setting_index from "./routes/setting/index.tsx"
-import * as $talk_roomid_ from "./routes/talk/[roomid].tsx"
-import * as $talk_index from "./routes/talk/index.tsx"
-import * as $Chats_AddFriend from "./islands/Chats/AddFriend.tsx"
-import * as $Chats_Chat from "./islands/Chats/Chat.tsx"
-import * as $Chats_ChatHeader from "./islands/Chats/ChatHeader.tsx"
-import * as $Chats_ChatList from "./islands/Chats/ChatList.tsx"
-import * as $Chats_ChatTalk from "./islands/Chats/ChatTalk.tsx"
-import * as $Chats_FriendRequest from "./islands/Chats/FriendRequest.tsx"
-import * as $Chats_RequestFriendById from "./islands/Chats/RequestFriendById.tsx"
-import * as $Chats_getAddFriendKey from "./islands/Chats/getAddFriendKey.tsx"
-import * as $HeaderMenu from "./islands/HeaderMenu.tsx"
-import * as $LoginForm from "./islands/LoginForm.tsx"
-import * as $RegisterForm from "./islands/RegisterForm.tsx"
-import * as $SettingList from "./islands/SettingList.tsx"
-import * as $Settings_Friends from "./islands/Settings/Friends.tsx"
-import * as $Settings_Infomation from "./islands/Settings/Infomation.tsx"
-import * as $Settings_Privacy from "./islands/Settings/Privacy.tsx"
-import * as $Settings_Profile from "./islands/Settings/Profile.tsx"
-import * as $Welcome from "./islands/Welcome.tsx"
-import * as $newLoginForm from "./islands/newLoginForm.tsx"
+import * as $HeaderButton from "./islands/HeaderButton.tsx"
 import { type Manifest } from "$fresh/server.ts"
 
 const manifest = {
@@ -133,39 +77,10 @@ const manifest = {
     "./routes/_404.tsx": $_404,
     "./routes/_app.tsx": $_app,
     "./routes/_middleware.ts": $_middleware,
-    "./routes/addFriend/[roomid].tsx": $addFriend_roomid_,
-    "./routes/addFriend/index.tsx": $addFriend_index,
-    "./routes/api/v1/chats/[ID]/image.ts": $api_v1_chats_ID_image,
-    "./routes/api/v1/chats/friendList.ts": $api_v1_chats_friendList,
-    "./routes/api/v1/chats/friendkey.ts": $api_v1_chats_friendkey,
-    "./routes/api/v1/chats/talkdata.ts": $api_v1_chats_talkdata,
-    "./routes/api/v1/csrftoken.ts": $api_v1_csrftoken,
-    "./routes/api/v1/friends/[ID]/icon.ts": $api_v1_friends_ID_icon,
-    "./routes/api/v1/friends/[ID]/info.ts": $api_v1_friends_ID_info,
-    "./routes/api/v1/friends/reqLists.ts": $api_v1_friends_reqLists,
-    "./routes/api/v1/friends/request.ts": $api_v1_friends_request,
-    "./routes/api/v1/logins/login.ts": $api_v1_logins_login,
-    "./routes/api/v1/logins/logout.ts": $api_v1_logins_logout,
-    "./routes/api/v1/logins/register.ts": $api_v1_logins_register,
-    "./routes/api/v1/main.ts": $api_v1_main,
-    "./routes/api/v1/server/friends/[ID]/icon.ts": $api_v1_server_friends_ID_icon,
-    "./routes/api/v1/server/friends/[ID]/profile.ts": $api_v1_server_friends_ID_profile,
-    "./routes/api/v1/server/friends/request.ts": $api_v1_server_friends_request,
-    "./routes/api/v1/server/talk/image.ts": $api_v1_server_talk_image,
-    "./routes/api/v1/server/talk/read.ts": $api_v1_server_talk_read,
-    "./routes/api/v1/server/talk/send.ts": $api_v1_server_talk_send,
-    "./routes/api/v1/server/talk/talkdata.ts": $api_v1_server_talk_talkdata,
-    "./routes/api/v1/server/token.ts": $api_v1_server_token,
-    "./routes/api/v1/server/users/[ID]/name.ts": $api_v1_server_users_ID_name,
-    "./routes/api/v1/server/users/[ID]/uuid.ts": $api_v1_server_users_ID_uuid,
-    "./routes/api/v1/setting/index.ts": $api_v1_setting_index,
-    "./routes/api/v1/users/icon.ts": $api_v1_users_icon,
-    "./routes/api/v1/users/info/icon.ts": $api_v1_users_info_icon,
-    "./routes/api/v1/users/nickname.ts": $api_v1_users_nickname,
-    "./routes/api/v1/users/username.ts": $api_v1_users_username,
-    "./routes/api/v1/welcome.ts": $api_v1_welcome,
     "./routes/api/v2/client/block/server.ts": $api_v2_client_block_server,
     "./routes/api/v2/client/block/user.ts": $api_v2_client_block_user,
+    "./routes/api/v2/client/create/community.ts": $api_v2_client_create_community,
+    "./routes/api/v2/client/create/group.ts": $api_v2_client_create_group,
     "./routes/api/v2/client/csrftoken.ts": $api_v2_client_csrftoken,
     "./routes/api/v2/client/friends/info/[ID]/icon/friend.ts": $api_v2_client_friends_info_ID_icon_friend,
     "./routes/api/v2/client/friends/info/[ID]/icon/friendcode.ts": $api_v2_client_friends_info_ID_icon_friendcode,
@@ -192,6 +107,7 @@ const manifest = {
     "./routes/api/v2/client/talks/sending/video.ts": $api_v2_client_talks_sending_video,
     "./routes/api/v2/client/unblock/server.ts": $api_v2_client_unblock_server,
     "./routes/api/v2/client/unblock/user.ts": $api_v2_client_unblock_user,
+    "./routes/api/v2/client/users/[uuid]/icon.ts": $api_v2_client_users_uuid_icon,
     "./routes/api/v2/client/users/icon.ts": $api_v2_client_users_icon,
     "./routes/api/v2/client/users/profile.ts": $api_v2_client_users_profile,
     "./routes/api/v2/client/users/settings.ts": $api_v2_client_users_settings,
@@ -221,41 +137,13 @@ const manifest = {
     "./routes/api/v2/server/info.ts": $api_v2_server_info,
     "./routes/api/v2/server/information/talk/[ID]/image.ts": $api_v2_server_information_talk_ID_image,
     "./routes/api/v2/server/information/talk/[ID]/index.ts": $api_v2_server_information_talk_ID_index,
-    "./routes/api/v2/server/information/users/[friendID]/icon/friend.ts": $api_v2_server_information_users_friendID_icon_friend,
-    "./routes/api/v2/server/information/users/[friendID]/icon/friendcode.ts": $api_v2_server_information_users_friendID_icon_friendcode,
-    "./routes/api/v2/server/information/users/[friendID]/icon/group.ts": $api_v2_server_information_users_friendID_icon_group,
-    "./routes/api/v2/server/information/users/[friendID]/name.ts": $api_v2_server_information_users_friendID_name,
-    "./routes/api/v2/server/information/users/[friendID]/uuid.ts": $api_v2_server_information_users_friendID_uuid,
+    "./routes/api/v2/server/information/users/icon.ts": $api_v2_server_information_users_icon,
     "./routes/api/v2/server/information/users/profile.ts": $api_v2_server_information_users_profile,
     "./routes/api/v2/server/pubkey.ts": $api_v2_server_pubkey,
-    "./routes/home/[roomid].tsx": $home_roomid_,
-    "./routes/home/index.tsx": $home_index,
     "./routes/index.tsx": $index,
-    "./routes/privacypolicy.tsx": $privacypolicy,
-    "./routes/setting/[roomid].tsx": $setting_roomid_,
-    "./routes/setting/index.tsx": $setting_index,
-    "./routes/talk/[roomid].tsx": $talk_roomid_,
-    "./routes/talk/index.tsx": $talk_index,
   },
   islands: {
-    "./islands/Chats/AddFriend.tsx": $Chats_AddFriend,
-    "./islands/Chats/Chat.tsx": $Chats_Chat,
-    "./islands/Chats/ChatHeader.tsx": $Chats_ChatHeader,
-    "./islands/Chats/ChatList.tsx": $Chats_ChatList,
-    "./islands/Chats/ChatTalk.tsx": $Chats_ChatTalk,
-    "./islands/Chats/FriendRequest.tsx": $Chats_FriendRequest,
-    "./islands/Chats/RequestFriendById.tsx": $Chats_RequestFriendById,
-    "./islands/Chats/getAddFriendKey.tsx": $Chats_getAddFriendKey,
-    "./islands/HeaderMenu.tsx": $HeaderMenu,
-    "./islands/LoginForm.tsx": $LoginForm,
-    "./islands/RegisterForm.tsx": $RegisterForm,
-    "./islands/SettingList.tsx": $SettingList,
-    "./islands/Settings/Friends.tsx": $Settings_Friends,
-    "./islands/Settings/Infomation.tsx": $Settings_Infomation,
-    "./islands/Settings/Privacy.tsx": $Settings_Privacy,
-    "./islands/Settings/Profile.tsx": $Settings_Profile,
-    "./islands/Welcome.tsx": $Welcome,
-    "./islands/newLoginForm.tsx": $newLoginForm,
+    "./islands/HeaderButton.tsx": $HeaderButton,
   },
   baseUrl: import.meta.url,
 } satisfies Manifest

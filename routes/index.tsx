@@ -1,7 +1,6 @@
-import Welcom from "../islands/Welcome.tsx"
 import users from "../models/users.ts"
 import { load } from "$std/dotenv/mod.ts"
-import Chat from "../islands/Chats/Chat.tsx"
+import { useSignal } from "@preact/signals"
 const env = await load()
 const sitekey = env["recaptcha_site_key"]
 const wsSSL = env["wsSSL"]
@@ -62,11 +61,19 @@ export default function Home({ data }: { data: any }) {
             />
             <link rel="stylesheet" href="/stylesheet.css"></link>
           </head>
+          <div>
+            this page is welcome page
+          </div>
+          {
+            /*
           <Welcom sitekey={sitekey} />
+           */
+          }
         </>
       </>
     )
   }
+  const globalState = useSignal({})
   return (
     <>
       <head>
@@ -77,28 +84,9 @@ export default function Home({ data }: { data: any }) {
         />
         <link rel="stylesheet" href="/style.css"></link>
       </head>
-      {data.isAddFriendForm
-        ? (
-          <Chat
-            page={1}
-            isAddFriendForm={true}
-            AddFriendKey={data.key}
-            userNickName={data.nickName}
-            userName={data.userName + "@" + env["DOMAIN"]}
-            wsSSL={wsSSL}
-          >
-          </Chat>
-        )
-        : (
-          <Chat
-            page={1}
-            isAddFriendForm={false}
-            index={true}
-            userNickName={data.nickName}
-            userName={data.userName + "@" + env["DOMAIN"]}
-          >
-          </Chat>
-        )}
+      <div>
+        this page is logined page
+      </div>
     </>
   )
 }
