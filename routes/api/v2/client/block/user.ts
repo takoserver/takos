@@ -6,6 +6,7 @@ import takos from "../../../../../util/takos.ts"
 import { load } from "$std/dotenv/mod.ts"
 import userConfig from "../../../../../models/userConfig.ts"
 import users from "../../../../../models/users.ts"
+import friends from "../../../../../models/friends.ts"
 const env = await load()
 export const handler = {
   async POST(req: Request, ctx: any) {
@@ -55,7 +56,7 @@ export const handler = {
         },
         body: JSON.stringify({ userid: ctx.state.data.userid, blockedUser: userid, signature: new Uint8Array(signature) }),
       })
-      if(remoteServer.status !== 200) {
+      if (remoteServer.status !== 200) {
         return new Response(JSON.stringify({ status: false, message: "Failed to block user on remote server" }), {
           headers: { "Content-Type": "application/json" },
           status: 200,
@@ -63,6 +64,10 @@ export const handler = {
       }
     }
     //useridとfriendidが入っているfriendroomを削除
+    const roomtype = userDomain == env["DOMAIN"] ? "friend" : "remotefriend"
+    //友達リストから削除
+    await friends.updateOne({ userID: ctx.state.data.userid }, { $pull: { friends: { $in: [userid] } } })
+    await userConfig.updateOne({ userID: ctx.state.data.userid, types: roomtype }, { $pull: { friendRooms: { $in: [userid] } } })
     return new Response(JSON.stringify({ status: true }), {
       headers: { "Content-Type": "application/json" },
     })

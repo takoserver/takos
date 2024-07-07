@@ -12,16 +12,9 @@ export const tempUsersSchema = new mongoose.Schema({
       message: (props: { value: any }) => `${props.value} is not a valid mail address!`,
     },
   },
-  key: {
-    type: String,
-    required: true,
-    unique: true,
-  },
   checkCode: {
     type: Number,
     required: true,
-    min: 0,
-    max: 4294967295,
   },
   checked: {
     type: Boolean,
@@ -31,7 +24,11 @@ export const tempUsersSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
-  timestamp: { type: Date, default: Date.now },
+  token: {
+    type: String,
+    required: true,
+  },
+  timestamp: { type: Date, default: Date.now, expires: 60 * 60 * 24 },
 })
 const tempUsers = mongoose.model("tempUsers", tempUsersSchema)
 export default tempUsers
