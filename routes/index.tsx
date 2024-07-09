@@ -1,9 +1,7 @@
 import users from "../models/users.ts"
 import { load } from "$std/dotenv/mod.ts"
-import { useSignal } from "@preact/signals"
+import Chat from "../components/chat.tsx"
 const env = await load()
-const sitekey = env["recaptcha_site_key"]
-const wsSSL = env["wsSSL"]
 export const handler = {
   async GET(req: any, ctx: any) {
     if (!ctx.state.data.loggedIn) {
@@ -73,20 +71,9 @@ export default function Home({ data }: { data: any }) {
       </>
     )
   }
-  const globalState = useSignal({})
   return (
     <>
-      <head>
-        <title>tako's | takos.jp</title>
-        <meta
-          name="description"
-          content="日本産オープンソース分散型チャットアプリ「tako's」"
-        />
-        <link rel="stylesheet" href="/style.css"></link>
-      </head>
-      <div>
-        this page is logined page
-      </div>
+      <Chat page={1} userName={data.userName} />
     </>
   )
 }

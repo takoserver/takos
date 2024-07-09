@@ -1,36 +1,24 @@
-import headerButton
-export default function ChatHeader(
-  props: { isChoiceUser?: any; page: any; setPage: any; reset: any },
-) {
+import HeaderButton from "../islands/headerButton.tsx"
+export default function ChatHeader(props: { page: any }) {
   return (
     <>
       <header
-        class={props.isChoiceUser ? "l-header is-inview" : "l-header"}
+        class="l-header"
+        id="header"
       >
         <div class="l-header-logo">
           <a href="/talk">
             <img
-              src="/api/v1/users/info/icon"
+              src="/api/v2/client/users/icon"
               alt="takos"
               class="rounded-full"
             />
           </a>
         </div>
         <ul class="l-header__ul">
-          <li
-            class="l-header__ul-item"
-            onClick={() => {
-              props.setPage(0)
-              const url = window.location.href
-              const path = url.split("/")[3]
-              const roomid = url.split("/")[4]
-              if (roomid == undefined) {
-                history.pushState("", "", "/home/")
-                return
-              }
-              console.log(roomid)
-              history.pushState("", "", "/home/" + roomid)
-            }}
+          <HeaderButton
+            page={0}
+            pageState={props.page}
           >
             <a>
               <svg
@@ -49,21 +37,10 @@ export default function ChatHeader(
                 <title id="homeAltIconTitle">Home</title> <path d="M3 10.182V22h18V10.182L12 2z" /> <rect width="6" height="8" x="9" y="14" />
               </svg>
             </a>
-          </li>
-          <li
-            class={props.page === 1 ? "l-header__ul-item is-active" : "l-header__ul-item"}
-            onClick={() => {
-              props.setPage(1)
-              props.reset()
-              const url = window.location.href
-              const path = url.split("/")[3]
-              const roomid = url.split("/")[4]
-              if (roomid == undefined) {
-                history.pushState("", "", "/talk/")
-                return
-              }
-              history.pushState("", "", "/talk/" + roomid)
-            }}
+          </HeaderButton>
+          <HeaderButton
+            page={1}
+            pageState={props.page}
           >
             <a>
               <svg
@@ -83,22 +60,10 @@ export default function ChatHeader(
                 <path d="M8.82388455,18.5880577 L4,21 L4.65322944,16.4273939 C3.00629211,15.0013 2,13.0946628 2,11 C2,6.581722 6.4771525,3 12,3 C17.5228475,3 22,6.581722 22,11 C22,15.418278 17.5228475,19 12,19 C10.8897425,19 9.82174472,18.8552518 8.82388455,18.5880577 Z" />
               </svg>
             </a>
-          </li>
-          <li
-            class={props.page === 2 ? "l-header__ul-item is-active" : "l-header__ul-item"}
-            onClick={() => {
-              props.setPage(2)
-              props.reset()
-              const url = window.location.href
-              const path = url.split("/")[3]
-              const roomid = url.split("/")[4]
-              if (roomid == undefined) {
-                history.pushState("", "", "/addFriend/")
-                return
-              }
-              console.log(roomid)
-              history.pushState("", "", "/addFriend/" + roomid)
-            }}
+          </HeaderButton>
+          <HeaderButton
+            page={2}
+            pageState={props.page}
           >
             <a>
               <svg
@@ -118,22 +83,10 @@ export default function ChatHeader(
                 <path d="M22 11H14" /> <path d="M18 7V15" />
               </svg>
             </a>
-          </li>
-          <li
-            class={props.page === 3 ? "l-header__ul-item is-active" : "l-header__ul-item"}
-            onClick={() => {
-              props.setPage(3)
-              props.reset()
-              const url = window.location.href
-              const path = url.split("/")[3]
-              const roomid = url.split("/")[4]
-              if (roomid == undefined) {
-                history.pushState("", "", "/setting/")
-                return
-              }
-              console.log(roomid)
-              history.pushState("", "", "/setting/" + roomid)
-            }}
+          </HeaderButton>
+          <HeaderButton
+            page={3}
+            pageState={props.page}
           >
             <a>
               <svg
@@ -155,7 +108,7 @@ export default function ChatHeader(
                 <circle cx="12" cy="12" r="1" />
               </svg>
             </a>
-          </li>
+          </HeaderButton>
         </ul>
       </header>
     </>

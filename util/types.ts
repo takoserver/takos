@@ -1,29 +1,50 @@
-interface serverRequest {
+export interface serverRequest {
   host: string
   body: string
 }
-interface profileRequest {
+export interface profileRequest {
   userName?: string
   userId?: string
   friendName?: string
   friendId?: string
 }
-interface profileResonse {
+export interface profileResonse {
   userName: string
   userId: string
   nickName: string
 }
-interface Profile {
+export interface Profile {
   userName: string
   userId: string
   nickName: string
   age?: number
 }
-const types = {
-  client: {
-    block: {
-      user: {},
-    },
-  },
+export interface talkDataType {
+  roomName: any
+  latestMessage: any
+  userName: any
+  isNewMessage: boolean
+  icon: string
+  roomid: string
+  isSelect: boolean
+  time?: string
 }
-export default types
+export interface AppStateType {
+  isChoiceUser: { value: boolean | null }
+  ws: { value: WebSocket | null }
+  roomid: { value: string }
+  sessionid: { value: string }
+  talkData: { value: MessageTypes[] }
+  userName: string,
+  friendList: { value: Array<any> }
+}
+interface MessageTypes {
+  type: string
+  message: string
+  time: any
+  isRead: boolean
+  sender: string
+  senderNickName: string
+  messageid: string
+  messageType: string
+}

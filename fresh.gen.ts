@@ -69,7 +69,14 @@ import * as $api_v2_server_information_users_icon from "./routes/api/v2/server/i
 import * as $api_v2_server_information_users_profile from "./routes/api/v2/server/information/users/profile.ts"
 import * as $api_v2_server_pubkey from "./routes/api/v2/server/pubkey.ts"
 import * as $index from "./routes/index.tsx"
-import * as $HeaderButton from "./islands/HeaderButton.tsx"
+import * as $ChatSend from "./islands/ChatSend.tsx"
+import * as $ChatTalkContent from "./islands/ChatTalkContent.tsx"
+import * as $ChatTalkTitle from "./islands/ChatTalkTitle.tsx"
+import * as $ChatTalkTitleContent from "./islands/ChatTalkTitleContent.tsx"
+import * as $TalkListContent from "./islands/TalkListContent.tsx"
+import * as $headerButton from "./islands/headerButton.tsx"
+import * as $setDefaultState from "./islands/setDefaultState.tsx"
+import * as $talkListHeader from "./islands/talkListHeader.tsx"
 import { type Manifest } from "$fresh/server.ts"
 
 const manifest = {
@@ -143,7 +150,14 @@ const manifest = {
     "./routes/index.tsx": $index,
   },
   islands: {
-    "./islands/HeaderButton.tsx": $HeaderButton,
+    "./islands/ChatSend.tsx": $ChatSend,
+    "./islands/ChatTalkContent.tsx": $ChatTalkContent,
+    "./islands/ChatTalkTitle.tsx": $ChatTalkTitle,
+    "./islands/ChatTalkTitleContent.tsx": $ChatTalkTitleContent,
+    "./islands/TalkListContent.tsx": $TalkListContent,
+    "./islands/headerButton.tsx": $headerButton,
+    "./islands/setDefaultState.tsx": $setDefaultState,
+    "./islands/talkListHeader.tsx": $talkListHeader,
   },
   baseUrl: import.meta.url,
 } satisfies Manifest
