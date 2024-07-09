@@ -1,5 +1,5 @@
 import HeaderButton from "../islands/headerButton.tsx"
-export default function ChatHeader(props: { page: any }) {
+export default function ChatHeader(props: { state : any}) {
   return (
     <>
       <header
@@ -18,7 +18,7 @@ export default function ChatHeader(props: { page: any }) {
         <ul class="l-header__ul">
           <HeaderButton
             page={0}
-            pageState={props.page}
+            state={props.state}
           >
             <a>
               <svg
@@ -40,7 +40,7 @@ export default function ChatHeader(props: { page: any }) {
           </HeaderButton>
           <HeaderButton
             page={1}
-            pageState={props.page}
+            state={props.state}
           >
             <a>
               <svg
@@ -63,7 +63,7 @@ export default function ChatHeader(props: { page: any }) {
           </HeaderButton>
           <HeaderButton
             page={2}
-            pageState={props.page}
+            state={props.state}
           >
             <a>
               <svg
@@ -86,7 +86,7 @@ export default function ChatHeader(props: { page: any }) {
           </HeaderButton>
           <HeaderButton
             page={3}
-            pageState={props.page}
+            state={props.state}
           >
             <a>
               <svg

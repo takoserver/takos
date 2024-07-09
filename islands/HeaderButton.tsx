@@ -1,11 +1,11 @@
-export default function HeaderButton(props: { page: any; children: any; pageState: any }) {
+export default function HeaderButton(props: { page: any; children: any; state: any }) {
   return (
     <li
       class="l-header__ul-item"
       onClick={() => {
         const url = window.location.href
         const roomid = url.split("/")[4]
-        props.pageState.value = props.page
+        props.state.page.value = props.page
         if (roomid == undefined) {
           history.pushState("", "", urlPramator(props.page))
           return

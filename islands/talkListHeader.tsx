@@ -1,18 +1,18 @@
-export default function talkListHeader({ page }: { page: any }) {
-  console.log(page)
+import { AppStateType } from "../util/types.ts"
+export default function talkListHeader({ state }: { state: AppStateType }) {
   return (
     <>
-      {page.value == 1 && (
+      {state.page.value == 1 && (
         <>
           <One />
         </>
       )}
-      {page.value == 2 && (
+      {state.page.value == 2 && (
         <>
           <Two />
         </>
       )}
-      {page.value == 3 && (
+      {state.page.value == 3 && (
         <>
           <Three />
         </>

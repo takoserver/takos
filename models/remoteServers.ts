@@ -11,6 +11,12 @@ export const friendsSchema = new mongoose.Schema({
         userid: {
           type: String,
         },
+        userName: {
+          type: String,
+        },
+        nickName: {
+          type: String,
+        },
         type: {
           type: String,
           enum: ["local", "other"],

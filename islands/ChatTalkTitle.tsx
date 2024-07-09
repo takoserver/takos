@@ -1,25 +1,22 @@
-import { useContext } from "preact/hooks"
-import { AppState } from "../components/chat.tsx"
-export default function TalkArea() {
-  const value = useContext(AppState)
-  const { isChoiceUser, ws, roomid, sessionid } = value
+import { AppStateType } from "../util/types.ts"
+export default function TalkArea({ state }: { state: AppStateType }) {
   return (
     <>
       <button
         class="p-talk-chat-prev"
         onClick={() => {
-          if (isChoiceUser.value === null || ws.value === null || !(ws.value instanceof WebSocket)) {
+          if (state.isChoiceUser.value === null || state.ws.value === null || !(state.ws.value instanceof WebSocket)) {
             alert("websocketが接続されていません")
             return
           }
-          ws.value.send(
+          state.ws.value.send(
             JSON.stringify({
               type: "leave",
-              sessionid: sessionid.value,
+              sessionid: state.sessionid.value,
             }),
           )
-          isChoiceUser.value = false
-          roomid.value = ""
+          state.isChoiceUser.value = false
+          state.roomid.value = ""
           //urlを変更
           history.pushState("", "", "/talk")
         }}

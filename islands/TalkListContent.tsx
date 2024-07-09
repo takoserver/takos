@@ -1,16 +1,12 @@
 import User from "../components/User.tsx"
-import { talkDataType } from "../util/types.ts"
-import { useContext } from "preact/hooks"
-import { AppState } from "../components/chat.tsx"
-function TalkListContent({ page }: { page: any }) {
-  const value = useContext(AppState)
-  const { talkData } = value
-  if (page.value === 0) {
+import { AppStateType } from "../util/types.ts"
+function TalkListContent({ state }: { state: AppStateType }) {
+  if (state.page.value === 0) {
     return <></>
-  } else if (page.value === 1) {
+  } else if (state.page.value === 1) {
     return (
       <>
-        {talkData.value.map((talk: any) => {
+        {state.friendList.value.map((talk: any) => {
           return (
             <User
               userName={talk.roomName}

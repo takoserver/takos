@@ -19,7 +19,7 @@ export interface Profile {
   nickName: string
   age?: number
 }
-export interface talkDataType {
+export interface FriendListType {
   roomName: any
   latestMessage: any
   userName: any
@@ -37,6 +37,8 @@ export interface AppStateType {
   talkData: { value: MessageTypes[] }
   userName: string,
   friendList: { value: Array<any> }
+  roomName: { value: string }
+  page: { value: number }
 }
 interface MessageTypes {
   type: string

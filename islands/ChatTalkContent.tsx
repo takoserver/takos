@@ -1,24 +1,21 @@
 import ChatDate from "../components/ChatDate.tsx"
 import ChatSendMessage from "../components/SendMessage.tsx"
 import ChatOtherMessage from "../components/OtherMessage.tsx"
-import { useContext } from "preact/hooks"
-import { AppState } from "../components/chat.tsx"
-function ChatTalkMain(props: { userName: string }) {
+import { AppStateType } from "../util/types.ts"
+function ChatTalkMain({ state }: { state: AppStateType }) {
   let SendPrimary = true
   let OtherPrimary = true
   let DateState: any
-  const value = useContext(AppState)
-  const { talkData } = value
   return (
     <>
-      {talkData.value.map((data: any, index: number) => {
+      {state.talkData.value.map((data: any, index: number) => {
         const date = new Date(data.time)
 
         const isEncodeDate = new Date(DateState).toLocaleDateString() !==
           date.toLocaleDateString()
         DateState = data.time
         if (data.type == "message") {
-          if (data.sender == props.userName) {
+          if (data.sender == state.userName) {
             if (SendPrimary) {
               SendPrimary = false
               OtherPrimary = true
@@ -40,7 +37,7 @@ function ChatTalkMain(props: { userName: string }) {
               )
             }
             // 前のメッセージから1分以上経過のものはprimaryに
-            const prevDate = new Date(talkData.value[index - 1].time)
+            const prevDate = new Date(state.talkData.value[index - 1].time)
             if (date.getTime() - prevDate.getTime() > 60000) {
               return (
                 <>
@@ -99,7 +96,7 @@ function ChatTalkMain(props: { userName: string }) {
             }
 
             // 前のメッセージから1分以上経過のものはprimaryに
-            const prevDate = new Date(talkData.value[index - 1].time)
+            const prevDate = new Date(state.talkData.value[index - 1].time)
             if (date.getTime() - prevDate.getTime() > 60000) {
               return (
                 <>

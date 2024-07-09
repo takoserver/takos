@@ -1,34 +1,44 @@
 import Header from "../components/header.tsx"
 import TalkListHeader from "../islands/talkListHeader.tsx"
 import TalkListContent from "../islands/TalkListContent.tsx"
+import SetDefaultState from "../islands/setDefaultState.tsx"
 import { signal } from "@preact/signals"
 import { createContext } from "preact"
-import { useContext } from "preact/hooks"
 import { AppStateType } from "../util/types.ts"
 import Main from "./chatmain.tsx"
-function createAppState(userName?: any): AppStateType {
-  const isChoiceUser = signal(false)
+function createAppState(obj : {
+    isChoiceUser: boolean,
+    roomid: string,
+    userName: string,
+    page: number,
+}): AppStateType {
+  const isChoiceUser = signal(obj.isChoiceUser)
   const ws = signal(null)
   const talkData = signal([])
-  const roomid = signal("")
+  const roomid = signal(obj.roomid)
   const sessionid = signal("")
   const friendList = signal([])
-  const userNameResult = userName ? userName : null
+  const roomName = signal("")
+  const page = signal(obj.page)
   return {
     isChoiceUser: isChoiceUser,
     ws: ws,
     talkData: talkData,
     roomid: roomid,
     sessionid: sessionid,
-    userName: userNameResult,
+    userName: obj.userName,
     friendList: friendList,
+    roomName: roomName,
+    page: page,
   }
 }
-export const AppState = createContext(createAppState())
 function chat(props: { page: any; userName: string }) {
-  console.log(props.page)
-  const page = signal(props.page)
-  console.log("this is" + page.value)
+    const AppState = createAppState({
+        isChoiceUser: false,
+        roomid: "",
+        userName: props.userName,
+        page: props.page,
+    })
   return (
     <>
       <head>
@@ -39,32 +49,31 @@ function chat(props: { page: any; userName: string }) {
         />
         <link rel="stylesheet" href="/style.css"></link>
       </head>
-      <AppState.Provider value={createAppState()}>
-        <App page={page} userName={props.userName} />
-      </AppState.Provider>
+        <App state={AppState}/>
     </>
   )
 }
-function App({ page, userName }: { page: any; userName: string }) {
+function App({ state }: { state: AppStateType }) {
   return (
     <>
-      <Header page={page} />
+        <SetDefaultState state={state} />
+      <Header state={state} />
       <div class="wrapper w-full">
         <main
           class="p-talk"
           id="chatmain"
         >
           <div class="p-talk-list">
-            <TalkListHeader page={page} />
+            <TalkListHeader state={state} />
             <div class="p-talk-list-rooms">
               <ul class="p-talk-list-rooms__ul">
-                <TalkListContent page={page} />
+                <TalkListContent state={state} />
               </ul>
             </div>
           </div>
           <div class="p-talk-chat">
             <div class="p-talk-chat-container">
-              <Main userName={userName}>
+              <Main state={state}>
               </Main>
             </div>
           </div>
