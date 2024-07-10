@@ -7,6 +7,15 @@ export const handler = {
               status: 401,
             })
         }
-        //
+        if (req.headers.get("upgrade") === "websocket") {
+            const { socket, response } = Deno.upgradeWebSocket(req)
+            socket.onmessage = async function (event) {
+                //
+            }
+            socket.onclose = () => {
+                //
+            }
+            if (!socket) throw new Error("unreachable")
+            return response
     }
 }
