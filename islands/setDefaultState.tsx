@@ -23,12 +23,3 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
   }, [])
   return <></>
 }
-/*
-        roomName: friendName?.nickName,
-        lastMessage: latestmessage?.message,
-        roomID: room.uuid,
-        latestMessageTime: latestmessage?.timestamp,
-        roomIcon: `/api/v2/friends/info/${friendName?.userName + "@" + env["serverDomain"]}/icon/friend`,
-        type: "localfriend",
-        isNewMessage: isNewMessage === undefined,
-*/

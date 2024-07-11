@@ -1,5 +1,5 @@
 import HeaderButton from "../islands/headerButton.tsx"
-export default function ChatHeader(props: { state : any}) {
+export default function ChatHeader(props: { state: any }) {
   return (
     <>
       <header

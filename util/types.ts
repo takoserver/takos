@@ -35,12 +35,12 @@ export interface AppStateType {
   roomid: { value: string }
   sessionid: { value: string }
   talkData: { value: MessageTypes[] }
-  userName: string,
+  userName: string
   friendList: { value: Array<any> }
   roomName: { value: string }
   page: { value: number }
 }
-interface MessageTypes {
+export interface MessageTypes {
   type: string
   message: string
   time: any
@@ -49,4 +49,11 @@ interface MessageTypes {
   senderNickName: string
   messageid: string
   messageType: string
+}
+export interface WebSocketSessionObject {
+  userid: string
+  ws: WebSocket
+  roomid: string
+  roomType: string
+  lastActivityTime: Date
 }

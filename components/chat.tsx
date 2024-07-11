@@ -2,15 +2,15 @@ import Header from "../components/header.tsx"
 import TalkListHeader from "../islands/talkListHeader.tsx"
 import TalkListContent from "../islands/TalkListContent.tsx"
 import SetDefaultState from "../islands/setDefaultState.tsx"
-import { signal } from "@preact/signals"
+import { signal, effect } from "@preact/signals"
 import { createContext } from "preact"
 import { AppStateType } from "../util/types.ts"
 import Main from "./chatmain.tsx"
-function createAppState(obj : {
-    isChoiceUser: boolean,
-    roomid: string,
-    userName: string,
-    page: number,
+function createAppState(obj: {
+  isChoiceUser: boolean
+  roomid: string
+  userName: string
+  page: number
 }): AppStateType {
   const isChoiceUser = signal(obj.isChoiceUser)
   const ws = signal(null)
@@ -33,12 +33,12 @@ function createAppState(obj : {
   }
 }
 function chat(props: { page: any; userName: string }) {
-    const AppState = createAppState({
-        isChoiceUser: false,
-        roomid: "",
-        userName: props.userName,
-        page: props.page,
-    })
+  const AppState = createAppState({
+    isChoiceUser: false,
+    roomid: "",
+    userName: props.userName,
+    page: props.page,
+  })
   return (
     <>
       <head>
@@ -49,14 +49,14 @@ function chat(props: { page: any; userName: string }) {
         />
         <link rel="stylesheet" href="/style.css"></link>
       </head>
-        <App state={AppState}/>
+      <App state={AppState} />
     </>
   )
 }
 function App({ state }: { state: AppStateType }) {
   return (
     <>
-        <SetDefaultState state={state} />
+      <SetDefaultState state={state} />
       <Header state={state} />
       <div class="wrapper w-full">
         <main

@@ -9,7 +9,7 @@ function chatmain({ state }: { state: AppStateType }) {
       <div class="p-talk-chat-main" id="chat-area">
         <div class="p-talk-chat-title">
           <div class="p-1 h-full">
-            <ChatTalkTitle state={state}/>
+            <ChatTalkTitle state={state} />
           </div>
           <ChatTalkTitleContent>a</ChatTalkTitleContent>
         </div>
