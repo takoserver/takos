@@ -1,8 +1,8 @@
-import ChatTalkTitle from "../islands/ChatTalkTitle.tsx"
-import ChatTalkContent from "../islands/ChatTalkContent.tsx"
-import ChatSend from "../islands/ChatSend.tsx"
-import ChatTalkTitleContent from "../islands/ChatTalkTitleContent.tsx"
-import { AppStateType } from "../util/types.ts"
+import ChatTalkTitle from "../islands/ChatTalkTitle.tsx";
+import ChatTalkContent from "../islands/ChatTalkContent.tsx";
+import ChatSend from "../islands/ChatSend.tsx";
+import ChatTalkTitleContent from "../islands/ChatTalkTitleContent.tsx";
+import { AppStateType } from "../util/types.ts";
 function chatmain({ state }: { state: AppStateType }) {
   return (
     <>
@@ -15,9 +15,9 @@ function chatmain({ state }: { state: AppStateType }) {
         </div>
         <ChatTalkContent state={state} />
       </div>
-      <ChatSend />
+      <ChatSend state={state} />
     </>
-  )
+  );
 }
 
-export default chatmain
+export default chatmain;

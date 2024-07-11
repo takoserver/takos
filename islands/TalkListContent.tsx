@@ -1,8 +1,8 @@
-import User from "../components/User.tsx"
-import { AppStateType } from "../util/types.ts"
+import User from "../components/User.tsx";
+import { AppStateType } from "../util/types.ts";
 function TalkListContent({ state }: { state: AppStateType }) {
   if (state.page.value === 0) {
-    return <></>
+    return <></>;
   } else if (state.page.value === 1) {
     return (
       <>
@@ -16,12 +16,12 @@ function TalkListContent({ state }: { state: AppStateType }) {
               isNewMessage={talk.isNewMessage}
               isSelected={talk.isSelect}
             />
-          )
+          );
         })}
       </>
-    )
+    );
   }
-  return <></>
+  return <></>;
 }
 
-export default TalkListContent
+export default TalkListContent;

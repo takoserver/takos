@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 export const activitySchama = new mongoose.Schema({
   userid: {
@@ -14,6 +14,6 @@ export const activitySchama = new mongoose.Schema({
     required: true,
   },
   timestamp: { type: Date, default: Date.now, expires: 60 * 60 * 24 },
-})
-const activity = mongoose.model("activity", activitySchama)
-export default activity
+});
+const activity = mongoose.model("activity", activitySchama);
+export default activity;

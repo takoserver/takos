@@ -38,7 +38,7 @@
     "react-dom": "preact/compat"
   },
   "fmt": {
-    "semiColons": false,
+    "semiColons": true,
     "exclude": ["fresh.gen.ts", "node_moduls/"],
     "indentWidth": 2,
     "lineWidth": 200

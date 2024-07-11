@@ -1,4 +1,4 @@
-import HeaderButton from "../islands/headerButton.tsx"
+import HeaderButton from "../islands/headerButton.tsx";
 export default function ChatHeader(props: { state: any }) {
   return (
     <>
@@ -112,5 +112,5 @@ export default function ChatHeader(props: { state: any }) {
         </ul>
       </header>
     </>
-  )
+  );
 }

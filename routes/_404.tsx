@@ -19,5 +19,5 @@ export default function Error404() {
         </p>
       </footer>
     </>
-  )
+  );
 }

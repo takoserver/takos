@@ -1,25 +1,27 @@
-import Header from "../components/header.tsx"
-import TalkListHeader from "../islands/talkListHeader.tsx"
-import TalkListContent from "../islands/TalkListContent.tsx"
-import SetDefaultState from "../islands/setDefaultState.tsx"
-import { signal, effect } from "@preact/signals"
-import { createContext } from "preact"
-import { AppStateType } from "../util/types.ts"
-import Main from "./chatmain.tsx"
+import Header from "../components/header.tsx";
+import TalkListHeader from "../islands/talkListHeader.tsx";
+import TalkListContent from "../islands/TalkListContent.tsx";
+import SetDefaultState from "../islands/setDefaultState.tsx";
+import { effect, signal } from "@preact/signals";
+import { createContext } from "preact";
+import { AppStateType } from "../util/types.ts";
+import Main from "./chatmain.tsx";
 function createAppState(obj: {
-  isChoiceUser: boolean
-  roomid: string
-  userName: string
-  page: number
+  isChoiceUser: boolean;
+  roomid: string;
+  userName: string;
+  page: number;
 }): AppStateType {
-  const isChoiceUser = signal(obj.isChoiceUser)
-  const ws = signal(null)
-  const talkData = signal([])
-  const roomid = signal(obj.roomid)
-  const sessionid = signal("")
-  const friendList = signal([])
-  const roomName = signal("")
-  const page = signal(obj.page)
+  const isChoiceUser = signal(obj.isChoiceUser);
+  const ws = signal(null);
+  const talkData = signal([]);
+  const roomid = signal(obj.roomid);
+  const sessionid = signal("");
+  const friendList = signal([]);
+  const roomName = signal("");
+  const page = signal(obj.page);
+  const inputMessage = signal("");
+  const setIsValidInput = signal(false);
   return {
     isChoiceUser: isChoiceUser,
     ws: ws,
@@ -30,7 +32,9 @@ function createAppState(obj: {
     friendList: friendList,
     roomName: roomName,
     page: page,
-  }
+    inputMessage: inputMessage,
+    isValidInput: setIsValidInput,
+  };
 }
 function chat(props: { page: any; userName: string }) {
   const AppState = createAppState({
@@ -38,7 +42,7 @@ function chat(props: { page: any; userName: string }) {
     roomid: "",
     userName: props.userName,
     page: props.page,
-  })
+  });
   return (
     <>
       <head>
@@ -51,7 +55,7 @@ function chat(props: { page: any; userName: string }) {
       </head>
       <App state={AppState} />
     </>
-  )
+  );
 }
 function App({ state }: { state: AppStateType }) {
   return (
@@ -80,6 +84,6 @@ function App({ state }: { state: AppStateType }) {
         </main>
       </div>
     </>
-  )
+  );
 }
-export default chat
+export default chat;

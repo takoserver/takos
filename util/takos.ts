@@ -1,7 +1,7 @@
-import csrfToken from "../models/csrftoken.ts"
-import serverInfo from "../models/serverInfo.ts"
-import { load } from "$std/dotenv/mod.ts"
-let env = await load()
+import csrfToken from "../models/csrftoken.ts";
+import serverInfo from "../models/serverInfo.ts";
+import { load } from "$std/dotenv/mod.ts";
+let env = await load();
 const generateKeyPair = async () => {
   const keyPair = await window.crypto.subtle.generateKey(
     {
@@ -12,155 +12,155 @@ const generateKeyPair = async () => {
     },
     true,
     ["sign", "verify"],
-  )
-  return keyPair
-}
+  );
+  return keyPair;
+};
 const takos = {
   checkCsrfToken: async (token: string) => {
     if (typeof token !== "string") {
-      return false
+      return false;
     }
-    const csrftoken = await csrfToken.findOne({ token: token })
+    const csrftoken = await csrfToken.findOne({ token: token });
     if (csrftoken === null) {
-      return false
+      return false;
     }
-    return true
+    return true;
   },
   splitUserName: (userName: string) => {
-    const split = userName.split("@")
+    const split = userName.split("@");
     return {
       userName: split[0],
       domain: split[1],
-    }
+    };
   },
   signData: async (data: string, privateKey: CryptoKey): Promise<ArrayBuffer> => {
     const signAlgorithm = {
       name: "RSASSA-PKCS1-v1_5",
       hash: { name: "SHA-256" },
-    }
+    };
     const signature = await window.crypto.subtle.sign(
       signAlgorithm,
       privateKey,
       new TextEncoder().encode(data),
-    )
-    return signature
+    );
+    return signature;
   },
   verifySignature: async (publicKey: CryptoKey, signature: ArrayBuffer, data: string): Promise<boolean> => {
     const signAlgorithm = {
       name: "RSASSA-PKCS1-v1_5",
       hash: { name: "SHA-256" },
-    }
+    };
     return await window.crypto.subtle.verify(
       signAlgorithm,
       publicKey,
       signature,
       new TextEncoder().encode(data),
-    )
+    );
   },
   getPrivateKey: async () => {
-    const server = await serverInfo.findOne({ serverDomain: env["DOMAIN"] })
+    const server = await serverInfo.findOne({ serverDomain: env["DOMAIN"] });
     if (server === null) {
-      const keyPair = await generateKeyPair()
-      const privateKey = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey)
-      const publicKey = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey)
+      const keyPair = await generateKeyPair();
+      const privateKey = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
+      const publicKey = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey);
       await serverInfo.create({
         serverDomain: env["DOMAIN"],
         privatekey: JSON.stringify(privateKey),
         publickey: JSON.stringify(publicKey),
-      })
-      return keyPair.privateKey
+      });
+      return keyPair.privateKey;
     }
     if (server.privatekey === null) {
-      const keyPair = await generateKeyPair()
-      const privateKey = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey)
-      const publicKey = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey)
-      await serverInfo.updateOne({ serverDomain: env["DOMAIN"] }, { privatekey: JSON.stringify(privateKey), publickey: JSON.stringify(publicKey) })
-      return keyPair.privateKey
+      const keyPair = await generateKeyPair();
+      const privateKey = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
+      const publicKey = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey);
+      await serverInfo.updateOne({ serverDomain: env["DOMAIN"] }, { privatekey: JSON.stringify(privateKey), publickey: JSON.stringify(publicKey) });
+      return keyPair.privateKey;
     }
     if (server.lastupdatekey < new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 7)) {
-      const keyPair = await generateKeyPair()
-      const privateKey = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey)
-      const publicKey = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey)
-      await serverInfo.updateOne({ serverDomain: env["DOMAIN"] }, { privatekey: JSON.stringify(privateKey), publickey: JSON.stringify(publicKey) })
-      return keyPair.privateKey
+      const keyPair = await generateKeyPair();
+      const privateKey = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
+      const publicKey = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey);
+      await serverInfo.updateOne({ serverDomain: env["DOMAIN"] }, { privatekey: JSON.stringify(privateKey), publickey: JSON.stringify(publicKey) });
+      return keyPair.privateKey;
     }
     try {
-      return await importCryptoKey(server.privatekey)
+      return await importCryptoKey(server.privatekey);
     } catch (e) {
-      const keyPair = await generateKeyPair()
-      const privateKey = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey)
-      const publicKey = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey)
-      await serverInfo.updateOne({ serverDomain: env["DOMAIN"] }, { privatekey: JSON.stringify(privateKey), publickey: JSON.stringify(publicKey) })
-      return keyPair.privateKey
+      const keyPair = await generateKeyPair();
+      const privateKey = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
+      const publicKey = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey);
+      await serverInfo.updateOne({ serverDomain: env["DOMAIN"] }, { privatekey: JSON.stringify(privateKey), publickey: JSON.stringify(publicKey) });
+      return keyPair.privateKey;
     }
   },
   checkEmail: (email: string) => {
-    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-    return emailPattern.test(email)
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailPattern.test(email);
   },
   generateRandom16DigitNumber(): string {
-    const array = new Uint8Array(8) // 8バイト（64ビット）を生成
-    crypto.getRandomValues(array)
-    let randomNumber = ""
+    const array = new Uint8Array(8); // 8バイト（64ビット）を生成
+    crypto.getRandomValues(array);
+    let randomNumber = "";
     for (const byte of array) {
-      randomNumber += byte.toString().padStart(2, "0")
+      randomNumber += byte.toString().padStart(2, "0");
     }
     // 16桁にトリム
-    const StringResult = randomNumber.slice(0, 16)
-    return StringResult
+    const StringResult = randomNumber.slice(0, 16);
+    return StringResult;
   },
   createSessionid: () => {
-    const sessionIDarray = new Uint8Array(64)
-    const randomarray = crypto.getRandomValues(sessionIDarray)
+    const sessionIDarray = new Uint8Array(64);
+    const randomarray = crypto.getRandomValues(sessionIDarray);
     const sessionid = Array.from(
       randomarray,
       (byte) => byte.toString(32).padStart(2, "0"),
-    ).join("")
-    return sessionid
+    ).join("");
+    return sessionid;
   },
   checkUserName: (userName: string) => {
-    const userNamePattern = /^[a-zA-Z0-9]{4,16}$/
-    return userNamePattern.test(userName)
+    const userNamePattern = /^[a-zA-Z0-9]{4,16}$/;
+    return userNamePattern.test(userName);
   },
   checkNickName: (nickName: string) => {
     // 1文字以上、16文字以下ひらがな、カタカナ、漢字、半角英数字、
-    const nickNamePattern = /^[ぁ-んァ-ヶ一-龠a-zA-Z0-9]{1,16}$/
-    return nickNamePattern.test(nickName)
+    const nickNamePattern = /^[ぁ-んァ-ヶ一-龠a-zA-Z0-9]{1,16}$/;
+    return nickNamePattern.test(nickName);
   },
   checkPassword: (password: string) => {
-    const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,100}$/
-    return passwordPattern.test(password)
+    const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,100}$/;
+    return passwordPattern.test(password);
   },
   checkAge: (age: number) => {
     if (age < 0 || age > 200) {
-      return false
+      return false;
     }
-    return true
+    return true;
   },
   setIschoiseUser: (ischoiseUser: boolean, obj: any) => {
-    const headerElement = document.getElementById("header")
-    const chatmainElement = document.getElementById("chatmain")
+    const headerElement = document.getElementById("header");
+    const chatmainElement = document.getElementById("chatmain");
     if (chatmainElement === null || headerElement === null) {
-      return
+      return;
     }
     if (ischoiseUser) {
       //"l-header is-inview" : "l-header"
       //isChoiceUser ? "p-talk is-inview" : "p-talk"
-      headerElement.className = "l-header is-inview"
-      chatmainElement.className = "p-talk is-inview"
+      headerElement.className = "l-header is-inview";
+      chatmainElement.className = "p-talk is-inview";
     } else {
-      headerElement.className = "l-header"
-      chatmainElement.className = "p-talk"
+      headerElement.className = "l-header";
+      chatmainElement.className = "p-talk";
     }
-    obj.value = ischoiseUser
+    obj.value = ischoiseUser;
   },
-}
-export default takos
+};
+export default takos;
 async function importCryptoKey(keyData: string | undefined): Promise<CryptoKey> {
   if (keyData === undefined) {
-    throw new Error("keyData is undefined")
+    throw new Error("keyData is undefined");
   }
-  const jwkKey = JSON.parse(keyData)
+  const jwkKey = JSON.parse(keyData);
   const cryptoKey = await window.crypto.subtle.importKey(
     "jwk", // インポート形式
     jwkKey, // インポートするキーデータ
@@ -170,6 +170,6 @@ async function importCryptoKey(keyData: string | undefined): Promise<CryptoKey> 
     },
     true, // エクスポート可能かどうか
     ["sign"], // 秘密鍵の場合は["sign"]、公開鍵の場合は["verify"]
-  )
-  return cryptoKey
+  );
+  return cryptoKey;
 }

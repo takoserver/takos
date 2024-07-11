@@ -1,22 +1,22 @@
 export default function User(
   { userName, latestMessage, icon, onClick, userName2, isNewMessage, isSelected }: {
-    userName: string
-    latestMessage: string
-    icon: string
-    onClick?: () => void
-    userName2?: string
-    isNewMessage: boolean
-    isSelected: boolean
+    userName: string;
+    latestMessage: string;
+    icon: string;
+    onClick?: () => void;
+    userName2?: string;
+    isNewMessage: boolean;
+    isSelected: boolean;
   },
 ) {
-  let resultLatestMessage
+  let resultLatestMessage;
   if (latestMessage.length > 17) {
-    resultLatestMessage = latestMessage.substr(0, 17) + "..."
+    resultLatestMessage = latestMessage.substr(0, 17) + "...";
   } else {
-    resultLatestMessage = latestMessage
+    resultLatestMessage = latestMessage;
   }
 
-  const className = isSelected ? "c-talk-rooms is-active" : "c-talk-rooms"
+  const className = isSelected ? "c-talk-rooms is-active" : "c-talk-rooms";
 
   return (
     <>
@@ -46,12 +46,12 @@ export default function User(
         </a>
       </li>
     </>
-  )
+  );
 }
 
 const isOnClickUndefind = (fn: (() => void) | null | undefined) => {
   if (fn === undefined || fn === null) {
-    return () => {}
+    return () => {};
   }
-  return fn
-}
+  return fn;
+};

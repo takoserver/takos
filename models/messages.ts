@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 export const messagesSchema = new mongoose.Schema({
   roomid: {
     type: String,
@@ -36,7 +36,7 @@ export const messagesSchema = new mongoose.Schema({
     },
   ],
   timestamp: { type: Date, default: Date.now, required: true },
-})
-messagesSchema.index({ timestamp: 1 })
-const messages = mongoose.model("messages", messagesSchema)
-export default messages
+});
+messagesSchema.index({ timestamp: 1 });
+const messages = mongoose.model("messages", messagesSchema);
+export default messages;

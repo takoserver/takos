@@ -1,24 +1,24 @@
-import ChatDate from "../components/ChatDate.tsx"
-import ChatSendMessage from "../components/SendMessage.tsx"
-import ChatOtherMessage from "../components/OtherMessage.tsx"
-import { AppStateType } from "../util/types.ts"
+import ChatDate from "../components/ChatDate.tsx";
+import ChatSendMessage from "../components/SendMessage.tsx";
+import ChatOtherMessage from "../components/OtherMessage.tsx";
+import { AppStateType } from "../util/types.ts";
 function ChatTalkMain({ state }: { state: AppStateType }) {
-  let SendPrimary = true
-  let OtherPrimary = true
-  let DateState: any
+  let SendPrimary = true;
+  let OtherPrimary = true;
+  let DateState: any;
   return (
     <>
       {state.talkData.value.map((data: any, index: number) => {
-        const date = new Date(data.time)
+        const date = new Date(data.time);
 
         const isEncodeDate = new Date(DateState).toLocaleDateString() !==
-          date.toLocaleDateString()
-        DateState = data.time
+          date.toLocaleDateString();
+        DateState = data.time;
         if (data.type == "message") {
           if (data.sender == state.userName) {
             if (SendPrimary) {
-              SendPrimary = false
-              OtherPrimary = true
+              SendPrimary = false;
+              OtherPrimary = true;
               return (
                 <>
                   {isEncodeDate && (
@@ -34,10 +34,10 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
                     isSendPrimary={true}
                   />
                 </>
-              )
+              );
             }
             // 前のメッセージから1分以上経過のものはprimaryに
-            const prevDate = new Date(state.talkData.value[index - 1].time)
+            const prevDate = new Date(state.talkData.value[index - 1].time);
             if (date.getTime() - prevDate.getTime() > 60000) {
               return (
                 <>
@@ -54,7 +54,7 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
                     isSendPrimary={false}
                   />
                 </>
-              )
+              );
             }
 
             return (
@@ -72,11 +72,11 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
                   isSendPrimary={false}
                 />
               </>
-            )
+            );
           } else {
             if (OtherPrimary) {
-              OtherPrimary = false
-              SendPrimary = true
+              OtherPrimary = false;
+              SendPrimary = true;
               return (
                 <>
                   {isEncodeDate && (
@@ -92,11 +92,11 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
                     isPrimary={true}
                   />
                 </>
-              )
+              );
             }
 
             // 前のメッセージから1分以上経過のものはprimaryに
-            const prevDate = new Date(state.talkData.value[index - 1].time)
+            const prevDate = new Date(state.talkData.value[index - 1].time);
             if (date.getTime() - prevDate.getTime() > 60000) {
               return (
                 <>
@@ -113,7 +113,7 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
                     isPrimary={true}
                   />
                 </>
-              )
+              );
             }
             return (
               <>
@@ -130,14 +130,14 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
                   isPrimary={false}
                 />
               </>
-            )
+            );
           }
         } else {
-          return <ChatDate date={new Date(data.time)} />
+          return <ChatDate date={new Date(data.time)} />;
         }
       })}
     </>
-  )
+  );
 }
 
-export default ChatTalkMain
+export default ChatTalkMain;

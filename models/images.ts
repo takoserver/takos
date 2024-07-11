@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 export const friendsSchema = new mongoose.Schema({
   imageId: {
@@ -19,6 +19,6 @@ export const friendsSchema = new mongoose.Schema({
     required: true,
     default: Date.now,
   },
-})
-const friends = mongoose.model("images", friendsSchema)
-export default friends
+});
+const friends = mongoose.model("images", friendsSchema);
+export default friends;

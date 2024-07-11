@@ -8,9 +8,9 @@ export const handler = {
       return new Response(JSON.stringify({ status: "Please Login" }), {
         headers: { "Content-Type": "application/json" },
         status: 401,
-      })
+      });
     }
-    const body = await req.json()
-    const { name, description, csrftoken, icon } = body
+    const body = await req.json();
+    const { name, description, csrftoken, icon } = body;
   },
-}
+};

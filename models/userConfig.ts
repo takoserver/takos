@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 export const friendConfigSchama = new mongoose.Schema({
   userid: {
@@ -15,8 +15,8 @@ export const friendConfigSchama = new mongoose.Schema({
     required: true,
     validate: {
       validator: function (v: string[]) {
-        const unique = new Set(v)
-        return unique.size === v.length
+        const unique = new Set(v);
+        return unique.size === v.length;
       },
       message: (props: { value: any }) => `${props.value} contains duplicate entries!`,
     },
@@ -26,8 +26,8 @@ export const friendConfigSchama = new mongoose.Schema({
     required: true,
     validate: {
       validator: function (v: string[]) {
-        const unique = new Set(v)
-        return unique.size === v.length
+        const unique = new Set(v);
+        return unique.size === v.length;
       },
       message: (props: { value: any }) => `${props.value} contains duplicate entries!`,
     },
@@ -36,6 +36,6 @@ export const friendConfigSchama = new mongoose.Schema({
     type: Boolean,
     required: true,
   },
-})
-const friendConfig = mongoose.model("friendconfig", friendConfigSchama)
-export default friendConfig
+});
+const friendConfig = mongoose.model("friendconfig", friendConfigSchama);
+export default friendConfig;

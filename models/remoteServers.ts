@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 export const friendsSchema = new mongoose.Schema({
   serverDomain: {
@@ -29,6 +29,6 @@ export const friendsSchema = new mongoose.Schema({
     default: [],
   },
   timestamp: { type: Date, default: Date.now },
-})
-const friends = mongoose.model("remoteservers", friendsSchema)
-export default friends
+});
+const friends = mongoose.model("remoteservers", friendsSchema);
+export default friends;

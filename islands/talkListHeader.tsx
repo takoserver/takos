@@ -1,4 +1,4 @@
-import { AppStateType } from "../util/types.ts"
+import { AppStateType } from "../util/types.ts";
 export default function talkListHeader({ state }: { state: AppStateType }) {
   return (
     <>
@@ -18,7 +18,7 @@ export default function talkListHeader({ state }: { state: AppStateType }) {
         </>
       )}
     </>
-  )
+  );
 }
 function One() {
   return (
@@ -35,15 +35,15 @@ function One() {
         </form>
       </div>
     </>
-  )
+  );
 }
 function Two() {
   return (
     <>
       <h1 class="p-talk-list-title">友達を追加</h1>
     </>
-  )
+  );
 }
 function Three() {
-  return <h1 class="p-talk-list-title">設定</h1>
+  return <h1 class="p-talk-list-title">設定</h1>;
 }

@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 export const csrfTokenSchama = new mongoose.Schema({
   token: {
@@ -11,6 +11,6 @@ export const csrfTokenSchama = new mongoose.Schema({
     required: true,
   },
   timestamp: { type: Date, default: Date.now, expires: 60 * 2 },
-})
-const takostoken = mongoose.model("takostoken", csrfTokenSchama)
-export default takostoken
+});
+const takostoken = mongoose.model("takostoken", csrfTokenSchama);
+export default takostoken;

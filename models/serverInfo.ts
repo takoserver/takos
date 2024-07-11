@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 export const serverInfoSchema = new mongoose.Schema({
   serverDomain: {
@@ -25,6 +25,6 @@ export const serverInfoSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-})
-const ssessionID = mongoose.model("serverInfo", serverInfoSchema)
-export default ssessionID
+});
+const ssessionID = mongoose.model("serverInfo", serverInfoSchema);
+export default ssessionID;

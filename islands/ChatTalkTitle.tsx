@@ -1,4 +1,4 @@
-import { AppStateType } from "../util/types.ts"
+import { AppStateType } from "../util/types.ts";
 export default function TalkArea({ state }: { state: AppStateType }) {
   return (
     <>
@@ -6,19 +6,19 @@ export default function TalkArea({ state }: { state: AppStateType }) {
         class="p-talk-chat-prev"
         onClick={() => {
           if (state.isChoiceUser.value === null || state.ws.value === null || !(state.ws.value instanceof WebSocket)) {
-            alert("websocketが接続されていません")
-            return
+            alert("websocketが接続されていません");
+            return;
           }
           state.ws.value.send(
             JSON.stringify({
               type: "leave",
               sessionid: state.sessionid.value,
             }),
-          )
-          state.isChoiceUser.value = false
-          state.roomid.value = ""
+          );
+          state.isChoiceUser.value = false;
+          state.roomid.value = "";
           //urlを変更
-          history.pushState("", "", "/talk")
+          history.pushState("", "", "/talk");
         }}
       >
         <svg
@@ -35,5 +35,5 @@ export default function TalkArea({ state }: { state: AppStateType }) {
         </svg>
       </button>
     </>
-  )
+  );
 }

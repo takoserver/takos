@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 export const sessionidSchema = new mongoose.Schema({
   userid: {
@@ -22,6 +22,6 @@ export const sessionidSchema = new mongoose.Schema({
     default: Date.now,
     required: true,
   },
-})
-const ssessionID = mongoose.model("sessionid", sessionidSchema)
-export default ssessionID
+});
+const ssessionID = mongoose.model("sessionid", sessionidSchema);
+export default ssessionID;
