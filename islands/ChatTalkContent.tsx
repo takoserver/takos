@@ -139,5 +139,19 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
     </>
   );
 }
-
-export default ChatTalkMain;
+function ChatTalk({ state }: { state: AppStateType }) {
+  if (state.isChoiceUser.value === true) {
+    return (
+      <ul class="c-talk-chat-list">
+        <ChatTalkMain state={state} />
+      </ul>
+    );
+  } else {
+    return (
+      <div class="flex w-full h-full">
+        <p class="m-auto">友達を選択してください</p>
+      </div>
+    );
+  }
+}
+export default ChatTalk;

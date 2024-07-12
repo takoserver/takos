@@ -7,11 +7,11 @@ function chatmain({ state }: { state: AppStateType }) {
   return (
     <>
       <div class="p-talk-chat-main" id="chat-area">
-        <div class="p-talk-chat-title">
+        <div class="p-talk-chat-title hidden" id="chatHeader">
           <div class="p-1 h-full">
             <ChatTalkTitle state={state} />
           </div>
-          <ChatTalkTitleContent>a</ChatTalkTitleContent>
+          <ChatTalkTitleContent state={state}></ChatTalkTitleContent>
         </div>
         <ChatTalkContent state={state} />
       </div>

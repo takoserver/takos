@@ -28,5 +28,15 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
       state.isValidInput.value = false;
     }
   }, [state.inputMessage.value]);
+  useEffect(() => {
+    state.ws.value = new WebSocket("/api/v2/client/main");
+    state.ws.value.onmessage = (event: any) => {
+      const data = JSON.parse(event.data);
+      console.log(data);
+    };
+    state.ws.value.onopen = () => {
+      console.log("connected");
+    };
+  }, []);
   return <></>;
 }

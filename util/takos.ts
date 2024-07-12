@@ -137,23 +137,6 @@ const takos = {
     }
     return true;
   },
-  setIschoiseUser: (ischoiseUser: boolean, obj: any) => {
-    const headerElement = document.getElementById("header");
-    const chatmainElement = document.getElementById("chatmain");
-    if (chatmainElement === null || headerElement === null) {
-      return;
-    }
-    if (ischoiseUser) {
-      //"l-header is-inview" : "l-header"
-      //isChoiceUser ? "p-talk is-inview" : "p-talk"
-      headerElement.className = "l-header is-inview";
-      chatmainElement.className = "p-talk is-inview";
-    } else {
-      headerElement.className = "l-header";
-      chatmainElement.className = "p-talk";
-    }
-    obj.value = ischoiseUser;
-  },
 };
 export default takos;
 async function importCryptoKey(keyData: string | undefined): Promise<CryptoKey> {

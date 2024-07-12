@@ -59,3 +59,13 @@ export interface WebSocketSessionObject {
   roomType: string;
   lastActivityTime: Date;
 }
+export interface WebSocketJoiningRoom {
+  type: string;
+  sessionid: string;
+  roomid: string;
+}
+export interface WebSocketJoiningFriend {
+  type: string;
+  sessionid: string;
+  friendid: string;
+}

@@ -1,10 +1,13 @@
 import { getCookies } from "$std/http/cookie.ts";
 import ssessionID from "../../../../models/sessionid.ts";
 import users from "../../../../models/users.ts";
+import rooms from "../../../../models/rooms.ts";
 import redis from "redis";
 import pubClient from "../../../../util/redisClient.ts";
-import { WebSocketSessionObject } from "../../../../util/types.ts";
+import { WebSocketJoiningFriend, WebSocketJoiningRoom, WebSocketSessionObject } from "../../../../util/types.ts";
 import { load } from "$std/dotenv/mod.ts";
+import friends from "../../../../models/friends.ts";
+import takos from "../../../../util/takos.ts";
 const env = await load();
 const redisURL = env["REDIS_URL"];
 const redisch = env["REDIS_CH"];
@@ -37,13 +40,15 @@ export const handler = {
         //sessionidを取得
         const cookies = getCookies(req.headers);
         const sessionid = cookies.sessionid;
-        const isTrueSessionid = await ssessionID.findOne({ sessionid: sessionid });
+        const isTrueSessionid = await ssessionID.findOne({ sessionID: sessionid });
         if (!isTrueSessionid) {
+          console.log("Invalid SessionID", sessionid);
           socket.close(1000, "Invalid SessionID");
           return;
         }
         const user = await users.findOne({ uuid: isTrueSessionid.userid });
         if (!user) {
+          console.log("Invalid User");
           socket.close(1000, "Invalid User");
           return;
         }
@@ -59,13 +64,73 @@ export const handler = {
         const data = JSON.parse(event.data);
         if (data.type === "ping") {
           socket.send(JSON.stringify({ type: "pong" }));
+          UpdateLastActivityTime(value.sessionid);
+          return;
         }
-        if (data.type === "join") {
-          const session = sessions.get(data.sessionid);
+        if (data.type === "joinFriend") {
+          const value = data as WebSocketJoiningFriend;
+          const session = sessions.get(value.sessionid);
           if (!session) {
             socket.close(1000, "Invalid SessionID");
             return;
           }
+          const friendId = value.friendid;
+          const friendList = await friends.findOne({ user: ctx.state.data.user.uuid});
+          if (!friendList) {
+            socket.close(1000, "you have no friends");
+            return;
+          }
+          const friend = friendList.friends.find((friend) => friend.userid === friendId);
+          if (!friend) {
+            socket.close(1000, "Invalid FriendID");
+            return;
+          }
+          const roomid = friend.room;
+          const room = await rooms.findOne({ uuid: roomid });
+          if (!room) {
+            socket.close(1000, "Invalid RoomID");
+            return;
+          }
+          session.roomid = room.uuid;
+          session.roomType = room.types;
+          sessions.set(value.sessionid, session);
+          //ルームに参加したことを通知
+          pubClient.publish(room.uuid, JSON.stringify({ type: "join", userid: session.userid }));
+          session.ws.send(JSON.stringify({ type: "joined", roomid: room.uuid }));
+          UpdateLastActivityTime(value.sessionid);
+          return;
+        }
+        if (data.type === "joinRoom") {
+          const value = data as WebSocketJoiningRoom;
+          const session = sessions.get(value.sessionid);
+          if (!session) {
+            socket.close(1000, "Invalid SessionID");
+            return;
+          }
+          const room = await rooms.findOne({ roomID: value.roomid });
+          if (!room) {
+            socket.close(1000, "Invalid RoomID");
+            return;
+          }
+          //個人ルームかどうかを確認
+          if (room.types === "friend" || room.types === "remotefriend") {
+            socket.close(1000, "Invalid RoomID");
+            return;
+          }
+          //ルームメンバーかどうかを確認
+          const isRoomMember = room.users.find((user) => user.userid === session.userid);
+          if (!isRoomMember) {
+            socket.close(1000, "Invalid RoomID");
+            return;
+          }
+          session.roomid = value.roomid;
+          session.roomType = room.types;
+          sessions.set(value.sessionid, session);
+          //ルームに参加したことを通知
+          pubClient.publish(value.roomid, JSON.stringify({ type: "join", userid: session.userid }));
+          session.ws.send(JSON.stringify({ type: "joined", roomid: value.roomid }));
+          UpdateLastActivityTime(value.sessionid);
+          return;
         }
       };
       socket.onclose = () => {
@@ -78,7 +143,7 @@ export const handler = {
 };
 
 // セッションの最後の活動時間を更新する関数
-function UpdateLastActivityTime(sessionId: string, Changes: Object) {
+function UpdateLastActivityTime(sessionId: string) {
   const session = sessions.get(sessionId);
   if (!session) {
     return;

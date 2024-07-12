@@ -1,3 +1,4 @@
-export default function ChatTalkTitleContent(props: { children: string }) {
-  return <p>{props.children}</p>;
+import { AppStateType } from "../util/types.ts";
+export default function ChatTalkTitleContent(props: { state: AppStateType }) {
+  return <p>{props.state.roomName.value}</p>;
 }
