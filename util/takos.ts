@@ -16,14 +16,15 @@ const generateKeyPair = async () => {
   return keyPair;
 };
 const takos = {
-  checkCsrfToken: async (token: string) => {
+  checkCsrfToken: async (token: string, sessionid: string) => {
     if (typeof token !== "string") {
       return false;
     }
-    const csrftoken = await csrfToken.findOne({ token: token });
+    const csrftoken = await csrfToken.findOne({ token: token, sessionID: sessionid });
     if (csrftoken === null) {
       return false;
     }
+    csrftoken.deleteOne({ token: token });
     return true;
   },
   splitUserName: (userName: string) => {

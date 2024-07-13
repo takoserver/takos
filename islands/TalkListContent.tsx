@@ -2,6 +2,7 @@ import User from "../components/User.tsx";
 import { setIschoiseUser } from "../util/takosClient.ts";
 import RequestFriendById from "./RequestFriendById.tsx";
 import GetAddFriendKey from "./getAddFriendKey.tsx";
+import FriendRequest from "./FriendRequest.tsx";
 import { AppStateType } from "../util/types.ts";
 function TalkListContent({ state }: { state: AppStateType }) {
   if (state.page.value === 0) {
@@ -59,6 +60,8 @@ function TalkListContent({ state }: { state: AppStateType }) {
   } else if (state.page.value === 2) {
     return (
       <>
+        <FriendRequest></FriendRequest>
+        <h1 class="text-lg">友達を追加</h1>
         <RequestFriendById />
         <User
           userName="QRコードで追加"

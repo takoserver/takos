@@ -14,10 +14,10 @@ export default function RegisterForm(props: any) {
   useEffect(() => {
     const fetchData = async () => {
       if (showModal) {
-        const resp = await fetch("/api/v1/chats/friendkey?reload=false");
+        const resp = await fetch("/api/v2/client/users/friendkey?reload=false");
         const data = await resp.json();
         if (data.status === false) {
-          console.log("error");
+          console.log(data.message);
           return;
         }
         const origin = window.location.protocol + "//" +
@@ -97,10 +97,17 @@ function Input({
   const handleChangeUrl = (event: any) => {
     event.preventDefault();
     const updateurl = async () => {
-      const resp = await fetch("/api/v1/chats/friendkey?reload=true");
+      const csrftokenres = await fetch("/api/v2/client/csrftoken");
+      const csrftokendata = await csrftokenres.json();
+      if (csrftokendata.status === false) {
+        console.log(csrftokendata.message);
+        return;
+      }
+      const csrftoken = csrftokendata.csrftoken;
+      const resp = await fetch("/api/v2/client/users/friendkey?reload=true&csrftoken=" + csrftoken);
       const data = await resp.json();
       if (data.status === false) {
-        console.log("error");
+        console.log(data.message);
         return;
       }
       const origin = window.location.protocol + "//" +

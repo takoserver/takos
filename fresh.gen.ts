@@ -17,6 +17,7 @@ import * as $api_v2_client_friends_info_ID_profile_friend from "./routes/api/v2/
 import * as $api_v2_client_friends_info_ID_profile_friendcode from "./routes/api/v2/client/friends/info/[ID]/profile/friendcode.ts";
 import * as $api_v2_client_friends_info_ID_profile_group from "./routes/api/v2/client/friends/info/[ID]/profile/group.ts";
 import * as $api_v2_client_friends_list from "./routes/api/v2/client/friends/list.ts";
+import * as $api_v2_client_friends_reqest_list from "./routes/api/v2/client/friends/reqest/list.ts";
 import * as $api_v2_client_main from "./routes/api/v2/client/main.ts";
 import * as $api_v2_client_sessions_login from "./routes/api/v2/client/sessions/login.ts";
 import * as $api_v2_client_sessions_logout from "./routes/api/v2/client/sessions/logout.ts";
@@ -85,6 +86,7 @@ import * as $ChatSend from "./islands/ChatSend.tsx";
 import * as $ChatTalkContent from "./islands/ChatTalkContent.tsx";
 import * as $ChatTalkTitle from "./islands/ChatTalkTitle.tsx";
 import * as $ChatTalkTitleContent from "./islands/ChatTalkTitleContent.tsx";
+import * as $FriendRequest from "./islands/FriendRequest.tsx";
 import * as $RequestFriendById from "./islands/RequestFriendById.tsx";
 import * as $TalkListContent from "./islands/TalkListContent.tsx";
 import * as $getAddFriendKey from "./islands/getAddFriendKey.tsx";
@@ -110,6 +112,7 @@ const manifest = {
     "./routes/api/v2/client/friends/info/[ID]/profile/friendcode.ts": $api_v2_client_friends_info_ID_profile_friendcode,
     "./routes/api/v2/client/friends/info/[ID]/profile/group.ts": $api_v2_client_friends_info_ID_profile_group,
     "./routes/api/v2/client/friends/list.ts": $api_v2_client_friends_list,
+    "./routes/api/v2/client/friends/reqest/list.ts": $api_v2_client_friends_reqest_list,
     "./routes/api/v2/client/main.ts": $api_v2_client_main,
     "./routes/api/v2/client/sessions/login.ts": $api_v2_client_sessions_login,
     "./routes/api/v2/client/sessions/logout.ts": $api_v2_client_sessions_logout,
@@ -180,6 +183,7 @@ const manifest = {
     "./islands/ChatTalkContent.tsx": $ChatTalkContent,
     "./islands/ChatTalkTitle.tsx": $ChatTalkTitle,
     "./islands/ChatTalkTitleContent.tsx": $ChatTalkTitleContent,
+    "./islands/FriendRequest.tsx": $FriendRequest,
     "./islands/RequestFriendById.tsx": $RequestFriendById,
     "./islands/TalkListContent.tsx": $TalkListContent,
     "./islands/getAddFriendKey.tsx": $getAddFriendKey,

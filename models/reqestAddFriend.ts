@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 export const requestAddFriendSchema = new mongoose.Schema({
-  userID: {
+  userid: {
     type: String,
     required: true,
   },
-  Applicant: {
+  friendRequester: {
     type: [{
       userID: {
         type: String,
@@ -28,7 +28,7 @@ export const requestAddFriendSchema = new mongoose.Schema({
     default: [],
   },
   //自分が申請したユーザー
-  AppliedUser: {
+  requestedUser: {
     type: [{
       userID: {
         type: String,

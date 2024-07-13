@@ -40,7 +40,7 @@ function One() {
 function Two() {
   return (
     <>
-      <h1 class="p-talk-list-title">友達を追加</h1>
+      <h1 class="p-talk-list-title">トークを追加</h1>
     </>
   );
 }
