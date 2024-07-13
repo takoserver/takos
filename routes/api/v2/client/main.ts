@@ -82,8 +82,8 @@ export const handler = {
             socket.send(JSON.stringify({ type: "error", message: "Invalid FriendID" }));
             return;
           }
-          let friendInfo
-          if(takos.splitUserName(friendId).domain !== env["DOMAIN"]){
+          let friendInfo;
+          if (takos.splitUserName(friendId).domain !== env["DOMAIN"]) {
             friendInfo = await remoteFriends.findOne({ userName: takos.splitUserName(friendId).userName, host: takos.splitUserName(friendId).domain });
           } else {
             friendInfo = await users.findOne({ userName: takos.splitUserName(friendId).userName });
@@ -103,13 +103,13 @@ export const handler = {
             socket.send("Invalid RoomID");
             return;
           }
-          if(typeof room.types === "string" && typeof room.uuid === "string"){
+          if (typeof room.types === "string" && typeof room.uuid === "string") {
             session.roomid = room.uuid;
             session.roomType = room.types;
           }
           sessions.set(value.sessionid, session);
           //ルームに参加したことを通知
-          if(typeof room.uuid === "string"){
+          if (typeof room.uuid === "string") {
             pubClient.publish(room.uuid, JSON.stringify({ type: "join", userid: session.userid }));
           }
           session.ws.send(JSON.stringify({ type: "joined", roomType: room.types, friendid: value.friendid }));
@@ -140,13 +140,13 @@ export const handler = {
             return;
           }
           session.roomid = value.roomid;
-          if(typeof room.types === "string"){
+          if (typeof room.types === "string") {
             session.roomType = room.types;
           }
           sessions.set(value.sessionid, session);
           //ルームに参加したことを通知
           pubClient.publish(value.roomid, JSON.stringify({ type: "join", userid: session.userid }));
-          session.ws.send(JSON.stringify({ type: "joined", roomid: value.roomid, }));
+          session.ws.send(JSON.stringify({ type: "joined", roomid: value.roomid }));
           UpdateLastActivityTime(value.sessionid);
           return;
         }

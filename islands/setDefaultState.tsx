@@ -25,16 +25,17 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
         case "connected":
           state.sessionid.value = data.sessionid;
           break;
-        case "joined": {
-          if(data.roomType === "friend"){
-            state.roomType.value = "friend";
-            const roomInfo = state.friendList.value.find((room: any) => room.userName === data.friendid);
-            state.roomid.value = "";
-            state.friendid.value = data.friendid;
-            state.roomName.value = roomInfo.nickName;
-            setIschoiseUser(true, state.isChoiceUser);
+        case "joined":
+          {
+            if (data.roomType === "friend") {
+              state.roomType.value = "friend";
+              const roomInfo = state.friendList.value.find((room: any) => room.userName === data.friendid);
+              state.roomid.value = "";
+              state.friendid.value = data.friendid;
+              state.roomName.value = roomInfo.nickName;
+              setIschoiseUser(true, state.isChoiceUser);
+            }
           }
-        }
           break;
       }
     };

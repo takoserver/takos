@@ -46,6 +46,7 @@ import * as $api_v2_client_talks_read from "./routes/api/v2/client/talks/read.ts
 import * as $api_v2_client_unblock_server from "./routes/api/v2/client/unblock/server.ts";
 import * as $api_v2_client_unblock_user from "./routes/api/v2/client/unblock/user.ts";
 import * as $api_v2_client_users_uuid_icon from "./routes/api/v2/client/users/[uuid]/icon.ts";
+import * as $api_v2_client_users_friendkey from "./routes/api/v2/client/users/friendkey.ts";
 import * as $api_v2_client_users_icon from "./routes/api/v2/client/users/icon.ts";
 import * as $api_v2_client_users_profile from "./routes/api/v2/client/users/profile.ts";
 import * as $api_v2_client_users_settings from "./routes/api/v2/client/users/settings.ts";
@@ -84,7 +85,9 @@ import * as $ChatSend from "./islands/ChatSend.tsx";
 import * as $ChatTalkContent from "./islands/ChatTalkContent.tsx";
 import * as $ChatTalkTitle from "./islands/ChatTalkTitle.tsx";
 import * as $ChatTalkTitleContent from "./islands/ChatTalkTitleContent.tsx";
+import * as $RequestFriendById from "./islands/RequestFriendById.tsx";
 import * as $TalkListContent from "./islands/TalkListContent.tsx";
+import * as $getAddFriendKey from "./islands/getAddFriendKey.tsx";
 import * as $headerButton from "./islands/headerButton.tsx";
 import * as $setDefaultState from "./islands/setDefaultState.tsx";
 import * as $talkListHeader from "./islands/talkListHeader.tsx";
@@ -136,6 +139,7 @@ const manifest = {
     "./routes/api/v2/client/unblock/server.ts": $api_v2_client_unblock_server,
     "./routes/api/v2/client/unblock/user.ts": $api_v2_client_unblock_user,
     "./routes/api/v2/client/users/[uuid]/icon.ts": $api_v2_client_users_uuid_icon,
+    "./routes/api/v2/client/users/friendkey.ts": $api_v2_client_users_friendkey,
     "./routes/api/v2/client/users/icon.ts": $api_v2_client_users_icon,
     "./routes/api/v2/client/users/profile.ts": $api_v2_client_users_profile,
     "./routes/api/v2/client/users/settings.ts": $api_v2_client_users_settings,
@@ -176,7 +180,9 @@ const manifest = {
     "./islands/ChatTalkContent.tsx": $ChatTalkContent,
     "./islands/ChatTalkTitle.tsx": $ChatTalkTitle,
     "./islands/ChatTalkTitleContent.tsx": $ChatTalkTitleContent,
+    "./islands/RequestFriendById.tsx": $RequestFriendById,
     "./islands/TalkListContent.tsx": $TalkListContent,
+    "./islands/getAddFriendKey.tsx": $getAddFriendKey,
     "./islands/headerButton.tsx": $headerButton,
     "./islands/setDefaultState.tsx": $setDefaultState,
     "./islands/talkListHeader.tsx": $talkListHeader,

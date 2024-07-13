@@ -24,7 +24,7 @@ export const handler = {
     const localFriendData = Promise.all(localFriendRooms.map(async (room: any) => {
       const friend = room.users.find((user: any) => user.userid !== userid);
       const friendData = await users.findOne({ uuid: friend.userid });
-      const latestMessage = await messages.findOne({ roomid: room.uuid },null,{ sort: { timestamp: -1 } });
+      const latestMessage = await messages.findOne({ roomid: room.uuid }, null, { sort: { timestamp: -1 } });
       return {
         userName: friendData?.userName + "@" + env["DOMAIN"],
         nickName: friendData?.nickName,
@@ -37,7 +37,7 @@ export const handler = {
     const remoteFriendData = Promise.all(remoteFriendRooms.map(async (room: any) => {
       const friend = room.users.find((user: any) => user.userid !== userid);
       const friendData = await remoteFriends.findOne({ uuid: friend.userid });
-      const latestMessage = await messages.findOne({ roomid: room.uuid },null,{ sort: { timestamp: -1 } });
+      const latestMessage = await messages.findOne({ roomid: room.uuid }, null, { sort: { timestamp: -1 } });
       return {
         userName: friendData?.userName + "@" + takos.splitUserName(friend.uuid).domain,
         nickName: friendData?.nickName,
@@ -48,7 +48,7 @@ export const handler = {
     }));
     //グループの情報を取得
     const groupData = Promise.all(groupRooms.map(async (room: any) => {
-      const latestMessage = await messages.findOne({ roomid: room.uuid },null,{ sort: { timestamp: -1 } });
+      const latestMessage = await messages.findOne({ roomid: room.uuid }, null, { sort: { timestamp: -1 } });
       return {
         roomName: room.showName,
         latestMessage: latestMessage?.message,
@@ -61,7 +61,7 @@ export const handler = {
     }));
     //コミュニティの情報を取得
     const communityData = Promise.all(communities.map(async (room: any) => {
-      const latestMessage = await messages.findOne({ roomid: room.uuid },null,{ sort: { timestamp: -1 } });
+      const latestMessage = await messages.findOne({ roomid: room.uuid }, null, { sort: { timestamp: -1 } });
       return {
         roomName: room.showName,
         latestMessage: latestMessage?.message,
