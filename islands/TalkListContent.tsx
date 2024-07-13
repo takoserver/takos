@@ -29,12 +29,12 @@ function TalkListContent({ state }: { state: AppStateType }) {
                 }}
               />
             );
-          } else if (talk.type === "localfriend") {
+          } else if (talk.type === "friend") {
             return (
               <User
-                userName={talk.roomName}
+                userName={talk.nickName}
                 latestMessage={talk.latestMessage}
-                icon={talk.icon}
+                icon={"http://" + talk.userName.split("@")[1] + "/api/v2/client/friends/info/" + talk.userName + "/icon/friend"}
                 userName2={talk.userName}
                 isNewMessage={talk.isNewMessage}
                 isSelected={talk.isSelect}
@@ -44,7 +44,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
                     JSON.stringify({
                       type: "joinFriend",
                       sessionid: state.sessionid.value,
-                      roomid: talk.roomID,
+                      friendid: talk.userName,
                     }),
                   );
                 }}

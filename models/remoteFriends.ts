@@ -6,11 +6,18 @@ export const remoteFriendsSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  host: {
+    type: String,
+    required: true,
+  },
   userName: {
     type: String,
     required: true,
   },
   nickName: {
+    type: String,
+  },
+  description: {
     type: String,
   },
 });

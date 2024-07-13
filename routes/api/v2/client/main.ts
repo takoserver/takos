@@ -8,6 +8,7 @@ import { WebSocketJoiningFriend, WebSocketJoiningRoom, WebSocketSessionObject } 
 import { load } from "$std/dotenv/mod.ts";
 import friends from "../../../../models/friends.ts";
 import takos from "../../../../util/takos.ts";
+import remoteFriends from "../../../../models/remoteFriends.ts";
 const env = await load();
 const redisURL = env["REDIS_URL"];
 const redisch = env["REDIS_CH"];
@@ -76,12 +77,22 @@ export const handler = {
             return;
           }
           const friendId = value.friendid;
-          const friendList = await friends.findOne({ user: ctx.state.data.user.uuid });
+          const friendList = await friends.findOne({ user: ctx.state.data.userid });
           if (!friendList) {
             socket.send(JSON.stringify({ type: "error", message: "Invalid FriendID" }));
             return;
           }
-          const friend = friendList.friends.find((friend) => friend.userid === friendId);
+          let friendInfo
+          if(takos.splitUserName(friendId).domain !== env["DOMAIN"]){
+            friendInfo = await remoteFriends.findOne({ userName: takos.splitUserName(friendId).userName, host: takos.splitUserName(friendId).domain });
+          } else {
+            friendInfo = await users.findOne({ userName: takos.splitUserName(friendId).userName });
+          }
+          if (!friendInfo) {
+            socket.send(JSON.stringify({ type: "error", message: "Invalid FriendID" }));
+            return;
+          }
+          const friend = friendList.friends.find((friend) => friend.userid === friendInfo.uuid);
           if (!friend) {
             socket.send(JSON.stringify({ type: "error", message: "Invalid FriendID" }));
             return;
@@ -89,7 +100,7 @@ export const handler = {
           const roomid = friend.room;
           const room = await rooms.findOne({ uuid: roomid });
           if (!room) {
-            socket.close(1000, "Invalid RoomID");
+            socket.send("Invalid RoomID");
             return;
           }
           if(typeof room.types === "string" && typeof room.uuid === "string"){
@@ -101,7 +112,7 @@ export const handler = {
           if(typeof room.uuid === "string"){
             pubClient.publish(room.uuid, JSON.stringify({ type: "join", userid: session.userid }));
           }
-          session.ws.send(JSON.stringify({ type: "joined", roomid: room.uuid }));
+          session.ws.send(JSON.stringify({ type: "joined", roomType: room.types, friendid: value.friendid }));
           UpdateLastActivityTime(value.sessionid);
           return;
         }
@@ -135,7 +146,7 @@ export const handler = {
           sessions.set(value.sessionid, session);
           //ルームに参加したことを通知
           pubClient.publish(value.roomid, JSON.stringify({ type: "join", userid: session.userid }));
-          session.ws.send(JSON.stringify({ type: "joined", roomid: value.roomid }));
+          session.ws.send(JSON.stringify({ type: "joined", roomid: value.roomid, }));
           UpdateLastActivityTime(value.sessionid);
           return;
         }

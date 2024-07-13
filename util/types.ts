@@ -41,6 +41,8 @@ export interface AppStateType {
   page: { value: number };
   inputMessage: { value: string };
   isValidInput: { value: boolean };
+  roomType: { value: string };
+  friendid: { value: string };
 }
 export interface MessageTypes {
   type: string;

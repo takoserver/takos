@@ -26,10 +26,11 @@ export const handler = {
       const friendData = await users.findOne({ uuid: friend.userid });
       const latestMessage = await messages.findOne({ roomid: room.uuid },null,{ sort: { timestamp: -1 } });
       return {
-        userName: friendData?.userName + env["DOMAIN"],
+        userName: friendData?.userName + "@" + env["DOMAIN"],
         nickName: friendData?.nickName,
         latestMessage: latestMessage?.message,
         latestMessageTime: latestMessage?.timestamp,
+        type: room.types,
       };
     }));
     //リモート友達の情報を取得
@@ -38,10 +39,11 @@ export const handler = {
       const friendData = await remoteFriends.findOne({ uuid: friend.userid });
       const latestMessage = await messages.findOne({ roomid: room.uuid },null,{ sort: { timestamp: -1 } });
       return {
-        userName: friendData?.userName + takos.splitUserName(friend.uuid).domain,
+        userName: friendData?.userName + "@" + takos.splitUserName(friend.uuid).domain,
         nickName: friendData?.nickName,
         latestMessage: latestMessage?.message,
         latestMessageTime: latestMessage?.timestamp,
+        type: room.types,
       };
     }));
     //グループの情報を取得
