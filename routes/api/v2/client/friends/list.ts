@@ -115,8 +115,9 @@ async function getRemoteFriendData(room: Array<any>, ctx: any) {
     } else {
       await remoteFriends.updateOne({ user: ctx.state.data.userid }, { $set: { friends: updatefriendData } });
     }
+    pubClient.publish(env["REDIS_CH"], JSON.stringify({ type: "listUpdate", userid: ctx.state.data.userid }));
   }
   //redisにpubする
-  pubClient.publish(env["REDIS_CH"], JSON.stringify({ type: "listUpdate", userid: ctx.state.data.userid }));
+  console.log(updatefriendData)
   return;
 }
