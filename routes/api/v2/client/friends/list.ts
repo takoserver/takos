@@ -71,8 +71,8 @@ export const handler = {
       };
     }));
     //配列を結合
-    const friendList = await Promise.all([localFriendData, remoteFriendData, groupData, communityData]);
-    getRemoteFriendData(friendList, ctx);
+    const friendList = await Promise.all([await localFriendData, await remoteFriendData, await groupData, await communityData]);
+    getRemoteFriendData(await remoteFriendData, ctx);
     return new Response(JSON.stringify({ status: true, friends: friendList.flat() }));
   },
 };
