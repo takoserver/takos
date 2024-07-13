@@ -14,92 +14,10 @@ export const handler = {
     }
     const userid = ctx.state.data.userid;
     const roomsData = await rooms.find({ "users.userid": userid });
-    const result = await Promise.all(roomsData.map(
-      async (room: any) => {
-        switch (room.types) {
-          case "friend":
-            return await getFriendData(room, ctx);
-          case "remotefriend":
-            return await getRemoteFriendData(room, ctx);
-          case "community":
-            break;
-          case "group":
-            break;
-        }
-      },
-    ));
-    return new Response(
-      JSON.stringify({
-        status: true,
-        friends: result,
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
-    );
+    const localFriendRooms = roomsData.filter((room: any) => room.types === "friend");
+    const remoteFriendRooms = roomsData.filter((room: any) => room.types === "remotefriend");
+    const groupRooms = roomsData.filter((room: any) => room.types === "group");
+    const communities = roomsData.filter((room: any) => room.types === "community");
+    
   },
 };
-async function getFriendData(room: any, ctx: any) {
-  const friendID = room.users.filter(
-    (user: { userid: string }) => user.userid !== ctx.state.data.userid,
-  );
-  const uuid: string = friendID[0].userid;
-  const friendName = await users.findOne({
-    uuid: uuid,
-  });
-  const latestmessage = await messages.findOne({
-    roomid: room.uuid,
-  }).sort({ timestamp: -1 });
-  const isNewMessage = latestmessage?.read.find(
-    (read: any) => read.userid === ctx.state.data.userid || latestmessage.userid == ctx.state.data.userid,
-  );
-  const friendResult = {
-    roomName: friendName?.nickName,
-    lastMessage: latestmessage?.message,
-    roomID: room.uuid,
-    latestMessageTime: latestmessage?.timestamp,
-    roomIcon: `/api/v2/client/friends/info/${uuid}/icon/friend`,
-    type: "localfriend",
-    isNewMessage: isNewMessage === undefined,
-  };
-  return friendResult;
-}
-async function getCachedRemoteFriendData(room: any, ctx: any) {
-}
-async function getRemoteFriendData(room: any, ctx: any) {
-  const friendID = room.users.filter(
-    (user: { userid: string }) => user.userid !== ctx.state.data.userid,
-  );
-  const requestFriendNameBody = {
-    userid: ctx.state.data.userid,
-    friendid: friendID[0].userid,
-  };
-  const friendName = await fetch(`https://${takos.splitUserName(friendID).domain}/api/v2/server/information/users/profile`, {
-    method: "POST",
-    body: JSON.stringify({
-      host: env["DOMAIN"],
-      body: JSON.stringify(requestFriendNameBody),
-      signature: takos.signData(JSON.stringify(requestFriendNameBody), await takos.getPrivateKey()),
-    }),
-  });
-  const pubkey = await fetch(`https://${takos.splitUserName(friendID).domain}/api/v2/server/pubkey`).then((res) => res.json()).then((data) => data.publickey);
-  const friendNameData = await friendName.json();
-  const verify = await takos.verifySignature(pubkey, friendNameData.signature, friendNameData.body);
-  if (!verify) {
-    return ctx.json({ status: false, message: "Signature verification failed" });
-  }
-  const latestmessage = await messages.findOne({
-    roomid: room.uuid,
-  }).sort({ timestamp: -1 });
-  const isNewMessage = latestmessage?.read.find(
-    (read: any) => read.userid === ctx.state.data.userid || latestmessage.userid == ctx.state.data.userid,
-  );
-  const friendResult = {
-    roomName: friendNameData.userName,
-    lastMessage: latestmessage?.message,
-    roomID: room.uuid,
-    latestMessageTime: latestmessage?.timestamp,
-    roomIcon: `https://${takos.splitUserName(friendID).domain}/api/v2/server/information/users/icon`,
-    type: "remotefriend",
-    isNewMessage: isNewMessage === undefined,
-  };
-  return friendResult;
-}

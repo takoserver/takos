@@ -1,4 +1,5 @@
 import { AppStateType } from "../util/types.ts";
+import { setIschoiseUser } from "../util/takosClient.ts";
 export default function TalkArea({ state }: { state: AppStateType }) {
   return (
     <>
@@ -19,6 +20,7 @@ export default function TalkArea({ state }: { state: AppStateType }) {
           state.roomid.value = "";
           //urlを変更
           history.pushState("", "", "/talk");
+          setIschoiseUser(false, state.isChoiceUser);
         }}
       >
         <svg

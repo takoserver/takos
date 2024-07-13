@@ -33,6 +33,11 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
     state.ws.value.onmessage = (event: any) => {
       const data = JSON.parse(event.data);
       console.log(data);
+      switch (data.type) {
+        case "connected":
+          state.sessionid.value = data.sessionid;
+          break;
+      }
     };
     state.ws.value.onopen = () => {
       console.log("connected");

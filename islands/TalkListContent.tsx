@@ -8,39 +8,49 @@ function TalkListContent({ state }: { state: AppStateType }) {
     return (
       <>
         {state.friendList.value.map((talk: any) => {
-          return (
-            <User
-              userName={talk.roomName}
-              latestMessage={talk.latestMessage}
-              icon={talk.icon}
-              userName2={talk.userName}
-              isNewMessage={talk.isNewMessage}
-              isSelected={talk.isSelect}
-              onClick={() => {
-                setIschoiseUser(true, state.isChoiceUser);
-                state.roomid.value = talk.roomID;
-                state.roomName.value = talk.roomName;
-                console.log(talk.roomName);
-                state.friendList.value.map((data: any) => {
-                  if (data.roomID == talk.roomID) {
-                    data.isNewMessage = false;
-                  }
-                });
-                //urlの一番最後にroomidを追加
-                //どのようなurlにも対応できるようにする
-                const url = new URL(window.location.href);
-                url.searchParams.set("roomid", talk.roomID);
-                window.history.pushState({}, "", url.toString());
-                state.ws.value?.send(
-                  JSON.stringify({
-                    type: "join",
-                    sessionid: state.sessionid.value,
-                    roomid: talk.roomID,
-                  }),
-                );
-              }}
-            />
-          );
+          console.log(talk)
+          if(talk.type === "group") {
+            return (
+              <User
+                userName={talk.roomName}
+                latestMessage={talk.latestMessage}
+                icon={talk.icon}
+                userName2={talk.userName}
+                isNewMessage={talk.isNewMessage}
+                isSelected={talk.isSelect}
+                onClick={() => {
+                  state.ws.value?.send(
+                    JSON.stringify({
+                      type: "joinRoom",
+                      sessionid: state.sessionid.value,
+                      roomid: talk.roomID,
+                    }),
+                  );
+                }}
+              />
+            );
+          } else if(talk.type === "localfriend") {
+            return (
+              <User
+                userName={talk.roomName}
+                latestMessage={talk.latestMessage}
+                icon={talk.icon}
+                userName2={talk.userName}
+                isNewMessage={talk.isNewMessage}
+                isSelected={talk.isSelect}
+                onClick={() => {
+                  console.log(state.sessionid.value)
+                  state.ws.value?.send(
+                    JSON.stringify({
+                      type: "joinFriend",
+                      sessionid: state.sessionid.value,
+                      roomid: talk.roomID,
+                    }),
+                  );
+                }}
+              />
+            );
+          }
         })}
       </>
     );

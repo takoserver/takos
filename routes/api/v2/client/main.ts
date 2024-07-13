@@ -59,30 +59,31 @@ export const handler = {
           roomType: "",
           lastActivityTime: new Date(),
         });
+        socket.send(JSON.stringify({ type: "connected", sessionid}));
       };
       socket.onmessage = async function (event) {
         const data = JSON.parse(event.data);
         if (data.type === "ping") {
           socket.send(JSON.stringify({ type: "pong" }));
-          UpdateLastActivityTime(value.sessionid);
+          UpdateLastActivityTime(data.sessionid);
           return;
         }
         if (data.type === "joinFriend") {
           const value = data as WebSocketJoiningFriend;
           const session = sessions.get(value.sessionid);
           if (!session) {
-            socket.close(1000, "Invalid SessionID");
+            socket.send(JSON.stringify({ type: "error", message: "Invalid SessionID" }));
             return;
           }
           const friendId = value.friendid;
           const friendList = await friends.findOne({ user: ctx.state.data.user.uuid});
           if (!friendList) {
-            socket.close(1000, "you have no friends");
+            socket.send(JSON.stringify({ type: "error", message: "Invalid FriendID" }));
             return;
           }
           const friend = friendList.friends.find((friend) => friend.userid === friendId);
           if (!friend) {
-            socket.close(1000, "Invalid FriendID");
+            socket.send(JSON.stringify({ type: "error", message: "Invalid FriendID" }));
             return;
           }
           const roomid = friend.room;

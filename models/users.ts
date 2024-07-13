@@ -72,6 +72,10 @@ const usersSchema = new mongoose.Schema({
   addFriendKey: {
     type: String,
   },
+  description: {
+    type: String,
+    required: true,
+  },
   timestamp: { type: Date, default: Date.now },
 });
 const users = mongoose.model("users", usersSchema);
