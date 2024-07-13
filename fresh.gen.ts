@@ -75,6 +75,7 @@ import * as $api_v2_server_blocked from "./routes/api/v2/server/blocked.ts";
 import * as $api_v2_server_info from "./routes/api/v2/server/info.ts";
 import * as $api_v2_server_information_talk_ID_image from "./routes/api/v2/server/information/talk/[ID]/image.ts";
 import * as $api_v2_server_information_talk_ID_index from "./routes/api/v2/server/information/talk/[ID]/index.ts";
+import * as $api_v2_server_information_users_changes from "./routes/api/v2/server/information/users/changes.ts";
 import * as $api_v2_server_information_users_icon from "./routes/api/v2/server/information/users/icon.ts";
 import * as $api_v2_server_information_users_profile from "./routes/api/v2/server/information/users/profile.ts";
 import * as $api_v2_server_pubkey from "./routes/api/v2/server/pubkey.ts";
@@ -164,6 +165,7 @@ const manifest = {
     "./routes/api/v2/server/info.ts": $api_v2_server_info,
     "./routes/api/v2/server/information/talk/[ID]/image.ts": $api_v2_server_information_talk_ID_image,
     "./routes/api/v2/server/information/talk/[ID]/index.ts": $api_v2_server_information_talk_ID_index,
+    "./routes/api/v2/server/information/users/changes.ts": $api_v2_server_information_users_changes,
     "./routes/api/v2/server/information/users/icon.ts": $api_v2_server_information_users_icon,
     "./routes/api/v2/server/information/users/profile.ts": $api_v2_server_information_users_profile,
     "./routes/api/v2/server/pubkey.ts": $api_v2_server_pubkey,
