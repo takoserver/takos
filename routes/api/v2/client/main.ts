@@ -59,7 +59,7 @@ export const handler = {
           roomType: "",
           lastActivityTime: new Date(),
         });
-        socket.send(JSON.stringify({ type: "connected", sessionid}));
+        socket.send(JSON.stringify({ type: "connected", sessionid }));
       };
       socket.onmessage = async function (event) {
         const data = JSON.parse(event.data);
@@ -76,7 +76,7 @@ export const handler = {
             return;
           }
           const friendId = value.friendid;
-          const friendList = await friends.findOne({ user: ctx.state.data.user.uuid});
+          const friendList = await friends.findOne({ user: ctx.state.data.user.uuid });
           if (!friendList) {
             socket.send(JSON.stringify({ type: "error", message: "Invalid FriendID" }));
             return;

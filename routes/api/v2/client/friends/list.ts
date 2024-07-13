@@ -6,6 +6,7 @@ import rooms from "../../../../../models/rooms.ts";
 import messages from "../../../../../models/messages.ts";
 import { load } from "$std/dotenv/mod.ts";
 import takos from "../../../../../util/takos.ts";
+import remoteFriends from "../../../../../models/remoteFriends.ts";
 const env = await load();
 export const handler = {
   async GET(req: any, ctx: any) {
@@ -18,6 +19,31 @@ export const handler = {
     const remoteFriendRooms = roomsData.filter((room: any) => room.types === "remotefriend");
     const groupRooms = roomsData.filter((room: any) => room.types === "group");
     const communities = roomsData.filter((room: any) => room.types === "community");
-    
+    //友達の情報を取得
+    const localFriendData = Promise.all(localFriendRooms.map(async (room: any) => {
+      const friend = room.users.find((user: any) => user.userid !== userid);
+      const friendData = await users.findOne({ uuid: friend.userid });
+      const latestMessage = await messages.findOne({ roomID: room.roomID }, { sort: { createdAt: -1 } });
+      return {
+        userName: friendData?.userName,
+        nickName: friendData?.nickName,
+        latestMessage: latestMessage?.message,
+        latestMessageTime: latestMessage?.timestamp,
+      };
+    }));
+    //リモート友達の情報を取得
+    const remoteFriendData = Promise.all(remoteFriendRooms.map(async (room: any) => {
+      const friend = room.users.find((user: any) => user.userid !== userid);
+      const friendData = await remoteFriends.findOne({ uuid: friend.userid });
+      const latestMessage = await messages.findOne({ roomID: room.roomID }, { sort: { createdAt: -1 } });
+      return {
+        userName: friendData?.userName,
+        nickName: friendData?.nickName,
+        latestMessage: latestMessage?.message,
+        latestMessageTime: latestMessage?.timestamp,
+      };
+    }));
   },
 };
+async function updateRemoteFriendsData(userid: string, remoteFriendRooms: any) {
+}

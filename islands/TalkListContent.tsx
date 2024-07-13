@@ -8,8 +8,8 @@ function TalkListContent({ state }: { state: AppStateType }) {
     return (
       <>
         {state.friendList.value.map((talk: any) => {
-          console.log(talk)
-          if(talk.type === "group") {
+          console.log(talk);
+          if (talk.type === "group") {
             return (
               <User
                 userName={talk.roomName}
@@ -29,7 +29,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
                 }}
               />
             );
-          } else if(talk.type === "localfriend") {
+          } else if (talk.type === "localfriend") {
             return (
               <User
                 userName={talk.roomName}
@@ -39,7 +39,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
                 isNewMessage={talk.isNewMessage}
                 isSelected={talk.isSelect}
                 onClick={() => {
-                  console.log(state.sessionid.value)
+                  console.log(state.sessionid.value);
                   state.ws.value?.send(
                     JSON.stringify({
                       type: "joinFriend",
