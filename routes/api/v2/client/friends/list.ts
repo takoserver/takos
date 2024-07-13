@@ -118,6 +118,5 @@ async function getRemoteFriendData(room: Array<any>, ctx: any) {
     pubClient.publish(env["REDIS_CH"], JSON.stringify({ type: "listUpdate", userid: ctx.state.data.userid }));
   }
   //redisにpubする
-  console.log(updatefriendData)
   return;
 }
