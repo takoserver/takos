@@ -7,6 +7,7 @@ import messages from "../../../../../models/messages.ts";
 import { load } from "$std/dotenv/mod.ts";
 import takos from "../../../../../util/takos.ts";
 import remoteFriends from "../../../../../models/remoteFriends.ts";
+import pubClient from "../../../../../util/redisClient.ts";
 const env = await load();
 export const handler = {
   async GET(req: any, ctx: any) {
@@ -43,7 +44,79 @@ export const handler = {
         latestMessageTime: latestMessage?.timestamp,
       };
     }));
+    //グループの情報を取得
+    const groupData = Promise.all(groupRooms.map(async (room: any) => {
+      const latestMessage = await messages.findOne({ roomID: room.roomID }, { sort: { createdAt: -1 } });
+      return {
+        roomName: room.showName,
+        latestMessage: latestMessage?.message,
+        roomID: room.uuid,
+        latestMessageTime: latestMessage?.timestamp,
+        roomIcon: room.roomIcon,
+        type: room.types,
+        isNewMessage: false,
+      };
+    }));
+    //コミュニティの情報を取得
+    const communityData = Promise.all(communities.map(async (room: any) => {
+      const latestMessage = await messages.findOne({ roomID: room.roomID }, { sort: { createdAt: -1 } });
+      return {
+        roomName: room.showName,
+        latestMessage: latestMessage?.message,
+        roomID: room.uuid,
+        latestMessageTime: latestMessage?.timestamp,
+        roomIcon: room.roomIcon,
+        type: room.types,
+        isNewMessage: false,
+      };
+    }));
+    //配列を結合
+    const friendList = await Promise.all([localFriendData, remoteFriendData, groupData, communityData]);
+    getRemoteFriendData(friendList, ctx);
+    return new Response(JSON.stringify({ status: true, friends: friendList.flat() }));
   },
 };
-async function updateRemoteFriendsData(userid: string, remoteFriendRooms: any) {
+async function getRemoteFriendData(room: Array<any>, ctx: any) {
+  //([{userid:"tako@takos.jp",userName:"tako",nickName:"たこ"},{userid: "tako@takos2.jp",userName: "tako",nickName: "たこ"}]
+  // ->{takos.jp: [{userid:"tako@takos.jp",userName:"tako",nickName:"たこ"}],
+  //domain2: [{userid: "tako@takos2.jp",userName: "tako",nickName: "たこ"}]}
+  const friendData = room.reduce((acc: any, friend: any) => {
+    const domain = friend.userid.split("@")[1];
+    if (!acc[domain]) {
+      acc[domain] = [];
+    }
+    acc[domain].push(friend);
+    return acc;
+  }, {});
+  let updatefriendData: any[] = [];
+  for (const key in friendData) {
+    const domain = key;
+    const friendList = friendData[key];
+    const body = JSON.stringify({ changes: friendList, userid: ctx.state.data.userid });
+    const signature = await takos.signData(body, await takos.getPrivateKey());
+    const res = await fetch(`https://${domain}/api/v2/server/information/users/changes`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ host: domain, body, signature }),
+    });
+    const data = await res.json();
+    if (!data.status) {
+      continue;
+    }
+    updatefriendData = updatefriendData.concat(data.changes);
+  }
+  //配列が空でない場合、データベースに保存
+  if (updatefriendData.length > 0) {
+    const friendList = await remoteFriends.findOne({ user: ctx.state.data.userid });
+    if (!friendList) {
+      await remoteFriends.create({ user: ctx.state.data.userid, friends: updatefriendData });
+    } else {
+      await remoteFriends.updateOne({ user: ctx.state.data.userid }, { $set: { friends: updatefriendData } });
+    }
+  }
+  //redisにpubする
+  pubClient.publish(env["REDIS_CH"], JSON.stringify({ type: "listUpdate", userid: ctx.state.data.userid }));
+  return;
 }

@@ -36,9 +36,9 @@ export const handler = {
       }
       //friendsの中にuseridがあるか確認
       const isFriend = userFriend.friends.find((friend: any) => friend.userid === data.userid);
-        if (isFriend === undefined) {
-            return;
-        }
+      if (isFriend === undefined) {
+        return;
+      }
       const user: {
         userid: string;
         userName?: string;
