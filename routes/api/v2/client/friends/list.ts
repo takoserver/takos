@@ -26,7 +26,7 @@ export const handler = {
       const friendData = await users.findOne({ uuid: friend.userid });
       const latestMessage = await messages.findOne({ roomID: room.roomID }, { sort: { createdAt: -1 } });
       return {
-        userName: friendData?.userName,
+        userName: friendData?.userName + env["DOMAIN"],
         nickName: friendData?.nickName,
         latestMessage: latestMessage?.message,
         latestMessageTime: latestMessage?.timestamp,
@@ -38,7 +38,7 @@ export const handler = {
       const friendData = await remoteFriends.findOne({ uuid: friend.userid });
       const latestMessage = await messages.findOne({ roomID: room.roomID }, { sort: { createdAt: -1 } });
       return {
-        userName: friendData?.userName,
+        userName: friendData?.userName + takos.splitUserName(friend.uuid).domain,
         nickName: friendData?.nickName,
         latestMessage: latestMessage?.message,
         latestMessageTime: latestMessage?.timestamp,

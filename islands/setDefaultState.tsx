@@ -5,6 +5,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
     async function setDefaultState() {
       const friendListData = await fetch("/api/v2/client/friends/list");
       const friendListJson = await friendListData.json();
+      console.log(friendListJson);
       const result = friendListJson.friends.map((friend: any) => {
         return {
           roomName: friend.roomName,

@@ -92,11 +92,15 @@ export const handler = {
             socket.close(1000, "Invalid RoomID");
             return;
           }
-          session.roomid = room.uuid;
-          session.roomType = room.types;
+          if(typeof room.types === "string" && typeof room.uuid === "string"){
+            session.roomid = room.uuid;
+            session.roomType = room.types;
+          }
           sessions.set(value.sessionid, session);
           //ルームに参加したことを通知
-          pubClient.publish(room.uuid, JSON.stringify({ type: "join", userid: session.userid }));
+          if(typeof room.uuid === "string"){
+            pubClient.publish(room.uuid, JSON.stringify({ type: "join", userid: session.userid }));
+          }
           session.ws.send(JSON.stringify({ type: "joined", roomid: room.uuid }));
           UpdateLastActivityTime(value.sessionid);
           return;
@@ -125,7 +129,9 @@ export const handler = {
             return;
           }
           session.roomid = value.roomid;
-          session.roomType = room.types;
+          if(typeof room.types === "string"){
+            session.roomType = room.types;
+          }
           sessions.set(value.sessionid, session);
           //ルームに参加したことを通知
           pubClient.publish(value.roomid, JSON.stringify({ type: "join", userid: session.userid }));
