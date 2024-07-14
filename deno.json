@@ -12,6 +12,7 @@
   "nodeModulesDir": true,
   "imports": {
     "$fresh/": "https://deno.land/x/fresh@1.6.8/",
+    "$fresh_charts/": "https://deno.land/x/fresh_charts@0.3.1/",
     "$std/": "https://deno.land/std@0.224.0/",
     "@preact/signals": "https://esm.sh/*@preact/signals@1.2.2",
     "@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.5.1",

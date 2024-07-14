@@ -8,6 +8,7 @@ import * as $_middleware from "./routes/_middleware.ts";
 import * as $addFriend_index from "./routes/addFriend/index.tsx";
 import * as $api_v2_client_block_server from "./routes/api/v2/client/block/server.ts";
 import * as $api_v2_client_block_user from "./routes/api/v2/client/block/user.ts";
+import * as $api_v2_client_chart from "./routes/api/v2/client/chart.ts";
 import * as $api_v2_client_create_community from "./routes/api/v2/client/create/community.ts";
 import * as $api_v2_client_create_group from "./routes/api/v2/client/create/group.ts";
 import * as $api_v2_client_csrftoken from "./routes/api/v2/client/csrftoken.ts";
@@ -104,6 +105,7 @@ const manifest = {
     "./routes/addFriend/index.tsx": $addFriend_index,
     "./routes/api/v2/client/block/server.ts": $api_v2_client_block_server,
     "./routes/api/v2/client/block/user.ts": $api_v2_client_block_user,
+    "./routes/api/v2/client/chart.ts": $api_v2_client_chart,
     "./routes/api/v2/client/create/community.ts": $api_v2_client_create_community,
     "./routes/api/v2/client/create/group.ts": $api_v2_client_create_group,
     "./routes/api/v2/client/csrftoken.ts": $api_v2_client_csrftoken,
