@@ -939,7 +939,6 @@ html, body {
     .p-talk-chat-send__button svg g {
         fill: #4d4d4d;
     }
-    
 }
 @tailwind base;
 @tailwind components;

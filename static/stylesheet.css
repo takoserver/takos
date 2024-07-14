@@ -29,6 +29,27 @@ html,body {
     }
 }
 
+.grecaptcha-badge { visibility: hidden; }
+::-webkit-scrollbar {
+    background: #000;
+    width:0px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: black;
+}
+.l-header {
+    background-color: #efeff0;
+    display: block;
+    position: fixed;
+    z-index: 4;
+    transition: transform .25s cubic-bezier(0.11, 0.91, 0.4, 0.94);
+}
+@media (max-width: 768px) {
+    .l-header.is-inview {
+        transform: translateY(100%)
+    }
+}
+
 
 .l-header-logo {
     margin-bottom: 25px;
@@ -45,7 +66,7 @@ html,body {
 }
 
 .l-header-logo:hover {
-    background-color: rgba(250, 250, 255, 0.1);
+    background-color: #dcdce6;
 }
 
 .l-header__ul {
@@ -61,12 +82,16 @@ html,body {
     transition: .2s background-color ease;
 }
 
+.l-header__ul-item svg {
+    stroke: #000000;
+}
+
 .l-header__ul-item.is-active svg {
-    fill: #fafaff;
+    fill: #ff6060;
 }
 
 .l-header__ul-item:hover {
-    background-color: rgba(250, 250, 255, 0.1);
+    background-color: #dcdce6;
 }
 
 .l-header__ul-item a {
@@ -140,11 +165,14 @@ html,body {
 
 .p-talk-list {
     padding: 12px 12px 76px;
+    background-color: #ffffff;
+    z-index: 3;
 }
 
 .p-talk-list-title {
     font-size: 32px;
-    margin: 6px 0 12px;
+    margin: 6px 3px 12px;
+    font-weight: 700;
 }
 
 .p-talk-list-search, .p-talk-list-search form, input {
@@ -155,29 +183,40 @@ html,body {
     width: 100%;
     outline: none;
     border: none;
-    background-color: #e8e8ef;
     font-weight: 400;
     padding: 8px 12px;
     border-radius: 8px;
+    background-color: rgb(120 120 128 / 12%);
+}
+
+.p-talk-list-search input::placeholder {
+    color: rgb(60 60 67 / 60%);
 }
 
 .p-talk-list-rooms {
     margin: 10px 0;
     overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+}
+
+.p-talk-list-rooms__ul {
+    width: 100%;
 }
 
 .c-talk-rooms {
     height: 64px;
     border-radius: 8px;
     margin-bottom: 8px;
+    width: 100%;
 }
 
 .c-talk-rooms:hover {
-    background-color: #f2f2f8;
+    background-color: rgb(120 120 128 / 12%);
 }
 
 .c-talk-rooms.is-active {
-    background-color: #e8e8ef;
+    background-color: #d1d1d6;
 }
 
 .c-talk-rooms button {
@@ -224,17 +263,36 @@ html,body {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    min-width: 0;
 }
 
 .c-talk-rooms-name {
-    font-weight: 700;
     font-size: 14px;
-    width: fit-content;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.c-talk-rooms-nickname {
+    font-weight: 700;
+}
+
+.c-talk-rooms-locate {
+    color: rgb(60 60 67 / 60%);
+    margin-left: 8px;
 }
 
 .c-talk-rooms-msg {
     font-weight: 400;
     font-size: 12px;
+    color: rgb(60 60 67 / 60%);
+}
+
+.c-talk-rooms-msg p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 @media (min-width: 1053px) {
@@ -246,11 +304,11 @@ html,body {
         width: 360px;
         flex-grow: 0;
         flex-shrink: 0;
+        border-right: 1px solid #ededed;
     }
 
     .p-talk-chat {
         flex-grow: 1;
-        padding: 12px 12px 12px 0;
         width: 100%;
     }
 
@@ -265,13 +323,13 @@ html,body {
     }
 
     .p-talk-list {
-        width: 360px;
-        flex-shrink: 1;
+        width: 300px;
+        flex-shrink: 0;
+        border-right: 1px solid #ededed;
     }
 
     .p-talk-chat {
         flex-shrink: 2;
-        padding: 12px 12px 12px 0;
         width: 100%;
     }
 
@@ -284,7 +342,7 @@ html,body {
     .p-talk {
         overflow-x: hidden;
         width: fit-content;
-        transition: transform .3s cubic-bezier(0.07, 1.05, 0.59, 0.99);
+        transition: transform .25s cubic-bezier(0.11, 0.91, 0.4, 0.94);
     }
 
     .p-talk-list {
@@ -309,8 +367,9 @@ html,body {
 .p-talk-chat-container {
     display: flex;
     flex-direction: column;
-    background-color: #f0f0f5;
+    background-color: #ffffff;
     height: 100%;
+    position: relative;
 }
 
 .p-talk-chat-title {
@@ -320,12 +379,19 @@ html,body {
     display: flex;
     align-items: center;
     height: 48px;
+    width: 100%;
+    position: absolute;
+    background: rgb(255 255 255 / 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgb(255 255 255 / 0.18);
+    box-shadow: 0 3px 18px 0 rgb(31 38 135 / 0.1);
+    z-index: 2;
 }
 
 .p-talk-chat-prev {
     height: 100%;
     aspect-ratio: 1 / 1;
-    margin-right: 10px;
     border-radius: 100px;
     padding: 3px;
     cursor: pointer;
@@ -336,13 +402,15 @@ html,body {
     outline: none;
 }
 
-.p-talk-chat-prev:hover {
-    background-color: rgba(255, 255, 255, 0.5);
+.p-talk-chat-prev:hover svg {
+    stroke: #ff3b3b60;
 }
 
 .p-talk-chat-prev svg {
     width: 100%;
     height: 100%;
+    stroke: #ff3b3b;
+    transition: .3s ease stroke;
 }
 
 @media (min-width: 769px) {
@@ -354,12 +422,14 @@ html,body {
 .p-talk-chat-main {
     overflow-y: auto;
     flex-grow: 1;
-    height: 85%;
+    scroll-padding-block-start: 200px;
 }
 
 .c-talk-chat {
     display: flex;
-    margin: 8px 0;
+    margin-top: 3px;
+    position: relative;
+    z-index: 0;
 }
 
 .c-talk-chat.self {
@@ -378,10 +448,9 @@ html,body {
 }
 
 .c-talk-chat-name {
-    color: #ffffff;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 700;
-    margin-left: 10px;
+    margin: 2px 0 2px 10px;
 }
 
 .c-talk-chat-right {
@@ -390,7 +459,7 @@ html,body {
 
 .c-talk-chat-msg {
     position: relative;
-    padding: 6px 16px;
+    padding: 6px 12px;
     border-radius: 12px;
     z-index: 2;
     font-size: 15px;
@@ -400,68 +469,56 @@ html,body {
 
 .c-talk-chat-msg p {
     width: fit-content;
-    max-width: 100%; /* Ensure it doesn't exceed the container width */
-    word-wrap: break-word; /* Break long words */
-    word-break: break-all; /* Ensure long words are broken */
+    max-width: 100%;
+    word-wrap: break-word;
+    word-break: break-all;
+}
+
+.c-talk-chat.primary {
+    margin-top: 10px
 }
 
 .c-talk-chat.other .c-talk-chat-msg {
-    background-color: #ffffff;
+    background-color: #e6e5eb;
     color: #000000;
 }
 
 .c-talk-chat.self .c-talk-chat-msg {
     background-color: #ff3b3b;
     color: #ffffff;
+    box-shadow: 1px 1px 10px rgba(31, 38, 135, 0.1);
 }
 
-.c-talk-chat.subsequent.other .c-talk-chat-msg {
+.c-talk-chat.other.primary .c-talk-chat-msg {
+    margin-left: 10px;
+    border-radius: 2px 12px 12px;
+}
+
+.c-talk-chat.other.subsequent .c-talk-chat-msg {
     margin-left: 46px;
 }
 
-.c-talk-chat.primary.other .c-talk-chat-msg {
-    margin-left: 10px;
-}
-
-.c-talk-chat.primary .c-talk-chat-msg::before {
-    content: "";
-    display: flex;
-    position: absolute;
-    height: 26px;
-    width: 26px;
-    background-repeat: no-repeat;
-    background-size: contain;
-    background-position: center;
-    top: 0;
-}
-
-.c-talk-chat.primary.other .c-talk-chat-msg::before {
-    background-image: url("static/icon_tale.svg");
-    left: -10px;
-}
-
-.c-talk-chat.primary.self .c-talk-chat-msg::before {
-    background-image: url("static/icon_tale_red.svg");
-    right: -10px;
-    transform: scale(-1, 1);
+.c-talk-chat.self.primary .c-talk-chat-msg {
+    border-radius: 12px 2px 12px 12px;
 }
 
 .c-talk-chat-date {
-    font-size: 11px;
+    font-size: 10px;
     display: flex;
     flex-direction: column;
     justify-content: end;
-    color: #ffffff;
+    color: #7d7d86;
     white-space: nowrap;
+    margin-bottom: 4px
 }
 
 .c-talk-chat.other .c-talk-chat-date {
-    margin-left: 13px;
+    margin-left: 6px;
     text-align: left;
 }
 
 .c-talk-chat.self .c-talk-chat-date {
-    margin-right: 13px;
+    margin-right: 6px;
     text-align: right;
 }
 
@@ -472,7 +529,7 @@ html,body {
 
 .c-talk-chat-date-box {
     padding: 3px 12px;
-    background-color: rgba(255, 255, 255, 0.6);
+    background-color: rgb(218 218 228 / 60%);
     width: fit-content;
     margin: 0 auto;
     border-radius: 100px;
@@ -481,10 +538,6 @@ html,body {
 
 .p-talk-chat-send {
     padding: 0 18px 12px;
-    /*一番下に固定*/
-    position: fixed;
-    bottom: 0;
-    width: 32%;
 }
 
 .p-talk-chat-send__form {
@@ -492,11 +545,16 @@ html,body {
     border-radius: 12px;
     background-color: #ffffff;
     display: flex;
+    align-items: end;
+    gap: 6px;
 }
 
 .p-talk-chat-send__msg {
     flex-grow: 1;
     position: relative;
+    box-shadow: 1px 1px 10px rgb(31 38 135 / 0.1);
+    border: 1px solid #efefef;
+    border-radius: 16px;
 }
 
 .p-talk-chat-send__button {
@@ -505,18 +563,30 @@ html,body {
     padding: 6px;
     flex-grow: 0;
     flex-shrink: 0;
+    background-color: transparent;
+    border-radius: 100px;
+    cursor: default;
 }
 
-.p-talk-chat-send__button img {
-    border-radius: 100px;
-    padding: 4px;
-    width: 100%;
-    height: 100%;
+.p-talk-chat-send__button.is-active {
+    background-color: #ff3b3b;
     cursor: pointer;
 }
 
-.p-talk-chat-send__button img:hover {
-    background-color: #ededf3;
+.p-talk-chat-send__button svg {
+    padding: 4px;
+    width: 100%;
+    height: 100%;
+}
+
+.p-talk-chat-send__button.is-active svg g {
+    fill: #ffffff;
+}
+.p-talk-chat-send__button svg g {
+    fill: #cacacf;
+}
+.p-talk-chat-send__button.is-active:hover {
+    background-color: #db3232;
 }
 
 .p-talk-chat-send__dummy {
@@ -524,7 +594,7 @@ html,body {
     height: 100%;
     outline: none;
     border: none;
-    font-size: 16px;
+    font-size: 15px;
     padding: 10px 0 10px 16px;
     margin: 0;
     overflow: hidden;
@@ -547,18 +617,22 @@ html,body {
     height: 100%;
     outline: none;
     border: none;
-    font-size: 16px;
+    font-size: 15px;
     padding: 10px 0 10px 16px;
     margin: 0;
     overflow: hidden;
     resize: none;
-    background-color: #ffffff;
+    background-color: transparent;
     white-space: break-spaces;
     overflow-wrap: break-word;
 }
 
+.p-talk-chat-send__textarea:focus {
+    outline: none;
+}
+
 @media (min-width: 769px) {
-    .p-talk-chat-main {
+    .p-talk-chat-main__ul {
         padding: 16px;
     }
 
@@ -568,19 +642,122 @@ html,body {
 }
 
 @media (max-width: 768px) {
-    .p-talk-chat-main {
-        padding: 8px;
-    }
-
-    .p-talk-chat-title {
+    .p-talk-chat-main__ul {
         padding: 8px;
     }
 }
-.grecaptcha-badge { visibility: hidden; }
-::-webkit-scrollbar {
-    background: #000;
-    width:0px;
-  }
-  ::-webkit-scrollbar-thumb {
-    background-color: black;
-  }
+@media (prefers-color-scheme: dark) {
+    html,body {
+        background-color: #181818;
+        color: #ffffff;
+    }
+    .l-header {
+        background-color: #1f1f1f;
+    }
+    .l-header-logo:hover {
+        background-color: #262626;
+    }
+    .l-header__ul-item {
+        background-color: #1f1f1f;
+        cursor: pointer;
+    }
+    .l-header__ul-item:hover {
+        background-color: #262626;
+    }
+    .l-header__ul-item svg {
+        stroke: #ffffff;
+    }
+    .l-header__ul-item.is-active svg {
+        fill: #950000;
+    }
+    .p-talk-list {
+        background-color: #181818;
+    }
+    .p-talk-list-search input {
+        background-color: rgb(118 118 128 / 12%);
+        color: #ffffff;
+    }
+    .p-talk-list-search input::placeholder {
+        color: rgb(235 235 245 / 60%)
+    }
+    .p-talk-list-rooms {
+        background-color: #181818;
+    }
+    .c-talk-rooms {
+        background-color: #181818;
+    }
+    .c-talk-rooms:hover {
+        background-color: rgb(118 118 128 / 12%);
+    }
+    .c-talk-rooms.is-active {
+        background-color: #3A3A3C;
+    }
+    .c-talk-rooms-icon img {
+        background-color: #181818;
+    }
+    .c-talk-rooms-name {
+        color: #ffffff;
+    }
+    .c-talk-rooms-nickname {
+        color: #ffffff;
+    }
+    .c-talk-rooms-locate {
+        color: #EBEBF599;
+    }
+    .c-talk-rooms-msg {
+        color: #EBEBF599;
+    }
+    .p-talk-list {
+        border-color: #2b2b2b;
+    }
+    .p-talk-chat-title {
+        background: rgb(24 24 24 / 0.7);
+        border-color: rgb(24 24 24 / 0.18);
+    }
+    .p-talk-chat-prev {
+        background-color: #181818;
+    }
+    .p-talk-chat-prev:hover {
+        background-color: #2b2b2b;
+    }
+    .p-talk-chat-prev svg {
+        stroke: #ffffff;
+    }
+    .p-talk-chat-container {
+        background-color: #181818;
+    }
+    .c-talk-chat {
+        background-color: #181818;
+    }
+    .c-talk-chat-date {
+        color: #EBEBF599;
+    }
+    .c-talk-date {
+        color: #EBEBF599;
+    }
+    .c-talk-chat-date-box {
+        background-color: #393c40;
+        color: #EBEBF599;
+    }
+    .p-talk-chat-send__form {
+        background-color: #181818;
+    }
+    .p-talk-chat-send__msg {
+        background-color: #181818;
+        color: #ffffff;
+        border-color: #38383A;
+    }
+    .p-talk-chat-send__button img {
+        background-color: #181818;
+    }
+    .p-talk-chat-send__button img:hover {
+        background-color: #4A5568;
+    }
+    .c-talk-chat.other .c-talk-chat-msg {
+        background-color: #262629;
+        color: #ffffff;
+    }
+    .p-talk-chat-send__button svg g {
+        fill: #4d4d4d;
+    }
+}

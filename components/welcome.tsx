@@ -1,9 +1,43 @@
 import { Chart } from "$fresh_charts/mod.ts";
 import { ChartColors, transparentize } from "$fresh_charts/utils.ts";
+const sampleChatData = {
+  roomName: "たこたこチャット",
+  talkData: [
+    { userName: "tako", messages: "かわよい絵がほしいのぉ" },
+    { userName: "やほほーい", messages: "ここ送っていいかな" },
+    { userName: "tako", messages: "著作権パワーがあるからなぁ" },
+    { userName: "tako", messages: "サイトのど真ん中に置きたい" },
+    { userName: "なん", messages: "デザイン考えて、それを元に外注" },
+    { userName: "tako", messages: "それが一番だけどえぐい金かかりそう" },
+    { userName: "tako", messages: "1万ぐらい" },
+    { userName: "tako", messages: "もっとかな" },
+    { userName: "なん", messages: "もしくは絵が上手い人が知り合いにいればその人に頼む" },
+    { userName: "なん", messages: "1〜4マソが相場らしい" },
+    { userName: "tako", messages: "novelAIでしぶるか" },
+    { userName: "tako", messages: "それだけあったらモニター買うよ" },
+    { userName: "なん", messages: "まあ、ネットでうまく関係作るしかないわな" },
+    { userName: "なん", messages: "AIだって著作権問題まだまだあるだろうし" },
+    { userName: "tako", messages: "今のところフリーだから" },
+    { userName: "tako", messages: "危なくなったらすり替える" },
+    { userName: "tako", messages: "まだコイン的なやつ残ってたかな" },
+    { userName: "tako", messages: "SSRのchartjsいいね" },
+    { userName: "tako", img: "./strict/1.jpg" },
+    { userName: "371tti", messages: "お" },
+    { userName: "371tti", messages: "ついにchart.jsか" },
+    { userName: "371tti", img: "./strict/2.jpg" },
+    { userName: "371tti", messages: "正規表現😀" },
+    { userName: "tako", messages: "右半分は昨日のベスト会話的なの流すか" },
+    { userName: "tako", messages: "もちろん審査あり" },
+    { userName: "tako", messages: "きっしょい会話を流すわけにはいかん" },
+    { userName: "tako", messages: "公開チャット的なやつだけどね" },
+    { userName: "371tti", messages: "hello 000 im this OC bot! Nicetomeet you" },
+    { userName: "371tti", messages: "セキュリティむずすぎ" },
+  ],
+};
 function welcome() {
   return (
     <div class="flex w-full h-screen mb-6">
-      <div class="lg:w-1/2 w-full m-5 lg:m-0">
+      <div class="lg:w-2/3 w-full m-5 lg:m-0">
         <div class="bg-white text-black rounded-lg shadow-[0_12px_32px_#00000040] p-6 max-w-[472px] lg:ml-[100px] mt-[80px] mx-auto">
           <div class="flex mb-3">
             <div class="w-full">
@@ -58,7 +92,12 @@ function welcome() {
         </div>
         <div class="h-20"></div>
       </div>
-      <div class="lg:w-1/2 hidden lg:block">
+      <div class="lg:w-1/3 hidden lg:block top-0 bottom-0 right-0 fixed">
+        <div class="w-5/6 mx-auto">
+            {sampleChatData.talkData.map((data) => {
+              
+            })}
+        </div>
       </div>
     </div>
   );
