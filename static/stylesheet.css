@@ -45,6 +45,23 @@ html,body {
         transform: translateY(15%);
     }
 }
+.loop {
+    animation: loop 10s linear infinite;
+    width: 100%;
+  }
+  .loop2{
+    position: absolute;
+    top: 2px; left: 2px;
+    animation: loop 10s linear infinite;
+  }
+  @keyframes loop {
+    0%{
+      transform: translateX(100%);
+    }
+    100%{
+      transform: translateX(-100%);
+    }
+  }
 .scroll-animation {
     animation: scroll 25s linear infinite;
 }
