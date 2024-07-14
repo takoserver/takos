@@ -1,7 +1,6 @@
-import users from "../models/users.ts";
+import users from "../../models/users.ts";
 import { load } from "$std/dotenv/mod.ts";
-import Chat from "../components/chat.tsx";
-import Welcome from "../components/welcome.tsx";
+import Chat from "../../components/chat.tsx";
 const env = await load();
 export const handler = {
   async GET(req: any, ctx: any) {
@@ -60,7 +59,9 @@ export default function Home({ data }: { data: any }) {
             />
             <link rel="stylesheet" href="/stylesheet.css"></link>
           </head>
-          <Welcome></Welcome>
+          <div>
+            this page is welcome page
+          </div>
           {
             /*
           <Welcom sitekey={sitekey} />
@@ -72,7 +73,7 @@ export default function Home({ data }: { data: any }) {
   }
   return (
     <>
-      <Chat page={1} userName={data.userName} />
+      <Chat page={2} userName={data.userName} />
     </>
   );
 }

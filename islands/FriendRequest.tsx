@@ -189,9 +189,12 @@ const VideoList = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const res = await fetch("/api/v1/friends/reqLists");
+      const res = await fetch("/api/v2/client/friends/request/list");
       const response = await res.json();
       //response.resultが空の配列の場合、setItems([])を実行
+      if (response.status === true) {
+        return;
+      }
       if (response.result.length === 0) {
         setItems([]);
         return;

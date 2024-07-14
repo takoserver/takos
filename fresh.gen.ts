@@ -5,6 +5,7 @@
 import * as $_404 from "./routes/_404.tsx";
 import * as $_app from "./routes/_app.tsx";
 import * as $_middleware from "./routes/_middleware.ts";
+import * as $addFriend_index from "./routes/addFriend/index.tsx";
 import * as $api_v2_client_block_server from "./routes/api/v2/client/block/server.ts";
 import * as $api_v2_client_block_user from "./routes/api/v2/client/block/user.ts";
 import * as $api_v2_client_create_community from "./routes/api/v2/client/create/community.ts";
@@ -17,7 +18,7 @@ import * as $api_v2_client_friends_info_ID_profile_friend from "./routes/api/v2/
 import * as $api_v2_client_friends_info_ID_profile_friendcode from "./routes/api/v2/client/friends/info/[ID]/profile/friendcode.ts";
 import * as $api_v2_client_friends_info_ID_profile_group from "./routes/api/v2/client/friends/info/[ID]/profile/group.ts";
 import * as $api_v2_client_friends_list from "./routes/api/v2/client/friends/list.ts";
-import * as $api_v2_client_friends_reqest_list from "./routes/api/v2/client/friends/reqest/list.ts";
+import * as $api_v2_client_friends_request_list from "./routes/api/v2/client/friends/request/list.ts";
 import * as $api_v2_client_main from "./routes/api/v2/client/main.ts";
 import * as $api_v2_client_sessions_login from "./routes/api/v2/client/sessions/login.ts";
 import * as $api_v2_client_sessions_logout from "./routes/api/v2/client/sessions/logout.ts";
@@ -100,6 +101,7 @@ const manifest = {
     "./routes/_404.tsx": $_404,
     "./routes/_app.tsx": $_app,
     "./routes/_middleware.ts": $_middleware,
+    "./routes/addFriend/index.tsx": $addFriend_index,
     "./routes/api/v2/client/block/server.ts": $api_v2_client_block_server,
     "./routes/api/v2/client/block/user.ts": $api_v2_client_block_user,
     "./routes/api/v2/client/create/community.ts": $api_v2_client_create_community,
@@ -112,7 +114,7 @@ const manifest = {
     "./routes/api/v2/client/friends/info/[ID]/profile/friendcode.ts": $api_v2_client_friends_info_ID_profile_friendcode,
     "./routes/api/v2/client/friends/info/[ID]/profile/group.ts": $api_v2_client_friends_info_ID_profile_group,
     "./routes/api/v2/client/friends/list.ts": $api_v2_client_friends_list,
-    "./routes/api/v2/client/friends/reqest/list.ts": $api_v2_client_friends_reqest_list,
+    "./routes/api/v2/client/friends/request/list.ts": $api_v2_client_friends_request_list,
     "./routes/api/v2/client/main.ts": $api_v2_client_main,
     "./routes/api/v2/client/sessions/login.ts": $api_v2_client_sessions_login,
     "./routes/api/v2/client/sessions/logout.ts": $api_v2_client_sessions_logout,
