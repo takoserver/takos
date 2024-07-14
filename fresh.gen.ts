@@ -89,6 +89,8 @@ import * as $ChatTalkContent from "./islands/ChatTalkContent.tsx";
 import * as $ChatTalkTitle from "./islands/ChatTalkTitle.tsx";
 import * as $ChatTalkTitleContent from "./islands/ChatTalkTitleContent.tsx";
 import * as $FriendRequest from "./islands/FriendRequest.tsx";
+import * as $Login from "./islands/Login.tsx";
+import * as $Register from "./islands/Register.tsx";
 import * as $RequestFriendById from "./islands/RequestFriendById.tsx";
 import * as $TalkListContent from "./islands/TalkListContent.tsx";
 import * as $getAddFriendKey from "./islands/getAddFriendKey.tsx";
@@ -188,6 +190,8 @@ const manifest = {
     "./islands/ChatTalkTitle.tsx": $ChatTalkTitle,
     "./islands/ChatTalkTitleContent.tsx": $ChatTalkTitleContent,
     "./islands/FriendRequest.tsx": $FriendRequest,
+    "./islands/Login.tsx": $Login,
+    "./islands/Register.tsx": $Register,
     "./islands/RequestFriendById.tsx": $RequestFriendById,
     "./islands/TalkListContent.tsx": $TalkListContent,
     "./islands/getAddFriendKey.tsx": $getAddFriendKey,

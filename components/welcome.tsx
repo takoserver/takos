@@ -1,4 +1,5 @@
 import OtherMessage from "./WelcomeMessage.tsx";
+import { effect, signal } from "@preact/signals";
 const sampleChatData = {
   roomName: "たこたこチャット",
   talkData: [
@@ -33,7 +34,32 @@ const sampleChatData = {
     { userName: "371tti", messages: "セキュリティむずすぎ" },
   ],
 };
+function createAppState() {
+  const recapchav2 = signal("");
+  const recapchav3 = signal("");
+  const showWindow = signal("");
+  const email = signal("");
+  const checkCode = signal("");
+  const password = signal("");
+  const nickName = signal("");
+  const userName = signal("");
+  const LoginName = signal("");
+  const LoginPassword = signal("");
+  return {
+    recapchav2,
+    recapchav3,
+    showWindow,
+    email,
+    checkCode,
+    password,
+    nickName,
+    userName,
+    LoginName,
+    LoginPassword,
+  };
+}
 function welcome() {
+  const state = createAppState();
   return (
     <>
       <div class="flex w-full h-screen mb-6">
