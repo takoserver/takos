@@ -1,5 +1,4 @@
-import { Chart } from "$fresh_charts/mod.ts";
-import { ChartColors, transparentize } from "$fresh_charts/utils.ts";
+import OtherMessage from "./WelcomeMessage.tsx";
 const sampleChatData = {
   roomName: "たこたこチャット",
   talkData: [
@@ -93,10 +92,32 @@ function welcome() {
         <div class="h-20"></div>
       </div>
       <div class="lg:w-1/3 hidden lg:block top-0 bottom-0 right-0 fixed">
-        <div class="w-5/6 mx-auto">
-            {sampleChatData.talkData.map((data) => {
-              
-            })}
+        <div class="w-5/6 m-auto h-full overflow-hidden mx-auto">
+          <div class="scroll-animation talkList">
+          {sampleChatData.talkData.map((data) => {
+            let iconPath = "";
+            switch (data.userName) {
+              case "tako":
+                iconPath = "./static/tako.jpeg";
+                break;
+              case "371tti":
+                iconPath = "./static/371tti.jpg";
+                break;
+              case "なん":
+                iconPath = "./static/なん.jpeg";
+                break;
+              default:
+                iconPath = "./people.jpeg";
+                break;
+            }
+            if (data.img) {
+              return; //
+            }
+            if (data.messages) {
+              return <OtherMessage message={data.messages} userName={data.userName} time={Date.now().toString()} isPrimary={true} iconPath={iconPath} />;
+            }
+          })}
+          </div>
         </div>
       </div>
     </div>

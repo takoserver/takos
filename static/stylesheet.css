@@ -28,6 +28,26 @@ html,body {
         transform: translateY(100%)
     }
 }
+@keyframes scroll {
+    0% {
+        transform: translateY(15%);
+    }
+    5% {
+        transform: translateY(15%);
+    }
+    90% {
+        transform: translateY(-70%);
+    }
+    95% {
+        transform: translateY(-70%);
+    }
+    100% {
+        transform: translateY(15%);
+    }
+}
+.scroll-animation {
+    animation: scroll 25s linear infinite;
+}
 
 .grecaptcha-badge { visibility: hidden; }
 ::-webkit-scrollbar {
@@ -479,7 +499,7 @@ html,body {
 }
 
 .c-talk-chat.other .c-talk-chat-msg {
-    background-color: #e6e5eb;
+    background-color: #ffffff;
     color: #000000;
 }
 
@@ -644,120 +664,5 @@ html,body {
 @media (max-width: 768px) {
     .p-talk-chat-main__ul {
         padding: 8px;
-    }
-}
-@media (prefers-color-scheme: dark) {
-    html,body {
-        background-color: #181818;
-        color: #ffffff;
-    }
-    .l-header {
-        background-color: #1f1f1f;
-    }
-    .l-header-logo:hover {
-        background-color: #262626;
-    }
-    .l-header__ul-item {
-        background-color: #1f1f1f;
-        cursor: pointer;
-    }
-    .l-header__ul-item:hover {
-        background-color: #262626;
-    }
-    .l-header__ul-item svg {
-        stroke: #ffffff;
-    }
-    .l-header__ul-item.is-active svg {
-        fill: #950000;
-    }
-    .p-talk-list {
-        background-color: #181818;
-    }
-    .p-talk-list-search input {
-        background-color: rgb(118 118 128 / 12%);
-        color: #ffffff;
-    }
-    .p-talk-list-search input::placeholder {
-        color: rgb(235 235 245 / 60%)
-    }
-    .p-talk-list-rooms {
-        background-color: #181818;
-    }
-    .c-talk-rooms {
-        background-color: #181818;
-    }
-    .c-talk-rooms:hover {
-        background-color: rgb(118 118 128 / 12%);
-    }
-    .c-talk-rooms.is-active {
-        background-color: #3A3A3C;
-    }
-    .c-talk-rooms-icon img {
-        background-color: #181818;
-    }
-    .c-talk-rooms-name {
-        color: #ffffff;
-    }
-    .c-talk-rooms-nickname {
-        color: #ffffff;
-    }
-    .c-talk-rooms-locate {
-        color: #EBEBF599;
-    }
-    .c-talk-rooms-msg {
-        color: #EBEBF599;
-    }
-    .p-talk-list {
-        border-color: #2b2b2b;
-    }
-    .p-talk-chat-title {
-        background: rgb(24 24 24 / 0.7);
-        border-color: rgb(24 24 24 / 0.18);
-    }
-    .p-talk-chat-prev {
-        background-color: #181818;
-    }
-    .p-talk-chat-prev:hover {
-        background-color: #2b2b2b;
-    }
-    .p-talk-chat-prev svg {
-        stroke: #ffffff;
-    }
-    .p-talk-chat-container {
-        background-color: #181818;
-    }
-    .c-talk-chat {
-        background-color: #181818;
-    }
-    .c-talk-chat-date {
-        color: #EBEBF599;
-    }
-    .c-talk-date {
-        color: #EBEBF599;
-    }
-    .c-talk-chat-date-box {
-        background-color: #393c40;
-        color: #EBEBF599;
-    }
-    .p-talk-chat-send__form {
-        background-color: #181818;
-    }
-    .p-talk-chat-send__msg {
-        background-color: #181818;
-        color: #ffffff;
-        border-color: #38383A;
-    }
-    .p-talk-chat-send__button img {
-        background-color: #181818;
-    }
-    .p-talk-chat-send__button img:hover {
-        background-color: #4A5568;
-    }
-    .c-talk-chat.other .c-talk-chat-msg {
-        background-color: #262629;
-        color: #ffffff;
-    }
-    .p-talk-chat-send__button svg g {
-        fill: #4d4d4d;
     }
 }
