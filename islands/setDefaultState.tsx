@@ -34,12 +34,15 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
               state.friendid.value = data.friendid;
               state.roomName.value = roomInfo.nickName;
               setIschoiseUser(true, state.isChoiceUser);
-              const path = window.location.pathname;
               window.history.pushState(
                 "",
                 "",
                 "/talk/" + state.friendid.value,
               );
+              const talkData = fetch("/api/v2/client/talks/friend/data?friendid=" + state.friendid.value + "&limit=50");
+              talkData.then((res) => res.json()).then((res) => {
+                state.talkData.value = res.data;
+              });
             }
           }
           break;

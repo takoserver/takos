@@ -67,99 +67,60 @@ export const handler = {
         return new Response(JSON.stringify({ status: false, message: "Not friend" }), { status: 403, headers: { "Content-Type": "application/json" } });
       }
     }
+    let messagesData: Array<any> = [];
     //データベースからメッセージを取得
     if (!before && !after) {
-      const messagesData = await messages.find({ roomid: roomid }).sort({ _id: -1 }).limit(parseInt(limit));
-      const result = await Promise.all(messagesData.map(async (message) => {
-        const CacheUser = usersCache.get(message.userid);
-        if (CacheUser) {
-          return {
-            messageid: message.messageid,
-            userName: CacheUser.userName,
-            message: message.message,
-            timestamp: message.timestamp,
-          };
-        }
-        const userInfo = await users.findOne({ uuid: message.userid });
-        if (!userInfo) {
-          return {
-            messageid: message.messageid,
-            userName: "Unknown",
-            message: message.message,
-            timestamp: message.timestamp,
-          };
-        }
-        usersCache.set(message.userid, userInfo);
-        return {
-          messageid: message.messageid,
-          userName: userInfo.userName,
-          message: message.message,
-          timestamp: message.timestamp,
-        };
-      }));
-      return new Response(JSON.stringify({ status: true, message: "Success", data: result }), { status: 200, headers: { "Content-Type": "application/json" } });
+      messagesData = await messages.find({ roomid: roomid }).sort({ _id: -1 }).limit(parseInt(limit));
     } else if (before) {
       //そのメッセージの前のメッセージを取得
-        const messagesData = await messages.find({ roomid: roomid, messageid: { $lt: before } }).sort({ _id: -1 }).limit(parseInt(limit));
-      const result = await Promise.all(messagesData.map(async (message) => {
-        const CacheUser = usersCache.get(message.userid);
-        if (CacheUser) {
-          return {
-            messageid: message.messageid,
-            userName: CacheUser.userName,
-            message: message.message,
-            timestamp: message.timestamp,
-          };
-        }
-        const userInfo = await users.findOne({ uuid: message.userid });
-        if (!userInfo) {
-          return {
-            messageid: message.messageid,
-            userName: "Unknown",
-            message: message.message,
-            timestamp: message.timestamp,
-          };
-        }
-        usersCache.set(message.userid, userInfo);
-        return {
-          messageid: message.messageid,
-          userName: userInfo.userName,
-          message: message.message,
-          timestamp: message.timestamp,
-        };
-      }));
-      return new Response(JSON.stringify({ status: true, message: "Success", data: result }), { status: 200, headers: { "Content-Type": "application/json" } });
+        messagesData = await messages.find({ roomid: roomid, messageid: { $lt: before } }).sort({ _id: -1 }).limit(parseInt(limit));
     } else if (after) {
       //そのメッセージの後のメッセージを取得
-        const messagesData = await messages.find({ roomid: roomid, messageid: { $gt: after } }).sort({ _id: -1 }).limit(parseInt(limit));
-      const result = await Promise.all(messagesData.map(async (message) => {
+        messagesData = await messages.find({ roomid: roomid, messageid: { $gt: after } }).sort({ _id: -1 }).limit(parseInt(limit));
+    }
+    const result = await Promise.all(messagesData.map(async (message) => {
         const CacheUser = usersCache.get(message.userid);
         if (CacheUser) {
-          return {
-            messageid: message.messageid,
-            userName: CacheUser.userName,
-            message: message.message,
-            timestamp: message.timestamp,
-          };
+          if(message.messageType === "text") {
+            return {
+                messageid: message.messageid,
+                userName: CacheUser.userName,
+                message: message.message,
+                timestamp: message.timestamp,
+                type: message.type,
+              };
+          }
         }
-        const userInfo = await users.findOne({ uuid: message.userid });
+        let userInfo
+        //= await users.findOne({ uuid: message.userid });
+        if(takos.splitUserName(message.userid).domain !== env["DOMAIN"]) {
+            const remoteFriend = await remoteFriends.findOne({ uuid: message.userid });
+            userInfo = remoteFriend;
+        } else {
+            userInfo = await users.findOne({ uuid: message.userid });
+        }
         if (!userInfo) {
-          return {
-            messageid: message.messageid,
-            userName: "Unknown",
-            message: message.message,
-            timestamp: message.timestamp,
-          };
+          if(message.messageType === "text") {
+            return {
+                messageid: message.messageid,
+                userName: "Unknown",
+                message: message.message,
+                timestamp: message.timestamp,
+                type: message.type,
+              };
+          }
         }
         usersCache.set(message.userid, userInfo);
-        return {
-          messageid: message.messageid,
-          userName: userInfo.userName,
-          message: message.message,
-          timestamp: message.timestamp,
-        };
+        if(message.messageType === "text") {
+            return {
+                messageid: message.messageid,
+                userName: userInfo?.userName,
+                message: message.message,
+                timestamp: message.timestamp,
+                type: message.type,
+              };
+        }
       }));
       return new Response(JSON.stringify({ status: true, message: "Success", data: result }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }
   },
 };

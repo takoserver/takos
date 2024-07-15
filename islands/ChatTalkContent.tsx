@@ -2,6 +2,12 @@ import ChatDate from "../components/ChatDate.tsx";
 import ChatSendMessage from "../components/SendMessage.tsx";
 import ChatOtherMessage from "../components/OtherMessage.tsx";
 import { AppStateType } from "../util/types.ts";
+interface Messages {
+  messageid: string;
+  userName: string;
+  messages: string;
+  time: string;
+}
 function ChatTalkMain({ state }: { state: AppStateType }) {
   let SendPrimary = true;
   let OtherPrimary = true;
@@ -10,7 +16,6 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
     <>
       {state.talkData.value.map((data: any, index: number) => {
         const date = new Date(data.time);
-
         const isEncodeDate = new Date(DateState).toLocaleDateString() !==
           date.toLocaleDateString();
         DateState = data.time;
