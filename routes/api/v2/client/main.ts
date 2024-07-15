@@ -18,6 +18,7 @@ const maxMessage = Number(env["MAX_MESSAGE_LENGTH"]);
 const subClient = redis.createClient({
   url: redisURL,
 });
+const sessions = new Map<string, WebSocketSessionObject>();
 /**メインコンテンツ開始 */
 await subClient.connect();
 async function subscribeMessage(channel: string | string[]) {
@@ -30,32 +31,41 @@ async function subscribeMessage(channel: string | string[]) {
         if (!session) {
           return;
         }
-        const message = data.message;
-        if (typeof message !== "string") {
-          return;
+        if(session.roomType === "friend") {
+          const message = data.message;
+          if (typeof message !== "string") {
+            return;
+          }
+          if (message.length > maxMessage) {
+            return;
+          }
+          const roomid = session.roomid;
+          const room = await rooms.findOne({ uuid: roomid });
+          if (!room) {
+            return;
+          }
+          await messages.create(
+            {
+              roomid: roomid,
+              userid: session.userid,
+              messageid: generate(),
+              message: message,
+              messageType: "text",
+              read: [
+                {
+                  userid: session.userid,
+                },
+              ],
+            },
+          );
+          //sessionsのroomidが一致するものに送信
+          sessions.forEach((session) => {
+            if (session.roomid === roomid) {
+              session.ws.send(JSON.stringify({ type: "text", message, userid: session.userName }));
+            }
+          });
+          break;
         }
-        if (message.length > maxMessage) {
-          return;
-        }
-        const roomid = session.roomid;
-        const room = await rooms.findOne({ uuid: roomid });
-        if (!room) {
-          return;
-        }
-        await messages.create(
-          {
-            roomid: roomid,
-            userid: session.userid,
-            messageid: generate(),
-            message: message,
-            messageType: "text",
-            read: [
-              {
-                userid: session.userid,
-              },
-            ],
-          },
-        );
         break;
       }
       default:
@@ -65,7 +75,6 @@ async function subscribeMessage(channel: string | string[]) {
 }
 /**メインコンテンツ終了*/
 await subscribeMessage(redisch);
-const sessions = new Map<string, WebSocketSessionObject>();
 export const handler = {
   GET(req: Request, ctx: any) {
     if (!ctx.state.data.loggedIn) {
@@ -93,6 +102,7 @@ export const handler = {
           return;
         }
         sessions.set(sessionid, {
+          userName: user.userName,
           userid: isTrueSessionid.userid,
           ws: socket,
           roomid: "",
