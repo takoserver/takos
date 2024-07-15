@@ -1,5 +1,12 @@
 import OtherMessage from "./WelcomeMessage.tsx";
+import Register from "../islands/Register.tsx";
+import Login from "../islands/Login.tsx";
 import { effect, signal } from "@preact/signals";
+import { load } from "$std/dotenv/mod.ts";
+import ReCapcha from "../islands/ReCapcha.tsx";
+const env = await load();
+const sitekeyv3 = env["recaptcha_site_key_v3"];
+const sitekeyv2 = env["recaptcha_site_key_v2"];
 const sampleChatData = {
   roomName: "たこたこチャット",
   talkData: [
@@ -45,6 +52,10 @@ function createAppState() {
   const userName = signal("");
   const LoginName = signal("");
   const LoginPassword = signal("");
+  const RecapchaLoaded = signal(false);
+  const recapchav3Failed = signal(false);
+  const RegisterPage = signal(0);
+  const token = signal("");
   return {
     recapchav2,
     recapchav3,
@@ -56,12 +67,22 @@ function createAppState() {
     userName,
     LoginName,
     LoginPassword,
+    RecapchaLoaded,
+    recapchav3Failed,
+    RegisterPage,
+    token,
   };
 }
 function welcome() {
   const state = createAppState();
   return (
     <>
+      <ReCapcha
+        state={state}
+        sitekeyv3={sitekeyv3}
+        sitekeyv2={sitekeyv2}
+      >
+      </ReCapcha>
       <div class="flex w-full h-screen mb-6">
         <div class="lg:w-2/3 w-full m-5 lg:m-0">
           <div class="bg-white text-black rounded-lg shadow-[0_12px_32px_#00000040] p-6 max-w-[472px] lg:ml-[100px] mt-[80px] mx-auto">
@@ -82,9 +103,11 @@ function welcome() {
                 </div>
               </div>
             </div>
-            <button class="bg-[#00acee] text-white rounded-3xl py-2 px-4 hover:bg-[#00a0e9] w-full">
-              このサーバーに登録する
-            </button>
+            <Register
+              state={state}
+              sitekeyv2={sitekeyv2}
+              sitekeyv3={sitekeyv3}
+            />
             <button
               onClick={() => {
                 alert("まだ実装してない！！！");
@@ -93,7 +116,10 @@ function welcome() {
             >
               他のサーバーを探す
             </button>
-            <button class="bg-[#192320] text-white rounded-3xl py-2 px-4 hover:bg-[#192320] border w-full lg:mt-2 mt-3">ログイン</button>
+            <Login
+              state={state}
+            >
+            </Login>
             <div class="flex w-full space-x-4 mt-3">
               <div class="w-1/2 bg-gray-200 text-center py-4 rounded-lg shadow-inner">
                 <p class="text-sm text-gray-700">ユーザー</p>
@@ -148,7 +174,7 @@ function welcome() {
           </div>
         </div>
       </div>
-      <div class="bottom-5 fixed w-full">
+      <div class="bottom-5 fixed w-full hidden lg:block">
         <div class="w-[800px] py-[8px] mx-auto rounded-xl bg-[rgba(25,35,32,0.5)] flex overflow-hidden">
           <p class="text-white mx-auto">ここに接続済みサーバーが表示されえる予定です</p>
         </div>

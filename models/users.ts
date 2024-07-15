@@ -43,14 +43,12 @@ const usersSchema = new mongoose.Schema({
   },
   age: {
     type: Number,
-    required: true,
     rating: { type: Number, required: true, min: 1, max: 120 },
     min: 1,
     max: 120,
   },
   nickName: {
     type: String,
-    required: true,
     validate: {
       validator: function (v: string) {
         return /^[ぁ-んァ-ン一-龥a-zA-Z0-9]{1,20}$/.test(v);
@@ -74,9 +72,12 @@ const usersSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true,
   },
   timestamp: { type: Date, default: Date.now },
+  isSetup: {
+    type: Boolean,
+    default: false,
+  },
 });
 const users = mongoose.model("users", usersSchema);
 export default users;

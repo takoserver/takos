@@ -20,6 +20,7 @@ export const handler = {
     const code = body.code;
     const token = body.token;
     const recaptcha = body.recaptcha;
+    const recaptchakind = body.recaptchakind;
     if (typeof email !== "string") {
       return new Response(JSON.stringify({ status: false, message: "Invalid email" }), {
         headers: { "Content-Type": "application/json" },
@@ -44,22 +45,44 @@ export const handler = {
         status: 400,
       });
     }
-    const isSecsusRechapcha = await fetch(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptcha}`,
-    );
-    const score = await isSecsusRechapcha.json();
-    if (score.score < 0.5 || score.success == false) {
-      console.log(score);
-      return new Response(
-        JSON.stringify({ "status": false, error: "rechapcha" }),
-        {
-          headers: { "Content-Type": "application/json" },
-          status: 403,
-        },
+    const RECAPTCHA_SECRET_KEY = recaptchakind === "v3" ? env["rechapcha_seecret_key_v3"] : env["rechapcha_seecret_key_v2"];
+    if (recaptchakind === "v3") {
+      //
+      const isSecsusRechapcha = await fetch(
+        `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET_KEY}&response=${recaptcha}`,
       );
+      const score = await isSecsusRechapcha.json();
+      if (score.score < 0.5 || score.success == false) {
+        console.log(score);
+        return new Response(
+          JSON.stringify({ "status": false, error: "rechapchav3" }),
+          {
+            headers: { "Content-Type": "application/json" },
+            status: 403,
+          },
+        );
+      }
+    } else if (recaptchakind === "v2") {
+      const response = await fetch(`https://www.google.com/recaptcha/api/siteverify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: `secret=YOUR_SECRET_KEY&response=${recaptcha}`,
+      });
+      const data = await response.json();
+      if (!data.success) {
+        return new Response(
+          JSON.stringify({ "status": false, error: "rechapchav2" }),
+          {
+            headers: { "Content-Type": "application/json" },
+            status: 403,
+          },
+        );
+      }
     }
     const tempUser = await tempUsers.findOne({
-      email: email,
+      mail: email,
       token: token,
       checkCode: code,
     });

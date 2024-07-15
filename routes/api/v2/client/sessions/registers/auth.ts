@@ -16,7 +16,8 @@ export const handler = {
       });
     }
     const body = await req.json();
-    const { email, password, nickName, age, token, recaptcha, userName } = body;
+    const { email, password, token, recaptcha, userName, recaptchakind } = body;
+    console.log(userName)
     if (takos.checkEmail(email) === false) {
       return new Response(JSON.stringify({ status: false, message: "Invalid email" }), {
         headers: { "Content-Type": "application/json" },
@@ -25,18 +26,6 @@ export const handler = {
     }
     if (takos.checkUserName(userName) === false) {
       return new Response(JSON.stringify({ status: false, message: "Invalid userName" }), {
-        headers: { "Content-Type": "application/json" },
-        status: 400,
-      });
-    }
-    if (takos.checkNickName(nickName) === false) {
-      return new Response(JSON.stringify({ status: false, message: "Invalid nickName" }), {
-        headers: { "Content-Type": "application/json" },
-        status: 400,
-      });
-    }
-    if (takos.checkAge(age) === false) {
-      return new Response(JSON.stringify({ status: false, message: "Invalid age" }), {
         headers: { "Content-Type": "application/json" },
         status: 400,
       });
@@ -53,22 +42,44 @@ export const handler = {
         status: 400,
       });
     }
-    const isSecsusRechapcha = await fetch(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${Deno.env.get("RECAPTCHA_SECRET_KEY")}&response=${recaptcha}`,
-    );
-    const score = await isSecsusRechapcha.json();
-    if (score.score < 0.5 || score.success == false) {
-      console.log(score);
-      return new Response(
-        JSON.stringify({ "status": false, error: "rechapcha" }),
-        {
-          headers: { "Content-Type": "application/json" },
-          status: 403,
-        },
+    const RECAPTCHA_SECRET_KEY = recaptchakind === "v3" ? env["rechapcha_seecret_key_v3"] : env["rechapcha_seecret_key_v2"];
+    if (recaptchakind === "v3") {
+      //
+      const isSecsusRechapcha = await fetch(
+        `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET_KEY}&response=${recaptcha}`,
       );
+      const score = await isSecsusRechapcha.json();
+      if (score.score < 0.5 || score.success == false) {
+        console.log(score);
+        return new Response(
+          JSON.stringify({ "status": false, error: "rechapchav3" }),
+          {
+            headers: { "Content-Type": "application/json" },
+            status: 403,
+          },
+        );
+      }
+    } else if (recaptchakind === "v2") {
+      const response = await fetch(`https://www.google.com/recaptcha/api/siteverify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: `secret=YOUR_SECRET_KEY&response=${recaptcha}`,
+      });
+      const data = await response.json();
+      if (!data.success) {
+        return new Response(
+          JSON.stringify({ "status": false, error: "rechapchav2" }),
+          {
+            headers: { "Content-Type": "application/json" },
+            status: 403,
+          },
+        );
+      }
     }
     const tempUser = await tempUsers.findOne({
-      email: email,
+      mail: email,
       token: token,
     });
     if (tempUser === null) {
@@ -77,14 +88,14 @@ export const handler = {
         status: 400,
       });
     }
-    if (tempUser.checked) {
-      return new Response(JSON.stringify({ status: false, message: "Already Registered" }), {
+    if (!tempUser.checked) {
+      return new Response(JSON.stringify({ status: false, message: "You have never checked yet" }), {
         headers: { "Content-Type": "application/json" },
         status: 400,
       });
     }
     const user = await users.findOne({
-      email: email,
+      mail: email,
     });
     if (user !== null) {
       return new Response(JSON.stringify({ status: false, message: "Already Registered" }), {
@@ -96,6 +107,7 @@ export const handler = {
     const userNameUser = await users.findOne({
       userName: userName,
     });
+    console.log(userNameUser);
     if (userNameUser !== null) {
       return new Response(JSON.stringify({ status: false, message: "Already Registered" }), {
         headers: { "Content-Type": "application/json" },
@@ -129,11 +141,9 @@ export const handler = {
     await users.create({
       uuid: uuid,
       userName,
-      nickName,
       mail: email,
       password: hashHex,
       salt: salt,
-      age: age,
     });
     return new Response(JSON.stringify({ status: true }), {
       headers: { "Content-Type": "application/json" },

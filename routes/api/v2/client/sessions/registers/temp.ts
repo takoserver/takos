@@ -10,7 +10,7 @@ import { load } from "$std/dotenv/mod.ts";
 import * as mod from "$std/crypto/mod.ts";
 const env = await load();
 const secretKey = env["rechapcha_seecret_key"];
-const handler = {
+export const handler = {
   async POST(req: Request, ctx: any) {
     if (ctx.state.data.loggedIn) {
       return new Response(JSON.stringify({ status: "Already Logged In" }), {
@@ -21,6 +21,7 @@ const handler = {
     const body = await req.json();
     const email = body.email;
     const recaptcha = body.recaptcha;
+    const recaptchakind = body.recaptchakind;
     if (typeof email !== "string") {
       return new Response(JSON.stringify({ status: false, message: "Invalid email" }), {
         headers: { "Content-Type": "application/json" },
@@ -39,24 +40,46 @@ const handler = {
         status: 400,
       });
     }
-    const isSecsusRechapcha = await fetch(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptcha}`,
-    );
-    const score = await isSecsusRechapcha.json();
-    if (score.score < 0.5 || score.success == false) {
-      console.log(score);
-      return new Response(
-        JSON.stringify({ "status": false, error: "rechapcha" }),
-        {
-          headers: { "Content-Type": "application/json" },
-          status: 403,
-        },
+    const RECAPTCHA_SECRET_KEY = recaptchakind === "v3" ? env["rechapcha_seecret_key_v3"] : env["rechapcha_seecret_key_v2"];
+    if (recaptchakind === "v3") {
+      //
+      const isSecsusRechapcha = await fetch(
+        `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET_KEY}&response=${recaptcha}`,
       );
+      const score = await isSecsusRechapcha.json();
+      if (score.score < 0.5 || score.success == false) {
+        console.log(score);
+        return new Response(
+          JSON.stringify({ "status": false, error: "rechapchav3" }),
+          {
+            headers: { "Content-Type": "application/json" },
+            status: 403,
+          },
+        );
+      }
+    } else if (recaptchakind === "v2") {
+      const response = await fetch(`https://www.google.com/recaptcha/api/siteverify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: `secret=YOUR_SECRET_KEY&response=${recaptcha}`,
+      });
+      const data = await response.json();
+      if (!data.success) {
+        return new Response(
+          JSON.stringify({ "status": false, error: "rechapchav2" }),
+          {
+            headers: { "Content-Type": "application/json" },
+            status: 403,
+          },
+        );
+      }
     }
     const randomNumber = takos.generateRandom16DigitNumber();
     //すでに登録されているユーザーかどうかを確認
     const user = await users.findOne({
-      email: email,
+      mail: email,
     });
     if (user !== null) {
       return new Response(JSON.stringify({ status: false, message: "Already Registered" }), {
@@ -67,21 +90,29 @@ const handler = {
     //データーベースに仮登録情報を保存 すでに登録されている場合は更新
     const sessionid = takos.createSessionid();
     const tempUser = await tempUsers.findOne({
-      email: email,
+      mail: email,
     });
     if (tempUser === null) {
+      if (!email || !randomNumber || !sessionid) {
+        return new Response(JSON.stringify({ status: false, message: "Invalid data" }), {
+          headers: { "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
       await tempUsers.create({
-        email: email,
+        mail: email,
         checkCode: randomNumber,
         token: sessionid,
       });
+      console.log("created");
     } else {
       await tempUsers.updateOne({
-        email: email,
+        mail: email,
       }, {
         $set: {
           checkCode: randomNumber,
           token: sessionid,
+          checked: false,
         },
       });
     }

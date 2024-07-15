@@ -90,6 +90,7 @@ import * as $ChatTalkTitle from "./islands/ChatTalkTitle.tsx";
 import * as $ChatTalkTitleContent from "./islands/ChatTalkTitleContent.tsx";
 import * as $FriendRequest from "./islands/FriendRequest.tsx";
 import * as $Login from "./islands/Login.tsx";
+import * as $ReCapcha from "./islands/ReCapcha.tsx";
 import * as $Register from "./islands/Register.tsx";
 import * as $RequestFriendById from "./islands/RequestFriendById.tsx";
 import * as $TalkListContent from "./islands/TalkListContent.tsx";
@@ -191,6 +192,7 @@ const manifest = {
     "./islands/ChatTalkTitleContent.tsx": $ChatTalkTitleContent,
     "./islands/FriendRequest.tsx": $FriendRequest,
     "./islands/Login.tsx": $Login,
+    "./islands/ReCapcha.tsx": $ReCapcha,
     "./islands/Register.tsx": $Register,
     "./islands/RequestFriendById.tsx": $RequestFriendById,
     "./islands/TalkListContent.tsx": $TalkListContent,
