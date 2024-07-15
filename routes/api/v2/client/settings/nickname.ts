@@ -36,7 +36,7 @@ export const handler = {
       });
     }
     //nickNameを変更
-    await users.update({ nickName: nickName }, { id: ctx.state.data.userid });
+    await users.updateOne({ uuid: ctx.state.data.userid }, { nickName: nickName });
     return new Response(JSON.stringify({ status: true }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
