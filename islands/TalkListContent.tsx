@@ -5,6 +5,7 @@ import GetAddFriendKey from "./getAddFriendKey.tsx";
 import FriendRequest from "./FriendRequest.tsx";
 import { AppStateType } from "../util/types.ts";
 import { useSignal } from "@preact/signals";
+import { useEffect } from "preact/hooks";
 function TalkListContent({ state }: { state: AppStateType }) {
   if (state.page.value === 0) {
     return <></>;
@@ -139,6 +140,41 @@ function TalkListContent({ state }: { state: AppStateType }) {
             }
           }}
         />
+        {settingPage.value === 2 && (
+          <>
+            <div class="fixed z-50 w-full h-full bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px]">
+              <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 w-full h-full p-5 rounded-xl shadow-lg relative md:ml-[78px]">
+                <div class="absolute right-0 top-0 p-4">
+                  <span
+                    class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
+                    onClick={() => {
+                      settingPage.value = 0;
+                    }}
+                  >
+                    ×
+                  </span>
+                </div>
+                <div class="w-4/5 mx-auto my-auto mt-10 h-full">
+                  <h1 class="text-center text-2xl text-black dark:text-white hover:underline font-medium">その他の設定</h1>
+                  <div class="mt-12 flex">
+                    <div class="flex mx-auto lg:w-2/3 w-full">
+                      <div class="ml-0 w-1/2">
+                        <p class="text-center">他のサーバーのユーザーを許可</p>
+                      </div>
+                      <div class="w-1/2 flex">
+                        <label class="inline-flex items-center cursor-pointer mx-auto">
+                          <input type="checkbox" value="" class="sr-only peer" />
+                          <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
         {settingPage.value === 1 && (
           <>
             <div class="fixed z-50 w-full h-full bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px]">
@@ -203,20 +239,20 @@ function TalkListContent({ state }: { state: AppStateType }) {
                         info.icon = true;
                       }
                     }
-                    if(icon.name !== "" && nickName !== ""){
-                      if(info.nickName === true && info.icon === true){
+                    if (icon.name !== "" && nickName !== "") {
+                      if (info.nickName === true && info.icon === true) {
                         alert("保存しました");
                         settingPage.value = 0;
                         //リロード
                         window.location.href = "/setting";
                       }
-                      if(info.nickName === false && info.icon === true){
+                      if (info.nickName === false && info.icon === true) {
                         alert("ニックネームの保存に失敗しました");
                       }
-                      if(info.nickName === true && info.icon === false){
+                      if (info.nickName === true && info.icon === false) {
                         alert("アイコンの保存に失敗しました");
                       }
-                      if(info.nickName === false && info.icon === false){
+                      if (info.nickName === false && info.icon === false) {
                         alert("保存に失敗しました");
                       }
                     }
