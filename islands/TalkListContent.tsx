@@ -155,7 +155,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
                 </div>
                 <form
                   class="w-4/5 mx-auto my-auto mt-10"
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
                     const inputFormData = new FormData(e.target as HTMLFormElement);
                     const nickName = inputFormData.get("nickName") as string;
@@ -164,12 +164,61 @@ function TalkListContent({ state }: { state: AppStateType }) {
                       alert("いずれかの項目を入力してください");
                       return;
                     }
-                    console.log(icon);
+                    const info = {
+                      nickName: false,
+                      icon: false,
+                    };
                     if (nickName !== "") {
-                      //
+                      const csrftokenReq = await fetch("/api/v2/client/csrftoken", {
+                        method: "GET",
+                      });
+                      const csrftoken = await csrftokenReq.json();
+                      const res = await fetch("/api/v2/client/settings/nickname", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          nickName: nickName,
+                          csrftoken: csrftoken.csrftoken,
+                        }),
+                      });
+                      const result = await res.json();
+                      console.log(result);
+                      if (result.status === true) {
+                        info.nickName = true;
+                      }
                     }
                     if (icon.name !== "") {
-                      //
+                      const csrftokenReq = await fetch("/api/v2/client/csrftoken", {
+                        method: "GET",
+                      });
+                      const csrftoken = await csrftokenReq.json();
+                      const formData = new FormData();
+                      formData.append("icon", icon);
+                      formData.append("csrftoken", csrftoken.csrftoken);
+                      const res = await fetch("/api/v2/client/settings/icon", {
+                        method: "POST",
+                        body: formData,
+                      });
+                      const result = await res.json();
+                      if (result.status === true) {
+                        info.icon = true;
+                      }
+                    }
+                    if(icon.name !== "" && nickName !== ""){
+                      if(info.nickName === true && info.icon === true){
+                        alert("保存しました");
+                        settingPage.value = 0;
+                        //リロード
+                        window.location.href = "/setting";
+                      }
+                      if(info.nickName === false && info.icon === true){
+                        alert("ニックネームの保存に失敗しました");
+                      }
+                      if(info.nickName === true && info.icon === false){
+                        alert("アイコンの保存に失敗しました");
+                      }
+                      if(info.nickName === false && info.icon === false){
+                        alert("保存に失敗しました");
+                      }
                     }
                   }}
                 >
