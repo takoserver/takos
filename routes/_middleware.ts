@@ -41,6 +41,19 @@ export async function handler(req: Request, ctx: MiddlewareHandlerContext) {
     return resp;
   }
   const mail = user.mail;
+  if (!user.isSetup) {
+    ctx.state.data = {
+      userid,
+      mail,
+      loggedIn: false,
+      isSetUp: true,
+      sessionid,
+      userNickName: user.nickName,
+      userName: user.userName,
+    };
+    const resp = await ctx.next();
+    return resp;
+  }
   ctx.state.data = {
     userid,
     mail,

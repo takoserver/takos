@@ -2,11 +2,15 @@ import users from "../models/users.ts";
 import { load } from "$std/dotenv/mod.ts";
 import Chat from "../components/chat.tsx";
 import Welcome from "../components/welcome.tsx";
+import SetUp from "../islands/setup.tsx";
 const env = await load();
 export const handler = {
   async GET(req: any, ctx: any) {
     if (!ctx.state.data.loggedIn) {
-      return ctx.render({ loggedIn: false, isAddFriendForm: false });
+      if (ctx.state.data.isSetUp) {
+        return ctx.render({ loggedIn: false, isAddFriendForm: false, isSetUp: true });
+      }
+      return ctx.render({ loggedIn: false, isAddFriendForm: false, isSetUp: false });
     }
     const requrl = new URL(req.url);
     const key = requrl.searchParams.get("key") || "";
@@ -49,6 +53,21 @@ export const handler = {
 };
 export default function Home({ data }: { data: any }) {
   if (!data.loggedIn) {
+    if (data.isSetUp) {
+      return (
+        <>
+          <head>
+            <title>tako's | takos.jp</title>
+            <meta
+              name="description"
+              content="日本産オープンソース分散型チャットアプリ「tako's」"
+            />
+            <link rel="stylesheet" href="/stylesheet.css"></link>
+          </head>
+          <SetUp />
+        </>
+      );
+    }
     return (
       <>
         <>

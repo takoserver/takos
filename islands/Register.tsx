@@ -7,7 +7,7 @@ function Register({ state, sitekeyv2, sitekeyv3 }: { state: any; sitekeyv2: stri
           class="bg-[#00acee] text-white rounded-3xl py-2 px-4 hover:bg-[#00a0e9] w-full"
           onClick={() => {
             state.showWindow.value = "Register";
-            state.RegisterPage.value = 3;
+            state.RegisterPage.value = 0;
           }}
         >
           このサーバーに登録する
@@ -55,21 +55,19 @@ function TransFarLoginFrom({ state }: { state: any }) {
             登録
           </p>
         </div>
-        <div
-          class="flex-grow flex flex-col justify-center"
-        >
+        <div class="flex-grow flex flex-col justify-center">
           <div class="m-auto text-white">
             <div class="mb-6">
-            登録が完了しましたログインページに移動しますか？
+              登録が完了しましたログインページに移動しますか？
             </div>
-              <button
-                onClick={() => {
-                  state.showWindow.value = "login";
-                }}
-                class="rounded-lg text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
-              >
-                {"ログイン"}
-              </button>
+            <button
+              onClick={() => {
+                state.showWindow.value = "login";
+              }}
+              class="rounded-lg text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
+            >
+              {"ログイン"}
+            </button>
           </div>
         </div>
       </div>
@@ -179,18 +177,18 @@ function MainRegister({ state, sitekeyv2, sitekeyv3 }: { state: any; sitekeyv2: 
             パスワード
           </label>
           <input
-              onChange={(e) => {
-                if (!e.target) {
-                  return;
-                }
-                const target = e.target as HTMLInputElement;
-                state.password.value = target.value;
-              }}
-              value={state.password.value}
-              type={"password"}
-              placeholder={"xxxxxxx"}
-              class="bg-white border border-[rgba(0,0,0,5%)] shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_0_rgba(0,122,255,50%)] focus:shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_3px_rgba(0,122,255,50%)] text-gray-900 text-sm rounded-lg focus:ring-2 ring-1 ring-[rgba(0,0,0,5%)] outline-none block w-full p-2.5"
-            />
+            onChange={(e) => {
+              if (!e.target) {
+                return;
+              }
+              const target = e.target as HTMLInputElement;
+              state.password.value = target.value;
+            }}
+            value={state.password.value}
+            type={"password"}
+            placeholder={"xxxxxxx"}
+            class="bg-white border border-[rgba(0,0,0,5%)] shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_0_rgba(0,122,255,50%)] focus:shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_3px_rgba(0,122,255,50%)] text-gray-900 text-sm rounded-lg focus:ring-2 ring-1 ring-[rgba(0,0,0,5%)] outline-none block w-full p-2.5"
+          />
           {state.recapchav3Failed.value && (
             <>
               <script src="https://www.google.com/recaptcha/api.js" async defer></script>

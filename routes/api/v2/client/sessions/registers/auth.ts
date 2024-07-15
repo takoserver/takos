@@ -17,7 +17,7 @@ export const handler = {
     }
     const body = await req.json();
     const { email, password, token, recaptcha, userName, recaptchakind } = body;
-    console.log(userName)
+    console.log(userName);
     if (takos.checkEmail(email) === false) {
       return new Response(JSON.stringify({ status: false, message: "Invalid email" }), {
         headers: { "Content-Type": "application/json" },

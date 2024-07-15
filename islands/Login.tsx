@@ -37,7 +37,50 @@ function Login({ state }: { state: any }) {
               ×
             </span>
           </div>
-          <div class="h-full px-2 lg:px-3 flex flex-col">
+          <form
+            class="h-full px-2 lg:px-3 flex flex-col"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const isEmail = checkEmail(state.LoginName.value);
+              if (isEmail) {
+                const res = await fetch("/api/v2/client/sessions/login", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    email: state.LoginName.value,
+                    password: state.LoginPassword.value,
+                  }),
+                });
+                const data = await res.json();
+                if (data.status === true) {
+                  state.showWindow.value = "";
+                } else {
+                  alert("ログインに失敗しました");
+                }
+              } else {
+                const res = await fetch("/api/v2/client/sessions/login", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    userName: state.LoginName.value,
+                    password: state.LoginPassword.value,
+                  }),
+                });
+                const data = await res.json();
+                if (data.status === true) {
+                  state.showWindow.value = "";
+                  //リダイレクト
+                  window.location.href = "/";
+                } else {
+                  alert("ログインに失敗しました");
+                }
+              }
+            }}
+          >
             <div class="text-sm">
               <p class="text-black dark:text-white font-bold text-3xl mt-4 mb-5">
                 ログイン
@@ -61,6 +104,7 @@ function Login({ state }: { state: any }) {
                     state.LoginName.value = target.value;
                   }}
                   placeholder={"username"}
+                  type={"text"}
                 />
               </div>
               <label
@@ -80,6 +124,7 @@ function Login({ state }: { state: any }) {
                     state.LoginPassword.value = target.value;
                   }}
                   placeholder={"password"}
+                  type={"password"}
                 />
               </div>
             </div>
@@ -87,49 +132,11 @@ function Login({ state }: { state: any }) {
               <button
                 type="submit"
                 class="rounded-lg text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
-                onClick={async () => {
-                  const isEmail = checkEmail(state.LoginName.value);
-                  if (isEmail) {
-                    const res = await fetch("/api/v2/client/sessions/login", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        email: state.LoginName.value,
-                        password: state.LoginPassword.value,
-                      }),
-                    });
-                    const data = await res.json();
-                    if (data.status === true) {
-                      state.showWindow.value = "";
-                    } else {
-                      alert("ログインに失敗しました");
-                    }
-                  } else {
-                    const res = await fetch("/api/v2/client/sessions/login", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        userName: state.LoginName.value,
-                        password: state.LoginPassword.value,
-                      }),
-                    });
-                    const data = await res.json();
-                    if (data.status === true) {
-                      state.showWindow.value = "";
-                    } else {
-                      alert("ログインに失敗しました");
-                    }
-                  }
-                }}
               >
                 {"ログイン"}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       </div>
     </>

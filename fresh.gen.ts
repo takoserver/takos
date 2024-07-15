@@ -25,6 +25,7 @@ import * as $api_v2_client_sessions_login from "./routes/api/v2/client/sessions/
 import * as $api_v2_client_sessions_logout from "./routes/api/v2/client/sessions/logout.ts";
 import * as $api_v2_client_sessions_registers_auth from "./routes/api/v2/client/sessions/registers/auth.ts";
 import * as $api_v2_client_sessions_registers_check from "./routes/api/v2/client/sessions/registers/check.ts";
+import * as $api_v2_client_sessions_registers_setup from "./routes/api/v2/client/sessions/registers/setup.ts";
 import * as $api_v2_client_sessions_registers_temp from "./routes/api/v2/client/sessions/registers/temp.ts";
 import * as $api_v2_client_settings_icon from "./routes/api/v2/client/settings/icon.ts";
 import * as $api_v2_client_settings_nickname from "./routes/api/v2/client/settings/nickname.ts";
@@ -97,6 +98,7 @@ import * as $TalkListContent from "./islands/TalkListContent.tsx";
 import * as $getAddFriendKey from "./islands/getAddFriendKey.tsx";
 import * as $headerButton from "./islands/headerButton.tsx";
 import * as $setDefaultState from "./islands/setDefaultState.tsx";
+import * as $setup from "./islands/setup.tsx";
 import * as $talkListHeader from "./islands/talkListHeader.tsx";
 import { type Manifest } from "$fresh/server.ts";
 
@@ -125,6 +127,7 @@ const manifest = {
     "./routes/api/v2/client/sessions/logout.ts": $api_v2_client_sessions_logout,
     "./routes/api/v2/client/sessions/registers/auth.ts": $api_v2_client_sessions_registers_auth,
     "./routes/api/v2/client/sessions/registers/check.ts": $api_v2_client_sessions_registers_check,
+    "./routes/api/v2/client/sessions/registers/setup.ts": $api_v2_client_sessions_registers_setup,
     "./routes/api/v2/client/sessions/registers/temp.ts": $api_v2_client_sessions_registers_temp,
     "./routes/api/v2/client/settings/icon.ts": $api_v2_client_settings_icon,
     "./routes/api/v2/client/settings/nickname.ts": $api_v2_client_settings_nickname,
@@ -199,6 +202,7 @@ const manifest = {
     "./islands/getAddFriendKey.tsx": $getAddFriendKey,
     "./islands/headerButton.tsx": $headerButton,
     "./islands/setDefaultState.tsx": $setDefaultState,
+    "./islands/setup.tsx": $setup,
     "./islands/talkListHeader.tsx": $talkListHeader,
   },
   baseUrl: import.meta.url,
