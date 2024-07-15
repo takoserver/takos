@@ -6,6 +6,7 @@ import * as $_404 from "./routes/_404.tsx";
 import * as $_app from "./routes/_app.tsx";
 import * as $_middleware from "./routes/_middleware.ts";
 import * as $addFriend_index from "./routes/addFriend/index.tsx";
+import * as $api_v2_client_bgimage from "./routes/api/v2/client/bgimage.ts";
 import * as $api_v2_client_block_server from "./routes/api/v2/client/block/server.ts";
 import * as $api_v2_client_block_user from "./routes/api/v2/client/block/user.ts";
 import * as $api_v2_client_chart from "./routes/api/v2/client/chart.ts";
@@ -110,6 +111,7 @@ const manifest = {
     "./routes/_app.tsx": $_app,
     "./routes/_middleware.ts": $_middleware,
     "./routes/addFriend/index.tsx": $addFriend_index,
+    "./routes/api/v2/client/bgimage.ts": $api_v2_client_bgimage,
     "./routes/api/v2/client/block/server.ts": $api_v2_client_block_server,
     "./routes/api/v2/client/block/user.ts": $api_v2_client_block_user,
     "./routes/api/v2/client/chart.ts": $api_v2_client_chart,

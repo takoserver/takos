@@ -3,7 +3,7 @@
 @tailwind utilities;
 html,body {
     position: relative;
-    background-image: url("/main-bg2.png");
+    background-image: url("/api/v2/client/bgimage");
     background-size: cover;
     background-attachment: fixed;
 }

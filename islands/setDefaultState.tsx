@@ -39,7 +39,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                 "",
                 "",
                 "/talk/" + state.friendid.value,
-              )
+              );
             }
           }
           break;
