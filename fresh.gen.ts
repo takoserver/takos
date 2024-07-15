@@ -87,6 +87,8 @@ import * as $api_v2_server_information_users_changes from "./routes/api/v2/serve
 import * as $api_v2_server_information_users_icon from "./routes/api/v2/server/information/users/icon.ts";
 import * as $api_v2_server_information_users_profile from "./routes/api/v2/server/information/users/profile.ts";
 import * as $api_v2_server_pubkey from "./routes/api/v2/server/pubkey.ts";
+import * as $home_friends_name_ from "./routes/home/friends/[name].tsx";
+import * as $home_index from "./routes/home/index.tsx";
 import * as $index from "./routes/index.tsx";
 import * as $setting_friends_name_ from "./routes/setting/friends/[name].tsx";
 import * as $setting_index from "./routes/setting/index.tsx";
@@ -196,6 +198,8 @@ const manifest = {
     "./routes/api/v2/server/information/users/icon.ts": $api_v2_server_information_users_icon,
     "./routes/api/v2/server/information/users/profile.ts": $api_v2_server_information_users_profile,
     "./routes/api/v2/server/pubkey.ts": $api_v2_server_pubkey,
+    "./routes/home/friends/[name].tsx": $home_friends_name_,
+    "./routes/home/index.tsx": $home_index,
     "./routes/index.tsx": $index,
     "./routes/setting/friends/[name].tsx": $setting_friends_name_,
     "./routes/setting/index.tsx": $setting_index,

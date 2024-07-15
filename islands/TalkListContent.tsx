@@ -8,7 +8,20 @@ import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
 function TalkListContent({ state }: { state: AppStateType }) {
   if (state.page.value === 0) {
-    return <></>;
+    return (
+      <>
+        <div class="flex">
+          <div class="w-3/4">
+            <div>
+              takoserver
+            </div>
+          </div>
+          <div class="w-1/4">
+            <img src="/api/v2/client/users/icon" class="w-3/4 mx-auto rounded-full" alt="" />
+          </div>
+        </div>
+      </>
+    );
   } else if (state.page.value === 1) {
     return (
       <>

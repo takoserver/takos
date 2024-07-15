@@ -34,7 +34,7 @@ async function subscribeMessage(channel: string | string[]) {
           console.log("Invalid SessionID");
           return;
         }
-        if(session.roomType === "friend") {
+        if (session.roomType === "friend") {
           const message = data.message;
           if (typeof message !== "string") {
             console.log("Invalid Message");

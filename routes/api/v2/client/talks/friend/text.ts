@@ -23,7 +23,7 @@ export const handler = {
     const sessionid = body.sessionid;
     const channel = env["REDIS_CH"];
     if (typeof message !== "string") {
-        console.log(message)
+      console.log(message);
       return new Response(JSON.stringify({ status: false, message: "Invalid message" }), {
         headers: { "Content-Type": "application/json" },
         status: 400,

@@ -69,8 +69,8 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
             message: data.message,
             userName: data.userName,
             timestamp: data.time,
-            read: []
-          }
+            read: [],
+          };
           const result = state.talkData.value.concat(message);
           result.sort((a, b) => {
             return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();

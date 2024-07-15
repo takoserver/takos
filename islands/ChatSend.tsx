@@ -12,7 +12,7 @@ function ChatSend({ state }: { state: AppStateType }) {
         );
         return;
       }
-      const msg = state.inputMessage.value
+      const msg = state.inputMessage.value;
       const res = fetch(
         "/api/v2/client/talks/friend/text",
         {
@@ -21,8 +21,8 @@ function ChatSend({ state }: { state: AppStateType }) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            sessionid : state.sessionid.value,
-            friendid : state.friendid.value,
+            sessionid: state.sessionid.value,
+            friendid: state.friendid.value,
             text: msg,
           }),
         },
