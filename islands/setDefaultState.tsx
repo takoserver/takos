@@ -34,6 +34,12 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
               state.friendid.value = data.friendid;
               state.roomName.value = roomInfo.nickName;
               setIschoiseUser(true, state.isChoiceUser);
+              const path = window.location.pathname;
+              window.history.pushState(
+                "",
+                "",
+                "/talk/" + state.friendid.value,
+              )
             }
           }
           break;
