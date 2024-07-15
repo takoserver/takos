@@ -5,8 +5,11 @@ import csrfToken from "../../../../models/csrftoken.ts";
 import { getCookies } from "$std/http/cookie.ts";
 export const handler = {
   async GET(req: Request, ctx: any) {
-    if (!ctx.state.data.loggedIn) {
-      return ctx.json({ status: false, message: "You are not logged in" });
+    if (!ctx.state.data.loggedIn && ctx.state.data.isSetUp === false) {
+      return new Response(
+        JSON.stringify({ status: false, message: "You are not logged in" }),
+        { status: 401, headers: { "Content-Type": "application/json" } },
+      );
     }
     const array = new Uint8Array(64);
     crypto.getRandomValues(array);
