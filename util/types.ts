@@ -34,7 +34,7 @@ export interface AppStateType {
   ws: { value: WebSocket | null };
   roomid: { value: string };
   sessionid: { value: string };
-  talkData: { value: MessageTypes[] };
+  talkData: { value: any[] };
   userName: string;
   friendList: { value: Array<any> };
   roomName: { value: string };

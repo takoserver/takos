@@ -23,6 +23,7 @@ export const handler = {
     const sessionid = body.sessionid;
     const channel = env["REDIS_CH"];
     if (typeof message !== "string") {
+        console.log(message)
       return new Response(JSON.stringify({ status: false, message: "Invalid message" }), {
         headers: { "Content-Type": "application/json" },
         status: 400,
@@ -41,5 +42,9 @@ export const handler = {
       });
     }
     pubClient.publish(channel, JSON.stringify({ type: "textMessage", message: message, sessionid: sessionid }));
+    return new Response(JSON.stringify({ status: true, message: "Success" }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    });
   },
 };

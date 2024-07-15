@@ -12,18 +12,29 @@ function ChatSend({ state }: { state: AppStateType }) {
         );
         return;
       }
-      const data = {
-        type: "message",
-        message: state.inputMessage.value,
-        roomid: state.roomid.value,
-        sessionid: state.sessionid.value,
-        messageType: "text",
-      };
-      state.ws.value?.send(
-        JSON.stringify(
-          data,
-        ),
+      const msg = state.inputMessage.value
+      const res = fetch(
+        "/api/v2/client/talks/friend/text",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sessionid : state.sessionid.value,
+            friendid : state.friendid.value,
+            text: msg,
+          }),
+        },
       );
+      res.then((res) => res.json()).then((res) => {
+        if (res.status === false) {
+          alert(
+            "メッセージの送信に失敗しました",
+          );
+          return;
+        }
+      });
       state.inputMessage.value = "";
       const friendList = state.friendList.value;
       friendList.map(
@@ -105,6 +116,7 @@ function ChatSend({ state }: { state: AppStateType }) {
         </div>
         <div
           class={state.isValidInput.value ? "p-talk-chat-send__button is-active" : "p-talk-chat-send__button"}
+          onClick={sendHandler}
         >
           <svg width="800px" height="800px" viewBox="0 0 28 28" version="1.1" xmlns="http://www.w3.org/2000/svg">
             <g stroke="none" stroke-width="1" fill="none">

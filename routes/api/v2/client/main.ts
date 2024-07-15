@@ -24,27 +24,34 @@ await subClient.connect();
 async function subscribeMessage(channel: string | string[]) {
   await subClient.subscribe(channel, async (message) => {
     const data = JSON.parse(message);
+    console.log(data);
     switch (data.type) {
       case "textMessage": {
+        console.log("textMessage");
         const sessionid = data.sessionid;
         const session = sessions.get(sessionid);
         if (!session) {
+          console.log("Invalid SessionID");
           return;
         }
         if(session.roomType === "friend") {
           const message = data.message;
           if (typeof message !== "string") {
+            console.log("Invalid Message");
             return;
           }
           if (message.length > maxMessage) {
+            console.log("Too Long Message");
             return;
           }
           const roomid = session.roomid;
           const room = await rooms.findOne({ uuid: roomid });
           if (!room) {
+            console.log("Invalid RoomID");
             return;
           }
-          await messages.create(
+          const messageid = generate();
+          const dbData = await messages.create(
             {
               roomid: roomid,
               userid: session.userid,
@@ -61,7 +68,7 @@ async function subscribeMessage(channel: string | string[]) {
           //sessionsのroomidが一致するものに送信
           sessions.forEach((session) => {
             if (session.roomid === roomid) {
-              session.ws.send(JSON.stringify({ type: "text", message, userid: session.userName }));
+              session.ws.send(JSON.stringify({ type: "text", message, userName: session.userName, messageid, time: dbData.timestamp }));
             }
           });
           break;

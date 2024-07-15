@@ -51,11 +51,33 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
               );
               const talkData = fetch("/api/v2/client/talks/friend/data?friendid=" + state.friendid.value + "&limit=50");
               talkData.then((res) => res.json()).then((res) => {
-                state.talkData.value = res.data;
+                const data = res.data as any[];
+                //timestamp順にソート
+                data.sort((a, b) => {
+                  return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+                });
+                state.talkData.value = data;
               });
             }
           }
           break;
+        case "text": {
+          console.log(data);
+          const message = {
+            messageid: data.messageid,
+            type: "text",
+            message: data.message,
+            userName: data.userName,
+            timestamp: data.time,
+            read: []
+          }
+          const result = state.talkData.value.concat(message);
+          result.sort((a, b) => {
+            return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+          });
+          state.talkData.value = result;
+          break;
+        }
       }
     };
   }, []);
