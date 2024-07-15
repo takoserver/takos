@@ -10,6 +10,20 @@ function TalkListContent({ state }: { state: AppStateType }) {
   } else if (state.page.value === 1) {
     return (
       <>
+        {state.friendList.value.length === 0 &&
+        <>
+          <User
+          userName="友達がいません"
+          latestMessage="友達を追加しましょう！"
+          icon="/people.png"
+          isNewMessage={false}
+          isSelected={false}
+          onClick={() => {
+            state.page.value = 2;
+          }}
+          />
+        </>
+        }
         {state.friendList.value.map((talk: any) => {
           console.log(talk);
           if (talk.type === "group") {
@@ -71,6 +85,19 @@ function TalkListContent({ state }: { state: AppStateType }) {
           isSelected={false}
         />
         <GetAddFriendKey />
+      </>
+    );
+  } else if (state.page.value === 3) {
+    return (
+      <>
+        <h1 class="text-lg">設定</h1>
+        <div class="p-talk-list-search">
+          <form name="talk-search">
+            <label>
+              <input type="text" placeholder="検索" />
+            </label>
+          </form>
+        </div>
       </>
     );
   }

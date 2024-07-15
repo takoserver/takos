@@ -91,7 +91,7 @@ export default function Home({ data }: { data: any }) {
   }
   return (
     <>
-      <Chat page={2} userName={data.userName} />
+      <Chat page={1} userName={data.userName} />
     </>
   );
 }

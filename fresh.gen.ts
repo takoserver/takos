@@ -85,6 +85,8 @@ import * as $api_v2_server_information_users_icon from "./routes/api/v2/server/i
 import * as $api_v2_server_information_users_profile from "./routes/api/v2/server/information/users/profile.ts";
 import * as $api_v2_server_pubkey from "./routes/api/v2/server/pubkey.ts";
 import * as $index from "./routes/index.tsx";
+import * as $setting_index from "./routes/setting/index.tsx";
+import * as $talk_index from "./routes/talk/index.tsx";
 import * as $ChatSend from "./islands/ChatSend.tsx";
 import * as $ChatTalkContent from "./islands/ChatTalkContent.tsx";
 import * as $ChatTalkTitle from "./islands/ChatTalkTitle.tsx";
@@ -187,6 +189,8 @@ const manifest = {
     "./routes/api/v2/server/information/users/profile.ts": $api_v2_server_information_users_profile,
     "./routes/api/v2/server/pubkey.ts": $api_v2_server_pubkey,
     "./routes/index.tsx": $index,
+    "./routes/setting/index.tsx": $setting_index,
+    "./routes/talk/index.tsx": $talk_index,
   },
   islands: {
     "./islands/ChatSend.tsx": $ChatSend,
