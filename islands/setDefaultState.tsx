@@ -21,13 +21,13 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
     state.ws.value = new WebSocket("/api/v2/client/main");
     state.ws.value.onopen = () => {
       console.log("connected");
-    }
+    };
     state.ws.value.onmessage = (event: any) => {
       const data = JSON.parse(event.data);
       switch (data.type) {
         case "connected":
           state.sessionid.value = data.sessionid;
-          if(state.friendid.value){
+          if (state.friendid.value) {
             state.ws.value?.send(JSON.stringify({
               type: "joinFriend",
               sessionid: state.sessionid.value,

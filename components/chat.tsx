@@ -41,7 +41,7 @@ function createAppState(obj: {
     friendid: friendid,
   };
 }
-function chat(props: { page: any; userName: string,friendid?: string }) {
+function chat(props: { page: any; userName: string; friendid?: string }) {
   const AppState = createAppState({
     isChoiceUser: false,
     roomid: "",

@@ -4,11 +4,13 @@ import users from "../../../../models/users.ts";
 import rooms from "../../../../models/rooms.ts";
 import redis from "redis";
 import pubClient from "../../../../util/redisClient.ts";
+import messages from "../../../../models/messages.ts";
 import { WebSocketJoiningFriend, WebSocketJoiningRoom, WebSocketSessionObject } from "../../../../util/types.ts";
 import { load } from "$std/dotenv/mod.ts";
 import friends from "../../../../models/friends.ts";
 import takos from "../../../../util/takos.ts";
 import remoteFriends from "../../../../models/remoteFriends.ts";
+import { generate } from "https://deno.land/std@0.62.0/uuid/v4.ts";
 const env = await load();
 const redisURL = env["REDIS_URL"];
 const redisch = env["REDIS_CH"];
@@ -21,7 +23,44 @@ await subClient.connect();
 async function subscribeMessage(channel: string | string[]) {
   await subClient.subscribe(channel, async (message) => {
     const data = JSON.parse(message);
-    console.log(data);
+    switch (data.type) {
+      case "textMessage": {
+        const sessionid = data.sessionid;
+        const session = sessions.get(sessionid);
+        if (!session) {
+          return;
+        }
+        const message = data.message;
+        if (typeof message !== "string") {
+          return;
+        }
+        if (message.length > maxMessage) {
+          return;
+        }
+        const roomid = session.roomid;
+        const room = await rooms.findOne({ uuid: roomid });
+        if (!room) {
+          return;
+        }
+        await messages.create(
+          {
+            roomid: roomid,
+            userid: session.userid,
+            messageid: generate(),
+            message: message,
+            messageType: "text",
+            read: [
+              {
+                userid: session.userid,
+              },
+            ],
+          },
+        );
+        break;
+      }
+      default:
+        break;
+    }
   });
 }
 /**メインコンテンツ終了*/
