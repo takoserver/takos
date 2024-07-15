@@ -1,10 +1,13 @@
+
 export const handler = {
   async GET(req: Request, ctx: any) {
-    const userid = ctx.state.data.userid;
     try {
       // ./backgroundImages/にある画像すべてを取得
       const dirPath = "./backgroundImages";
       const result = await readRandomImageFromDir(dirPath).catch(console.error);
+      if(!result) {
+        return new Response("Internal Server Error", { status: 500 });
+      }
       return new Response(result, {
         status: 200,
         headers: {
@@ -41,6 +44,4 @@ async function readRandomImageFromDir(dir: string) {
   const randomFile = `${dir}/${files[randomIndex]}`;
   const imageData = await Deno.readFile(randomFile);
   return imageData;
-  // 画像の内容はバイナリデータとして出力されるため、ここでは内容の表示は省略
-  // 必要に応じて画像データを処理するコードを追加してください
 }
