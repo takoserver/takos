@@ -11,9 +11,9 @@ export const handler = {
     }
     let body;
     try {
-        body = await req.formData()
+      body = await req.formData();
     } catch (e) {
-        console.log(e)
+      console.log(e);
       return new Response(JSON.stringify({ status: false, message: "Invalid body" }), {
         headers: { "Content-Type": "application/json" },
         status: 400,
@@ -21,7 +21,20 @@ export const handler = {
     }
     const nickName = body.get("nickName");
     const age = Number(body.get("age"));
-    const icon = body.get("icon") as File
+    const icon = body.get("icon") as File;
+    const csrftoken = body.get("csrftoken");
+    if (typeof csrftoken !== "string") {
+      return new Response(JSON.stringify({ status: false, message: "Invalid csrf token" }), {
+        headers: { "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+    if (await takos.checkCsrfToken(csrftoken, ctx.state.data.sessionid) === false) {
+      return new Response(JSON.stringify({ status: false, message: "Invalid csrf token" }), {
+        headers: { "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
     console.log(icon);
     if (typeof nickName !== "string") {
       return new Response(JSON.stringify({ status: false, message: "Invalid nickName" }), {
@@ -60,7 +73,7 @@ export const handler = {
     );
     takos.checkNickName(nickName);
     takos.checkAge(age);
-    await users.updateOne({ uuid: ctx.state.data.userid }, { $set: { nickName: nickName, age: age, isSetup: true} });
+    await users.updateOne({ uuid: ctx.state.data.userid }, { $set: { nickName: nickName, age: age, isSetup: true } });
     return new Response(JSON.stringify({ status: true }), {
       headers: { "Content-Type": "application/json" },
     });

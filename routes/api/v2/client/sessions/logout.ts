@@ -13,7 +13,7 @@ export const handler = {
       });
     }
     const body = await req.json();
-    if (await takos.checkCsrfToken(body.csrftoken) === false) {
+    if (await takos.checkCsrfToken(body.csrftoken, ctx.state.data.sessionid) === false) {
       return new Response(JSON.stringify({ status: false, message: "Invalid CSRF token" }), {
         headers: { "Content-Type": "application/json" },
         status: 400,

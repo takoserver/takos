@@ -26,6 +26,11 @@ function setup() {
               ReqFormData.append("nickName", nickName);
               ReqFormData.append("age", age);
               ReqFormData.append("icon", icon);
+              const csrftokenReq = await fetch("/api/v2/client/sessions/csrf", {
+                method: "GET",
+              });
+              const csrftoken = await csrftokenReq.json();
+              ReqFormData.append("csrftoken", csrftoken.csrftoken);
               const res = await fetch("/api/v2/client/sessions/registers/setup", {
                 method: "POST",
                 body: ReqFormData,
