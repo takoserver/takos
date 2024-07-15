@@ -13,7 +13,7 @@ export const friendConfigSchama = new mongoose.Schema({
   blockUsers: {
     type: [String],
     required: true,
-    default : [],
+    default: [],
     validate: {
       validator: function (v: string[]) {
         const unique = new Set(v);
@@ -25,7 +25,7 @@ export const friendConfigSchama = new mongoose.Schema({
   blockServers: {
     type: [String],
     required: true,
-    default : [],
+    default: [],
     validate: {
       validator: function (v: string[]) {
         const unique = new Set(v);

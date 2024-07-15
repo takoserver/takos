@@ -141,39 +141,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
           }}
         />
         {settingPage.value === 2 && (
-          <>
-            <div class="fixed z-50 w-full h-full bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px]">
-              <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 w-full h-full p-5 rounded-xl shadow-lg relative md:ml-[78px]">
-                <div class="absolute right-0 top-0 p-4">
-                  <span
-                    class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
-                    onClick={() => {
-                      settingPage.value = 0;
-                    }}
-                  >
-                    ×
-                  </span>
-                </div>
-                <div class="w-4/5 mx-auto my-auto mt-10 h-full">
-                  <h1 class="text-center text-2xl text-black dark:text-white hover:underline font-medium">その他の設定</h1>
-                  <div class="mt-12 flex">
-                    <div class="flex mx-auto lg:w-2/3 w-full">
-                      <div class="ml-0 w-1/2">
-                        <p class="text-center">他のサーバーのユーザーを許可</p>
-                      </div>
-                      <div class="w-1/2 flex">
-                        <label class="inline-flex items-center cursor-pointer mx-auto">
-                          <input type="checkbox" value="" class="sr-only peer" />
-                          <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
-                          </div>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
+          <OtherSettingPage settingPage={settingPage} />
         )}
         {settingPage.value === 1 && (
           <>
@@ -315,5 +283,72 @@ function TalkListContent({ state }: { state: AppStateType }) {
   }
   return <></>;
 }
-
+function OtherSettingPage({ settingPage }: { settingPage: any }) {
+  const addFriendById = useSignal(false);
+  const allowOtherServerUsers = useSignal(false);
+  useEffect(() => {
+    async function run() {
+      const res = await fetch("/api/v2/client/users/settings")
+      const json = await res.json();
+      addFriendById.value = json.settings.addFriendById;
+      allowOtherServerUsers.value = json.settings.allowOtherServerUsers;
+    }
+    run();
+  }, []);
+  return (
+    <>
+      <div class="fixed z-50 w-full h-full bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px]">
+        <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 w-full h-full p-5 rounded-xl shadow-lg relative md:ml-[78px]">
+          <div class="absolute right-0 top-0 p-4">
+            <span
+              class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
+              onClick={() => {
+                settingPage.value = 0;
+              }}
+            >
+              ×
+            </span>
+          </div>
+          <div class="w-4/5 mx-auto my-auto mt-10 h-full space-y-8 text-center">
+            <h1 class="text-center text-2xl text-black dark:text-white hover:underline font-medium">その他の設定</h1>
+            <div class="mt-12">
+              <div class="flex mx-auto lg:w-2/3 w-full mb-4">
+                <div class="ml-0 w-1/2">
+                  <p class="text-center">他のサーバーのユーザーを許可</p>
+                </div>
+                <div class="w-1/2 flex">
+                  <label class="inline-flex items-center cursor-pointer mx-auto">
+                    <input type="checkbox" checked={addFriendById.value} class="sr-only peer" />
+                    <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                    </div>
+                  </label>
+                </div>
+              </div>
+              <div class="flex mx-auto lg:w-2/3 w-full">
+                <div class="ml-0 w-1/2">
+                  <p class="text-center">idによる追加を許可</p>
+                </div>
+                <div class="w-1/2 flex">
+                  <label class="inline-flex items-center cursor-pointer mx-auto">
+                    <input type="checkbox" checked={allowOtherServerUsers.value} class="sr-only peer" />
+                    <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div class="flex">
+            <button
+                type="submit"
+                class="rounded-lg mx-auto text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
+              >
+              更新
+            </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
 export default TalkListContent;
