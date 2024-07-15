@@ -7,7 +7,7 @@ function Register({ state, sitekeyv2, sitekeyv3 }: { state: any; sitekeyv2: stri
           class="bg-[#00acee] text-white rounded-3xl py-2 px-4 hover:bg-[#00a0e9] w-full"
           onClick={() => {
             state.showWindow.value = "Register";
-            state.RegisterPage.value = 0;
+            state.RegisterPage.value = 3;
           }}
         >
           このサーバーに登録する
@@ -40,6 +40,37 @@ function Register({ state, sitekeyv2, sitekeyv3 }: { state: any; sitekeyv2: stri
           {state.RegisterPage.value === 0 && <SendEmailRegisterRequest state={state} sitekeyv2={sitekeyv2} sitekeyv3={sitekeyv3} />}
           {state.RegisterPage.value === 1 && <CheckEmail state={state} sitekeyv2={sitekeyv2} />}
           {state.RegisterPage.value === 2 && <MainRegister state={state} sitekeyv2={sitekeyv2} sitekeyv3={sitekeyv3} />}
+          {state.RegisterPage.value === 3 && <TransFarLoginFrom state={state} />}
+        </div>
+      </div>
+    </>
+  );
+}
+function TransFarLoginFrom({ state }: { state: any }) {
+  return (
+    <>
+      <div class="h-full px-2 lg:px-3 flex flex-col">
+        <div class="text-sm">
+          <p class="text-black dark:text-white font-bold text-3xl mt-4 mb-5">
+            登録
+          </p>
+        </div>
+        <div
+          class="flex-grow flex flex-col justify-center"
+        >
+          <div class="m-auto text-white">
+            <div class="mb-6">
+            登録が完了しましたログインページに移動しますか？
+            </div>
+              <button
+                onClick={() => {
+                  state.showWindow.value = "login";
+                }}
+                class="rounded-lg text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
+              >
+                {"ログイン"}
+              </button>
+          </div>
         </div>
       </div>
     </>
@@ -106,12 +137,12 @@ function MainRegister({ state, sitekeyv2, sitekeyv3 }: { state: any; sitekeyv2: 
             }
             if (data.status === true) {
               console.log(data);
-              state.RegisterPage.value = 3;
+              state.RegisterPage.value = 4;
               state.recapchav3Failed.value = false;
               state.recapchav3.value = "";
               state.token.value = "";
               state.email.value = "";
-              state.showWindow = "login";
+              state.showWindow.value = "login";
               return;
             }
             if (data.status === false) {

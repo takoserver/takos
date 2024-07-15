@@ -60,6 +60,7 @@ function Login({ state }: { state: any }) {
                     const target = e.target as HTMLInputElement;
                     state.LoginName.value = target.value;
                   }}
+                  placeholder={"username"}
                 />
               </div>
               <label
@@ -78,6 +79,7 @@ function Login({ state }: { state: any }) {
                     const target = e.target as HTMLInputElement;
                     state.LoginPassword.value = target.value;
                   }}
+                  placeholder={"password"}
                 />
               </div>
             </div>
