@@ -13,6 +13,7 @@ function chatmain({ state }: { state: AppStateType }) {
           </div>
           <ChatTalkTitleContent state={state}></ChatTalkTitleContent>
         </div>
+        <div class="mt-[54px]"></div>
         <ChatTalkContent state={state} />
       </div>
       <ChatSend state={state} />

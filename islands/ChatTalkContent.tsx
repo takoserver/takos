@@ -6,7 +6,8 @@ interface Messages {
   messageid: string;
   userName: string;
   messages: string;
-  time: string;
+  timestamp: string;
+  type: string;
 }
 function ChatTalkMain({ state }: { state: AppStateType }) {
   let SendPrimary = true;
@@ -15,12 +16,12 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
   return (
     <>
       {state.talkData.value.map((data: any, index: number) => {
-        const date = new Date(data.time);
+        const date = new Date(data.timestamp);
         const isEncodeDate = new Date(DateState).toLocaleDateString() !==
           date.toLocaleDateString();
-        DateState = data.time;
-        if (data.type == "message") {
-          if (data.sender == state.userName) {
+        DateState = data.timestamp;
+        if (data.type == "text") {
+          if (data.userName == state.userName) {
             if (SendPrimary) {
               SendPrimary = false;
               OtherPrimary = true;
@@ -28,12 +29,12 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
                 <>
                   {isEncodeDate && (
                     <ChatDate
-                      date={new Date(data.time)}
+                      date={new Date(data.timestamp)}
                     />
                   )}
                   <ChatSendMessage
                     isRead={data.isRead}
-                    time={data.time}
+                    time={data.timestamp}
                     message={data.message}
                     isPrimary={true}
                     isSendPrimary={true}
@@ -48,12 +49,12 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
                 <>
                   {isEncodeDate && (
                     <ChatDate
-                      date={new Date(data.time)}
+                      date={new Date(data.timestamp)}
                     />
                   )}
                   <ChatSendMessage
                     isRead={data.isRead}
-                    time={data.time}
+                    time={data.timestamp}
                     message={data.message}
                     isPrimary={true}
                     isSendPrimary={false}
@@ -66,12 +67,12 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
               <>
                 {isEncodeDate && (
                   <ChatDate
-                    date={new Date(data.time)}
+                    date={new Date(data.timestamp)}
                   />
                 )}
                 <ChatSendMessage
                   isRead={data.isRead}
-                  time={data.time}
+                  time={data.timestamp}
                   message={data.message}
                   isPrimary={false}
                   isSendPrimary={false}

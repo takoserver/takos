@@ -87,7 +87,7 @@ export const handler = {
                 userName: CacheUser.userName,
                 message: message.message,
                 timestamp: message.timestamp,
-                type: message.type,
+                type: message.messageType,
               };
           }
         }
@@ -106,7 +106,7 @@ export const handler = {
                 userName: "Unknown",
                 message: message.message,
                 timestamp: message.timestamp,
-                type: message.type,
+                type: message.messageType,
               };
           }
         }
@@ -117,7 +117,7 @@ export const handler = {
                 userName: userInfo?.userName,
                 message: message.message,
                 timestamp: message.timestamp,
-                type: message.type,
+                type: message.messageType,
               };
         }
       }));
