@@ -5,6 +5,7 @@
 import * as $_404 from "./routes/_404.tsx";
 import * as $_app from "./routes/_app.tsx";
 import * as $_middleware from "./routes/_middleware.ts";
+import * as $addFriend_friends_name_ from "./routes/addFriend/friends/[name].tsx";
 import * as $addFriend_index from "./routes/addFriend/index.tsx";
 import * as $api_v2_client_bgimage from "./routes/api/v2/client/bgimage.ts";
 import * as $api_v2_client_block_server from "./routes/api/v2/client/block/server.ts";
@@ -87,7 +88,9 @@ import * as $api_v2_server_information_users_icon from "./routes/api/v2/server/i
 import * as $api_v2_server_information_users_profile from "./routes/api/v2/server/information/users/profile.ts";
 import * as $api_v2_server_pubkey from "./routes/api/v2/server/pubkey.ts";
 import * as $index from "./routes/index.tsx";
+import * as $setting_friends_name_ from "./routes/setting/friends/[name].tsx";
 import * as $setting_index from "./routes/setting/index.tsx";
+import * as $talk_friends_name_ from "./routes/talk/friends/[name].tsx";
 import * as $talk_index from "./routes/talk/index.tsx";
 import * as $ChatSend from "./islands/ChatSend.tsx";
 import * as $ChatTalkContent from "./islands/ChatTalkContent.tsx";
@@ -111,6 +114,7 @@ const manifest = {
     "./routes/_404.tsx": $_404,
     "./routes/_app.tsx": $_app,
     "./routes/_middleware.ts": $_middleware,
+    "./routes/addFriend/friends/[name].tsx": $addFriend_friends_name_,
     "./routes/addFriend/index.tsx": $addFriend_index,
     "./routes/api/v2/client/bgimage.ts": $api_v2_client_bgimage,
     "./routes/api/v2/client/block/server.ts": $api_v2_client_block_server,
@@ -193,7 +197,9 @@ const manifest = {
     "./routes/api/v2/server/information/users/profile.ts": $api_v2_server_information_users_profile,
     "./routes/api/v2/server/pubkey.ts": $api_v2_server_pubkey,
     "./routes/index.tsx": $index,
+    "./routes/setting/friends/[name].tsx": $setting_friends_name_,
     "./routes/setting/index.tsx": $setting_index,
+    "./routes/talk/friends/[name].tsx": $talk_friends_name_,
     "./routes/talk/index.tsx": $talk_index,
   },
   islands: {

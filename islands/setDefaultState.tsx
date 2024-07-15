@@ -19,11 +19,21 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
   }, [state.inputMessage.value]);
   useEffect(() => {
     state.ws.value = new WebSocket("/api/v2/client/main");
+    state.ws.value.onopen = () => {
+      console.log("connected");
+    }
     state.ws.value.onmessage = (event: any) => {
       const data = JSON.parse(event.data);
       switch (data.type) {
         case "connected":
           state.sessionid.value = data.sessionid;
+          if(state.friendid.value){
+            state.ws.value?.send(JSON.stringify({
+              type: "joinFriend",
+              sessionid: state.sessionid.value,
+              friendid: state.friendid.value,
+            }));
+          }
           break;
         case "joined":
           {
@@ -37,7 +47,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
               window.history.pushState(
                 "",
                 "",
-                "/talk/" + state.friendid.value,
+                "/talk/friends/" + state.friendid.value,
               );
               const talkData = fetch("/api/v2/client/talks/friend/data?friendid=" + state.friendid.value + "&limit=50");
               talkData.then((res) => res.json()).then((res) => {
@@ -47,9 +57,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
           }
           break;
       }
-    };
-    state.ws.value.onopen = () => {
-      console.log("connected");
     };
   }, []);
   return <></>;

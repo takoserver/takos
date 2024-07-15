@@ -73,54 +73,82 @@ export const handler = {
       messagesData = await messages.find({ roomid: roomid }).sort({ _id: -1 }).limit(parseInt(limit));
     } else if (before) {
       //そのメッセージの前のメッセージを取得
-        messagesData = await messages.find({ roomid: roomid, messageid: { $lt: before } }).sort({ _id: -1 }).limit(parseInt(limit));
+      messagesData = await messages.find({ roomid: roomid, messageid: { $lt: before } }).sort({ _id: -1 }).limit(parseInt(limit));
     } else if (after) {
       //そのメッセージの後のメッセージを取得
-        messagesData = await messages.find({ roomid: roomid, messageid: { $gt: after } }).sort({ _id: -1 }).limit(parseInt(limit));
+      messagesData = await messages.find({ roomid: roomid, messageid: { $gt: after } }).sort({ _id: -1 }).limit(parseInt(limit));
     }
     const result = await Promise.all(messagesData.map(async (message) => {
-        const CacheUser = usersCache.get(message.userid);
-        if (CacheUser) {
-          if(message.messageType === "text") {
-            return {
-                messageid: message.messageid,
-                userName: CacheUser.userName,
-                message: message.message,
-                timestamp: message.timestamp,
-                type: message.messageType,
-              };
-          }
-        }
-        let userInfo
-        //= await users.findOne({ uuid: message.userid });
-        if(takos.splitUserName(message.userid).domain !== env["DOMAIN"]) {
+      const CacheUser = usersCache.get(message.userid);
+      const read = await Promise.all(message.read.map(async (read: { userid: string; read: any }) => {
+        const user = usersCache.get(read.userid);
+        if (!user) {
+          let userInfo;
+          //= await users.findOne({ uuid: message.userid });
+          if (takos.splitUserName(message.userid).domain !== env["DOMAIN"]) {
             const remoteFriend = await remoteFriends.findOne({ uuid: message.userid });
             userInfo = remoteFriend;
-        } else {
+          } else {
             userInfo = await users.findOne({ uuid: message.userid });
-        }
-        if (!userInfo) {
-          if(message.messageType === "text") {
-            return {
-                messageid: message.messageid,
-                userName: "Unknown",
-                message: message.message,
-                timestamp: message.timestamp,
-                type: message.messageType,
-              };
           }
-        }
-        usersCache.set(message.userid, userInfo);
-        if(message.messageType === "text") {
+          usersCache.set(message.userid, userInfo);
+          if (!userInfo) {
             return {
-                messageid: message.messageid,
-                userName: userInfo?.userName,
-                message: message.message,
-                timestamp: message.timestamp,
-                type: message.messageType,
-              };
+              userid: read.userid,
+              userName: "Unknown",
+              read: read.read,
+            };
+          }
+          return userInfo.userName + "@" + takos.splitUserName(read.userid).domain;
         }
+        return user.userName + "@" + takos.splitUserName(read.userid).domain;
       }));
-      return new Response(JSON.stringify({ status: true, message: "Success", data: result }), { status: 200, headers: { "Content-Type": "application/json" } });
+      console.log(read);
+      if (CacheUser) {
+        if (message.messageType === "text") {
+          return {
+            messageid: message.messageid,
+            userName: CacheUser.userName,
+            message: message.message,
+            timestamp: message.timestamp,
+            type: message.messageType,
+            read: read,
+          };
+        }
+      }
+      let userInfo;
+      //= await users.findOne({ uuid: message.userid });
+      if (takos.splitUserName(message.userid).domain !== env["DOMAIN"]) {
+        const remoteFriend = await remoteFriends.findOne({ uuid: message.userid });
+        userInfo = remoteFriend;
+      } else {
+        userInfo = await users.findOne({ uuid: message.userid });
+      }
+      usersCache.set(message.userid, userInfo);
+      if (!userInfo) {
+        if (message.messageType === "text") {
+          return {
+            messageid: message.messageid,
+            userName: "Unknown",
+            message: message.message,
+            timestamp: message.timestamp,
+            type: message.messageType,
+            read: message.read,
+          };
+        }
+      }
+      usersCache.set(message.userid, userInfo);
+      if (message.messageType === "text") {
+        return {
+          messageid: message.messageid,
+          userName: userInfo?.userName,
+          message: message.message,
+          timestamp: message.timestamp,
+          type: message.messageType,
+          read: read,
+        };
+      }
+    }));
+    return new Response(JSON.stringify({ status: true, message: "Success", data: result }), { status: 200, headers: { "Content-Type": "application/json" } });
   },
 };

@@ -11,6 +11,7 @@ function createAppState(obj: {
   roomid: string;
   userName: string;
   page: number;
+  friendid?: string;
 }): AppStateType {
   const isChoiceUser = signal(obj.isChoiceUser);
   const ws = signal(null);
@@ -23,7 +24,7 @@ function createAppState(obj: {
   const inputMessage = signal("");
   const setIsValidInput = signal(false);
   const roomType = signal("");
-  const friendid = signal("");
+  const friendid = signal(obj.friendid || "");
   return {
     isChoiceUser: isChoiceUser,
     ws: ws,
@@ -40,12 +41,13 @@ function createAppState(obj: {
     friendid: friendid,
   };
 }
-function chat(props: { page: any; userName: string }) {
+function chat(props: { page: any; userName: string,friendid?: string }) {
   const AppState = createAppState({
     isChoiceUser: false,
     roomid: "",
     userName: props.userName,
     page: props.page,
+    friendid: props.friendid,
   });
   return (
     <>

@@ -4,13 +4,14 @@ export default function HeaderButton(props: { page: any; children: any; state: a
       class="l-header__ul-item"
       onClick={() => {
         const url = window.location.href;
-        const roomid = url.split("/")[4];
+        const roomid = url.split("/")[5];
+        const roomkind = url.split("/")[4];
         props.state.page.value = props.page;
         if (roomid == undefined) {
           history.pushState("", "", urlPramator(props.page));
           return;
         }
-        history.pushState("", "", urlPramator(props.page) + roomid);
+        history.pushState("", "", urlPramator(props.page) + roomkind + "/" + roomid);
       }}
     >
       {props.children}
