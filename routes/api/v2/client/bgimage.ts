@@ -1,11 +1,10 @@
-
 export const handler = {
   async GET(req: Request, ctx: any) {
     try {
       // ./backgroundImages/にある画像すべてを取得
       const dirPath = "./backgroundImages";
       const result = await readRandomImageFromDir(dirPath).catch(console.error);
-      if(!result) {
+      if (!result) {
         return new Response("Internal Server Error", { status: 500 });
       }
       return new Response(result, {
@@ -28,7 +27,7 @@ function getRandomInt(max: number): number {
 
 // 指定されたディレクトリからランダムな画像ファイルを読み込む関数
 async function readRandomImageFromDir(dir: string) {
-  const imageExtensions = [".jpg", ".jpeg", ".png", ".gif",".webp"];
+  const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
   const files: string[] = [];
   for await (const dirEntry of Deno.readDir(dir)) {
     if (dirEntry.isFile && imageExtensions.some((ext) => dirEntry.name.toLowerCase().endsWith(ext))) {

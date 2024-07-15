@@ -38,6 +38,7 @@ import * as $api_v2_client_talks_community_update from "./routes/api/v2/client/t
 import * as $api_v2_client_talks_community_video from "./routes/api/v2/client/talks/community/video.ts";
 import * as $api_v2_client_talks_delete from "./routes/api/v2/client/talks/delete.ts";
 import * as $api_v2_client_talks_friend_audio from "./routes/api/v2/client/talks/friend/audio.ts";
+import * as $api_v2_client_talks_friend_data from "./routes/api/v2/client/talks/friend/data.ts";
 import * as $api_v2_client_talks_friend_image from "./routes/api/v2/client/talks/friend/image.ts";
 import * as $api_v2_client_talks_friend_text from "./routes/api/v2/client/talks/friend/text.ts";
 import * as $api_v2_client_talks_friend_update from "./routes/api/v2/client/talks/friend/update.ts";
@@ -143,6 +144,7 @@ const manifest = {
     "./routes/api/v2/client/talks/community/video.ts": $api_v2_client_talks_community_video,
     "./routes/api/v2/client/talks/delete.ts": $api_v2_client_talks_delete,
     "./routes/api/v2/client/talks/friend/audio.ts": $api_v2_client_talks_friend_audio,
+    "./routes/api/v2/client/talks/friend/data.ts": $api_v2_client_talks_friend_data,
     "./routes/api/v2/client/talks/friend/image.ts": $api_v2_client_talks_friend_image,
     "./routes/api/v2/client/talks/friend/text.ts": $api_v2_client_talks_friend_text,
     "./routes/api/v2/client/talks/friend/update.ts": $api_v2_client_talks_friend_update,
