@@ -108,7 +108,7 @@ export const handler = {
         if (message.messageType === "text") {
           return {
             messageid: message.messageid,
-            userName: CacheUser.userName,
+            userName: CacheUser.userName + "@" + takos.splitUserName(message.userid).domain,
             nickName: CacheUser.nickName,
             message: message.message,
             timestamp: message.timestamp,
@@ -142,7 +142,7 @@ export const handler = {
       if (message.messageType === "text") {
         return {
           messageid: message.messageid,
-          userName: userInfo?.userName,
+          userName: userInfo?.userName + "@" + takos.splitUserName(message.userid).domain,
           nickName: userInfo?.nickName,
           message: message.message,
           timestamp: message.timestamp,

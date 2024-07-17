@@ -17,7 +17,10 @@ export const handler = {
     try {
       body = await req.json();
     } catch (e) {
-      return ctx.json({ status: false, message: "Invalid JSON" });
+      return new Response(JSON.stringify({ status: false, message: "Invalid Body" }), {
+        headers: { "Content-Type": "application/json" },
+        status: 400,
+      });
     }
     const message = body.text;
     const sessionid = body.sessionid;

@@ -2,7 +2,7 @@ import requestAddFriend from "../../../../../../models/reqestAddFriend.ts";
 export const handler = {
   async GET(req: Request, ctx: any) {
     if (!ctx.state.data.loggedIn) {
-      return ctx.json({ status: false, message: "You are not logged in" });
+      return new Response(JSON.stringify({ status: false, message: "Not Logged In" }));
     }
     const sessionid = ctx.state.data.sessionid;
     const userid = ctx.state.data.userid;

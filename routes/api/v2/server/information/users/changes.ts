@@ -12,7 +12,10 @@ export const handler = {
     const publickey = await fetch(`https://${host}/api/v2/server/pubkey`).then((res) => res.json()).then((data) => data.publickey);
     const verify = await takos.verifySignature(publickey, body.signature, body.body);
     if (!verify) {
-      return ctx.json({ status: false });
+      return new Response(JSON.stringify({
+        status: false,
+        message: "Invalid Signature",
+      }));
     }
     const data = JSON.parse(body.body);
     // 配列の中身が何個あるかを取得

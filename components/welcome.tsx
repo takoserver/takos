@@ -90,7 +90,7 @@ function welcome() {
               <div class="w-full">
                 <div class="flex items-center mb-4">
                   <img
-                    src="./logo-mine.jpg"
+                    src="/logo-mine.jpg"
                     alt="logo"
                     class="w-20 h-20 rounded-lg shadow-md"
                   />
@@ -142,6 +142,44 @@ function welcome() {
               <img src="/api/v2/client/chart" class="w-full" alt="list" />
             </div>
           </div>
+          <div class="mt-4">
+            <div class="bg-white text-black rounded-lg shadow-[0_12px_32px_#00000040] p-6 max-w-[472px] lg:ml-[100px] lg:mt-[20px] mx-auto">
+              <div class="text-center">
+              <p class="text-sm text-gray-700">© 2024 Tomiyama Shota.</p>
+                <p class="text-base text-gray-600">
+                    Operat By takoserver
+                </p>
+
+                <p class="text-sm text-gray-700">
+                    This site is protected by reCAPTCHA and the Google
+                    <a href="https://policies.google.com/privacy">Privacy Policy</a> and
+                    <a href="https://policies.google.com/terms">Terms of Service</a> apply.
+                </p>
+                <div class="flex justify-between w-5/6 mx-auto">
+                    <p>
+                        <a href="https://www.takos.jp/privacypolicy">
+                            プライバシーポリシー
+                        </a>
+                    </p>
+                    <p class="ml-4">
+                        <a href="https://www.takos.jp/terms">
+                            利用規約
+                        </a>
+                    </p>
+                    <p class="ml-4">
+                        <a href="https://x.com/takoserver_com">
+                            SNS
+                        </a>
+                    </p>
+                    <p class="ml-4">
+                        <a href="https://line.me/ti/g2/Q0c8YJlkh5f_hkDuODxp39XF9A7BOCFqezaAHA?utm_source=invitation&utm_medium=link_copy&utm_campaign=default">
+                            コミュニティー
+                        </a>
+                    </p>
+                  </div>
+              </div>
+            </div>
+          </div>
           <div class="h-20"></div>
         </div>
         <div class="lg:w-[590px] hidden lg:block top-0 bottom-0 right-0 fixed">
@@ -151,16 +189,16 @@ function welcome() {
                 let iconPath = "";
                 switch (data.userName) {
                   case "tako":
-                    iconPath = "./static/tako.jpeg";
+                    iconPath = "/static/tako.jpeg";
                     break;
                   case "371tti":
-                    iconPath = "./static/371tti.jpg";
+                    iconPath = "/static/371tti.jpg";
                     break;
                   case "なん":
-                    iconPath = "./static/なん.jpeg";
+                    iconPath = "/static/なん.jpeg";
                     break;
                   default:
-                    iconPath = "./people.jpeg";
+                    iconPath = "/people.jpeg";
                     break;
                 }
                 if (data.img) {

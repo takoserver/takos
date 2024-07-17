@@ -6,7 +6,10 @@ import userConfig from "../../../../../models/userConfig.ts";
 export const handler = {
   async GET(req: Request, ctx: any) {
     if (!ctx.state.data.loggedIn) {
-      return ctx.json({ status: false, message: "You are not logged in" });
+      return new Response(JSON.stringify({ status: false, message: "Not Logged In" }), {
+        headers: { "Content-Type": "application/json" },
+        status: 400,
+      });
     }
     const userid = ctx.state.data.userid;
     const config = await userConfig.findOne({ userid: userid });

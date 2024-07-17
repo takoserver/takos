@@ -17,7 +17,7 @@ const ChatOtherMessage = (
             <img
               src={iconPath}
               alt=""
-              class="rounded-full text-white dark:text-black"
+              class="rounded-full text-white"
             />
           </div>
         )}

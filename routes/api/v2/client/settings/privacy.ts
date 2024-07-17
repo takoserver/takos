@@ -7,13 +7,19 @@ import userConfig from "../../../../../models/userConfig.ts";
 export const handler = {
   async POST(req: Request, ctx: any) {
     if (!ctx.state.data.loggedIn) {
-      return ctx.json({ status: false, message: "You are not logged in" });
+      return new Response(JSON.stringify({ status: false, message: "Not Logged In" }), {
+        headers: { "Content-Type": "application/json" },
+        status: 400,
+      });
     }
     let body;
     try {
       body = await req.json();
     } catch (e) {
-      return ctx.json({ status: false, message: "Invalid JSON" });
+      return new Response(JSON.stringify({ status: false, message: "Invalid Body" }), {
+        headers: { "Content-Type": "application/json" },
+        status: 400,
+      });
     }
     const userid = ctx.state.data.userid;
     const setting = body.setting;

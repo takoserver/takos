@@ -14,20 +14,32 @@ export const handler = {
     const publickey = await fetch(`https://${host}/api/v2/server/pubkey`).then((res) => res.json()).then((data) => data.publickey);
     const verify = await takos.verifySignature(publickey, body.signature, body.body);
     if (!verify) {
-      return ctx.json({ status: false });
+      return new Response(JSON.stringify({
+        status: false,
+        message: "Invalid Signature",
+      }));
     }
     const data = JSON.parse(body.body);
     const friend = await users.findOne({ uuid: data.friendid });
     if (friend === null) {
-      return ctx.json({ status: false });
+      return new Response(JSON.stringify({
+        status: false,
+        message: "Invalid Signature",
+      }));
     }
     const FriendFriendData = await friends.findOne({ user: data.friendid });
     if (FriendFriendData === null) {
-      return ctx.json({ status: false });
+      return new Response(JSON.stringify({
+        status: false,
+        message: "Invalid Signature",
+      }));
     }
     const isFriend = FriendFriendData.friends.find((friend: any) => friend.userid === data.userid);
     if (isFriend === undefined) {
-      return ctx.json({ status: false });
+      return new Response(JSON.stringify({
+        status: false,
+        message: "Invalid Signature",
+      }));
     }
     return new Response(JSON.stringify({
       status: true,

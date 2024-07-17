@@ -5,7 +5,7 @@ import takos from "../../../../../util/takos.ts";
 export const handler = {
   async GET(req: Request, ctx: any) {
     if (!ctx.state.data.loggedIn) {
-      return ctx.json({ status: false, message: "You are not logged in" });
+      return new Response("Not Logged In", { status: 401 });
     }
     const userid = ctx.state.data.userid;
     try {
