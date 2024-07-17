@@ -43,6 +43,15 @@ export interface AppStateType {
   isValidInput: { value: boolean };
   roomType: { value: string };
   friendid: { value: string };
+  ChatUserInfo: {
+    value: {
+      [key: string]: {
+        userName: string;
+        nickName: string;
+        readedMessage: string;
+      };
+    };
+  };
 }
 export interface MessageTypes {
   type: string;

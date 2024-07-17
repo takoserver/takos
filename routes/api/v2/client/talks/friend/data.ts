@@ -109,6 +109,7 @@ export const handler = {
           return {
             messageid: message.messageid,
             userName: CacheUser.userName,
+            nickName: CacheUser.nickName,
             message: message.message,
             timestamp: message.timestamp,
             type: message.messageType,
@@ -142,6 +143,7 @@ export const handler = {
         return {
           messageid: message.messageid,
           userName: userInfo?.userName,
+          nickName: userInfo?.nickName,
           message: message.message,
           timestamp: message.timestamp,
           type: message.messageType,

@@ -25,6 +25,7 @@ function createAppState(obj: {
   const setIsValidInput = signal(false);
   const roomType = signal("");
   const friendid = signal(obj.friendid || "");
+  const ChatUserInfo = signal({});
   return {
     isChoiceUser: isChoiceUser,
     ws: ws,
@@ -39,6 +40,7 @@ function createAppState(obj: {
     isValidInput: setIsValidInput,
     roomType: roomType,
     friendid: friendid,
+    ChatUserInfo: ChatUserInfo,
   };
 }
 function chat(props: { page: any; userName: string; friendid?: string }) {

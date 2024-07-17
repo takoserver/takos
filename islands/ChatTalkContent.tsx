@@ -83,6 +83,7 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
             if (OtherPrimary) {
               OtherPrimary = false;
               SendPrimary = true;
+              console.log(data);
               return (
                 <>
                   {isEncodeDate && (
@@ -93,14 +94,13 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
                   <ChatOtherMessage
                     time={data.time}
                     message={data.message}
-                    sender={data.sender}
-                    senderNickName={data.senderNickName}
+                    name={data.userName}
+                    nickName={data.nickName}
                     isPrimary={true}
                   />
                 </>
               );
             }
-
             // 前のメッセージから1分以上経過のものはprimaryに
             const prevDate = new Date(state.talkData.value[index - 1].time);
             if (date.getTime() - prevDate.getTime() > 60000) {
@@ -114,8 +114,8 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
                   <ChatOtherMessage
                     time={data.time}
                     message={data.message}
-                    sender={data.sender}
-                    senderNickName={data.senderNickName}
+                    name={data.nickName}
+                    nickName={data.nickName}
                     isPrimary={true}
                   />
                 </>
@@ -131,8 +131,9 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
                 <ChatOtherMessage
                   time={data.time}
                   message={data.message}
-                  sender={data.sender}
-                  senderNickName={data.senderNickName}
+                  name={data.nickName}
+                  userName={data.userName}
+                  nickName={data.nickName}
                   isPrimary={false}
                 />
               </>

@@ -50,6 +50,7 @@ import * as $api_v2_client_talks_group_text from "./routes/api/v2/client/talks/g
 import * as $api_v2_client_talks_group_update from "./routes/api/v2/client/talks/group/update.ts";
 import * as $api_v2_client_talks_group_video from "./routes/api/v2/client/talks/group/video.ts";
 import * as $api_v2_client_talks_read from "./routes/api/v2/client/talks/read.ts";
+import * as $api_v2_client_talks_roomsInfo from "./routes/api/v2/client/talks/roomsInfo.ts";
 import * as $api_v2_client_unblock_server from "./routes/api/v2/client/unblock/server.ts";
 import * as $api_v2_client_unblock_user from "./routes/api/v2/client/unblock/user.ts";
 import * as $api_v2_client_users_uuid_icon from "./routes/api/v2/client/users/[uuid]/icon.ts";
@@ -161,6 +162,7 @@ const manifest = {
     "./routes/api/v2/client/talks/group/update.ts": $api_v2_client_talks_group_update,
     "./routes/api/v2/client/talks/group/video.ts": $api_v2_client_talks_group_video,
     "./routes/api/v2/client/talks/read.ts": $api_v2_client_talks_read,
+    "./routes/api/v2/client/talks/roomsInfo.ts": $api_v2_client_talks_roomsInfo,
     "./routes/api/v2/client/unblock/server.ts": $api_v2_client_unblock_server,
     "./routes/api/v2/client/unblock/user.ts": $api_v2_client_unblock_user,
     "./routes/api/v2/client/users/[uuid]/icon.ts": $api_v2_client_users_uuid_icon,

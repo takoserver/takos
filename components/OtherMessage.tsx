@@ -1,11 +1,5 @@
 const ChatOtherMessage = (
-  { time, message, sender, senderNickName, isPrimary }: {
-    time: string;
-    message: string;
-    sender: string;
-    senderNickName: string;
-    isPrimary: boolean;
-  },
+  { time, message, sender, senderNickName, isPrimary }: any,
 ) => {
   const isPrimaryClass = isPrimary ? "c-talk-chat other primary" : "c-talk-chat other subsequent";
 
