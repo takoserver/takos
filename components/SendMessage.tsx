@@ -8,7 +8,7 @@ const ChatSendMessage = ({ isRead, time, message, isPrimary, isSendPrimary }: {
   const isPrimaryClass = `c-talk-chat self ${isPrimary ? "primary" : "subsequent"}${isSendPrimary ? " mt-2" : ""}`;
   return (
     <li class={isPrimaryClass}>
-      <div class="c-talk-chat-box">
+      <div class="c-talk-chat-box mb-[3px]">
         <div class="c-talk-chat-date">
           {isRead && <p>既読</p>}
           <p>{convertTime(time)}</p>

@@ -2,7 +2,7 @@ const ChatOtherMessage = ({ name, time, message, isPrimary, nickName }: any) => 
   const isPrimaryClass = isPrimary ? "c-talk-chat other primary" : "c-talk-chat other subsequent";
   return (
     <li class={isPrimaryClass}>
-      <div class="c-talk-chat-box">
+      <div class="c-talk-chat-box mb-1">
         {isPrimary && (
           <div class="c-talk-chat-icon">
             <img

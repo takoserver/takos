@@ -50,8 +50,8 @@ export const handler = {
       } = {
         userid: userInfo.uuid,
         userName: userInfo.userName,
-        nickName: userInfo.nickName,
-        description: userInfo.description,
+        nickName: userInfo.nickName ?? undefined,
+        description: userInfo.description as string,
       };
       if (change.userName !== undefined) {
         if (change.userName !== userInfo.userName) {
