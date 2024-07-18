@@ -7,6 +7,7 @@ import users from "../../../../../../models/users.ts";
 import takos from "../../../../../../util/takos.ts";
 import remoteFriends from "../../../../../../models/remoteFriends.ts";
 import { load } from "$std/dotenv/mod.ts";
+import rooms from "../../../../../../models/rooms.ts";
 const env = await load();
 const usersCache = new Map();
 export const handler = {
@@ -78,33 +79,15 @@ export const handler = {
       //そのメッセージの後のメッセージを取得
       messagesData = await messages.find({ roomid: roomid, messageid: { $gt: after } }).sort({ _id: -1 }).limit(parseInt(limit));
     }
+    let lastMessageId = "";
+    let lastMessageTimestamp: Date;
     const result = await Promise.all(messagesData.map(async (message) => {
       const CacheUser = usersCache.get(message.userid);
-      const read = await Promise.all(message.read.map(async (read: { userid: string; read: any }) => {
-        const user = usersCache.get(read.userid);
-        if (!user) {
-          let userInfo;
-          //= await users.findOne({ uuid: message.userid });
-          if (takos.splitUserName(message.userid).domain !== env["DOMAIN"]) {
-            const remoteFriend = await remoteFriends.findOne({ uuid: message.userid });
-            userInfo = remoteFriend;
-          } else {
-            userInfo = await users.findOne({ uuid: message.userid });
-          }
-          usersCache.set(message.userid, userInfo);
-          if (!userInfo) {
-            return {
-              userid: read.userid,
-              userName: "Unknown",
-              read: read.read,
-            };
-          }
-          return userInfo.userName + "@" + takos.splitUserName(read.userid).domain;
-        }
-        return user.userName + "@" + takos.splitUserName(read.userid).domain;
-      }));
-      console.log(read);
       if (CacheUser) {
+        if(lastMessageTimestamp === undefined || new Date(lastMessageTimestamp) < new Date(message.timestamp)){
+          lastMessageTimestamp = message.timestamp;
+          lastMessageId = message.messageid;
+        }
         if (message.messageType === "text") {
           return {
             messageid: message.messageid,
@@ -113,7 +96,6 @@ export const handler = {
             message: message.message,
             timestamp: message.timestamp,
             type: message.messageType,
-            read: read,
           };
         }
       }
@@ -147,10 +129,10 @@ export const handler = {
           message: message.message,
           timestamp: message.timestamp,
           type: message.messageType,
-          read: read,
         };
       }
     }));
+    await rooms.updateOne({ uuid: roomid }, { $set: { "readInfo.latestMessageId": lastMessageId} })
     return new Response(JSON.stringify({ status: true, message: "Success", data: result }), { status: 200, headers: { "Content-Type": "application/json" } });
   },
 };

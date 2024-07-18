@@ -45,17 +45,15 @@ export const handler = {
         status: 400,
       });
     }
-    const RECAPTCHA_SECRET_KEY = recaptchakind === "v3" ? env["rechapcha_seecret_key_v3"] : env["rechapcha_seecret_key_v2"];
     if (recaptchakind === "v3") {
-      //
+      const RECAPTCHA_SECRET_KEY = env["rechapcha_seecret_key_v3"]
       const isSecsusRechapcha = await fetch(
         `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET_KEY}&response=${recaptcha}`,
       );
       const score = await isSecsusRechapcha.json();
       if (score.score < 0.5 || score.success == false) {
-        console.log(score);
         return new Response(
-          JSON.stringify({ "status": false, error: "rechapchav3" }),
+          JSON.stringify({ "status": false, message: "rechapchav3" }),
           {
             headers: { "Content-Type": "application/json" },
             status: 403,
@@ -63,17 +61,18 @@ export const handler = {
         );
       }
     } else if (recaptchakind === "v2") {
+      const RECAPTCHA_SECRET_KEY = env["rechapcha_seecret_key_v2"]
       const response = await fetch(`https://www.google.com/recaptcha/api/siteverify`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: `secret=YOUR_SECRET_KEY&response=${recaptcha}`,
+        body: `secret=${RECAPTCHA_SECRET_KEY}&response=${recaptcha}`,
       });
       const data = await response.json();
       if (!data.success) {
         return new Response(
-          JSON.stringify({ "status": false, error: "rechapchav2" }),
+          JSON.stringify({ "status": false, message: "rechapchav2" }),
           {
             headers: { "Content-Type": "application/json" },
             status: 403,

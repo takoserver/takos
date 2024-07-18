@@ -33,18 +33,10 @@ export const roomsSchema = new mongoose.Schema({
     required: true,
     default: [],
   },
-  messageCount: {
-    type: Number,
-    default: 0,
-  },
-  latestmessage: {
-    type: String,
-    default: "",
-  },
-  latestMessageTime: {
-    type: Date,
+  readInfo: {
+    type: Map,
     required: true,
-    default: Date.now,
+    default: {},
   },
   timestamp: { type: Date, default: Date.now },
 });

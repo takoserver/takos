@@ -403,8 +403,11 @@ function SendEmailRegisterRequest({ state, sitekeyv2, sitekeyv3 }: { state: any;
                 case "Already Registered":
                   alert("既に登録されています");
                   break;
+                case "rechapchav3":
+                  alert("reCAPTCHAが無効です");
+                  break;
                 default:
-                  alert("エラーが発生しました");
+                  alert("エラーが発生しました: "+ data.message);
                   break;
               }
             }

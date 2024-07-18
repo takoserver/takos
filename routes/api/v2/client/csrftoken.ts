@@ -3,6 +3,8 @@
 // -> { status: boolean, message: string, csrftoken: string }
 import csrfToken from "../../../../models/csrftoken.ts";
 import { getCookies } from "$std/http/cookie.ts";
+import { load } from "$std/dotenv/mod.ts";
+const env = await load();
 export const handler = {
   async GET(req: Request, ctx: any) {
     if (!ctx.state.data.loggedIn && ctx.state.data.isSetUp === false) {
@@ -20,6 +22,24 @@ export const handler = {
     const cookies = getCookies(req.headers);
     const sessionid = cookies.sessionid;
     const userid = ctx.state.data.userid;
+    const origin = req.headers.get('origin')
+    const origins = env["serverOrigin"].split(",")
+    //localhostだとoriginがnullになるので
+    /*
+    if(origin === null){
+      console.log(origins)
+      console.log(origin)
+      return new Response(
+        JSON.stringify({ status: false, message: "Invalid origin" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    if (origins.includes(origin) === false) {
+      return new Response(
+        JSON.stringify({ status: false, message: "Invalid origin" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }*/
     await csrfToken.create({
       token: csrftoken,
       sessionID: sessionid,
@@ -30,7 +50,10 @@ export const handler = {
         status: true,
         csrftoken: csrftoken,
       }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
+      { status: 200, headers: { "Content-Type": "application/json",
+        //cors
+        "Access-Control-Allow-Origin": origin,
+       } },
     );
   },
 };
