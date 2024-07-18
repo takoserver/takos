@@ -84,7 +84,7 @@ export const handler = {
     const result = await Promise.all(messagesData.map(async (message) => {
       const CacheUser = usersCache.get(message.userid);
       if (CacheUser) {
-        if(lastMessageTimestamp === undefined || new Date(lastMessageTimestamp) < new Date(message.timestamp)){
+        if (lastMessageTimestamp === undefined || new Date(lastMessageTimestamp) < new Date(message.timestamp)) {
           lastMessageTimestamp = message.timestamp;
           lastMessageId = message.messageid;
         }
@@ -132,7 +132,7 @@ export const handler = {
         };
       }
     }));
-    await rooms.updateOne({ uuid: roomid }, { $set: { "readInfo.latestMessageId": lastMessageId} })
+    await rooms.updateOne({ uuid: roomid }, { $set: { "readInfo.latestMessageId": lastMessageId } });
     return new Response(JSON.stringify({ status: true, message: "Success", data: result }), { status: 200, headers: { "Content-Type": "application/json" } });
   },
 };

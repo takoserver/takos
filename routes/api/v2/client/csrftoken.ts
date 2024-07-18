@@ -22,8 +22,8 @@ export const handler = {
     const cookies = getCookies(req.headers);
     const sessionid = cookies.sessionid;
     const userid = ctx.state.data.userid;
-    const origin = req.headers.get('origin')
-    const origins = env["serverOrigin"].split(",")
+    const origin = req.headers.get("origin");
+    const origins = env["serverOrigin"].split(",");
     //localhostだとoriginがnullになるので
     /*
     if(origin === null){
@@ -50,10 +50,13 @@ export const handler = {
         status: true,
         csrftoken: csrftoken,
       }),
-      { status: 200, headers: { "Content-Type": "application/json",
-        //cors
-        "Access-Control-Allow-Origin": origin,
-       } },
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json", //cors
+          //"Access-Control-Allow-Origin": origin,
+        },
+      },
     );
   },
 };

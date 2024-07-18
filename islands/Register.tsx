@@ -407,7 +407,7 @@ function SendEmailRegisterRequest({ state, sitekeyv2, sitekeyv3 }: { state: any;
                   alert("reCAPTCHAが無効です");
                   break;
                 default:
-                  alert("エラーが発生しました: "+ data.message);
+                  alert("エラーが発生しました: " + data.message);
                   break;
               }
             }

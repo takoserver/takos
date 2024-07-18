@@ -21,6 +21,7 @@ import * as $api_v2_client_friends_info_ID_profile_friend from "./routes/api/v2/
 import * as $api_v2_client_friends_info_ID_profile_friendcode from "./routes/api/v2/client/friends/info/[ID]/profile/friendcode.ts";
 import * as $api_v2_client_friends_info_ID_profile_group from "./routes/api/v2/client/friends/info/[ID]/profile/group.ts";
 import * as $api_v2_client_friends_list from "./routes/api/v2/client/friends/list.ts";
+import * as $api_v2_client_friends_request_friend from "./routes/api/v2/client/friends/request/friend.ts";
 import * as $api_v2_client_friends_request_list from "./routes/api/v2/client/friends/request/list.ts";
 import * as $api_v2_client_main from "./routes/api/v2/client/main.ts";
 import * as $api_v2_client_sessions_login from "./routes/api/v2/client/sessions/login.ts";
@@ -133,6 +134,7 @@ const manifest = {
     "./routes/api/v2/client/friends/info/[ID]/profile/friendcode.ts": $api_v2_client_friends_info_ID_profile_friendcode,
     "./routes/api/v2/client/friends/info/[ID]/profile/group.ts": $api_v2_client_friends_info_ID_profile_group,
     "./routes/api/v2/client/friends/list.ts": $api_v2_client_friends_list,
+    "./routes/api/v2/client/friends/request/friend.ts": $api_v2_client_friends_request_friend,
     "./routes/api/v2/client/friends/request/list.ts": $api_v2_client_friends_request_list,
     "./routes/api/v2/client/main.ts": $api_v2_client_main,
     "./routes/api/v2/client/sessions/login.ts": $api_v2_client_sessions_login,

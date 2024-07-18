@@ -46,7 +46,7 @@ export const handler = {
       });
     }
     if (recaptchakind === "v3") {
-      const RECAPTCHA_SECRET_KEY = env["rechapcha_seecret_key_v3"]
+      const RECAPTCHA_SECRET_KEY = env["rechapcha_seecret_key_v3"];
       const isSecsusRechapcha = await fetch(
         `https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET_KEY}&response=${recaptcha}`,
       );
@@ -61,7 +61,7 @@ export const handler = {
         );
       }
     } else if (recaptchakind === "v2") {
-      const RECAPTCHA_SECRET_KEY = env["rechapcha_seecret_key_v2"]
+      const RECAPTCHA_SECRET_KEY = env["rechapcha_seecret_key_v2"];
       const response = await fetch(`https://www.google.com/recaptcha/api/siteverify`, {
         method: "POST",
         headers: {
