@@ -5,9 +5,10 @@ import friends from "../../../../../../models/friends.ts";
 import requestAddFriend from "../../../../../../models/reqestAddFriend.ts";
 import { load } from "$std/dotenv/mod.ts";
 import users from "../../../../../../models/users.ts";
+import { getCookies } from "$std/http/cookie.ts";
 const env = await load();
 export const handler = {
-  async GET(req: Request, ctx: any) {
+  async POST(req: Request, ctx: any) {
     if (!ctx.state.data.loggedIn) {
       return new Response(JSON.stringify({ status: false, message: "Not Logged In" }));
     }
@@ -22,6 +23,8 @@ export const handler = {
       });
     }
     const { userName, csrftoken } = body;
+    const cookies = getCookies(req.headers);
+    const sessionid = cookies.sessionid;
     if (typeof userName !== "string") {
       return new Response(JSON.stringify({ status: false, message: "Invalid userName" }), {
         headers: { "Content-Type": "application/json" },
@@ -34,13 +37,7 @@ export const handler = {
         status: 400,
       });
     }
-    if (takos.checkUserName(userName) === false) {
-      return new Response(JSON.stringify({ status: false, message: "Invalid" }), {
-        headers: { "Content-Type": "application/json" },
-        status: 400,
-      });
-    }
-    if (await takos.checkCsrfToken(csrftoken, userid) === false) {
+    if (await takos.checkCsrfToken(csrftoken, sessionid) === false) {
       return new Response(JSON.stringify({ status: false, message: "Invalid CSRF token" }), {
         headers: { "Content-Type": "application/json" },
         status: 400,
@@ -48,6 +45,7 @@ export const handler = {
     }
     const userDomain = takos.splitUserName(userName).domain;
     if (userDomain !== env["DOMAIN"]) {
+      console.log("imakoko")
       //friendのuuidを取得
       const response = await fetch(`https://${userDomain}/api/v2/server/information/users/uuid`, {
         method: "POST",
@@ -126,6 +124,7 @@ export const handler = {
           status: 404,
         });
       }
+      console.log("imakoko")
       const friendData = await friends.findOne({ user: userid });
       if (friendData == null) {
         return new Response(JSON.stringify({ status: false, message: "User not found" }), {
@@ -133,6 +132,7 @@ export const handler = {
           status: 404,
         });
       }
+      console.log("imakoko")
       const isFriend = friendData.friends.find((friend) => friend.userid === friendInfo.uuid);
       if (isFriend) {
         return new Response(JSON.stringify({ status: false, message: "Already friend" }), {
@@ -140,6 +140,7 @@ export const handler = {
           status: 400,
         });
       }
+      console.log("imakoko")
       if (friendData === null) {
         return new Response(JSON.stringify({ status: false, message: "User not found" }), {
           headers: { "Content-Type": "application/json" },
@@ -162,7 +163,7 @@ export const handler = {
       }
       //リクエストを送る
       await requestAddFriend.updateOne({ userid: friendInfo.uuid }, { $push: { friendRequester: { userID: userid } } });
-      await requestAddFriend.updateOne({ userid }, { $push: { requestedUser: { userID: friendInfo.uuid } } });
+      await requestAddFriend.updateOne({ userid: userid }, { $push: { requestedUser: { userID: friendInfo.uuid } } });
       return new Response(JSON.stringify({ status: true }), {
         headers: { "Content-Type": "application/json" },
       });

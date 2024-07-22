@@ -1,4 +1,5 @@
 import requestAddFriend from "../../../../../../models/reqestAddFriend.ts";
+import users from "../../../../../../models/users.ts";
 export const handler = {
   async GET(req: Request, ctx: any) {
     if (!ctx.state.data.loggedIn) {
@@ -13,13 +14,17 @@ export const handler = {
         status: 200,
       });
     }
-    const friendData = Promise.all(result.friendRequester.map(async (data: any) => {
+    const friendData = await Promise.all(result.friendRequester.map(async (data: any) => {
+      const friendData = await users.findOne({ uuid: data.userID });
+      if(friendData === null) {
+        return
+      }
       return {
-        userName: data.userName + "@" + data.domain,
-        nickName: data.nickName,
+        userName: friendData.userName + "@" + data.domain,
+        nickName: friendData.nickName,
       };
     }));
-    return new Response(JSON.stringify({ status: true, friendData }), {
+    return new Response(JSON.stringify({ status: true, result: friendData }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
     });

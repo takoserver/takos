@@ -106,26 +106,22 @@ function Input({
           onClick={async () => {
             setIsError(false);
             setIsSending(true);
-
-            const origin = window.location.protocol + "//" +
-              window.location.host;
             const csrftokenRes = await fetch(
-              `/api/v1/csrftoken?origin=${origin}`,
+              `/api/v2/client/csrftoken`,
             );
             const csrftoken = await csrftokenRes.json();
-            const result = await fetch("/api/v1/friends/request", {
+            const result = await fetch("/api/v2/client/friends/request/name", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
                 csrftoken: csrftoken.csrftoken,
-                type: "userName",
-                friendName: value,
+                userName: value,
               }),
             });
             const res = await result.json();
-            if (res.status == "success") {
+            if (res.status == true) {
               setIsSuccess(true);
               setTimeout(() => setIsSuccess(false), 5000);
               setIsSending(false);

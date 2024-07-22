@@ -6,6 +6,8 @@ import { load } from "$std/dotenv/mod.ts";
 import tempUsers from "../../../../../../models/tempUsers.ts";
 import users from "../../../../../../models/users.ts";
 import takos from "../../../../../../util/takos.ts";
+import friends from "../../../../../../models/friends.ts";
+import requestAddFriend from "../../../../../../models/reqestAddFriend.ts";
 const env = await load();
 export const handler = {
   async POST(req: Request, ctx: any) {
@@ -143,6 +145,15 @@ export const handler = {
       mail: email,
       password: hashHex,
       salt: salt,
+    });
+    await friends.create({
+      user: uuid,
+      friends: [],
+    });
+    await requestAddFriend.create({
+      userid: uuid,
+      friendRequester: [],
+      requestedUser: [],
     });
     return new Response(JSON.stringify({ status: true }), {
       headers: { "Content-Type": "application/json" },

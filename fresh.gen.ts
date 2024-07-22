@@ -17,6 +17,7 @@ import * as $api_v2_client_csrftoken from "./routes/api/v2/client/csrftoken.ts";
 import * as $api_v2_client_friends_accept_friend from "./routes/api/v2/client/friends/accept/friend.ts";
 import * as $api_v2_client_friends_info_ID_icon_friend from "./routes/api/v2/client/friends/info/[ID]/icon/friend.ts";
 import * as $api_v2_client_friends_info_ID_icon_friendcode from "./routes/api/v2/client/friends/info/[ID]/icon/friendcode.ts";
+import * as $api_v2_client_friends_info_ID_icon_friendrequest from "./routes/api/v2/client/friends/info/[ID]/icon/friendrequest.ts";
 import * as $api_v2_client_friends_info_ID_icon_group from "./routes/api/v2/client/friends/info/[ID]/icon/group.ts";
 import * as $api_v2_client_friends_info_ID_profile_friend from "./routes/api/v2/client/friends/info/[ID]/profile/friend.ts";
 import * as $api_v2_client_friends_info_ID_profile_friendcode from "./routes/api/v2/client/friends/info/[ID]/profile/friendcode.ts";
@@ -134,6 +135,7 @@ const manifest = {
     "./routes/api/v2/client/friends/accept/friend.ts": $api_v2_client_friends_accept_friend,
     "./routes/api/v2/client/friends/info/[ID]/icon/friend.ts": $api_v2_client_friends_info_ID_icon_friend,
     "./routes/api/v2/client/friends/info/[ID]/icon/friendcode.ts": $api_v2_client_friends_info_ID_icon_friendcode,
+    "./routes/api/v2/client/friends/info/[ID]/icon/friendrequest.ts": $api_v2_client_friends_info_ID_icon_friendrequest,
     "./routes/api/v2/client/friends/info/[ID]/icon/group.ts": $api_v2_client_friends_info_ID_icon_group,
     "./routes/api/v2/client/friends/info/[ID]/profile/friend.ts": $api_v2_client_friends_info_ID_profile_friend,
     "./routes/api/v2/client/friends/info/[ID]/profile/friendcode.ts": $api_v2_client_friends_info_ID_profile_friendcode,

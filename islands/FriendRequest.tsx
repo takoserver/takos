@@ -192,7 +192,7 @@ const VideoList = () => {
       const res = await fetch("/api/v2/client/friends/request/list");
       const response = await res.json();
       //response.resultが空の配列の場合、setItems([])を実行
-      if (response.status === true) {
+      if (response.status === false) {
         return;
       }
       if (response.result.length === 0) {
@@ -212,13 +212,13 @@ const VideoList = () => {
             ? (
               <>
                 {items.map((video, index) => {
-                  if (!video || !video.icon) {
+                  if (!video) {
                     return null;
                   }
                   return (
                     <User
                       key={index}
-                      icon={video.icon}
+                      icon={"/api/v2/client"}
                       userName={video.userName}
                       items={items}
                       setItems={setItems}
