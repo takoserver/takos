@@ -26,7 +26,7 @@ export const handler = {
     }
     const userName = takos.splitUserName(userid).userName;
     const userDomain = takos.splitUserName(userid).domain;
-    if (await takos.checkCsrfToken(body.csrftoken) === false) {
+    if (await takos.checkCsrfToken(body.csrftoken, ctx.state.data.sessionid) === false) {
       return new Response(JSON.stringify({ status: false, message: "Invalid CSRF token" }), {
         headers: { "Content-Type": "application/json" },
         status: 400,

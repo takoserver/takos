@@ -14,6 +14,7 @@ import * as $api_v2_client_chart from "./routes/api/v2/client/chart.ts";
 import * as $api_v2_client_create_community from "./routes/api/v2/client/create/community.ts";
 import * as $api_v2_client_create_group from "./routes/api/v2/client/create/group.ts";
 import * as $api_v2_client_csrftoken from "./routes/api/v2/client/csrftoken.ts";
+import * as $api_v2_client_friends_accept_friend from "./routes/api/v2/client/friends/accept/friend.ts";
 import * as $api_v2_client_friends_info_ID_icon_friend from "./routes/api/v2/client/friends/info/[ID]/icon/friend.ts";
 import * as $api_v2_client_friends_info_ID_icon_friendcode from "./routes/api/v2/client/friends/info/[ID]/icon/friendcode.ts";
 import * as $api_v2_client_friends_info_ID_icon_group from "./routes/api/v2/client/friends/info/[ID]/icon/group.ts";
@@ -21,8 +22,9 @@ import * as $api_v2_client_friends_info_ID_profile_friend from "./routes/api/v2/
 import * as $api_v2_client_friends_info_ID_profile_friendcode from "./routes/api/v2/client/friends/info/[ID]/profile/friendcode.ts";
 import * as $api_v2_client_friends_info_ID_profile_group from "./routes/api/v2/client/friends/info/[ID]/profile/group.ts";
 import * as $api_v2_client_friends_list from "./routes/api/v2/client/friends/list.ts";
-import * as $api_v2_client_friends_request_friend from "./routes/api/v2/client/friends/request/friend.ts";
+import * as $api_v2_client_friends_request_key from "./routes/api/v2/client/friends/request/key.ts";
 import * as $api_v2_client_friends_request_list from "./routes/api/v2/client/friends/request/list.ts";
+import * as $api_v2_client_friends_request_name from "./routes/api/v2/client/friends/request/name.ts";
 import * as $api_v2_client_main from "./routes/api/v2/client/main.ts";
 import * as $api_v2_client_sessions_login from "./routes/api/v2/client/sessions/login.ts";
 import * as $api_v2_client_sessions_logout from "./routes/api/v2/client/sessions/logout.ts";
@@ -87,7 +89,9 @@ import * as $api_v2_server_information_talk_ID_image from "./routes/api/v2/serve
 import * as $api_v2_server_information_talk_ID_index from "./routes/api/v2/server/information/talk/[ID]/index.ts";
 import * as $api_v2_server_information_users_changes from "./routes/api/v2/server/information/users/changes.ts";
 import * as $api_v2_server_information_users_icon from "./routes/api/v2/server/information/users/icon.ts";
+import * as $api_v2_server_information_users_name from "./routes/api/v2/server/information/users/name.ts";
 import * as $api_v2_server_information_users_profile from "./routes/api/v2/server/information/users/profile.ts";
+import * as $api_v2_server_information_users_uuid from "./routes/api/v2/server/information/users/uuid.ts";
 import * as $api_v2_server_pubkey from "./routes/api/v2/server/pubkey.ts";
 import * as $home_friends_name_ from "./routes/home/friends/[name].tsx";
 import * as $home_index from "./routes/home/index.tsx";
@@ -127,6 +131,7 @@ const manifest = {
     "./routes/api/v2/client/create/community.ts": $api_v2_client_create_community,
     "./routes/api/v2/client/create/group.ts": $api_v2_client_create_group,
     "./routes/api/v2/client/csrftoken.ts": $api_v2_client_csrftoken,
+    "./routes/api/v2/client/friends/accept/friend.ts": $api_v2_client_friends_accept_friend,
     "./routes/api/v2/client/friends/info/[ID]/icon/friend.ts": $api_v2_client_friends_info_ID_icon_friend,
     "./routes/api/v2/client/friends/info/[ID]/icon/friendcode.ts": $api_v2_client_friends_info_ID_icon_friendcode,
     "./routes/api/v2/client/friends/info/[ID]/icon/group.ts": $api_v2_client_friends_info_ID_icon_group,
@@ -134,8 +139,9 @@ const manifest = {
     "./routes/api/v2/client/friends/info/[ID]/profile/friendcode.ts": $api_v2_client_friends_info_ID_profile_friendcode,
     "./routes/api/v2/client/friends/info/[ID]/profile/group.ts": $api_v2_client_friends_info_ID_profile_group,
     "./routes/api/v2/client/friends/list.ts": $api_v2_client_friends_list,
-    "./routes/api/v2/client/friends/request/friend.ts": $api_v2_client_friends_request_friend,
+    "./routes/api/v2/client/friends/request/key.ts": $api_v2_client_friends_request_key,
     "./routes/api/v2/client/friends/request/list.ts": $api_v2_client_friends_request_list,
+    "./routes/api/v2/client/friends/request/name.ts": $api_v2_client_friends_request_name,
     "./routes/api/v2/client/main.ts": $api_v2_client_main,
     "./routes/api/v2/client/sessions/login.ts": $api_v2_client_sessions_login,
     "./routes/api/v2/client/sessions/logout.ts": $api_v2_client_sessions_logout,
@@ -200,7 +206,9 @@ const manifest = {
     "./routes/api/v2/server/information/talk/[ID]/index.ts": $api_v2_server_information_talk_ID_index,
     "./routes/api/v2/server/information/users/changes.ts": $api_v2_server_information_users_changes,
     "./routes/api/v2/server/information/users/icon.ts": $api_v2_server_information_users_icon,
+    "./routes/api/v2/server/information/users/name.ts": $api_v2_server_information_users_name,
     "./routes/api/v2/server/information/users/profile.ts": $api_v2_server_information_users_profile,
+    "./routes/api/v2/server/information/users/uuid.ts": $api_v2_server_information_users_uuid,
     "./routes/api/v2/server/pubkey.ts": $api_v2_server_pubkey,
     "./routes/home/friends/[name].tsx": $home_friends_name_,
     "./routes/home/index.tsx": $home_index,
