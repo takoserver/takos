@@ -45,7 +45,7 @@ export const handler = {
     }
     const userDomain = takos.splitUserName(userName).domain;
     if (userDomain !== env["DOMAIN"]) {
-      console.log("imakoko")
+      console.log("imakoko");
       //friendのuuidを取得
       const response = await fetch(`https://${userDomain}/api/v2/server/information/users/uuid`, {
         method: "POST",
@@ -102,7 +102,7 @@ export const handler = {
           host: env["DOMAIN"],
           body: JSON.stringify({ userid, friendid: friendId }),
           signature: takos.signData(JSON.stringify({ userid, friendid: friendId }), await takos.getPrivateKey()),
-          }),
+        }),
       });
       const resData = await res.json();
       if (resData.status === false) {
@@ -124,7 +124,7 @@ export const handler = {
           status: 404,
         });
       }
-      console.log("imakoko")
+      console.log("imakoko");
       const friendData = await friends.findOne({ user: userid });
       if (friendData == null) {
         return new Response(JSON.stringify({ status: false, message: "User not found" }), {
@@ -132,7 +132,7 @@ export const handler = {
           status: 404,
         });
       }
-      console.log("imakoko")
+      console.log("imakoko");
       const isFriend = friendData.friends.find((friend) => friend.userid === friendInfo.uuid);
       if (isFriend) {
         return new Response(JSON.stringify({ status: false, message: "Already friend" }), {
@@ -140,7 +140,7 @@ export const handler = {
           status: 400,
         });
       }
-      console.log("imakoko")
+      console.log("imakoko");
       if (friendData === null) {
         return new Response(JSON.stringify({ status: false, message: "User not found" }), {
           headers: { "Content-Type": "application/json" },

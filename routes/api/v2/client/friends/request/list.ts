@@ -16,8 +16,8 @@ export const handler = {
     }
     const friendData = await Promise.all(result.friendRequester.map(async (data: any) => {
       const friendData = await users.findOne({ uuid: data.userID });
-      if(friendData === null) {
-        return
+      if (friendData === null) {
+        return;
       }
       return {
         userName: friendData.userName + "@" + data.domain,
