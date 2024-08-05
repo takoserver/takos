@@ -31,7 +31,7 @@ request
   "type": "getPublicKey",
   "sgin": "signature",
   "data": {
-    timestamp: "timestamp"
+    "timestamp": "timestamp"
   }
 }
 ```
