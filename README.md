@@ -30,3 +30,7 @@ docs [https://docs.takos.jp](https://docs.takos.jp)
 ```bash
 // install script developping
 ```
+
+### 開発コミュニティー
+
+[LINE OPEN CHAT](https://line.me/ti/g2/Q0c8YJlkh5f_hkDuODxp39XF9A7BOCFqezaAHA?utm_source=invitation&utm_medium=link_copy&utm_campaign=default)
