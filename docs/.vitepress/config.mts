@@ -26,6 +26,16 @@ export default defineConfig({
         link: "/protocol",
         collapsed: false,
         items: [
+          {
+            text: "Takos Encrypt Ink",
+            link: "/protocol/crypto",
+            collapsed: false,
+            items: [
+              { text: "account_key", link: "/protocol/crypto/account_key" },
+              { text: "room_key", link: "/protocol/crypto/room_key" },
+              { text: "device_key", link: "/protocol/crypto/device_key" },
+            ]
+          },
           { text: "activity", link: "/protocol/activity",
             collapsed: false,
             items: [

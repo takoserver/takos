@@ -10,6 +10,10 @@ rsassa-pkcs1-v1_5を使用して、鍵ペアを生成し、accountKeyで署名�
 
 ```ts
 {
-    private_key: string,
+    key: {
+        publicKey: string,
+        timestamp: string
+    }
+    signature: string
 }
 ```
