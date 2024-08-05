@@ -7,14 +7,17 @@
     "ky": "npm:ky@^1.5.0",
     "mongoose": "npm:mongoose@^8.5.2",
     "nodemailer": "npm:nodemailer@^6.9.14",
-    "redis": "npm:redis@^4.7.0"
+    "redis": "npm:redis@^4.7.0",
   },
   "tasks": {
-    "start": "deno run --allow-net main.ts",
+    "start": "deno run -A main.ts",
     "dev": "deno run -A --watch main.ts"
   },
   "compilerOptions": {
     "jsx": "precompile",
     "jsxImportSource": "hono/jsx"
-  }
+  },
+  "name": "@takos/takos",
+  "version": "0.2.0-prealpha.1",
+  "exports": "./index.ts"
 }

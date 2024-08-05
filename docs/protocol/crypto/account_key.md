@@ -3,14 +3,14 @@
 account_keyは、ユーザーのアカウント同士の信頼関係を確立します。
 アカウント作成時またはセットアップ時に、クライアントで鍵ペアを生成し、公開鍵をアップロードします。
 account_keyの信用の構築は、以下の手段があります。
+
 - 実際にあってハッシュ値を検証する
 - 信頼できる人から検証する
 - 信頼できるメッセージングアプリ（例: Signal, WhatsApp）を使用して検証する
 
 ### アルゴリズム
 
-署名用: RSASSA-PKCS1-PSS
-暗号化用: RSA-OAEP
+署名用: RSASSA-PKCS1-PSS 暗号化用: RSA-OAEP
 
 ### account_keyの信用の継承
 
@@ -50,10 +50,11 @@ takos-webでのEndpoint: `POST /takos/client/crypto/accountkey/update`
 
 takos-webでのEndpoint: `POST /takos/client/crypto/accountkey/reissue`
 
-| 名前        | 型     | 説明         | 必須 |
-| ----------- | ------ | ------------ | ---- |
-| account_key | string | 公開鍵       | true |
-| csrftoken   | string | CSRFトークン | true |
+| 名前                | 型     | 説明         | 必須 |
+| ------------------- | ------ | ------------ | ---- |
+| account_key_encrypt | string | 公開鍵       | true |
+| account_key_sign    | string | 公開鍵       | true |
+| csrftoken           | string | CSRFトークン | true |
 
 ### account_keyの信頼情報をサーバーに保存
 

@@ -14,11 +14,10 @@ room_keyの公開鍵は、サーバーにアップロードされているため
 
 ### Endpoint `GET /takos/client/crypto/roomkey/`
 
-| 名前     | 型     | 説明       | 必須 |
-| -------- | ------ | ---------- | ---- |
-| room_id  | string | ルームid    | true |
-| csrftoken| string | CSRFトークン| true |
-
+| 名前      | 型     | 説明         | 必須 |
+| --------- | ------ | ------------ | ---- |
+| room_id   | string | ルームid     | true |
+| csrftoken | string | CSRFトークン | true |
 
 ### リモートサーバーに鍵を要求
 
@@ -43,6 +42,7 @@ account_keyで署名されているため、検証しする
     }]
 }
 ```
+
 messageの中身
 
 ```ts
@@ -52,4 +52,3 @@ messageの中身
     timestamp: string,
 }
 ```
-

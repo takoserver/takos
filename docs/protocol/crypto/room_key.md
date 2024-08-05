@@ -31,6 +31,6 @@ room_keyは頻繁に更新する必要がある。
 | 名前      | 型     | 説明                        | 必須 |
 | --------- | ------ | --------------------------- | ---- |
 | room_key  | string | ルーム鍵(公開)              | true |
-| room_id   | string | ルームid                     | true |
+| room_id   | string | ルームid                    | true |
 | signature | string | account_keyでroom_keyを署名 | true |
 | csrftoken | string | CSRFトークン                | true |
