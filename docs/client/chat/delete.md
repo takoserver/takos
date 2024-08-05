@@ -6,10 +6,13 @@
 
 ※ formDataです
 
-| Name      | Type   | Description | Required | Default |
-| --------- | ------ | ----------- | -------- | ------- |
-| messageid | string | messageid   | true     |         |
-| csrftoken | string | csrftoken   | true     |         |
+| Name            | Type   | Description                | Required | Default |
+| --------------- | ------ | -------------------------- | -------- | ------- |
+| message         | string | 暗号化されたメッセージのid | true     |         |
+| roomid          | string | ルームid                   | true     |         |
+| messageServerId | string | メッセージのサーバーid     | true     |         |
+| timestamp       | string | timestamp                  | true     |         |
+| csrftoken       | string | csrftoken                  | true     |         |
 
 ※[]はurl埋め込み
 

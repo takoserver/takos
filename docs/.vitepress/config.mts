@@ -22,43 +22,16 @@ export default defineConfig({
         ],
       },
       {
-        text: "takos api",
+        text: "Takos Protocol",
+        link: "/protocol",
+        collapsed: false,
         items: [
-          {
-            text: "Protocol",
-            link: "/server/protocol",
+          { text: "activity", link: "/protocol/activity",
             collapsed: false,
             items: [
-              { text: "pubkey", link: "/server/protocol/pubkey" },
-              { text: "info", link: "/server/protocol/info" },
-              { text: "ping", link: "/server/protocol/ping" },
-            ],
-          },
-          {
-            text: "Activity",
-            link: "/server/activity",
-            collapsed: false,
-            items: [
-              {
-                text: "acceptFriendReqest",
-                link: "/server/activity/acceptFriendReqest",
-              },
-              { text: "requestFriend", link: "/server/activity/requestFriend" },
-              {
-                text: "sendFriendMessage",
-                link: "/server/activity/sendFriendMessage",
-              },
-            ],
-          },
-          {
-            text: "メッセージ暗号化機能",
-            link: "/server/crypto",
-            collapsed: false,
-            items: [
-              { text: "account_key", link: "/server/crypto/account_key" },
-              { text: "device_key", link: "/server/crypto/device_key" },
-            ],
-          },
+              { text: "getPublicKey", link: "/protocol/activity/getPublicKey" },
+            ]
+           },
         ],
       },
       {
