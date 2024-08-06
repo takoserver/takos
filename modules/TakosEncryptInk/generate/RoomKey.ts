@@ -6,10 +6,10 @@ async function generateKeyPair() {
     },
     true,
     ["deriveKey", "deriveBits"],
-  );
+  )
   return {
     publicKey: keys.publicKey,
     privateKey: keys.privateKey,
-  };
+  }
 }
-export default generateKeyPair;
+export default generateKeyPair

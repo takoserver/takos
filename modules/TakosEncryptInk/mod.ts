@@ -1,6 +1,6 @@
-import generateAccountKey from "./generate/AccountKey.ts";
-import generRoomKey from "./generate/RoomKey.ts";
-import generateDeviceKey from "./generate/DeviceKey.ts";
+import generateAccountKey from "./generate/AccountKey.ts"
+import generRoomKey from "./generate/RoomKey.ts"
+import generateDeviceKey from "./generate/DeviceKey.ts"
 
 export default {
   accountKey: {
@@ -12,7 +12,7 @@ export default {
   deviceKey: {
     generate: generateDeviceKey,
   },
-};
+}
 
-const key = await generateDeviceKey();
-console.log(key);
+const key = await generateDeviceKey()
+console.log(key)

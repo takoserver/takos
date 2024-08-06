@@ -1,91 +1,44 @@
-//秘密鍵によってデータを暗号化する
-async function EnscriptTextData(
-  data: string,
-  privateKey: ArrayBuffer,
-): Promise<ArrayBuffer> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    privateKey,
-    {
-      name: "RSA-OAEP",
-    },
-    false,
-    ["encrypt"],
-  );
-
-  return await crypto.subtle.encrypt(
-    {
-      name: "RSA-OAEP",
-    },
-    key,
-    new TextEncoder().encode(data),
-  );
+import { ArrayBuffertoBase64, base64ToArrayBuffer } from "../base.ts"
+async function signAccountKey(data: string, privateKey: CryptoKey): Promise<string> {
+    const result = await crypto.subtle.sign(
+        {
+        name: "RSA-PSS",
+        saltLength: 32,
+        },
+        privateKey,
+        new TextEncoder().encode(data),
+    )
+    return ArrayBuffertoBase64(result)
 }
-async function EnscriptData(
-  data: ArrayBuffer,
-  privateKey: ArrayBuffer,
-): Promise<ArrayBuffer> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    privateKey,
-    {
-      name: "RSA-OAEP",
-    },
-    false,
-    ["encrypt"],
-  );
-  return await crypto.subtle.encrypt(
-    {
-      name: "RSA-OAEP",
-    },
-    key,
-    data,
-  );
+async function verifyAccountKey(data: string, publicKey: CryptoKey, signature: string): Promise<boolean> {
+    return await crypto.subtle.verify(
+        {
+        name: "RSA-PSS",
+        saltLength: 32,
+        },
+        publicKey,
+        base64ToArrayBuffer(signature),
+        new TextEncoder().encode(data),
+    )
 }
-async function DecriptTextData(
-  data: ArrayBuffer,
-  publicKey: ArrayBuffer,
-): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    publicKey,
-    {
-      name: "RSA-OAEP",
-    },
-    false,
-    ["decrypt"],
-  );
-
-  return new TextDecoder().decode(
-    await crypto.subtle.decrypt(
-      {
+async function enscriptAccountData(data: string, publicKey: CryptoKey): Promise<string> {
+    const result = await crypto.subtle.encrypt(
+        {
         name: "RSA-OAEP",
-      },
-      key,
-      data,
-    ),
-  );
+        },
+        publicKey,
+        new TextEncoder().encode(data),
+    )
+    return ArrayBuffertoBase64(result)
 }
-async function DecriptData(
-  data: ArrayBuffer,
-  publicKey: ArrayBuffer,
-): Promise<ArrayBuffer> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    publicKey,
-    {
-      name: "RSA-OAEP",
-    },
-    false,
-    ["decrypt"],
-  );
-  return await crypto.subtle.decrypt(
-    {
-      name: "RSA-OAEP",
-    },
-    key,
-    data,
-  );
+async function decriptAccountData(data: string, privateKey: CryptoKey): Promise<string> {
+    const result = await crypto.subtle.decrypt(
+        {
+        name: "RSA-OAEP",
+        },
+        privateKey,
+        base64ToArrayBuffer(data),
+    )
+    return new TextDecoder().decode(result)
 }
-
-export { DecriptData, DecriptTextData, EnscriptData, EnscriptTextData };
+export { signAccountKey, verifyAccountKey, enscriptAccountData, decriptAccountData }

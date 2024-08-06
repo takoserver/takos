@@ -7,5 +7,9 @@
   },
   "name": "@takos/takos",
   "version": "0.1.0-unstable",
-  "exports": "./index.ts"
+  "exports": "./index.ts",
+  "fmt": {
+    "lineWidth": 100,
+    "semiColons": false
+  }
 }

@@ -1,7 +1,7 @@
 async function generateAccountKey(): Promise<
   {
-    encript: { publicKey: CryptoKey; privateKey: CryptoKey };
-    sign: { publicKey: CryptoKey; privateKey: CryptoKey };
+    encript: { publicKey: CryptoKey; privateKey: CryptoKey }
+    sign: { publicKey: CryptoKey; privateKey: CryptoKey }
   }
 > {
   const EncryptKeyPair = await crypto.subtle.generateKey(
@@ -13,17 +13,17 @@ async function generateAccountKey(): Promise<
     },
     true,
     ["encrypt", "decrypt"],
-  );
+  )
   const SignKeyPair = await crypto.subtle.generateKey(
     {
-      name: "RSASSA-PKCS1-PSS",
+      name: "RSA-PSS",
       modulusLength: 2048,
       publicExponent: new Uint8Array([1, 0, 1]),
       hash: "SHA-256",
     },
     true,
     ["sign", "verify"],
-  );
+  )
   return {
     encript: {
       publicKey: EncryptKeyPair.publicKey,
@@ -33,7 +33,7 @@ async function generateAccountKey(): Promise<
       publicKey: SignKeyPair.publicKey,
       privateKey: SignKeyPair.privateKey,
     },
-  };
+  }
 }
 
-export default generateAccountKey;
+export default generateAccountKey

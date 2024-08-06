@@ -1,6 +1,6 @@
 export default async function generateDeviceKey(): Promise<{
-  publicKey: CryptoKey;
-  privateKey: CryptoKey;
+  publicKey: CryptoKey
+  privateKey: CryptoKey
 }> {
   //generate rsa-oaep key pair
   const EncryptKeyPair = await crypto.subtle.generateKey(
@@ -12,9 +12,9 @@ export default async function generateDeviceKey(): Promise<{
     },
     true,
     ["encrypt", "decrypt"],
-  );
+  )
   return {
     publicKey: EncryptKeyPair.publicKey,
     privateKey: EncryptKeyPair.privateKey,
-  };
+  }
 }
