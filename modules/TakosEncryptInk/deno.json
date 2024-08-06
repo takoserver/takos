@@ -4,5 +4,8 @@
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1"
-  }
+  },
+  "name": "@takos/takos",
+  "version": "0.1.0-unstable",
+  "exports": "./index.ts"
 }

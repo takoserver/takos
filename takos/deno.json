@@ -7,7 +7,7 @@
     "ky": "npm:ky@^1.5.0",
     "mongoose": "npm:mongoose@^8.5.2",
     "nodemailer": "npm:nodemailer@^6.9.14",
-    "redis": "npm:redis@^4.7.0",
+    "redis": "npm:redis@^4.7.0"
   },
   "tasks": {
     "start": "deno run -A main.ts",
