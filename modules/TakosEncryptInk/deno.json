@@ -5,7 +5,7 @@
   "imports": {
     "@std/assert": "jsr:@std/assert@1"
   },
-  "name": "@takos/takosEncryptInk",
+  "name": "@takos/takos-encrypt-ink",
   "version": "0.1.0-unstable",
   "exports": "./mod.ts",
   "fmt": {
