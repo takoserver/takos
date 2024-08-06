@@ -61,17 +61,3 @@ function convertToPem(
 
   return pemKey;
 }
-import generateRoomKeyCommon from "./generate/RoomCommonKey.ts";
-import generateKeyPair from "./generate/RoomKey.ts";
-
-const keyPaire1 = await generateKeyPair();
-const keyPaire2 = await generateKeyPair();
-const key1 = await generateRoomKeyCommon(keyPaire1.privateKey, keyPaire2.publicKey);
-const key2 = await generateRoomKeyCommon(keyPaire2.privateKey, keyPaire1.publicKey);
-
-const pem1 = await exportKeyToPem(key1, "roomKey", "common");
-const pem2 = await exportKeyToPem(keyPaire1.privateKey, "roomKey", "private");
-const pem3 = await exportKeyToPem(keyPaire2.publicKey, "roomKey", "publicKey");
-console.log(pem1);
-console.log(pem2);
-console.log(pem3);

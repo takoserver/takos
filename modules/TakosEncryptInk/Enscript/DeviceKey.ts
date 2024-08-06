@@ -1,1 +1,1 @@
-export function enscriptDeviceKey
+//export function enscriptDeviceKey
