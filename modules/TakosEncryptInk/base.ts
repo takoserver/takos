@@ -1,4 +1,4 @@
-function base64ToArrayBuffer(base64: string) {
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
   const binaryString = window.atob(base64)
   const len = binaryString.length
   const bytes = new Uint8Array(len)
@@ -7,7 +7,7 @@ function base64ToArrayBuffer(base64: string) {
   }
   return bytes.buffer
 }
-function ArrayBuffertoBase64(buffer: ArrayBuffer) {
+function ArrayBuffertoBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer)
   let binary = ""
   for (let i = 0; i < bytes.byteLength; i++) {

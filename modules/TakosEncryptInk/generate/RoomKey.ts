@@ -1,4 +1,4 @@
-async function generateKeyPair() {
+async function generateKeyPair(): Promise<{ publicKey: CryptoKey; privateKey: CryptoKey }> {
   const keys = await window.crypto.subtle.generateKey(
     {
       name: "ECDH",

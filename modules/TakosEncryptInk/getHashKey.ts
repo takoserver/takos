@@ -1,4 +1,4 @@
-async function areKeysEqual(key1: CryptoKey, key2: CryptoKey, format: string) {
+async function areKeysEqual(key1: CryptoKey, key2: CryptoKey, format: string): Promise<boolean> {
   async function getHashKey(key: CryptoKey, format: string): Promise<ArrayBuffer> {
     // 鍵をエクスポートしてArrayBufferに変換
 
