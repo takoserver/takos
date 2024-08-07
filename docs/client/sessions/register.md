@@ -97,14 +97,16 @@ POST /takos/v2/client/sessions/registers/setup
 
 **パラメータ**
 
-| 名前        | 型     | 説明              | 必須 |
-| ----------- | ------ | ----------------- | ---- |
-| nickName    | string | ニックネーム      | true |
-| icon        | string | アイコン          | true |
-| recaptcha   | string | reCAPTCHAトークン | true |
-| age         | string | 年齢              | true |
-| account_key | string | アカウント鍵      | true |
-| csrftoken   | string | CSRFトークン      | true |
+| 名前                 | 型     | 説明                 | 必須 |
+| -------------------- | ------ | -------------------- | ---- |
+| nickName             | string | ニックネーム         | true |
+| icon                 | string | アイコン             | true |
+| recaptcha            | string | reCAPTCHAトークン    | true |
+| age                  | string | 年齢                 | true |
+| account_sign_key     | string | 署名用アカウント鍵   | true |
+| account_ encrypt_key | string | 暗号化用アカウント鍵 | true |
+| device_key           | string | デバイス鍵           | true |
+| csrftoken            | string | CSRFトークン         | true |
 
 **レスポンス**
 

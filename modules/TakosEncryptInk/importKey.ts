@@ -2,16 +2,16 @@ function pemToBase64(pem: string) {
   return pem
     .replace(/-----BEGIN [A-Z ]+-----/, "")
     .replace(/-----END [A-Z ]+-----/, "")
-    .replace(/\s+/g, "")
+    .replace(/\s+/g, "");
 }
 function base64ToArrayBuffer(base64: string) {
-  const binaryString = window.atob(base64)
-  const len = binaryString.length
-  const bytes = new Uint8Array(len)
+  const binaryString = window.atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i)
+    bytes[i] = binaryString.charCodeAt(i);
   }
-  return bytes.buffer
+  return bytes.buffer;
 }
 
 export async function importKeyFromPem(
@@ -19,9 +19,9 @@ export async function importKeyFromPem(
   type: "accountSignKey" | "accountEnscriptKey" | "roomKey" | "deviceKey",
   keyType: "publicKey" | "private" | "common",
 ): Promise<CryptoKey> {
-  const base64 = pemToBase64(pem)
-  const keyData = base64ToArrayBuffer(base64)
-  let result: CryptoKey | null = null // 初期化
+  const base64 = pemToBase64(pem);
+  const keyData = base64ToArrayBuffer(base64);
+  let result: CryptoKey | null = null; // 初期化
 
   if (type === "accountEnscriptKey" || type === "deviceKey") {
     if (keyType === "publicKey") {
@@ -34,7 +34,7 @@ export async function importKeyFromPem(
         },
         true,
         ["encrypt"],
-      )
+      );
     } else if (keyType === "private") {
       result = await crypto.subtle.importKey(
         "pkcs8",
@@ -45,9 +45,9 @@ export async function importKeyFromPem(
         },
         true,
         ["decrypt"],
-      )
+      );
     } else {
-      throw new Error(`Unsupported keyType for ${type}: ${keyType}`)
+      throw new Error(`Unsupported keyType for ${type}: ${keyType}`);
     }
   } else if (type === "roomKey") {
     if (keyType === "common") {
@@ -59,7 +59,7 @@ export async function importKeyFromPem(
         },
         true,
         ["encrypt", "decrypt"],
-      )
+      );
     } else if (keyType === "private") {
       result = await crypto.subtle.importKey(
         "pkcs8",
@@ -71,7 +71,7 @@ export async function importKeyFromPem(
         },
         true,
         ["deriveKey", "deriveBits"],
-      )
+      );
     } else if (keyType === "publicKey") {
       result = await crypto.subtle.importKey(
         "spki",
@@ -83,9 +83,9 @@ export async function importKeyFromPem(
         },
         true,
         [],
-      )
+      );
     } else {
-      throw new Error(`Unsupported keyType for ${type}: ${keyType}`)
+      throw new Error(`Unsupported keyType for ${type}: ${keyType}`);
     }
   } else if (type === "accountSignKey") {
     if (keyType === "publicKey") {
@@ -98,7 +98,7 @@ export async function importKeyFromPem(
         },
         true,
         ["verify"],
-      )
+      );
     } else if (keyType === "private") {
       result = await crypto.subtle.importKey(
         "pkcs8",
@@ -109,17 +109,17 @@ export async function importKeyFromPem(
         },
         true,
         ["sign"],
-      )
+      );
     }
   } else {
-    throw new Error(`Unsupported type: ${type}`)
+    throw new Error(`Unsupported type: ${type}`);
   }
 
   if (result === null) {
     throw new Error(
       `Failed to import key for type: ${type} and keyType: ${keyType}`,
-    )
+    );
   }
 
-  return result
+  return result;
 }

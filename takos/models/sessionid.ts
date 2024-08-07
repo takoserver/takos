@@ -10,6 +10,11 @@ const sessionidSchema = new mongoose.Schema({
     required: true,
   },
   timestamp: { type: Date, default: Date.now },
+  //鍵を持っているかどうか
+  key: {
+    type: Boolean,
+    default: false,
+  },
   limit: { type: Date, default: Date.now, expires: 60 * 60 * 24 * 7 },
 });
 const Sessionid = mongoose.model("sessionid", sessionidSchema);

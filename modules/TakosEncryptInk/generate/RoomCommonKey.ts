@@ -18,8 +18,8 @@ async function generateRoomKeyCommon(
     },
     true,
     ["encrypt", "decrypt"],
-  )
-  return sharedKey
+  );
+  return sharedKey;
 }
 
-export default generateRoomKeyCommon
+export default generateRoomKeyCommon;

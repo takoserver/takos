@@ -43,6 +43,18 @@ const userSchema = new mongoose.Schema({
     required: true,
   },
   timestamp: { type: Date, default: Date.now },
+  accountSignKey: {
+    type: String,
+    required: true,
+  },
+  accountEnscriptKey: {
+    type: String,
+    required: true,
+  },
+  deviceKey: {
+    type: String,
+    required: true,
+  },
 });
 const User = mongoose.model("user", userSchema);
 export default User;
