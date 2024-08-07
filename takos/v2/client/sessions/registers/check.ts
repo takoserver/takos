@@ -14,6 +14,7 @@ app.post("/", async (c) => {
   }
   const { code, email, recpacha, recpachaKind, token } = body;
   if (!code || !email || !recpacha || !recpachaKind || !token) {
+    console.log(code, email, recpacha, recpachaKind, token);
     return c.json({ status: false, error: "invalid request" }, { status: 400 });
   }
   if (!await checkRecapcha(recpacha, recpachaKind)) {

@@ -17,8 +17,7 @@ function ReCapcha(
     })();
   }, []);
   useEffect(() => {
-    console.log("aaa", state.recapchav3.value);
-    if (state.RecapchaLoaded.value) {
+    console.log("aaa");
       window.grecaptcha.ready(() => {
         window.grecaptcha.execute(sitekeyv3, { action: "homepage" }).then(
           (token) => {
@@ -26,7 +25,6 @@ function ReCapcha(
           },
         );
       });
-    }
   }, [state.RecapchaLoaded.value, sitekeyv3]);
   return <></>;
 }

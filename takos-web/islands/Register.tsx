@@ -330,13 +330,7 @@ function CheckEmail({ state, sitekeyv2 }: { state: any; sitekeyv2: string }) {
               );
               data = await res.json();
               if (data.status === false) {
-                console.log({
-                  email: state.email.value,
-                  code: state.checkCode.value,
-                  token: state.token.value,
-                  recpacha: state.recapchav3.value,
-                  recpachaKind: "v3",
-                });
+                console.log(state.recapchav3.value);
                 if (data.message === "rechapchav3") {
                   state.recapchav3Failed.value = true;
                   return;
@@ -477,6 +471,7 @@ function SendEmailRegisterRequest(
               state.recapchav3Failed.value = false;
               state.recapchav3.value = "";
               state.token.value = data.token;
+              state.RecapchaLoaded.value = false;
               console.log(data);
               return;
             }
