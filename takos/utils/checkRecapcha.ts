@@ -1,7 +1,7 @@
 import { load } from "@std/dotenv";
 const env = await load();
-const recapchav2_secret = env["rechapcha_seecret_key_v3"];
-const recapchav3_secret = env["rechapcha_seecret_key_v2"];
+const recapchav2_secret = env["rechapcha_seecret_key_v2"];
+const recapchav3_secret = env["rechapcha_seecret_key_v3"];
 const LimitScore = env["rechapcha_limit_score"];
 export const checkRecapcha = async (
   recapchaToken: string,
@@ -30,6 +30,7 @@ export const checkRecapcha = async (
     );
     const score = await isSecsusRechapcha.json();
     if (score.score < LimitScore || score.success == false) {
+      console.log(recapchav3_secret, score);
       return false;
     }
     return true;

@@ -25,10 +25,11 @@ app.post("/", async (c) => {
   if (!tempUser) {
     return c.json({ status: false, error: "invalid token" }, { status: 400 });
   }
-  if (tempUser.checkCode !== code) {
+  if (tempUser.checkCode != code) {
+    console.log(tempUser.checkCode, code);
     return c.json({ status: false, error: "invalid code" }, { status: 400 });
   }
   await tempUsers.updateOne({ email, token }, { $set: { checked: true } });
-  c.json({ status: true }, { status: 200 });
+  return c.json({ status: true }, { status: 200 });
 });
 export default app;

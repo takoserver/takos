@@ -1,12 +1,8 @@
 import OtherMessage from "./WelcomeMessage.tsx";
 import Register from "../islands/Register.tsx";
 import Login from "../islands/Login.tsx";
-import { effect, signal } from "@preact/signals";
-import { load } from "$std/dotenv/mod.ts";
+import { signal } from "@preact/signals";
 import ReCapcha from "../islands/ReCapcha.tsx";
-const env = await load();
-const sitekeyv3 = env["recaptcha_site_key_v3"];
-const sitekeyv2 = env["recaptcha_site_key_v2"];
 const sampleChatData = {
   roomName: "たこたこチャット",
   talkData: [
@@ -85,8 +81,6 @@ function welcome() {
     <>
       <ReCapcha
         state={state}
-        sitekeyv3={sitekeyv3}
-        sitekeyv2={sitekeyv2}
       >
       </ReCapcha>
       <div class="flex w-full h-screen mb-6">
@@ -111,8 +105,6 @@ function welcome() {
             </div>
             <Register
               state={state}
-              sitekeyv2={sitekeyv2}
-              sitekeyv3={sitekeyv3}
             />
             <button
               onClick={() => {

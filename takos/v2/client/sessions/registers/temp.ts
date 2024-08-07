@@ -21,7 +21,8 @@ app.post("/", async (c) => {
   if (!email || !recapcha || !recapchaKind) {
     return c.json({ status: false, error: "invalid request" }, { status: 400 });
   }
-  if (checkEmail(email)) {
+  if (!checkEmail(email)) {
+    console.log(email)
     return c.json({ status: false, error: "invalid email" }, { status: 400 });
   }
   if (!await checkRecapcha(recapcha, recapchaKind)) {
@@ -58,6 +59,6 @@ app.post("/", async (c) => {
     "認証コード",
     `以下のtokenを張り付けてメールアドレスを認証してください.\ntoken: ${randomNumber}`,
   );
-  c.json({ token: sessionid, status: true }, { status: 200 });
+  return c.json({ token: sessionid, status: true });
 });
 export default app;

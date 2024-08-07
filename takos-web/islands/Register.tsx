@@ -1,11 +1,20 @@
 import { checkEmail } from "../util/takosClient.ts";
+import { useEffect } from "preact/hooks";
+import { useState } from "preact/hooks";
 function Register(
-  { state, sitekeyv2, sitekeyv3 }: {
+  { state }: {
     state: any;
-    sitekeyv2: string;
-    sitekeyv3: string;
   },
 ) {
+  const [sitekeyv2, setsitekeyv2] = useState("");
+  useEffect(() => {
+    (async function loadRecapcha() {
+      const sitekeyv2 = await fetch(
+        "/takos/v2/client/recaptcha",
+      ).then((res) => res.json()).then((res) => res.v2);
+      setsitekeyv2(sitekeyv2);
+    })();
+  }, []);
   if (state.showWindow.value !== "Register") {
     return (
       <>
@@ -47,7 +56,6 @@ function Register(
             <SendEmailRegisterRequest
               state={state}
               sitekeyv2={sitekeyv2}
-              sitekeyv3={sitekeyv3}
             />
           )}
           {state.RegisterPage.value === 1 && (
@@ -57,7 +65,6 @@ function Register(
             <MainRegister
               state={state}
               sitekeyv2={sitekeyv2}
-              sitekeyv3={sitekeyv3}
             />
           )}
           {state.RegisterPage.value === 3 && (
@@ -99,10 +106,9 @@ function TransFarLoginFrom({ state }: { state: any }) {
   );
 }
 function MainRegister(
-  { state, sitekeyv2, sitekeyv3 }: {
+  { state, sitekeyv2 }: {
     state: any;
     sitekeyv2: string;
-    sitekeyv3: string;
   },
 ) {
   return (
@@ -288,7 +294,7 @@ function CheckEmail({ state, sitekeyv2 }: { state: any; sitekeyv2: string }) {
                 "g-recaptcha-response",
               ) as string;
               const res = await fetch(
-                "/api/v2/client/sessions/registers/check",
+                "/takos/v2/client/sessions/registers/check",
                 {
                   method: "POST",
                   headers: {
@@ -298,31 +304,39 @@ function CheckEmail({ state, sitekeyv2 }: { state: any; sitekeyv2: string }) {
                     email: state.email.value,
                     code: state.checkCode.value,
                     token: state.token.value,
-                    recaptcha: recapchav2,
-                    recaptchakind: "v2",
+                    recpacha: recapchav2,
+                    recpachaKind: "v2",
                   }),
                 },
               );
               data = await res.json();
             } else {
               const res = await fetch(
-                "/api/v2/client/sessions/registers/check",
+                "/takos/v2/client/sessions/registers/check",
                 {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
                   },
+                  // code, email, recpacha, recpachaKind, token
                   body: JSON.stringify({
                     email: state.email.value,
                     code: state.checkCode.value,
                     token: state.token.value,
-                    recaptcha: state.recapchav3.value,
-                    recaptchakind: "v3",
+                    recpacha: state.recapchav3.value,
+                    recpachaKind: "v3",
                   }),
                 },
               );
               data = await res.json();
               if (data.status === false) {
+                console.log({
+                  email: state.email.value,
+                  code: state.checkCode.value,
+                  token: state.token.value,
+                  recpacha: state.recapchav3.value,
+                  recpachaKind: "v3",
+                });
                 if (data.message === "rechapchav3") {
                   state.recapchav3Failed.value = true;
                   return;
@@ -396,10 +410,9 @@ function CheckEmail({ state, sitekeyv2 }: { state: any; sitekeyv2: string }) {
   );
 }
 function SendEmailRegisterRequest(
-  { state, sitekeyv2, sitekeyv3 }: {
+  { state, sitekeyv2 }: {
     state: any;
     sitekeyv2: string;
-    sitekeyv3: string;
   },
 ) {
   return (
@@ -421,23 +434,24 @@ function SendEmailRegisterRequest(
                 "g-recaptcha-response",
               ) as string;
               const res = await fetch(
-                "/api/v2/client/sessions/registers/temp",
+                "/takos/v2/client/sessions/registers/temp",
                 {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
                   },
+                  //!email || !recapcha || !recapchaKind
                   body: JSON.stringify({
                     email: state.email.value,
-                    recaptcha: recapchav2,
-                    recaptchakind: "v2",
+                    recapcha: recapchav2,
+                    recapchaKind: "v2",
                   }),
                 },
               );
               data = await res.json();
             } else {
               const res = await fetch(
-                "/api/v2/client/sessions/registers/temp",
+                "/takos/v2/client/sessions/registers/temp",
                 {
                   method: "POST",
                   headers: {
@@ -445,14 +459,14 @@ function SendEmailRegisterRequest(
                   },
                   body: JSON.stringify({
                     email: state.email.value,
-                    recaptcha: state.recapchav3.value,
-                    recaptchakind: "v3",
+                    recapcha: state.recapchav3.value,
+                    recapchaKind: "v3",
                   }),
                 },
               );
               data = await res.json();
               if (data.status === false) {
-                if (data.message === "rechapchav3") {
+                if (data.error === "invalid recapcha") {
                   state.recapchav3Failed.value = true;
                   return;
                 }
@@ -463,6 +477,7 @@ function SendEmailRegisterRequest(
               state.recapchav3Failed.value = false;
               state.recapchav3.value = "";
               state.token.value = data.token;
+              console.log(data);
               return;
             }
             if (data.status === false) {
@@ -484,6 +499,7 @@ function SendEmailRegisterRequest(
                   break;
                 default:
                   alert("エラーが発生しました: " + data.message);
+                  console.log(data)
                   break;
               }
             }

@@ -1,21 +1,23 @@
-import { useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 function ReCapcha(
-  { state, sitekeyv3, sitekeyv2 }: {
-    state: any;
-    sitekeyv3: string;
-    sitekeyv2: string;
-  },
+  { state}: { state: any },
 ) {
+  const [sitekeyv3, setsitekeyv3] = useState("");
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://www.google.com/recaptcha/api.js?render=" + sitekeyv3;
-    script.async = true;
-    script.onload = () => {
-      state.RecapchaLoaded.value = true;
-    };
-    document.body.appendChild(script);
-  }, [sitekeyv3]);
+    (async function loadRecapcha() {
+      const sitekeyv3 = await fetch("/takos/v2/client/recaptcha").then((res) => res.json()).then((res) => res.v3);
+      setsitekeyv3(sitekeyv3);
+      const script = document.createElement("script");
+      script.src = "https://www.google.com/recaptcha/api.js?render=" + sitekeyv3;
+      script.async = true;
+      script.onload = () => {
+        state.RecapchaLoaded.value = true;
+      };
+      document.body.appendChild(script);
+    })();
+  }, []);
   useEffect(() => {
+    console.log("aaa", state.recapchav3.value);
     if (state.RecapchaLoaded.value) {
       window.grecaptcha.ready(() => {
         window.grecaptcha.execute(sitekeyv3, { action: "homepage" }).then(
@@ -25,7 +27,7 @@ function ReCapcha(
         );
       });
     }
-  }, [state.RecapchaLoaded.value, sitekeyv3, state.recapchav3.value]);
+  }, [state.RecapchaLoaded.value, sitekeyv3]);
   return <></>;
 }
 
