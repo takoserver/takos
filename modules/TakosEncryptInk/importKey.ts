@@ -16,40 +16,14 @@ function base64ToArrayBuffer(base64: string) {
 
 export async function importKeyFromPem(
   pem: string,
-  type: "accountSignKey" | "accountEnscriptKey" | "roomKey" | "deviceKey",
+  type: "accountKey" | "roomKey" | "deviceKey",
   keyType: "publicKey" | "private" | "common",
 ): Promise<CryptoKey> {
   const base64 = pemToBase64(pem);
   const keyData = base64ToArrayBuffer(base64);
   let result: CryptoKey | null = null; // 初期化
 
-  if (type === "accountEnscriptKey" || type === "deviceKey") {
-    if (keyType === "publicKey") {
-      result = await crypto.subtle.importKey(
-        "spki",
-        keyData,
-        {
-          name: "RSA-OAEP",
-          hash: "SHA-256",
-        },
-        true,
-        ["encrypt"],
-      );
-    } else if (keyType === "private") {
-      result = await crypto.subtle.importKey(
-        "pkcs8",
-        keyData,
-        {
-          name: "RSA-OAEP",
-          hash: "SHA-256",
-        },
-        true,
-        ["decrypt"],
-      );
-    } else {
-      throw new Error(`Unsupported keyType for ${type}: ${keyType}`);
-    }
-  } else if (type === "roomKey") {
+  if (type === "roomKey") {
     if (keyType === "common") {
       result = await crypto.subtle.importKey(
         "raw",
@@ -87,7 +61,7 @@ export async function importKeyFromPem(
     } else {
       throw new Error(`Unsupported keyType for ${type}: ${keyType}`);
     }
-  } else if (type === "accountSignKey") {
+  } else if (type === "accountKey") {
     if (keyType === "publicKey") {
       result = await crypto.subtle.importKey(
         "spki",

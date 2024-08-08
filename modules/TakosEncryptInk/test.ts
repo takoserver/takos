@@ -68,7 +68,7 @@ const pem5 = await exportKeyToPem(
 console.log(
   await areKeysEqual(
     accountKey.privateKey,
-    await importKeyFromPem(pem4, "accountSignKey", "private"),
+    await importKeyFromPem(pem4, "accountKey", "private"),
     "pkcs8",
   ),
 );
@@ -76,7 +76,7 @@ console.log(
 console.log(
   await areKeysEqual(
     accountKey.publicKey,
-    await importKeyFromPem(pem5, "accountSignKey", "publicKey"),
+    await importKeyFromPem(pem5, "accountKey", "publicKey"),
     "spki",
   ),
 );
