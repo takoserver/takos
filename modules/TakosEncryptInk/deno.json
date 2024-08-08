@@ -6,7 +6,7 @@
     "@std/assert": "jsr:@std/assert@1"
   },
   "name": "@takos/takos-encrypt-ink",
-  "version": "0.1.0-unstable",
+  "version": "0.2.0-unstable",
   "exports": "./mod.ts",
   "fmt": {
     "lineWidth": 100,
