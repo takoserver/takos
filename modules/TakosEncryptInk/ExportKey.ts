@@ -1,12 +1,12 @@
 export async function exportKeyToPem(
   cryptoKey: CryptoKey,
-  type: "accountSignKey" | "accountEnscriptKey" | "roomKey" | "deviceKey",
+  type: "accountKey" | "roomKey" | "deviceKey",
   keyType: "publicKey" | "private" | "common",
 ): Promise<string> {
   let exportedKey: ArrayBuffer;
 
   if (
-    type === "accountSignKey" || type === "accountEnscriptKey" ||
+    type === "accountKey" ||
     type === "deviceKey"
   ) {
     if (keyType === "publicKey") {

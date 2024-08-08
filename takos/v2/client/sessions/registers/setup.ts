@@ -43,16 +43,13 @@ app.post("/", async (c) => {
     recpatcha,
     recpatchaKind,
     age,
-    account_sign_key,
-    account_encript_key,
+    account_key,
     device_key,
   }: {
     nickName: string;
     icon: string;
     recpatcha: string;
     age: number;
-    account_sign_key: string;
-    account_encript_key: string;
     device_key: string;
     recpatchaKind: "v2" | "v3";
   } = body;
@@ -76,18 +73,10 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
-  if (!account_sign_key) {
-    return c.json({ status: false, error: "account_sign_key is not found" }, {
+  if (!account_key) {
+    return c.json({ status: false, error: "account_key is not found" }, {
       status: 500,
     });
-  }
-  if (!account_encript_key) {
-    return c.json(
-      { status: false, error: "account_encript_key is not found" },
-      {
-        status: 500,
-      },
-    );
   }
   if (!device_key) {
     return c.json({ status: false, error: "device_key is not found" }, {
@@ -107,14 +96,9 @@ app.post("/", async (c) => {
     });
   }
   try {
-    const accountEnscriptKey = await takosEncryptInk.importKeyFromPem(
-      account_encript_key,
-      "accountEnscriptKey",
-      "publicKey",
-    );
-    const accountSignKey = await takosEncryptInk.importKeyFromPem(
-      account_sign_key,
-      "accountSignKey",
+    const accountKey = await takosEncryptInk.importKeyFromPem(
+      account_key,
+      "accountKey",
       "publicKey",
     );
     const deviceKey = await takosEncryptInk.importKeyFromPem(
@@ -122,13 +106,8 @@ app.post("/", async (c) => {
       "deviceKey",
       "private",
     );
-    const accountEnscriptPem = await takosEncryptInk.exportKeyToPem(
-      accountEnscriptKey,
-      "accountEnscriptKey",
-      "publicKey",
-    );
     const accountSignPem = await takosEncryptInk.exportKeyToPem(
-      accountSignKey,
+      accountKey,
       "accountSignKey",
       "publicKey",
     );

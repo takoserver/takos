@@ -4,7 +4,7 @@
     "specifiers": {
       "jsr:@hono/hono@^4.5.3": "jsr:@hono/hono@4.5.3",
       "jsr:@std/dotenv@^0.225.0": "jsr:@std/dotenv@0.225.0",
-      "jsr:@takos/takos-encrypt-ink@^0.2.0-unstable": "jsr:@takos/takos-encrypt-ink@0.2.0-unstable",
+      "jsr:@takos/takos-encrypt-ink@^0.2.1-unstable": "jsr:@takos/takos-encrypt-ink@0.2.1-unstable",
       "npm:@types/node": "npm:@types/node@18.16.19",
       "npm:imagescript@^1.3.0": "npm:imagescript@1.3.0",
       "npm:ky@^1.5.0": "npm:ky@1.5.0",
@@ -20,8 +20,8 @@
       "@std/dotenv@0.225.0": {
         "integrity": "44db32932c67df82790a3e6847d7007befb6cc22d71f2f3ee7b7d00e1f0d6c94"
       },
-      "@takos/takos-encrypt-ink@0.2.0-unstable": {
-        "integrity": "9ab4295032e8ce5574c4149764f873dd9aebecf25498fb4ac3c0b8324b9c5760"
+      "@takos/takos-encrypt-ink@0.2.1-unstable": {
+        "integrity": "a014d00bbc2f3aee392439bf9fa6aa178e5366792b020b868d220fb2f571d6ba"
       }
     },
     "npm": {
@@ -220,7 +220,7 @@
       "jsr:@hono/hono@^4.5.3",
       "jsr:@std/dotenv@^0.225.0",
       "jsr:@std/uuid@^1.0.0",
-      "jsr:@takos/takos-encrypt-ink@^0.2.0-unstable",
+      "jsr:@takos/takos-encrypt-ink@^0.2.1-unstable",
       "npm:imagescript@^1.3.0",
       "npm:ky@^1.5.0",
       "npm:mongoose@^8.5.2",
