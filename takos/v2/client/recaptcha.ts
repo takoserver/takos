@@ -7,10 +7,11 @@ const enableRecaptcha = env["recaptcha_enable"];
 
 const app = new Hono();
 
-app.get("/" , (c) => c.json({
+app.get("/", (c) =>
+  c.json({
     v2: sitekeyv2,
     v3: sitekeyv3,
-    useing: enableRecaptcha
-}));
+    useing: enableRecaptcha,
+  }));
 
 export default app;

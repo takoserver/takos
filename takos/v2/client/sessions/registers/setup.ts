@@ -4,7 +4,7 @@ import { checkNickName } from "@/utils/checks.ts";
 import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
 import user from "@/models/user.ts";
-import takosEncryptInk from "takosEncryptInk"
+import takosEncryptInk from "takosEncryptInk";
 import { checkRecapcha } from "@/utils/checkRecapcha.ts";
 import User from "@/models/user.ts";
 const app = new Hono();
@@ -37,7 +37,16 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
-  const { nickName, icon, recpatcha, recpatchaKind, age, account_sign_key, account_encript_key, device_key }: {
+  const {
+    nickName,
+    icon,
+    recpatcha,
+    recpatchaKind,
+    age,
+    account_sign_key,
+    account_encript_key,
+    device_key,
+  }: {
     nickName: string;
     icon: string;
     recpatcha: string;
@@ -73,9 +82,12 @@ app.post("/", async (c) => {
     });
   }
   if (!account_encript_key) {
-    return c.json({ status: false, error: "account_encript_key is not found" }, {
-      status: 500,
-    });
+    return c.json(
+      { status: false, error: "account_encript_key is not found" },
+      {
+        status: 500,
+      },
+    );
   }
   if (!device_key) {
     return c.json({ status: false, error: "device_key is not found" }, {
@@ -89,18 +101,42 @@ app.post("/", async (c) => {
   }
   const iconBuffer = takosEncryptInk.base64ToArrayBuffer(icon);
   const iconUint8Array = new Uint8Array(iconBuffer); // ArrayBufferをUint8Arrayに変換
-  if(age < 0 || age > 120){
+  if (age < 0 || age > 120) {
     return c.json({ status: false, error: "invalid age" }, {
       status: 500,
     });
   }
   try {
-    const accountEnscriptKey = await takosEncryptInk.importKeyFromPem(account_encript_key, "accountEnscriptKey", "publicKey");
-    const accountSignKey = await takosEncryptInk.importKeyFromPem(account_sign_key, "accountSignKey", "publicKey");
-    const deviceKey = await takosEncryptInk.importKeyFromPem(device_key, "deviceKey", "private");
-    const accountEnscriptPem = await takosEncryptInk.exportKeyToPem(accountEnscriptKey, "accountEnscriptKey", "publicKey");
-    const accountSignPem = await takosEncryptInk.exportKeyToPem(accountSignKey, "accountSignKey", "publicKey");
-    const devicePem = await takosEncryptInk.exportKeyToPem(deviceKey, "deviceKey", "private");
+    const accountEnscriptKey = await takosEncryptInk.importKeyFromPem(
+      account_encript_key,
+      "accountEnscriptKey",
+      "publicKey",
+    );
+    const accountSignKey = await takosEncryptInk.importKeyFromPem(
+      account_sign_key,
+      "accountSignKey",
+      "publicKey",
+    );
+    const deviceKey = await takosEncryptInk.importKeyFromPem(
+      device_key,
+      "deviceKey",
+      "private",
+    );
+    const accountEnscriptPem = await takosEncryptInk.exportKeyToPem(
+      accountEnscriptKey,
+      "accountEnscriptKey",
+      "publicKey",
+    );
+    const accountSignPem = await takosEncryptInk.exportKeyToPem(
+      accountSignKey,
+      "accountSignKey",
+      "publicKey",
+    );
+    const devicePem = await takosEncryptInk.exportKeyToPem(
+      deviceKey,
+      "deviceKey",
+      "private",
+    );
 
     await User.updateOne({ uuid: user.uuid }, {
       nickName: nickName,
@@ -112,14 +148,12 @@ app.post("/", async (c) => {
       setup: true,
     });
     return c.json({ status: true });
-  // deno-lint-ignore no-unused-vars
+    // deno-lint-ignore no-unused-vars
   } catch (error) {
     return c.json({ status: false, error: "invalid key" }, {
       status: 500,
     });
   }
-
-
 });
 
 export default app;

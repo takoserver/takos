@@ -22,7 +22,7 @@ app.post("/", async (c) => {
     return c.json({ status: false, error: "invalid request" }, { status: 400 });
   }
   if (!checkEmail(email)) {
-    console.log(email)
+    console.log(email);
     return c.json({ status: false, error: "invalid email" }, { status: 400 });
   }
   if (!await checkRecapcha(recapcha, recapchaKind)) {

@@ -12,7 +12,6 @@ const userSchema = new mongoose.Schema({
   },
   nickName: {
     type: String,
-    required: true,
   },
   password: {
     type: String,
@@ -40,20 +39,13 @@ const userSchema = new mongoose.Schema({
   },
   age: {
     type: Number,
-    required: true,
   },
   timestamp: { type: Date, default: Date.now },
-  accountSignKey: {
+  accountKey: {
     type: String,
-    required: true,
-  },
-  accountEnscriptKey: {
-    type: String,
-    required: true,
   },
   deviceKey: {
     type: String,
-    required: true,
   },
 });
 const User = mongoose.model("user", userSchema);

@@ -9,8 +9,6 @@ import {
 } from "./Enscript/RoomKey.ts";
 import generateAccountKey from "./generate/AccountKey.ts";
 import {
-  decriptAccountData,
-  enscriptAccountData,
   signAccountKey,
   verifyAccountKey,
 } from "./Enscript/AccountKey.ts";
@@ -57,29 +55,19 @@ console.log(
 
 const accountKey = await generateAccountKey();
 const pem4 = await exportKeyToPem(
-  accountKey.sign.privateKey,
+  accountKey.privateKey,
   "accountSignKey",
   "private",
 );
 const pem5 = await exportKeyToPem(
-  accountKey.sign.publicKey,
+  accountKey.publicKey,
   "accountSignKey",
-  "publicKey",
-);
-const pem6 = await exportKeyToPem(
-  accountKey.encript.privateKey,
-  "accountEnscriptKey",
-  "private",
-);
-const pem7 = await exportKeyToPem(
-  accountKey.encript.publicKey,
-  "accountEnscriptKey",
   "publicKey",
 );
 // 秘密鍵("RSA-PSS")のimport/exportのテスト
 console.log(
   await areKeysEqual(
-    accountKey.sign.privateKey,
+    accountKey.privateKey,
     await importKeyFromPem(pem4, "accountSignKey", "private"),
     "pkcs8",
   ),
@@ -87,28 +75,11 @@ console.log(
 // 公開鍵("RSA-PSS")のimport/exportのテスト
 console.log(
   await areKeysEqual(
-    accountKey.sign.publicKey,
+    accountKey.publicKey,
     await importKeyFromPem(pem5, "accountSignKey", "publicKey"),
     "spki",
   ),
 );
-// 秘密鍵("RSA-OAEP")のimport/exportのテスト
-console.log(
-  await areKeysEqual(
-    accountKey.encript.privateKey,
-    await importKeyFromPem(pem6, "accountEnscriptKey", "private"),
-    "pkcs8",
-  ),
-);
-// 公開鍵("RSA-OAEP")のimport/exportのテスト
-console.log(
-  await areKeysEqual(
-    accountKey.encript.publicKey,
-    await importKeyFromPem(pem7, "accountEnscriptKey", "publicKey"),
-    "spki",
-  ),
-);
-
 const deviceKey = await generateDeviceKey();
 
 const pem8 = await exportKeyToPem(deviceKey.privateKey, "deviceKey", "private");
@@ -139,10 +110,8 @@ console.log(
 //account_key
 async function main() {
   const accountKey = await generateAccountKey();
-  const signPrivateKey = accountKey.sign.privateKey;
-  const signPublicKey = accountKey.sign.publicKey;
-  const encryptPrivateKey = accountKey.encript.privateKey;
-  const encryptPublicKey = accountKey.encript.publicKey;
+  const signPrivateKey = accountKey.privateKey;
+  const signPublicKey = accountKey.publicKey;
 
   const data = "Sensitive account data";
 
@@ -153,17 +122,6 @@ async function main() {
   // 署名の検証
   const isVerified = await verifyAccountKey(data, signPublicKey, signature);
   console.log("Verified:", isVerified);
-
-  // データの暗号化
-  const encryptedData = await enscriptAccountData(data, encryptPublicKey);
-  //console.log("Encrypted Data:", encryptedData)
-
-  // データの複合化
-  const decryptedData = await decriptAccountData(
-    encryptedData,
-    encryptPrivateKey,
-  );
-  console.log("Decrypted Data:", decryptedData);
 }
 
 main().catch(console.error);

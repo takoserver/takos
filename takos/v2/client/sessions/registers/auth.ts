@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { checkEmail } from "@/utils/checkEmail.ts";
 import { checkRecapcha } from "@/utils/checkRecapcha.ts";
 import tempUsers from "@/models/tempUser.ts";
-import { checkPassword, checkUserName } from "../../../../utils/checks.ts";
+import { checkPassword, checkUserName } from "@/utils/checks.ts";
 import user from "@/models/user.ts";
 const app = new Hono();
 app.post("/", async (c) => {
@@ -15,13 +15,15 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
-  const { userName, password, email, recapcha, recapchaKind, sessionid } = body;
+  const { userName, password, email, recapcha, recapchaKind, token } = body;
+  const sessionid = token;
   if (
     !userName || !password || !email || !recapcha || !recapchaKind || !sessionid
   ) {
+    console.log(userName, password, email, recapcha, recapchaKind, sessionid);
     return c.json({ status: false, error: "invalid request" }, { status: 400 });
   }
-  if (checkEmail(email)) {
+  if (!checkEmail(email)) {
     return c.json({ status: false, error: "invalid email" }, { status: 400 });
   }
   if (!await checkRecapcha(recapcha, recapchaKind)) {
@@ -84,10 +86,10 @@ app.post("/", async (c) => {
   await user.create({
     uuid: crypto.randomUUID(),
     userName,
-    mail: email,
+    email,
     password: hashHex,
     salt: salt,
   });
-  c.json({ status: true }, { status: 200 });
+  return c.json({ status: true }, { status: 200 });
 });
 export default app;

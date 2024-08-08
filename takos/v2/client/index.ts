@@ -7,6 +7,7 @@ import temp from "./sessions/registers/temp.ts";
 import check from "./sessions/registers/check.ts";
 import csrftoken from "./csrftoken.ts";
 import recaptcha from "./recaptcha.ts";
+import auth from "./sessions/registers/auth.ts";
 
 const app = new Hono();
 
@@ -17,5 +18,6 @@ app.route("/bgimage", bgimage);
 app.route("/csrftoken", csrftoken);
 app.route("/sessions/registers/temp", temp);
 app.route("/sessions/registers/check", check);
+app.route("/sessions/registers/auth", auth);
 app.route("/recaptcha", recaptcha);
 export default app;

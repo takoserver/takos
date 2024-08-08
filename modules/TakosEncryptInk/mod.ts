@@ -9,8 +9,6 @@ import {
 } from "./Enscript/RoomKey.ts";
 import generateAccountKey from "./generate/AccountKey.ts";
 import {
-  decriptAccountData,
-  enscriptAccountData,
   signAccountKey,
   verifyAccountKey,
 } from "./Enscript/AccountKey.ts";
@@ -23,8 +21,6 @@ export default {
     generate: generateAccountKey,
     sign: signAccountKey,
     verify: verifyAccountKey,
-    enscriptData: enscriptAccountData,
-    decriptData: decriptAccountData,
   },
   roomKey: {
     generate: generateKeyPair,

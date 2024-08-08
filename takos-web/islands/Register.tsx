@@ -134,26 +134,27 @@ function MainRegister(
                 "g-recaptcha-response",
               ) as string;
               const res = await fetch(
-                "/api/v2/client/sessions/registers/auth",
+                "/takos/v2/client/sessions/registers/auth",
                 {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
+                    //recapcha === undefined, recapchaKind === undefined
                     email: state.email.value,
                     password: state.password.value,
                     userName: state.userName.value,
                     token: state.token.value,
-                    recaptcha: recapchav2,
-                    recaptchakind: "v2",
+                    recapcha: recapchav2,
+                    recapchaKind: "v2",
                   }),
                 },
               );
               data = await res.json();
             } else {
               const res = await fetch(
-                "/api/v2/client/sessions/registers/auth",
+                "/takos/v2/client/sessions/registers/auth",
                 {
                   method: "POST",
                   headers: {
@@ -164,8 +165,8 @@ function MainRegister(
                     password: state.password.value,
                     userName: state.userName.value,
                     token: state.token.value,
-                    recaptcha: state.recapchav3.value,
-                    recaptchakind: "v3",
+                    recapcha: state.recapchav3.value,
+                    recapchaKind: "v3",
                   }),
                 },
               );
@@ -182,6 +183,7 @@ function MainRegister(
               state.RegisterPage.value = 4;
               state.recapchav3Failed.value = false;
               state.recapchav3.value = "";
+              state.RecapchaLoaded.value = false;
               state.token.value = "";
               state.email.value = "";
               state.showWindow.value = "login";
@@ -339,12 +341,15 @@ function CheckEmail({ state, sitekeyv2 }: { state: any; sitekeyv2: string }) {
             }
             if (data.status === true) {
               console.log(data);
-              state.RegisterPage.value = 2;
-              state.recapchav3Failed.value = false;
               state.recapchav3.value = "";
+              state.RegisterPage.value = 2;
+              console.log(state.RecapchaLoaded.value);
+              state.RecapchaLoaded.value = false;
+              state.recapchav3Failed.value = false;
               return;
             }
             if (data.status === false) {
+              state.RecapchaLoaded.value = false;
               alert(data.message);
             }
           }}
@@ -472,7 +477,6 @@ function SendEmailRegisterRequest(
               state.recapchav3.value = "";
               state.token.value = data.token;
               state.RecapchaLoaded.value = false;
-              console.log(data);
               return;
             }
             if (data.status === false) {
@@ -494,7 +498,7 @@ function SendEmailRegisterRequest(
                   break;
                 default:
                   alert("エラーが発生しました: " + data.message);
-                  console.log(data)
+                  console.log(data);
                   break;
               }
             }

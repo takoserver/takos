@@ -65,7 +65,14 @@ html,body {
 .scroll-animation {
     animation: scroll 25s linear infinite;
 }
-
+.g-recaptcha {
+    margin-right:auto;
+    margin-left:auto;
+    text-align: center;
+    width:300px;
+    margin-top:20px;
+  }
+.grecaptcha-badge { visibility: hidden; }
 ::-webkit-scrollbar {
     background: #000;
     width:0px;
