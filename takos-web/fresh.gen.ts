@@ -17,6 +17,7 @@ import * as $ChatSend from "./islands/ChatSend.tsx";
 import * as $ChatTalkContent from "./islands/ChatTalkContent.tsx";
 import * as $ChatTalkTitle from "./islands/ChatTalkTitle.tsx";
 import * as $ChatTalkTitleContent from "./islands/ChatTalkTitleContent.tsx";
+import * as $Default from "./islands/Default.tsx";
 import * as $FriendRequest from "./islands/FriendRequest.tsx";
 import * as $Login from "./islands/Login.tsx";
 import * as $ReCapcha from "./islands/ReCapcha.tsx";
@@ -25,7 +26,6 @@ import * as $RequestFriendById from "./islands/RequestFriendById.tsx";
 import * as $TalkListContent from "./islands/TalkListContent.tsx";
 import * as $getAddFriendKey from "./islands/getAddFriendKey.tsx";
 import * as $headerButton from "./islands/headerButton.tsx";
-import * as $setDefaultState from "./islands/setDefaultState.tsx";
 import * as $setup from "./islands/setup.tsx";
 import * as $talkListHeader from "./islands/talkListHeader.tsx";
 import { type Manifest } from "$fresh/server.ts";
@@ -49,6 +49,7 @@ const manifest = {
     "./islands/ChatTalkContent.tsx": $ChatTalkContent,
     "./islands/ChatTalkTitle.tsx": $ChatTalkTitle,
     "./islands/ChatTalkTitleContent.tsx": $ChatTalkTitleContent,
+    "./islands/Default.tsx": $Default,
     "./islands/FriendRequest.tsx": $FriendRequest,
     "./islands/Login.tsx": $Login,
     "./islands/ReCapcha.tsx": $ReCapcha,
@@ -57,7 +58,6 @@ const manifest = {
     "./islands/TalkListContent.tsx": $TalkListContent,
     "./islands/getAddFriendKey.tsx": $getAddFriendKey,
     "./islands/headerButton.tsx": $headerButton,
-    "./islands/setDefaultState.tsx": $setDefaultState,
     "./islands/setup.tsx": $setup,
     "./islands/talkListHeader.tsx": $talkListHeader,
   },

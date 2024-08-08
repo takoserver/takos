@@ -1,7 +1,7 @@
 import Header from "../components/header.tsx";
 import TalkListHeader from "../islands/talkListHeader.tsx";
 import TalkListContent from "../islands/TalkListContent.tsx";
-import SetDefaultState from "../islands/setDefaultState.tsx";
+import SetDefaultState from "../islands/Default.tsx";
 import { effect, signal } from "@preact/signals";
 import { createContext } from "preact";
 import { AppStateType } from "../util/types.ts";
@@ -9,7 +9,7 @@ import Main from "./chatmain.tsx";
 function createAppState(obj: {
   isChoiceUser: boolean;
   roomid: string;
-  userName: string;
+  userName?: string;
   page: number;
   friendid?: string;
 }): AppStateType {
@@ -32,7 +32,7 @@ function createAppState(obj: {
     talkData: talkData,
     roomid: roomid,
     sessionid: sessionid,
-    userName: obj.userName,
+    userName: obj.userName || "",
     friendList: friendList,
     roomName: roomName,
     page: page,
@@ -43,13 +43,11 @@ function createAppState(obj: {
     ChatUserInfo: ChatUserInfo,
   };
 }
-function chat(props: { page: any; userName: string; friendid?: string }) {
+function chat(props: { page: any }) {
   const AppState = createAppState({
     isChoiceUser: false,
     roomid: "",
-    userName: props.userName,
     page: props.page,
-    friendid: props.friendid,
   });
   return (
     <>

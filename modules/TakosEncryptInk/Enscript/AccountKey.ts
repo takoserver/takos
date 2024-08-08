@@ -32,7 +32,4 @@ async function verifyAccountKey(
   return result;
 }
 
-export {
-  signAccountKey,
-  verifyAccountKey,
-};
+export { signAccountKey, verifyAccountKey };

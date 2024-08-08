@@ -3,6 +3,11 @@ import { AppStateType } from "../util/types.ts";
 import { setIschoiseUser } from "../util/takosClient.ts";
 export default function setDefaultState({ state }: { state: AppStateType }) {
   useEffect(() => {
+    //loginしているか、していたら基本情報を取得
+    const cookie = document.cookie;
+    const sessionid = cookie.split("sessionid=")[1];
+  }, []);
+  useEffect(() => {
     async function setDefaultState() {
       const friendListData = await fetch("/api/v2/client/friends/list");
       const friendListJson = await friendListData.json();

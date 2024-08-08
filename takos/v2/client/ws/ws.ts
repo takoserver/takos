@@ -8,8 +8,8 @@ const env = await load();
 const redisURL = env["REDIS_URL"];
 const redisch = env["REDIS_CH"];
 const subClient = redis.createClient({
-    url: redisURL,
-})
+  url: redisURL,
+});
 await subClient.connect();
 const app = new Hono();
 interface WebSocketSessionObject {
@@ -31,21 +31,21 @@ async function subscribeMessage(channel: string | string[]) {
   });
 }
 app.get(
-    "/",
-    (c) => {
-      const cookie = getCookie(c, "sessionid");
-      if (!cookie) {
-        return c.json({
-          status: false,
-          message: "sessionid is not found",
-        });
-      }
+  "/",
+  (c) => {
+    const cookie = getCookie(c, "sessionid");
+    if (!cookie) {
       return c.json({
-        status: true,
-        message: "Hello World",
+        status: false,
+        message: "sessionid is not found",
       });
-    },
-  );
+    }
+    return c.json({
+      status: true,
+      message: "Hello World",
+    });
+  },
+);
 /**メインコンテンツ終了*/
 await subscribeMessage(redisch);
 function UpdateLastActivityTime(sessionId: string) {

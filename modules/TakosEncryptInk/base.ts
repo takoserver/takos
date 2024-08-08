@@ -15,4 +15,35 @@ function ArrayBuffertoBase64(buffer: ArrayBuffer): string {
   }
   return globalThis.btoa(binary);
 }
-export { ArrayBuffertoBase64, base64ToArrayBuffer };
+
+//FileをArrayBufferに変換
+
+function fileToArrayBuffer(file: File): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result instanceof ArrayBuffer) {
+        resolve(reader.result);
+      } else {
+        reject(new Error("Failed to read file"));
+      }
+    };
+    reader.onerror = () => {
+      reject(new Error("Failed to read file"));
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+//ArrayBufferをFileに変換
+
+function arrayBufferToFile(arrayBuffer: ArrayBuffer, fileName: string): File {
+  const blob = new Blob([arrayBuffer]);
+  return new File([blob], fileName);
+}
+export {
+  ArrayBuffertoBase64,
+  arrayBufferToFile,
+  base64ToArrayBuffer,
+  fileToArrayBuffer,
+};

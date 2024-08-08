@@ -8,13 +8,15 @@ import {
   encryptRoomKeyTextData,
 } from "./Enscript/RoomKey.ts";
 import generateAccountKey from "./generate/AccountKey.ts";
-import {
-  signAccountKey,
-  verifyAccountKey,
-} from "./Enscript/AccountKey.ts";
+import { signAccountKey, verifyAccountKey } from "./Enscript/AccountKey.ts";
 import { decriptDeviceKey, enscriptDeviceKey } from "./Enscript/DeviceKey.ts";
 import generateDeviceKey from "./generate/DeviceKey.ts";
-import { ArrayBuffertoBase64, base64ToArrayBuffer } from "./base.ts";
+import {
+  ArrayBuffertoBase64,
+  arrayBufferToFile,
+  base64ToArrayBuffer,
+  fileToArrayBuffer,
+} from "./base.ts";
 
 export default {
   accountKey: {
@@ -38,4 +40,6 @@ export default {
   areKeysEqual,
   base64ToArrayBuffer,
   ArrayBuffertoBase64,
+  fileToArrayBuffer,
+  arrayBufferToFile,
 };

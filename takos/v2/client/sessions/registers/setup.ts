@@ -50,6 +50,7 @@ app.post("/", async (c) => {
     icon: string;
     recpatcha: string;
     age: number;
+    account_key: string;
     device_key: string;
     recpatchaKind: "v2" | "v3";
   } = body;
@@ -108,7 +109,7 @@ app.post("/", async (c) => {
     );
     const accountSignPem = await takosEncryptInk.exportKeyToPem(
       accountKey,
-      "accountSignKey",
+      "accountKey",
       "publicKey",
     );
     const devicePem = await takosEncryptInk.exportKeyToPem(
@@ -121,8 +122,7 @@ app.post("/", async (c) => {
       nickName: nickName,
       icon: iconUint8Array,
       age: age,
-      accountEnscriptKey: accountEnscriptPem,
-      accountSignKey: accountSignPem,
+      accountKey: accountSignPem,
       deviceKey: devicePem,
       setup: true,
     });

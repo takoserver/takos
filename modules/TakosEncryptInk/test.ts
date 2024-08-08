@@ -8,10 +8,7 @@ import {
   encryptRoomKeyTextData,
 } from "./Enscript/RoomKey.ts";
 import generateAccountKey from "./generate/AccountKey.ts";
-import {
-  signAccountKey,
-  verifyAccountKey,
-} from "./Enscript/AccountKey.ts";
+import { signAccountKey, verifyAccountKey } from "./Enscript/AccountKey.ts";
 import { decriptDeviceKey, enscriptDeviceKey } from "./Enscript/DeviceKey.ts";
 import generateDeviceKey from "./generate/DeviceKey.ts";
 
@@ -56,12 +53,12 @@ console.log(
 const accountKey = await generateAccountKey();
 const pem4 = await exportKeyToPem(
   accountKey.privateKey,
-  "accountSignKey",
+  "accountKey",
   "private",
 );
 const pem5 = await exportKeyToPem(
   accountKey.publicKey,
-  "accountSignKey",
+  "accountKey",
   "publicKey",
 );
 // 秘密鍵("RSA-PSS")のimport/exportのテスト

@@ -1,8 +1,8 @@
 import Chat from "../../components/chat.tsx";
-export default function Home({ data }: { data: any }) {
+export default function Home() {
   return (
     <>
-      <Chat page={3} userName={data.userName} friendid={data.name} />
+      <Chat page={3} />
     </>
   );
 }
