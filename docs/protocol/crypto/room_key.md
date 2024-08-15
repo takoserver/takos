@@ -2,35 +2,23 @@
 
 ## room_keyとは
 
-room_keyは、チャットルームに参加する各アカウントが秘密鍵と共通鍵を持つ暗号化システムです。この仕組みにより、チャットルーム内のメッセージを暗号化して送受信できます。
+room_keyは、チャットルームに参加する各アカウントが秘密鍵と共通鍵を持つ暗号化システムです。この仕組みにより、チャットルーム内のメッセージを暗号化して送受信できます。groupではroom_keyを使用してgroup_keyを配布して通信する。
+アルゴリズム: rsa-oaep
 
-room_keyの信用はaccount_keyに依存する
+##　room_keyの構造
 
-## room_keyの構造
-
-rsassa-pkcs1-v1_5を使用して、鍵ペアを生成し、accountKeyで署名し次のようなオブジェクトをサーバーにアップロードします。
-
-```ts
+```json
 {
-    key: {
-        publicKey: string,
-        roomId: string,
-        timestamp: string
-    }
-    signature: string
+    "roomKeyPubPem": "string",
+    "accountKeyUUID": "",
+    "sign": "",
+    "uuid": "uuid v7",
+    "uuidSign": ""
 }
 ```
 
-## room_keyの更新
-
-最新のaccount_keyで署名しサーバーにアップロードする。
-room_keyは頻繁に更新する必要がある。
-
-# takos-web Endpoint `POST /takos/client/crypto/roomkey/`
-
-| 名前      | 型     | 説明                        | 必須 |
-| --------- | ------ | --------------------------- | ---- |
-| room_key  | string | ルーム鍵(公開)              | true |
-| room_id   | string | ルームid                    | true |
-| signature | string | account_keyでroom_keyを署名 | true |
-| csrftoken | string | CSRFトークン                | true |
+roomKeyPubPem roomKeyをpem形式にしたもの
+accountKeyUUID 署名したaccountkeyのuuid
+sign accountKeyの署名
+uuid room_keyのuuid
+uuidSign roomKeyPubPemとuuidをaccountKeyで署名したもの
