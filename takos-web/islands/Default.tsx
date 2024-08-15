@@ -4,8 +4,37 @@ import { setIschoiseUser } from "../util/takosClient.ts";
 export default function setDefaultState({ state }: { state: AppStateType }) {
   useEffect(() => {
     //loginしているか、していたら基本情報を取得
-    const cookie = document.cookie;
-    const sessionid = cookie.split("sessionid=")[1];
+    async function setDefaultState() {
+      const userInfoData = await fetch("/takos/v2/client/profile").then((res) =>
+        res.json()
+      );
+      if (!userInfoData.status) {
+        window.location.href = "/";
+      }
+      state.userName.value = userInfoData.userName;
+
+      const request = indexedDB.open("takos", 1);
+      /*
+      const request = indexedDB.open("takos", 1);
+
+      request.onupgradeneeded = function(event){
+        //onupgradeneededは、DBのバージョン更新(DBの新規作成も含む)時のみ実行
+          const db = (event.target as IDBOpenDBRequest)?.result;
+          const objectSotre = db.createObjectStore("keies", {keyPath : "id"});
+          objectSotre.createIndex("keyName", "keyName", {unique: true});
+          objectSotre.createIndex("value", "value", {unique: false});
+      }
+        request.onsuccess = function(event){
+        //onupgradeneededの後に実行。更新がない場合はこれだけ実行
+          console.log('db open success');
+        }
+        request.onerror = function(event){
+        // 接続に失敗
+          console.log('db open error');
+        }
+        */
+    }
+    setDefaultState();
   }, []);
   useEffect(() => {
     async function setDefaultState() {

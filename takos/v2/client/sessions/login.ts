@@ -61,8 +61,9 @@ app.post("/", async (c) => {
     }
     const sessionid = createSessionid();
     await Sessionid.create({
-      sessionId: sessionid,
+      sessionid,
       uuid: emailUser.uuid,
+      enable: true,
     });
     setCookie(c, "sessionid", sessionid);
   }
@@ -91,12 +92,13 @@ app.post("/", async (c) => {
     }
     const sessionid = createSessionid();
     await Sessionid.create({
-      sessionId: sessionid,
+      sessionid,
       uuid: userNameUser.uuid,
+      enable: true,
     });
     setCookie(c, "sessionid", sessionid);
   }
-  c.json({ status: true }, { status: 200 });
+  return c.json({ status: true }, { status: 200 });
 });
 
 export default app;

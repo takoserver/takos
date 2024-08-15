@@ -43,7 +43,7 @@ function Login({ state }: { state: any }) {
               e.preventDefault();
               const isEmail = checkEmail(state.LoginName.value);
               if (isEmail) {
-                const res = await fetch("/api/v2/client/sessions/login", {
+                const res = await fetch("/takos/v2/client/sessions/login", {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -56,11 +56,13 @@ function Login({ state }: { state: any }) {
                 const data = await res.json();
                 if (data.status === true) {
                   state.showWindow.value = "";
+                  //リダイレクト
+                  window.location.href = "/talk";
                 } else {
                   alert("ログインに失敗しました");
                 }
               } else {
-                const res = await fetch("/api/v2/client/sessions/login", {
+                const res = await fetch("/takos/v2/client/sessions/login", {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
@@ -74,7 +76,7 @@ function Login({ state }: { state: any }) {
                 if (data.status === true) {
                   state.showWindow.value = "";
                   //リダイレクト
-                  window.location.href = "/";
+                  window.location.href = "/talk";
                 } else {
                   alert("ログインに失敗しました");
                 }

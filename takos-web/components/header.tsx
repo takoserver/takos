@@ -9,7 +9,7 @@ export default function ChatHeader(props: { state: any }) {
         <div class="l-header-logo">
           <a href="/talk">
             <img
-              src="/api/v2/client/users/icon"
+              src="/takos/v2/client/profile/icon"
               alt="takos"
               class="rounded-full"
             />

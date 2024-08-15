@@ -1,11 +1,11 @@
 import { Hono } from "hono";
-import { getCookie } from "hono/cookie";
+import { getCookie, setCookie } from "hono/cookie";
 import User from "@/models/user.ts";
 import Sessionid from "@/models/sessionid.ts";
 
 const app = new Hono();
 
-app.get("/", async (c) => {
+app.post("/", async (c) => {
   const sessionid = getCookie(c, "sessionid");
   if (!sessionid) {
     return c.json({ status: false, error: "sessionid is not found" }, {
@@ -24,15 +24,10 @@ app.get("/", async (c) => {
       status: 500,
     });
   }
+  await Sessionid.deleteOne({ sessionid });
+  setCookie(c, "sessionid", "");
   return c.json({
     status: true,
-    data: {
-      userName: userInfo.userName,
-      nickName: userInfo.nickName,
-      age: userInfo.age,
-      device_key: userInfo.deviceKey,
-      setup: userInfo.setup,
-    },
   }, 200);
 });
 

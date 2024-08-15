@@ -2,7 +2,7 @@ import Header from "../components/header.tsx";
 import TalkListHeader from "../islands/talkListHeader.tsx";
 import TalkListContent from "../islands/TalkListContent.tsx";
 import SetDefaultState from "../islands/Default.tsx";
-import { effect, signal } from "@preact/signals";
+import { effect, signal, useSignal } from "@preact/signals";
 import { createContext } from "preact";
 import { AppStateType } from "../util/types.ts";
 import Main from "./chatmain.tsx";
@@ -32,7 +32,7 @@ function createAppState(obj: {
     talkData: talkData,
     roomid: roomid,
     sessionid: sessionid,
-    userName: obj.userName || "",
+    userName: useSignal(obj.userName || ""),
     friendList: friendList,
     roomName: roomName,
     page: page,

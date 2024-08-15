@@ -1,17 +1,19 @@
 // books.ts
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
-import ping from "./ping.ts";
-import bgimage from "./bgimage.ts";
-import temp from "./sessions/registers/temp.ts";
-import check from "./sessions/registers/check.ts";
-import csrftoken from "./csrftoken.ts";
-import recaptcha from "./recaptcha.ts";
-import auth from "./sessions/registers/auth.ts";
-import icon from "./profile/icon.ts";
-import userName from "./profile/userName.ts";
-import profile from "./profile/profile.ts";
-import nickName from "./profile/nickName.ts";
+import ping from "@/v2/client/ping.ts";
+import bgimage from "@/v2/client/bgimage.ts";
+import temp from "@/v2/client/sessions/registers/temp.ts";
+import check from "@/v2/client/sessions/registers/check.ts";
+import csrftoken from "@/v2/client/csrftoken.ts";
+import recaptcha from "@/v2/client/recaptcha.ts";
+import auth from "@/v2/client/sessions/registers/auth.ts";
+import icon from "@/v2/client/profile/icon.ts";
+import userName from "@/v2/client/profile/userName.ts";
+import profile from "@/v2/client/profile/profile.ts";
+import nickName from "@/v2/client/profile/nickName.ts";
+import login from "@/v2/client/sessions/login.ts";
+import logout from "@/v2/client/sessions/logout.ts";
 
 const app = new Hono();
 
@@ -28,4 +30,6 @@ app.route("/profile/icon", icon);
 app.route("/profile/userName", userName);
 app.route("/profile/nickName", nickName);
 app.route("/profile", profile);
+app.route("/sessions/login", login);
+app.route("/sessions/logout", logout);
 export default app;

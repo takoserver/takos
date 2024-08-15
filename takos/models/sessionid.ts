@@ -15,7 +15,14 @@ const sessionidSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  limit: { type: Date, default: Date.now, expires: 60 * 60 * 24 * 7 },
+  //有効かどうか 期限が切れ場合falseにし、再びログインすることでtrueになる
+  enable: {
+    type: Boolean,
+    default: true,
+  },
+  deviceKey: {
+    type: String,
+  },
 });
 const Sessionid = mongoose.model("sessionid", sessionidSchema);
 export default Sessionid;
