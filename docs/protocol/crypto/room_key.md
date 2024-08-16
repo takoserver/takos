@@ -9,16 +9,14 @@ room_keyは、チャットルームに参加する各アカウントが秘密鍵
 
 ```json
 {
-    "roomKeyPubPem": "string",
-    "accountKeyUUID": "",
-    "sign": "",
-    "uuid": "uuid v7",
-    "uuidSign": ""
+  "roomKeyPubPem": "string",
+  "accountKeyUUID": "",
+  "sign": "",
+  "uuid": "uuid v7",
+  "uuidSign": ""
 }
 ```
 
-roomKeyPubPem roomKeyをpem形式にしたもの
-accountKeyUUID 署名したaccountkeyのuuid
-sign accountKeyの署名
-uuid room_keyのuuid
-uuidSign roomKeyPubPemとuuidをaccountKeyで署名したもの
+roomKeyPubPem roomKeyをpem形式にしたもの accountKeyUUID 署名したaccountkeyのuuid
+sign accountKeyの署名 uuid room_keyのuuid uuidSign
+roomKeyPubPemとuuidをaccountKeyで署名したもの

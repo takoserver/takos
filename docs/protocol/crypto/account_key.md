@@ -20,6 +20,7 @@ account鍵にはそれぞれにuuid v7が割り振られています。
 鍵の構造
 
 初回はsignは不要
+
 ```ts
 {
   accountKeyPubPem: --pemkey--,
@@ -43,12 +44,13 @@ account鍵にはそれぞれにuuid v7が割り振られています。
 ```
 
 ### 鍵の再発行
+
 次のjsonを各サーバーのエンドポイントに送信
 
 ```json
 {
   "accountKeyPubPem": "",
   "uuid": "",
-  "uuidSgin": "",
+  "uuidSgin": ""
 }
 ```

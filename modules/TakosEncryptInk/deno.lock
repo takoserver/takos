@@ -1,0 +1,15 @@
+{
+  "version": "3",
+  "packages": {
+    "specifiers": {
+      "npm:base64-arraybuffer": "npm:base64-arraybuffer@1.0.2"
+    },
+    "npm": {
+      "base64-arraybuffer@1.0.2": {
+        "integrity": "sha512-I3yl4r9QB5ZRY3XuJVEPfc2XhZO6YweFPI+UovAzn+8/hb3oJ6lnysaFcjVpkCPfVWFUDvoZ8kmVDP7WyRtYtQ==",
+        "dependencies": {}
+      }
+    }
+  },
+  "remote": {}
+}

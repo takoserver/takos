@@ -24,13 +24,13 @@ app.get("/", async (c) => {
       status: 500,
     });
   }
-  let icon
+  let icon;
   try {
     icon = await Deno.readFile(`./files/userIcon/${userInfo.uuid}.jpeg`);
   } catch (_error) {
     icon = await Deno.readFile(`./people.jpeg`);
   }
-  return c.body(icon,200);
+  return c.body(icon, 200);
 });
 
 export default app;
