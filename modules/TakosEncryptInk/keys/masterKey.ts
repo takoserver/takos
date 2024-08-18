@@ -1,8 +1,8 @@
 //アルゴリズムはrsa-pss 鍵長は4096
 
 export function generateMasterKey(): Promise<{
-  publicKey: CryptoKey;
-  privateKey: CryptoKey;
+  publicKey: CryptoKey
+  privateKey: CryptoKey
 }> {
   return crypto.subtle.generateKey(
     {
@@ -13,7 +13,7 @@ export function generateMasterKey(): Promise<{
     },
     true,
     ["sign", "verify"],
-  );
+  )
 }
 
 export function signMasterKey(
@@ -27,8 +27,8 @@ export function signMasterKey(
     },
     privateKey,
     data,
-  );
-  return result;
+  )
+  return result
 }
 
 export function verifyMasterKey(
@@ -44,5 +44,5 @@ export function verifyMasterKey(
     publicKey,
     signature,
     data,
-  );
+  )
 }

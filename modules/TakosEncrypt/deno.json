@@ -1,0 +1,13 @@
+{
+  "tasks": {
+    "dev": "deno run --watch main.ts"
+  },
+
+  "name": "@takos/takos-encrypt-ink",
+  "version": "0.3.0-unstable",
+  "exports": "./mod.ts",
+  "fmt": {
+    "lineWidth": 100,
+    "semiColons": false
+  }
+}

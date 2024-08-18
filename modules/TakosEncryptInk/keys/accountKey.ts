@@ -1,14 +1,9 @@
 //アルゴリズムはrsa-oaep 鍵長は2048
-import type {
-  accountKey,
-  accountKeyPrivate,
-  accountKeyPub,
-  Sign,
-} from "../types.ts";
-import { signIdentityKey } from "./identityKey.ts";
-import { exportfromJWK } from "../import.ts";
-import { digestMessage } from "../utils/hash.ts";
-import { encodeBase64 } from "./base64.ts";
+import type { accountKey, accountKeyPrivate, accountKeyPub, Sign } from "../types.ts"
+import { signIdentityKey } from "./identityKey.ts"
+import { exportfromJWK } from "../import.ts"
+import { digestMessage } from "../utils/hash.ts"
+import { encodeBase64 } from "./base64.ts"
 
 export async function generateAccountKey(
   identityKeyPub: CryptoKey,
@@ -23,46 +18,36 @@ export async function generateAccountKey(
     },
     true,
     ["encrypt", "decrypt"],
-  );
-  const publicKeyJWK = await exportfromJWK(keyPair.publicKey);
-  const privateKeyJWK = await exportfromJWK(keyPair.privateKey);
+  )
+  const publicKeyJWK = await exportfromJWK(keyPair.publicKey)
+  const privateKeyJWK = await exportfromJWK(keyPair.privateKey)
   const signature = await signIdentityKey(
     identityKeyPriv,
     new TextEncoder().encode(JSON.stringify(publicKeyJWK)),
-  );
-  const masterKeyJWK = await exportfromJWK(identityKeyPub);
-  const masterKeyHash = await digestMessage(JSON.stringify(masterKeyJWK));
-  const keyExpiration = new Date();
-  keyExpiration.setFullYear(keyExpiration.getFullYear() + 1);
+  )
+  const masterKeyJWK = await exportfromJWK(identityKeyPub)
+  const masterKeyHash = await digestMessage(JSON.stringify(masterKeyJWK))
+  const keyExpiration = new Date()
+  keyExpiration.setFullYear(keyExpiration.getFullYear() + 1)
   const publicKey: accountKeyPub = {
     key: publicKeyJWK,
     keyType: "accountPub",
-    keyExpiration: keyExpiration.toISOString(),
     sign: {
       signature: encodeBase64(signature),
       hashedPublicKeyHex: masterKeyHash,
       type: "master",
     },
-    keyExpirationSign: {
-      signature: encodeBase64(
-        await signIdentityKey(
-          identityKeyPriv,
-          new TextEncoder().encode(keyExpiration.toISOString()),
-        ),
-      ),
-      hashedPublicKeyHex: masterKeyHash,
-      type: "identity",
-    },
-  };
+  }
   const privateKey: accountKeyPrivate = {
     key: privateKeyJWK,
     keyType: "accountPrivate",
-    keyExpiration: keyExpiration.toISOString(),
-  };
+  }
   return {
     public: publicKey,
     private: privateKey,
-  };
+    //identityKeyの公開鍵をhash化し、16進数文字列に変換したもの,
+    hashHex: masterKeyHash,
+  }
 }
 
 export function signAccountKey(
@@ -76,7 +61,7 @@ export function signAccountKey(
     },
     privateKey,
     data,
-  );
+  )
 }
 
 export function verifyAccountKey(
@@ -92,7 +77,7 @@ export function verifyAccountKey(
     publicKey,
     signature,
     data,
-  );
+  )
 }
 
 //期限切れかどうかを判定する関数

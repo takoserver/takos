@@ -3,7 +3,7 @@ import type {
   accountKeyPub,
   identityKeyPrivate,
   identityKeyPub,
-} from "./types.ts";
+} from "./types.ts"
 
 export async function importKey(
   inputKey:
@@ -11,53 +11,57 @@ export async function importKey(
     | identityKeyPrivate
     | accountKeyPub
     | accountKeyPrivate,
+  usages?: "public" | "private",
 ): Promise<CryptoKey> {
-  const jwk = inputKey.key;
-  const keyType = inputKey.keyType;
-  let type: string;
+  const jwk = inputKey.key
+  const keyType = inputKey.keyType
+  let type: string
   switch (keyType) {
     case "identityPub":
-      type = "RSA-PSS";
-      break;
+      type = "RSA-PSS"
+      break
     case "identityPrivate":
-      type = "RSA-OAEP";
-      break;
+      type = "RSA-PSS"
+      break
     case "accountPub":
-      type = "RSA-PSS";
-      break;
+      type = "RSA-OAEP"
+      break
     case "accountPrivate":
-      type = "RSA-OAEP";
-      break;
+      type = "RSA-OAEP"
+      break
     default:
-      throw new Error(`Unsupported keyType: ${keyType}`);
+      throw new Error(`Unsupported keyType: ${keyType}`)
   }
-  let key: CryptoKey;
+  let key: CryptoKey
   if (type === "RSA-OAEP") {
+    const keyUsages: KeyUsage[] = usages === "public" ? ["encrypt"] : ["decrypt"]
     key = await crypto.subtle.importKey(
       "jwk",
       jwk,
       { name: type, hash: { name: "SHA-256" } },
       true,
-      ["encrypt", "decrypt"],
-    );
+      keyUsages,
+    )
   } else if (type === "RSA-PSS") {
+    const keyUsages: KeyUsage[] = usages === "public" ? ["verify"] : ["sign"]
     key = await crypto.subtle.importKey(
       "jwk",
       jwk,
       { name: type, hash: { name: "SHA-256" } },
       true,
-      ["sign", "verify"],
-    );
+      keyUsages,
+    )
   } else if (type === "AES-GCM") {
     key = await crypto.subtle.importKey("jwk", jwk, { name: "AES-GCM" }, true, [
       "encrypt",
       "decrypt",
-    ]);
+    ])
   } else {
-    throw new Error(`Unsupported type: ${type}`);
+    throw new Error(`Unsupported type: ${type}`)
   }
-  return key;
+  return key
 }
+
 export function exportfromJWK(key: CryptoKey): Promise<JsonWebKey> {
-  return crypto.subtle.exportKey("jwk", key);
+  return crypto.subtle.exportKey("jwk", key)
 }

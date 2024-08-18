@@ -8,7 +8,7 @@ export function generateRoomKey(): Promise<CryptoKey> {
     },
     true,
     ["encrypt", "decrypt"],
-  );
+  )
 }
 
 //共通鍵で暗号化vi追加
@@ -17,10 +17,10 @@ export async function encryptRoomKey(
   roomKey: CryptoKey,
   data: ArrayBuffer,
 ): Promise<{
-  iv: ArrayBuffer;
-  encrypted: ArrayBuffer;
+  iv: ArrayBuffer
+  encrypted: ArrayBuffer
 }> {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const iv = crypto.getRandomValues(new Uint8Array(12))
   const encrypted = await crypto.subtle.encrypt(
     {
       name: "AES-GCM",
@@ -28,11 +28,11 @@ export async function encryptRoomKey(
     },
     roomKey,
     data,
-  );
+  )
   return {
     iv: iv.buffer,
     encrypted: encrypted,
-  };
+  }
 }
 
 export function decryptRoomKey(
@@ -47,5 +47,5 @@ export function decryptRoomKey(
     },
     roomKey,
     encrypted,
-  );
+  )
 }
