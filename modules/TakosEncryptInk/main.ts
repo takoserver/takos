@@ -365,7 +365,7 @@ export async function verifyDeviceKey(
 export async function verifyIdentityKey(
   masterKeyPub: MasterKeyPub,
   identityKey: IdentityKeyPub,
-) {
+): Promise<boolean> {
   const masterKeyHashHex = await generateKeyHashHex(masterKeyPub.key)
   if (identityKey.sign.hashedPublicKeyHex !== masterKeyHashHex) {
     return false
