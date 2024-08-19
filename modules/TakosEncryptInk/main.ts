@@ -1,4 +1,4 @@
-import {
+import type {
   AccountKey,
   AccountKeyPrivate,
   AccountKeyPub,
@@ -10,7 +10,7 @@ import {
   MasterKeyPub,
   Sign,
 } from "./types.ts"
-import { decode, encode } from "npm:base64-arraybuffer"
+import { decode, encode } from "base64-arraybuffer"
 
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return encode(buffer)
@@ -309,6 +309,7 @@ export async function verifyKeyExpiration(
     return false
   }
 }
+/*
 
 const masterKey = await createMasterKey()
 const { identityKey, accountKey } = await createIdentityKeyAndAccountKey(masterKey)
@@ -329,3 +330,4 @@ console.log(
   await verifyKeyExpiration(masterKey.public, { keyExpiration: time, keyExpirationSign: sign2 }),
 )
 console.log(await verifyKeyExpiration(masterKey.public, identityKey.public))
+*/

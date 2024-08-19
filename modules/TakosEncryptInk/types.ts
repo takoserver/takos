@@ -1,67 +1,90 @@
+// 署名情報を格納する型
 type Sign = {
-  //arrayBufferをbase64に変換したもの
-  signature: string
-  //署名した鍵の公開鍵をhash化し、16進数文字列に変換したもの
-  hashedPublicKeyHex: string
-  type: "master" | "identity"
+  signature: string // ArrayBufferをbase64に変換したもの
+  hashedPublicKeyHex: string // 公開鍵をハッシュ化し、16進数文字列に変換したもの
+  type: "master" | "identity" // 署名の種類
 }
 
-//identityKeyの型
-
-type identityKeyPub = {
-  key: JsonWebKey
-  sign: Sign
-  keyExpiration: string
-  keyExpirationSign: Sign
-  keyType: "identityPub"
+// Identity Keyの公開鍵情報を格納する型
+type IdentityKeyPub = {
+  key: JsonWebKey // 公開鍵
+  sign: Sign // 署名情報
+  keyExpiration: string // 鍵の有効期限
+  keyExpirationSign: Sign // 有効期限に対する署名
+  keyType: "identityPub" // 鍵の種類
 }
 
-type identityKeyPrivate = {
-  key: JsonWebKey
-  keyType: "identityPrivate"
+// Identity Keyの秘密鍵情報を格納する型
+type IdentityKeyPrivate = {
+  key: JsonWebKey // 秘密鍵
+  keyType: "identityPrivate" // 鍵の種類
 }
 
-//accountKeyの型
-type accountKeyPub = {
-  key: JsonWebKey
-  sign: Sign
-  keyType: "accountPub"
+// Account Keyの公開鍵情報を格納する型
+type AccountKeyPub = {
+  key: JsonWebKey // 公開鍵
+  sign: Sign // 署名情報
+  keyType: "accountPub" // 鍵の種類
 }
 
-type accountKeyPrivate = {
-  key: JsonWebKey
-  keyType: "accountPrivate"
+// Account Keyの秘密鍵情報を格納する型
+type AccountKeyPrivate = {
+  key: JsonWebKey // 秘密鍵
+  keyType: "accountPrivate" // 鍵の種類
 }
 
-type accountKey = {
-  public: accountKeyPub
-  private: accountKeyPrivate
+// Account Keyのペア情報を格納する型
+type AccountKey = {
+  public: AccountKeyPub // 公開鍵情報
+  private: AccountKeyPrivate // 秘密鍵情報
+  hashHex: string // 鍵のハッシュ
+}
+
+// Identity Keyのペア情報を格納する型
+type IdentityKey = {
+  public: IdentityKeyPub // 公開鍵情報
+  private: IdentityKeyPrivate // 秘密鍵情報
+  hashHex: string // 鍵のハッシュ
+}
+
+type MasterKey = {
+  public: MasterKeyPub
+  private: MasterKeyPrivate
   hashHex: string
 }
 
-type identityKey = {
-  public: identityKeyPub
-  private: identityKeyPrivate
-  hashHex: string
+type MasterKeyPub = {
+  key: JsonWebKey
+  keyType: "masterPub"
+}
+type MasterKeyPrivate = {
+  key: JsonWebKey
+  keyType: "masterPrivate"
 }
 
-type OtherUserMasterKeys = [{
-  key: JsonWebKey
-  hashHex: string
-}]
+// 他のユーザーのMaster Key情報を格納する型
+type OtherUserMasterKeys = {
+  key: JsonWebKey // 公開鍵
+  hashHex: string // 鍵のハッシュ
+}[]
 
-type OtherUserIdentityKeys = [{
-  key: JsonWebKey
-  hashHex: string
-}]
+// 他のユーザーのIdentity Key情報を格納する型
+type OtherUserIdentityKeys = {
+  key: JsonWebKey // 公開鍵
+  hashHex: string // 鍵のハッシュ
+}[]
 
+// 型定義のエクスポート
 export type {
-  accountKey,
-  accountKeyPrivate,
-  accountKeyPub,
-  identityKey,
-  identityKeyPrivate,
-  identityKeyPub,
+  AccountKey,
+  AccountKeyPrivate,
+  AccountKeyPub,
+  IdentityKey,
+  IdentityKeyPrivate,
+  IdentityKeyPub,
+  MasterKey,
+  MasterKeyPrivate,
+  MasterKeyPub,
   OtherUserIdentityKeys,
   OtherUserMasterKeys,
   Sign,
