@@ -3,11 +3,11 @@ import * as imagescript from "imagescript";
 import { checkNickName } from "@/utils/checks.ts";
 import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
-import user from "@/models/user.ts";
 import {
-  verifyAccountKey,
-  verifyDeviceKey,
-  verifyIdentityKey,
+base64ToArrayBuffer,
+  isValidAccountKey,
+  isValidDeviceKey,
+  isValidIdentityKey,
 } from "takosEncryptInk";
 import type {
   MasterKeyPub,
@@ -15,7 +15,6 @@ import type {
   AccountKeyPub,
   deviceKey,
  } from "takosEncryptInk";
-import { checkRecapcha } from "@/utils/checkRecapcha.ts";
 import User from "@/models/user.ts";
 const app = new Hono();
 
@@ -44,6 +43,11 @@ app.post("/", async (c) => {
   const user = await User.findOne({ uuid: session.uuid });
   if (!user) {
     return c.json({ status: false, error: "user is not found" }, {
+      status: 500,
+    });
+  }
+  if(user.setup) {
+    return c.json({ status: false, error: "already setup" }, {
       status: 500,
     });
   }
@@ -90,24 +94,48 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
-  const identityVerify = verifyIdentityKey(master_key, identity_key);
+  const identityVerify = isValidIdentityKey(master_key, identity_key);
   if (!identityVerify) {
     return c.json({ status: false, error: "invalid identity key" }, {
       status: 500,
     });
   }
-  const accountVerify = verifyAccountKey(identity_key, account_key);
+  const accountVerify = isValidAccountKey(identity_key, account_key);
   if (!accountVerify) {
     return c.json({ status: false, error: "invalid account key" }, {
       status: 500,
     });
   }
-  const deviceVerify = verifyDeviceKey(master_key, device_key);
+  const deviceVerify = isValidDeviceKey(master_key, device_key);
   if (!deviceVerify) {
     return c.json({ status: false, error: "invalid device key" }, {
       status: 500,
     });
   }
+  try {
+    const iconArrayBuffer = base64ToArrayBuffer(icon);
+    const iconImage = await imagescript.decode(new Uint8Array(iconArrayBuffer));
+    //250x250
+    iconImage.resize(250, 250);
+    const iconImageResizedBuffer = await iconImage.encode();
+    await Deno.writeFile(`./files/userIcon/${user.uuid}.jpeg`, iconImageResizedBuffer);
+  } catch (e) {
+    console.log(e);
+    return c.json({ status: false, error: "faild to load image" }, {
+      status: 500,
+    });
+  }
+  await user.updateOne({ uuid: session.uuid }, {
+    $set: {
+      nickName,
+      age,
+      accountKey: account_key,
+      deviceKey: device_key,
+      identityKey: identity_key,
+      masterKey: master_key,
+      setup: true,
+    },
+  });
   return c.json({ status: true });
 });
 

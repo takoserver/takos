@@ -3,9 +3,10 @@ import { AppStateType } from "../util/types.ts";
 import { setIschoiseUser } from "../util/takosClient.ts";
 import { TakosDB } from "../util/idbSchama.ts";
 import {
-  createMasterKey,
-  createIdentityKeyAndAccountKey,
   createDeviceKey,
+  createIdentityKeyAndAccountKey,
+  createMasterKey,
+  encryptDataDeviceKey,
 } from "@takos/takos-encrypt-ink";
 import { createTakosDB } from "../util/idbSchama.ts";
 export default function setDefaultState({ state }: { state: AppStateType }) {
@@ -217,25 +218,84 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                   type="submit"
                   class="rounded-lg mx-auto text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
                   onClick={async () => {
-                    //iconをbase64に変換
-                    const icondata = icon
-                    if(!icondata){
-                      return;
-                    }
-                    const iconFile: File = icondata;
-                    const reader = new FileReader();
-                    reader.readAsDataURL(iconFile);
-                    reader.onload = async () => {
-                      const icon = reader.result;
-                      if(typeof icon !== "string"){
+                    try {
+                      //iconをbase64に変換
+                      const icondata = icon;
+                      if (!icondata) {
                         return;
                       }
-                      const iconData = icon.split(",")[1];
-                      const masterKey = await createMasterKey();
-                      const { identityKey, accountKey } = await createIdentityKeyAndAccountKey(masterKey);
-                      const deviceKey = await createDeviceKey(masterKey);
-                      
-                    };
+                      const iconFile = icondata;
+                        const iconBase64 = await convertFileToBase64(iconFile);
+                        if (typeof iconBase64 !== "string") {
+                          return;
+                        }
+                        const iconData = iconBase64.split(",")[1];
+                        const masterKey = await createMasterKey();
+                        const { identityKey, accountKey } =
+                          await createIdentityKeyAndAccountKey(masterKey);
+                        const deviceKey = await createDeviceKey(masterKey);
+                        console.log("1")
+                        const encryptedMasterKey = await encryptDataDeviceKey(
+                          deviceKey,
+                          JSON.stringify(masterKey),
+                        );
+                        const encryptedIdentityKey = await encryptDataDeviceKey(
+                          deviceKey,
+                          JSON.stringify(identityKey),
+                        );
+                        const encryptedAccountKey = await encryptDataDeviceKey(
+                          deviceKey,
+                          JSON.stringify(accountKey),
+                        );
+                        const stringifyDeviceKeyPub = JSON.stringify(
+                          deviceKey.public,
+                        );
+                        const db = await createTakosDB();
+                        const tx = db.transaction("keys", "readwrite");
+                        const store = tx.objectStore("keys");
+                        store.put({
+                          encryptedKey: JSON.stringify(encryptedMasterKey),
+                          keyType: "masterKey",
+                        }, "masterKey");
+                        store.put({
+                          encryptedKey: JSON.stringify(encryptedIdentityKey),
+                          keyType: "identityKey",
+                        }, "identityKey");
+                        store.put({
+                          encryptedKey: JSON.stringify(encryptedAccountKey),
+                          keyType: "accountKey",
+                        }, "accountKey");
+                        store.put({
+                          encryptedKey: stringifyDeviceKeyPub,
+                          keyType: "deviceKey",
+                        }, "deviceKey");
+                        await tx.done;
+                        const res = await fetch("/takos/v2/client/setup", {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            nickName: nickName,
+                            icon: iconData,
+                            age: age,
+                            account_key: accountKey,
+                            identity_key: identityKey,
+                            master_key: masterKey,
+                            device_key: deviceKey,
+                          }),
+                        });
+                        const resJson = await res.json();
+                        if (resJson.status) {
+                          setSetUp(false);
+                          alert("設定が完了しました");
+                        } else {
+                          alert("エラーが発生しました");
+                        }
+                    } catch (error) {
+                      console.log(error);
+                      throw error;
+                    }
                   }}
                 >
                   送信
@@ -248,3 +308,17 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
     </>
   );
 }
+const convertFileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result.split(",")[1]);
+      } else {
+        reject(new Error("ファイルの変換に失敗しました"));
+      }
+    };
+    reader.onerror = reject;
+  });
+};

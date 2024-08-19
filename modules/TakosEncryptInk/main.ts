@@ -2,6 +2,11 @@ import type {
   AccountKey,
   AccountKeyPrivate,
   AccountKeyPub,
+  deviceKey,
+  deviceKeyPrivate,
+  deviceKeyPub,
+  EncryptedData,
+  EncryptedDataDeviceKey,
   IdentityKey,
   IdentityKeyPrivate,
   IdentityKeyPub,
@@ -10,18 +15,19 @@ import type {
   MasterKeyPub,
   OtherUserIdentityKeys,
   OtherUserMasterKeys,
-  Sign,
-  deviceKey,
-  deviceKeyPrivate,
-  deviceKeyPub,
-  EncryptedData,
   RoomKey,
-  EncryptedDataDeviceKey
+  Sign,
+  EncryptedDataRoomKey
 } from "./types.ts"
 export type {
   AccountKey,
   AccountKeyPrivate,
   AccountKeyPub,
+  deviceKey,
+  deviceKeyPrivate,
+  deviceKeyPub,
+  EncryptedData,
+  EncryptedDataDeviceKey,
   IdentityKey,
   IdentityKeyPrivate,
   IdentityKeyPub,
@@ -30,13 +36,9 @@ export type {
   MasterKeyPub,
   OtherUserIdentityKeys,
   OtherUserMasterKeys,
-  Sign,
-  deviceKey,
-  deviceKeyPrivate,
-  deviceKeyPub,
-  EncryptedData,
   RoomKey,
-  EncryptedDataDeviceKey
+  Sign,
+  EncryptedDataRoomKey
 }
 import { decode, encode } from "base64-arraybuffer"
 
@@ -384,7 +386,8 @@ export async function isValidDeviceKey(
   masterKey: MasterKeyPub,
   deviceKey: deviceKey,
 ): Promise<boolean> {
-  return await verifyKey(masterKey, deviceKey.public) && await verifyKey(masterKey, deviceKey.private)
+  return await verifyKey(masterKey, deviceKey.public) &&
+    await verifyKey(masterKey, deviceKey.private)
 }
 
 export async function isValidIdentityKey(
@@ -400,7 +403,8 @@ export async function isValidIdentityKey(
     return false
   }
 
-  return await verifyKey(masterKeyPub, identityKey) && await isValidKeyExpiration(masterKeyPub, identityKey)
+  return await verifyKey(masterKeyPub, identityKey) &&
+    await isValidKeyExpiration(masterKeyPub, identityKey)
 }
 
 export async function isValidAccountKey(
@@ -505,7 +509,7 @@ export async function encryptAndSignDataWithRoomKey(
   roomKey: RoomKey,
   data: string,
   identity_key: IdentityKey,
-): Promise<EncryptedData> {
+): Promise<EncryptedDataRoomKey> {
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const encryptedData = await crypto.subtle.encrypt(
     {
@@ -520,7 +524,6 @@ export async function encryptAndSignDataWithRoomKey(
     encryptedData: arrayBufferToBase64(encryptedData),
     keyType: "roomKey",
     iv: arrayBufferToBase64(iv),
-    encryptedDataHashHex: await hashString(arrayBufferToBase64(encryptedData)),
     encryptedDataSign: encryptedDataSign,
     encryptedKeyHashHex: roomKey.hashHex,
     signKeyHashHex: roomKey.sign.hashedPublicKeyHex,
@@ -529,7 +532,7 @@ export async function encryptAndSignDataWithRoomKey(
 
 export async function decryptAndVerifyDataWithRoomKey(
   roomKey: RoomKey,
-  encryptedData: EncryptedData,
+  encryptedData: EncryptedDataRoomKey,
   identity_key: IdentityKeyPub,
 ): Promise<string | null> {
   if (roomKey.hashHex !== encryptedData.encryptedKeyHashHex) {
@@ -538,7 +541,13 @@ export async function decryptAndVerifyDataWithRoomKey(
   if (roomKey.sign.hashedPublicKeyHex !== encryptedData.signKeyHashHex) {
     return null
   }
-  if (!await verifyData(identity_key, base64ToArrayBuffer(encryptedData.encryptedData), encryptedData.encryptedDataSign)) {
+  if (
+    !await verifyData(
+      identity_key,
+      base64ToArrayBuffer(encryptedData.encryptedData),
+      encryptedData.encryptedDataSign,
+    )
+  ) {
     return null
   }
   const decryptedData = await crypto.subtle.decrypt(
@@ -552,7 +561,6 @@ export async function decryptAndVerifyDataWithRoomKey(
   return new TextDecoder().decode(decryptedData)
 }
 
-
 // AccountKeyを使って暗号化する関数
 export async function encryptAndSignDataWithAccountKey(
   accountKey: AccountKeyPub,
@@ -560,23 +568,35 @@ export async function encryptAndSignDataWithAccountKey(
   identity_key: IdentityKey,
 ): Promise<EncryptedData> {
   const iv = crypto.getRandomValues(new Uint8Array(12))
-  const encryptedData = await crypto.subtle.encrypt(
-    {
-      name: "RSA-OAEP",
-      iv: iv,
-    },
-    await importKey(accountKey, "public"),
-    new TextEncoder().encode(data),
+  const DataArray = splitArrayBuffer(new TextEncoder().encode(data), 160)
+  const key = await importKey(accountKey, "public")
+  const encryptedData = await Promise.all(
+    DataArray.map(async (buffer) => {
+      return arrayBufferToBase64(await crypto.subtle.encrypt(
+        {
+          name: "RSA-OAEP",
+          iv: iv,
+        },
+        key,
+        buffer,
+      ))
+    }),
   )
-  const encryptedDataSign = await signData(identity_key, encryptedData)
+  const encryptedDataSign = await signData(identity_key, new TextEncoder().encode(JSON.stringify(encryptedData)))
   return {
-    encryptedData: arrayBufferToBase64(encryptedData),
+    encryptedData: encryptedData,
     keyType: "accountKey",
     iv: arrayBufferToBase64(iv),
-    encryptedDataHashHex: await hashString(arrayBufferToBase64(encryptedData)),
     encryptedDataSign: encryptedDataSign,
     encryptedKeyHashHex: await generateKeyHashHex(accountKey.key),
     signKeyHashHex: accountKey.sign.hashedPublicKeyHex,
+    /*
+    encryptedData: string[];
+    keyType: "accountKey";
+    encryptedDataSign: Sign;
+    encryptedKeyHashHex: string;
+    signKeyHashHex: string;
+    */
   }
 }
 
@@ -586,40 +606,100 @@ export async function decryptAndVerifyDataWithAccountKey(
   encryptedData: EncryptedData,
   identity_key: IdentityKeyPub,
 ): Promise<string | null> {
-  if (!await verifyData(identity_key, base64ToArrayBuffer(encryptedData.encryptedData), encryptedData.encryptedDataSign)) {
+  if (
+    !await verifyData(
+      identity_key,
+      new TextEncoder().encode(JSON.stringify(encryptedData.encryptedData)),
+      encryptedData.encryptedDataSign,
+    )
+  ) {
     return null
   }
-  const decryptedData = await crypto.subtle.decrypt(
-    {
-      name: "RSA-OAEP",
-      iv: base64ToArrayBuffer(encryptedData.iv || ""),
-    },
-    await importKey(accountKey.private, "private"),
-    base64ToArrayBuffer(encryptedData.encryptedData),
+  const key = await importKey(accountKey.private, "private")
+  const decryptedDataArray = await Promise.all(
+    encryptedData.encryptedData.map(async (data) => {
+      return await crypto.subtle.decrypt(
+        {
+          name: "RSA-OAEP",
+        },
+        key,
+        base64ToArrayBuffer(data),
+      )
+    }),
   )
-  return new TextDecoder().decode(decryptedData)
+  return new TextDecoder().decode(rebuildArrayBuffer(decryptedDataArray))
 }
 
 export async function encryptDataDeviceKey(
   deviceKey: deviceKey,
   data: string,
 ): Promise<EncryptedDataDeviceKey> {
-  const key = await importKey(deviceKey.public, "public")
-  const vi = crypto.getRandomValues(new Uint8Array(12))
-  const encryptedData = await crypto.subtle.encrypt(
-    {
-      name: "RSA-OAEP",
-      iv: vi,
-    },
-    key,
-    new TextEncoder().encode(data),
-  )
-  const encryptedDataHashHex = await hashString(arrayBufferToBase64(encryptedData))
-  return {
-    encryptedData: arrayBufferToBase64(encryptedData),
-    keyType: "DeviceKey",
-    iv: arrayBufferToBase64(vi),
-    encryptedDataHashHex: encryptedDataHashHex,
-    encryptedKeyHashHex: deviceKey.hashHex,
+  const ArrayBuffer = new TextEncoder().encode(data)
+  const dividedArrayBuffer = splitArrayBuffer(ArrayBuffer, 160)
+  try {
+    const key = await importKey(deviceKey.public, "public")
+    const encryptedData = await Promise.all(
+      dividedArrayBuffer.map(async (buffer) => {
+        return arrayBufferToBase64(await crypto.subtle.encrypt(
+          {
+            name: "RSA-OAEP",
+          },
+          key,
+          buffer,
+        ))
+      }),
+    )
+    return {
+      encryptedData: encryptedData,
+      keyType: "DeviceKey",
+      encryptedKeyHashHex: deviceKey.hashHex,
+    }
+  } catch (error) {
+    console.error("Encryption failed:", error)
+    throw error
   }
+}
+
+export async function decryptDataDeviceKey(
+  deviceKey: deviceKey,
+  encryptedData: EncryptedDataDeviceKey,
+): Promise<string | null> {
+  if (deviceKey.hashHex !== encryptedData.encryptedKeyHashHex) {
+    return null
+  }
+  const key = await importKey(deviceKey.private, "private")
+  const decryptedDataArray = await Promise.all(
+    encryptedData.encryptedData.map(async (data) => {
+      return await crypto.subtle.decrypt(
+        {
+          name: "RSA-OAEP",
+        },
+        key,
+        base64ToArrayBuffer(data),
+      )
+    }),
+  )
+  return new TextDecoder().decode(rebuildArrayBuffer(decryptedDataArray))
+}
+
+function splitArrayBuffer(buffer: ArrayBuffer, chunkSize: number): ArrayBuffer[] {
+  const result: ArrayBuffer[] = [];
+  const view = new Uint8Array(buffer);
+  for (let offset = 0; offset < buffer.byteLength; offset += chunkSize) {
+      const end = Math.min(offset + chunkSize, buffer.byteLength);
+      const chunk = view.slice(offset, end).buffer;
+      result.push(chunk);
+  }
+  return result;
+}
+
+function rebuildArrayBuffer(buffers: ArrayBuffer[]): ArrayBuffer {
+  const totalLength = buffers.reduce((acc, buffer) => acc + buffer.byteLength, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const buffer of buffers) {
+      result.set(new Uint8Array(buffer), offset);
+      offset += buffer.byteLength;
+  }
+  return result.buffer;
 }

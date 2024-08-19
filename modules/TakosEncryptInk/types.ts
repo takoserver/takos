@@ -102,29 +102,42 @@ type RoomKey = {
 }
 
 type EncryptedData = {
-  encryptedData: string; // 暗号化されたデータの値
-  keyType: "roomKey" | "accountKey" // 使用された鍵の種類
-  iv?: string;           // 初期化ベクトル (Initialization Vector)
-  encryptedDataHashHex: string; // 暗号化されたデータのハッシュ値
-  encryptedDataSign: Sign; // 暗号化されたデータを署名した情報
+  encryptedData: string[]
+  keyType: "accountKey" // 使用された鍵の種類
+  encryptedDataSign: Sign // 暗号化されたデータをJSON.stringifyしたものに対する署名
   //暗号化した鍵のハッシュ値
-  encryptedKeyHashHex: string;
+  encryptedKeyHashHex: string
+  iv?: string // 初期化ベクトル (Initialization Vector)
   //署名した鍵のハッシュ値
-  signKeyHashHex: string;
+  signKeyHashHex: string
+}
+
+type EncryptedDataRoomKey = {
+  encryptedData: string // 暗号化されたデータの値
+  keyType: "roomKey" // 使用された鍵の種類
+  iv?: string // 初期化ベクトル (Initialization Vector)
+  encryptedDataSign: Sign //暗号化されたデータに対する署名
+  encryptedKeyHashHex: string //暗号化した鍵のハッシュ値
+  signKeyHashHex: string //署名した鍵のハッシュ値
 }
 type EncryptedDataDeviceKey = {
-  encryptedData: string; // 暗号化されたデータの値
+  encryptedData: string[] // 暗号化されたデータの値
   keyType: "DeviceKey" // 使用された鍵の種類
-  iv?: string;           // 初期化ベクトル (Initialization Vector)
-  encryptedDataHashHex: string; // 暗号化されたデータのハッシュ値
-  encryptedKeyHashHex: string; //暗号化した鍵のハッシュ値
+  iv?: string // 初期化ベクトル (Initialization Vector)
+  encryptedKeyHashHex: string //暗号化した鍵のハッシュ値
 }
+
 
 // 型定義のエクスポート
 export type {
   AccountKey,
   AccountKeyPrivate,
   AccountKeyPub,
+  deviceKey,
+  deviceKeyPrivate,
+  deviceKeyPub,
+  EncryptedData,
+  EncryptedDataDeviceKey,
   IdentityKey,
   IdentityKeyPrivate,
   IdentityKeyPub,
@@ -133,11 +146,8 @@ export type {
   MasterKeyPub,
   OtherUserIdentityKeys,
   OtherUserMasterKeys,
-  Sign,
-  deviceKey,
-  deviceKeyPrivate,
-  deviceKeyPub,
-  EncryptedData,
   RoomKey,
-  EncryptedDataDeviceKey
+  Sign,
+  EncryptedDataRoomKey,
+
 }

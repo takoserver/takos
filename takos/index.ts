@@ -4,6 +4,23 @@ import { Hono } from "hono";
 import mongoose from "mongoose";
 import { load } from "@std/dotenv";
 const env = await load();
+
+(async () => {
+  try {
+    await Deno.stat("./files/");
+  } catch (e) {
+    await Deno.mkdir("./files/");
+    await Deno.mkdir("./files/userIcon");
+    return;
+  }
+  try {
+    await Deno.stat("./files/userIcon");
+  } catch (e) {
+    await Deno.mkdir("./files/userIcon");
+  }
+  return;
+})();
+
 function start() {
   const port = env["PORT"];
   mongoose.connect(env["MONGO_URI"]);
