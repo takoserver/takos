@@ -9,6 +9,9 @@ import type {
   MasterKeyPrivate,
   MasterKeyPub,
   Sign,
+  deviceKeyPub,
+  deviceKeyPrivate,
+  deviceKey,
 } from "./types.ts"
 export type {
   AccountKey,
@@ -215,7 +218,7 @@ export async function importKey(
 export async function verifyKey(
   //署名した鍵の変数
   key: MasterKeyPub | IdentityKeyPub,
-  signedKey: IdentityKeyPub | AccountKeyPub,
+  signedKey: IdentityKeyPub | AccountKeyPub | deviceKeyPub | deviceKeyPrivate
 ): Promise<boolean> {
   const importedKey = await crypto.subtle.importKey(
     "jwk",
@@ -321,25 +324,80 @@ export async function verifyKeyExpiration(
     return false
   }
 }
-/*
+
+export async function createDeviceKey(masterKey: MasterKey): Promise<deviceKey> {
+  const deviceKeyPair = await crypto.subtle.generateKey(
+    {
+      name: "RSA-OAEP",
+      modulusLength: 2048,
+      publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+      hash: "SHA-256",
+    },
+    true,
+    ["encrypt", "decrypt"],
+  )
+  const deviceKeyPublic = await exportfromJWK(deviceKeyPair.publicKey)
+  const deviceKeyPrivate = await exportfromJWK(deviceKeyPair.privateKey)
+  const pubKeySign = await signKey(masterKey, deviceKeyPublic, "master")
+  const privKeySign = await signKey(masterKey, deviceKeyPrivate, "master")
+  return {
+    public: {
+      key: deviceKeyPublic,
+      keyType: "devicePub",
+      sign: pubKeySign,
+    },
+    private: {
+      key: deviceKeyPrivate,
+      keyType: "devicePrivate",
+      sign: privKeySign,
+    },
+    hashHex: await generateKeyHashHex(deviceKeyPublic),
+  }
+}
+
+export async function verifyDeviceKey(
+  masterKey: MasterKeyPub,
+  deviceKey: deviceKey,
+): Promise<boolean> {
+  return await verifyKey(masterKey, deviceKey.public) && await verifyKey(masterKey, deviceKey.private)
+}
+
+export async function verifyIdentityKey(
+  masterKeyPub: MasterKeyPub,
+  identityKey: IdentityKeyPub,
+) {
+  const masterKeyHashHex = await generateKeyHashHex(masterKeyPub.key)
+  if (identityKey.sign.hashedPublicKeyHex !== masterKeyHashHex) {
+    return false
+  }
+  const now = new Date()
+  if (new Date(identityKey.keyExpiration) < now) {
+    return false
+  }
+
+  return await verifyKey(masterKeyPub, identityKey) && await verifyKeyExpiration(masterKeyPub, identityKey)
+}
+
+export async function verifyAccountKey(
+  identityKey: IdentityKeyPub,
+  accountKey: AccountKeyPub,
+): Promise<boolean> {
+  const identityKeyHashHex = await generateKeyHashHex(identityKey.key)
+  if (accountKey.sign.hashedPublicKeyHex !== identityKeyHashHex) {
+    return false
+  }
+  return await verifyKey(identityKey, accountKey)
+}
+
 
 const masterKey = await createMasterKey()
-const { identityKey, accountKey } = await createIdentityKeyAndAccountKey(masterKey)
-const verifiedIdentityKey = await verifyKey(
-  masterKey.public,
-  identityKey.public,
-)
-console.log(verifiedIdentityKey)
-const verifiedAccountKey = await verifyKey(
-  identityKey.public,
-  accountKey.public,
-)
-console.log(verifiedAccountKey)
+const {
+  identityKey,
+  accountKey,
+} = await createIdentityKeyAndAccountKey(masterKey)
+const deviceKey2 = await createDeviceKey(masterKey)
 
-const time = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString()
-const sign2 = await signKeyExpiration(masterKey, time, "master")
-console.log(
-  await verifyKeyExpiration(masterKey.public, { keyExpiration: time, keyExpirationSign: sign2 }),
-)
-console.log(await verifyKeyExpiration(masterKey.public, identityKey.public))
-*/
+//console.log(await verifyDeviceKey(masterKey.public, deviceKey2))
+console.log(await verifyIdentityKey(masterKey.public, identityKey.public))
+console.log(await verifyDeviceKey(masterKey.public, deviceKey2))
+console.log(await verifyAccountKey(identityKey.public, accountKey.public))

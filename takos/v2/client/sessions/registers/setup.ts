@@ -8,8 +8,12 @@ import {
   arrayBufferToBase64,
   base64ToArrayBuffer,
   createIdentityKeyAndAccountKey,
-  MasuterKeyPub,
 } from "takosEncryptInk";
+import type {
+  MasterKeyPub,
+  IdentityKeyPub,
+  AccountKeyPub,
+ } from "takosEncryptInk";
 import { checkRecapcha } from "@/utils/checkRecapcha.ts";
 import User from "@/models/user.ts";
 const app = new Hono();
@@ -55,9 +59,9 @@ app.post("/", async (c) => {
     icon: string;
     recpatcha: string;
     age: number;
-    account_key: string;
-    identity_key: string;
-    master_key: MasuterKeyPub;
+    account_key: AccountKeyPub;
+    identity_key: IdentityKeyPub;
+    master_key: MasterKeyPub;
     device_key: string;
     recpatchaKind: "v2" | "v3";
   } = body;

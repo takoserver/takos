@@ -2,7 +2,8 @@
   "version": "3",
   "packages": {
     "specifiers": {
-      "npm:base64-arraybuffer": "npm:base64-arraybuffer@1.0.2"
+      "npm:base64-arraybuffer": "npm:base64-arraybuffer@1.0.2",
+      "npm:base64-arraybuffer@^1.0.2": "npm:base64-arraybuffer@1.0.2"
     },
     "npm": {
       "base64-arraybuffer@1.0.2": {
@@ -11,5 +12,10 @@
       }
     }
   },
-  "remote": {}
+  "remote": {},
+  "workspace": {
+    "dependencies": [
+      "npm:base64-arraybuffer@^1.0.2"
+    ]
+  }
 }

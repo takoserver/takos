@@ -74,6 +74,25 @@ type OtherUserIdentityKeys = {
   hashHex: string // 鍵のハッシュ
 }[]
 
+type deviceKeyPub = {
+  key: JsonWebKey
+  sign: Sign
+  keyType: "devicePub"
+}
+
+type deviceKeyPrivate = {
+  key: JsonWebKey
+  sign: Sign
+  keyType: "devicePrivate"
+}
+
+type deviceKey = {
+  public: deviceKeyPub
+  private: deviceKeyPrivate
+  hashHex: string
+}
+
+
 // 型定義のエクスポート
 export type {
   AccountKey,
@@ -88,4 +107,7 @@ export type {
   OtherUserIdentityKeys,
   OtherUserMasterKeys,
   Sign,
+  deviceKey,
+  deviceKeyPrivate,
+  deviceKeyPub,
 }
