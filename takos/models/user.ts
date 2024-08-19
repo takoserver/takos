@@ -3,6 +3,7 @@ import type {
   IdentityKeyPub,
   AccountKeyPub,
   MasterKeyPub,
+  deviceKeyPub
 } from "takosEncryptInk";
 const userSchema = new mongoose.Schema({
   uuid: {
@@ -47,10 +48,16 @@ const userSchema = new mongoose.Schema({
   },
   timestamp: { type: Date, default: Date.now },
   accountKey: {
-    type: String,
+    type: Object,
   },
   deviceKey: {
-    type: String,
+    type: Object,
+  },
+  identityKey: {
+    type: Object,
+  },
+  masterKey: {
+    type: Object,
   },
 });
 const User = mongoose.model("user", userSchema);

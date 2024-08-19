@@ -13,6 +13,7 @@ import type {
   MasterKeyPub,
   IdentityKeyPub,
   AccountKeyPub,
+  deviceKey,
  } from "takosEncryptInk";
 import { checkRecapcha } from "@/utils/checkRecapcha.ts";
 import User from "@/models/user.ts";
@@ -49,11 +50,11 @@ app.post("/", async (c) => {
   const {
     nickName,
     icon,
-    recpatcha,
-    recpatchaKind,
     age,
     account_key,
     device_key,
+    identity_key,
+    master_key,
   }: {
     nickName: string;
     icon: string;
@@ -62,8 +63,7 @@ app.post("/", async (c) => {
     account_key: AccountKeyPub;
     identity_key: IdentityKeyPub;
     master_key: MasterKeyPub;
-    device_key: string;
-    recpatchaKind: "v2" | "v3";
+    device_key: deviceKey;
   } = body;
   if (!checkNickName(nickName)) {
     return c.json({ status: false, error: "invalid nickname" }, {
@@ -72,11 +72,6 @@ app.post("/", async (c) => {
   }
   if (!icon) {
     return c.json({ status: false, error: "icon is not found" }, {
-      status: 500,
-    });
-  }
-  if (!recpatcha) {
-    return c.json({ status: false, error: "recaptcha is not found" }, {
       status: 500,
     });
   }
@@ -95,20 +90,25 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
-  if (!await checkRecapcha(recpatcha, recpatchaKind)) {
-    return c.json({ status: false, error: "invalid recapcha" }, {
-      status: 400,
-    });
-  }
-  const iconBuffer = base64ToArrayBuffer(icon);
-  const iconUint8Array = new Uint8Array(iconBuffer); // ArrayBufferをUint8Arrayに変換
-  if (age < 0 || age > 120) {
-    return c.json({ status: false, error: "invalid age" }, {
+  const identityVerify = verifyIdentityKey(master_key, identity_key);
+  if (!identityVerify) {
+    return c.json({ status: false, error: "invalid identity key" }, {
       status: 500,
     });
   }
-
-  return c.json({ status: true }, { status: 200 });
+  const accountVerify = verifyAccountKey(identity_key, account_key);
+  if (!accountVerify) {
+    return c.json({ status: false, error: "invalid account key" }, {
+      status: 500,
+    });
+  }
+  const deviceVerify = verifyDeviceKey(master_key, device_key);
+  if (!deviceVerify) {
+    return c.json({ status: false, error: "invalid device key" }, {
+      status: 500,
+    });
+  }
+  return c.json({ status: true });
 });
 
 export default app;

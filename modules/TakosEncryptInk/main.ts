@@ -12,6 +12,8 @@ import type {
   deviceKeyPub,
   deviceKeyPrivate,
   deviceKey,
+  RoomKey,
+  EncryptedData,
 } from "./types.ts"
 export type {
   AccountKey,
@@ -27,6 +29,8 @@ export type {
   deviceKeyPub,
   deviceKeyPrivate,
   deviceKey,
+  RoomKey,
+  EncryptedData
 }
 import { decode, encode } from "base64-arraybuffer"
 
@@ -160,7 +164,10 @@ export async function importKey(
     | AccountKeyPub
     | AccountKeyPrivate
     | MasterKeyPub
-    | MasterKeyPrivate,
+    | MasterKeyPrivate
+    | RoomKey
+    | deviceKeyPub
+    | deviceKeyPrivate,
   usages?: "public" | "private",
 ): Promise<CryptoKey> {
   const jwk = inputKey.key
@@ -184,6 +191,15 @@ export async function importKey(
       break
     case "masterPrivate":
       type = "RSA-PSS"
+      break
+    case "roomKey":
+      type = "AES-GCM"
+      break
+    case "devicePub":
+      type = "RSA-OAEP"
+      break
+    case "devicePrivate":
+      type = "RSA-OAEP"
       break
     default:
       throw new Error(`Unsupported keyType: ${keyType}`)
@@ -221,7 +237,7 @@ export async function importKey(
 export async function verifyKey(
   //署名した鍵の変数
   key: MasterKeyPub | IdentityKeyPub,
-  signedKey: IdentityKeyPub | AccountKeyPub | deviceKeyPub | deviceKeyPrivate
+  signedKey: IdentityKeyPub | AccountKeyPub | deviceKeyPub | deviceKeyPrivate | RoomKey,
 ): Promise<boolean> {
   const importedKey = await crypto.subtle.importKey(
     "jwk",
@@ -297,7 +313,7 @@ export async function signKeyExpiration(
   return signResult
 }
 
-export async function verifyKeyExpiration(
+export async function isValidKeyExpiration(
   key: MasterKeyPub | IdentityKeyPub,
   signedKey: { keyExpiration: string; keyExpirationSign: Sign },
 ): Promise<boolean> {
@@ -358,14 +374,14 @@ export async function createDeviceKey(masterKey: MasterKey): Promise<deviceKey> 
   }
 }
 
-export async function verifyDeviceKey(
+export async function isValidDeviceKey(
   masterKey: MasterKeyPub,
   deviceKey: deviceKey,
 ): Promise<boolean> {
   return await verifyKey(masterKey, deviceKey.public) && await verifyKey(masterKey, deviceKey.private)
 }
 
-export async function verifyIdentityKey(
+export async function isValidIdentityKey(
   masterKeyPub: MasterKeyPub,
   identityKey: IdentityKeyPub,
 ): Promise<boolean> {
@@ -378,10 +394,10 @@ export async function verifyIdentityKey(
     return false
   }
 
-  return await verifyKey(masterKeyPub, identityKey) && await verifyKeyExpiration(masterKeyPub, identityKey)
+  return await verifyKey(masterKeyPub, identityKey) && await isValidKeyExpiration(masterKeyPub, identityKey)
 }
 
-export async function verifyAccountKey(
+export async function isValidAccountKey(
   identityKey: IdentityKeyPub,
   accountKey: AccountKeyPub,
 ): Promise<boolean> {
@@ -392,15 +408,190 @@ export async function verifyAccountKey(
   return await verifyKey(identityKey, accountKey)
 }
 
+export async function signData(
+  key: AccountKey | IdentityKey | MasterKey,
+  data: ArrayBuffer,
+): Promise<Sign> {
+  const signature = await crypto.subtle.sign(
+    {
+      name: "RSA-PSS",
+      saltLength: 32,
+    },
+    await importKey(key.private, "private"),
+    data,
+  )
+  const publicKeyHashBuffer = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(JSON.stringify(key.public.key)),
+  )
+  const hashedPublicKeyHex = Array.from(new Uint8Array(publicKeyHashBuffer))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
+  return {
+    signature: arrayBufferToBase64(signature),
+    hashedPublicKeyHex,
+    type: "master",
+  }
+}
 
-const masterKey = await createMasterKey()
-const {
-  identityKey,
-  accountKey,
-} = await createIdentityKeyAndAccountKey(masterKey)
-const deviceKey2 = await createDeviceKey(masterKey)
+export async function verifyData(
+  key: AccountKeyPub | IdentityKeyPub | MasterKeyPub,
+  signedData: ArrayBuffer,
+  signature: Sign,
+): Promise<boolean> {
+  const importedKey = await crypto.subtle.importKey(
+    "jwk",
+    key.key,
+    { name: "RSA-PSS", hash: { name: "SHA-256" } },
+    true,
+    ["verify"],
+  )
+  return await crypto.subtle.verify(
+    {
+      name: "RSA-PSS",
+      saltLength: 32,
+    },
+    importedKey,
+    base64ToArrayBuffer(signature.signature),
+    signedData,
+  )
+}
 
-//console.log(await verifyDeviceKey(masterKey.public, deviceKey2))
-console.log(await verifyIdentityKey(masterKey.public, identityKey.public))
-console.log(await verifyDeviceKey(masterKey.public, deviceKey2))
-console.log(await verifyAccountKey(identityKey.public, accountKey.public))
+export async function createRoomKey(identity_key: IdentityKey): Promise<RoomKey> {
+  const roomKey = await crypto.subtle.generateKey(
+    {
+      name: "AES-GCM",
+      length: 256,
+    },
+    true,
+    ["encrypt", "decrypt"],
+  )
+  const roomKeyJWK = await exportfromJWK(roomKey)
+  const roomKeySign = await signKey(identity_key, roomKeyJWK, "identity")
+  const Expiration = new Date(Date.now() + 1000 * 60 * 60 * 24 * 60).toISOString()
+  const ExpirationSign = await signKeyExpiration(identity_key, Expiration, "identity")
+  const roomKeyHash = await generateKeyHashHex(roomKeyJWK)
+  return {
+    key: roomKeyJWK,
+    sign: roomKeySign,
+    keyExpiration: Expiration,
+    keyExpirationSign: ExpirationSign,
+    keyType: "roomKey",
+    hashHex: roomKeyHash,
+  }
+}
+
+export async function isValidRoomKey(
+  identity_key: IdentityKeyPub,
+  roomKey: RoomKey,
+): Promise<boolean> {
+  if (roomKey.sign.hashedPublicKeyHex !== await generateKeyHashHex(identity_key.key)) {
+    return false
+  }
+  if (roomKey.keyExpiration < new Date().toISOString()) {
+    return false
+  }
+  return await verifyKey(identity_key, roomKey) && await isValidKeyExpiration(identity_key, roomKey)
+}
+
+//RoomKeyを使って暗号化
+export async function encryptAndSignDataWithRoomKey(
+  roomKey: RoomKey,
+  data: string,
+  identity_key: IdentityKey,
+): Promise<EncryptedData> {
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const encryptedData = await crypto.subtle.encrypt(
+    {
+      name: "AES-GCM",
+      iv: iv,
+    },
+    await importKey(roomKey, "public"),
+    new TextEncoder().encode(data),
+  )
+  const encryptedDataSign = await signData(identity_key, encryptedData)
+  return {
+    encryptedData: arrayBufferToBase64(encryptedData),
+    keyType: "roomKey",
+    iv: arrayBufferToBase64(iv),
+    encryptedDataHashHex: await hashString(arrayBufferToBase64(encryptedData)),
+    encryptedDataSign: encryptedDataSign,
+    encryptedKeyHashHex: roomKey.hashHex,
+    signKeyHashHex: roomKey.sign.hashedPublicKeyHex,
+  }
+}
+
+export async function decryptAndVerifyDataWithRoomKey(
+  roomKey: RoomKey,
+  encryptedData: EncryptedData,
+  identity_key: IdentityKeyPub,
+): Promise<string | null> {
+  if (roomKey.hashHex !== encryptedData.encryptedKeyHashHex) {
+    return null
+  }
+  if (roomKey.sign.hashedPublicKeyHex !== encryptedData.signKeyHashHex) {
+    return null
+  }
+  if (!await verifyData(identity_key, base64ToArrayBuffer(encryptedData.encryptedData), encryptedData.encryptedDataSign)) {
+    return null
+  }
+  const decryptedData = await crypto.subtle.decrypt(
+    {
+      name: "AES-GCM",
+      iv: base64ToArrayBuffer(encryptedData.iv || ""),
+    },
+    await importKey(roomKey, "private"),
+    base64ToArrayBuffer(encryptedData.encryptedData),
+  )
+  return new TextDecoder().decode(decryptedData)
+}
+
+
+
+
+// AccountKeyを使って暗号化する関数
+export async function encryptAndSignDataWithAccountKey(
+  accountKey: AccountKeyPub,
+  data: string,
+  identity_key: IdentityKey,
+): Promise<EncryptedData> {
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const encryptedData = await crypto.subtle.encrypt(
+    {
+      name: "RSA-OAEP",
+      iv: iv,
+    },
+    await importKey(accountKey, "public"),
+    new TextEncoder().encode(data),
+  )
+  const encryptedDataSign = await signData(identity_key, encryptedData)
+  return {
+    encryptedData: arrayBufferToBase64(encryptedData),
+    keyType: "accountKey",
+    iv: arrayBufferToBase64(iv),
+    encryptedDataHashHex: await hashString(arrayBufferToBase64(encryptedData)),
+    encryptedDataSign: encryptedDataSign,
+    encryptedKeyHashHex: await generateKeyHashHex(accountKey.key),
+    signKeyHashHex: accountKey.sign.hashedPublicKeyHex,
+  }
+}
+
+// AccountKeyで暗号化されたデータを復号化し、検証する関数
+export async function decryptAndVerifyDataWithAccountKey(
+  accountKey: AccountKey,
+  encryptedData: EncryptedData,
+  identity_key: IdentityKeyPub,
+): Promise<string | null> {
+  if (!await verifyData(identity_key, base64ToArrayBuffer(encryptedData.encryptedData), encryptedData.encryptedDataSign)) {
+    return null
+  }
+  const decryptedData = await crypto.subtle.decrypt(
+    {
+      name: "RSA-OAEP",
+      iv: base64ToArrayBuffer(encryptedData.iv || ""),
+    },
+    await importKey(accountKey.private, "private"),
+    base64ToArrayBuffer(encryptedData.encryptedData),
+  )
+  return new TextDecoder().decode(decryptedData)
+}

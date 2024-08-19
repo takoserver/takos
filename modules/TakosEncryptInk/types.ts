@@ -92,6 +92,26 @@ type deviceKey = {
   hashHex: string
 }
 
+type RoomKey = {
+  key: JsonWebKey
+  sign: Sign
+  keyType: "roomKey"
+  keyExpiration: string
+  keyExpirationSign: Sign
+  hashHex: string
+}
+
+type EncryptedData = {
+  encryptedData: string; // 暗号化されたデータの値
+  keyType: "roomKey" | "accountKey" // 使用された鍵の種類
+  iv?: string;           // 初期化ベクトル (Initialization Vector)
+  encryptedDataHashHex: string; // 暗号化されたデータのハッシュ値
+  encryptedDataSign: Sign; // 暗号化されたデータを署名した情報
+  //暗号化した鍵のハッシュ値
+  encryptedKeyHashHex: string;
+  //署名した鍵のハッシュ値
+  signKeyHashHex: string;
+}
 
 // 型定義のエクスポート
 export type {
@@ -110,4 +130,6 @@ export type {
   deviceKey,
   deviceKeyPrivate,
   deviceKeyPub,
+  EncryptedData,
+  RoomKey,
 }

@@ -9,7 +9,7 @@
     "mongoose": "npm:mongoose@^8.5.2",
     "nodemailer": "npm:nodemailer@^6.9.14",
     "redis": "npm:redis@^4.7.0",
-    "takosEncryptInk": "jsr:@takos/takos-encrypt-ink@^0.3.2-unstable"
+    "takosEncryptInk": "jsr:@takos/takos-encrypt-ink@^0.3.3-unstable"
   },
   "tasks": {
     "start": "deno run -A main.ts",
