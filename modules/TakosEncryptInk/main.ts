@@ -8,12 +8,15 @@ import type {
   MasterKey,
   MasterKeyPrivate,
   MasterKeyPub,
+  OtherUserIdentityKeys,
+  OtherUserMasterKeys,
   Sign,
-  deviceKeyPub,
-  deviceKeyPrivate,
   deviceKey,
-  RoomKey,
+  deviceKeyPrivate,
+  deviceKeyPub,
   EncryptedData,
+  RoomKey,
+  EncryptedDataDeviceKey
 } from "./types.ts"
 export type {
   AccountKey,
@@ -25,12 +28,15 @@ export type {
   MasterKey,
   MasterKeyPrivate,
   MasterKeyPub,
+  OtherUserIdentityKeys,
+  OtherUserMasterKeys,
   Sign,
-  deviceKeyPub,
-  deviceKeyPrivate,
   deviceKey,
+  deviceKeyPrivate,
+  deviceKeyPub,
+  EncryptedData,
   RoomKey,
-  EncryptedData
+  EncryptedDataDeviceKey
 }
 import { decode, encode } from "base64-arraybuffer"
 
@@ -547,8 +553,6 @@ export async function decryptAndVerifyDataWithRoomKey(
 }
 
 
-
-
 // AccountKeyを使って暗号化する関数
 export async function encryptAndSignDataWithAccountKey(
   accountKey: AccountKeyPub,
@@ -594,4 +598,28 @@ export async function decryptAndVerifyDataWithAccountKey(
     base64ToArrayBuffer(encryptedData.encryptedData),
   )
   return new TextDecoder().decode(decryptedData)
+}
+
+export async function encryptDataDeviceKey(
+  deviceKey: deviceKey,
+  data: string,
+): Promise<EncryptedDataDeviceKey> {
+  const key = await importKey(deviceKey.public, "public")
+  const vi = crypto.getRandomValues(new Uint8Array(12))
+  const encryptedData = await crypto.subtle.encrypt(
+    {
+      name: "RSA-OAEP",
+      iv: vi,
+    },
+    key,
+    new TextEncoder().encode(data),
+  )
+  const encryptedDataHashHex = await hashString(arrayBufferToBase64(encryptedData))
+  return {
+    encryptedData: arrayBufferToBase64(encryptedData),
+    keyType: "DeviceKey",
+    iv: arrayBufferToBase64(vi),
+    encryptedDataHashHex: encryptedDataHashHex,
+    encryptedKeyHashHex: deviceKey.hashHex,
+  }
 }

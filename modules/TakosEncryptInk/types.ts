@@ -112,6 +112,13 @@ type EncryptedData = {
   //署名した鍵のハッシュ値
   signKeyHashHex: string;
 }
+type EncryptedDataDeviceKey = {
+  encryptedData: string; // 暗号化されたデータの値
+  keyType: "DeviceKey" // 使用された鍵の種類
+  iv?: string;           // 初期化ベクトル (Initialization Vector)
+  encryptedDataHashHex: string; // 暗号化されたデータのハッシュ値
+  encryptedKeyHashHex: string; //暗号化した鍵のハッシュ値
+}
 
 // 型定義のエクスポート
 export type {
@@ -132,4 +139,5 @@ export type {
   deviceKeyPub,
   EncryptedData,
   RoomKey,
+  EncryptedDataDeviceKey
 }
