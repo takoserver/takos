@@ -4,7 +4,12 @@ import { checkNickName } from "@/utils/checks.ts";
 import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
 import user from "@/models/user.ts";
-import takosEncryptInk from "takosEncryptInk";
+import {
+  arrayBufferToBase64,
+  base64ToArrayBuffer,
+  createIdentityKeyAndAccountKey,
+  MasuterKeyPub,
+} from "takosEncryptInk";
 import { checkRecapcha } from "@/utils/checkRecapcha.ts";
 import User from "@/models/user.ts";
 const app = new Hono();
@@ -51,6 +56,8 @@ app.post("/", async (c) => {
     recpatcha: string;
     age: number;
     account_key: string;
+    identity_key: string;
+    master_key: MasuterKeyPub;
     device_key: string;
     recpatchaKind: "v2" | "v3";
   } = body;
@@ -89,7 +96,7 @@ app.post("/", async (c) => {
       status: 400,
     });
   }
-  const iconBuffer = takosEncryptInk.base64ToArrayBuffer(icon);
+  const iconBuffer = base64ToArrayBuffer(icon);
   const iconUint8Array = new Uint8Array(iconBuffer); // ArrayBufferをUint8Arrayに変換
   if (age < 0 || age > 120) {
     return c.json({ status: false, error: "invalid age" }, {
@@ -97,35 +104,7 @@ app.post("/", async (c) => {
     });
   }
   try {
-    const accountKey = await takosEncryptInk.importKeyFromPem(
-      account_key,
-      "accountKey",
-      "publicKey",
-    );
-    const deviceKey = await takosEncryptInk.importKeyFromPem(
-      device_key,
-      "deviceKey",
-      "private",
-    );
-    const accountSignPem = await takosEncryptInk.exportKeyToPem(
-      accountKey,
-      "accountKey",
-      "publicKey",
-    );
-    const devicePem = await takosEncryptInk.exportKeyToPem(
-      deviceKey,
-      "deviceKey",
-      "private",
-    );
-
-    await User.updateOne({ uuid: user.uuid }, {
-      nickName: nickName,
-      icon: iconUint8Array,
-      age: age,
-      accountKey: accountSignPem,
-      deviceKey: devicePem,
-      setup: true,
-    });
+    
     return c.json({ status: true });
     // deno-lint-ignore no-unused-vars
   } catch (error) {

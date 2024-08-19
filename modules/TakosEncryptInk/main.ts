@@ -10,6 +10,18 @@ import type {
   MasterKeyPub,
   Sign,
 } from "./types.ts"
+export type {
+  AccountKey,
+  AccountKeyPrivate,
+  AccountKeyPub,
+  IdentityKey,
+  IdentityKeyPrivate,
+  IdentityKeyPub,
+  MasterKey,
+  MasterKeyPrivate,
+  MasterKeyPub,
+  Sign,
+}
 import { decode, encode } from "base64-arraybuffer"
 
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -39,7 +51,7 @@ async function generateKeyHashHex(jwk: JsonWebKey): Promise<string> {
   return await hashString(keyString)
 }
 
-async function createMasterKey(): Promise<MasterKey> {
+export async function createMasterKey(): Promise<MasterKey> {
   const KeyPair = await crypto.subtle.generateKey(
     {
       name: "RSA-PSS",
