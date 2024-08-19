@@ -5,9 +5,9 @@ import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
 import user from "@/models/user.ts";
 import {
-  arrayBufferToBase64,
-  base64ToArrayBuffer,
-  createIdentityKeyAndAccountKey,
+  verifyAccountKey,
+  verifyDeviceKey,
+  verifyIdentityKey,
 } from "takosEncryptInk";
 import type {
   MasterKeyPub,
@@ -107,15 +107,8 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
-  try {
-    
-    return c.json({ status: true });
-    // deno-lint-ignore no-unused-vars
-  } catch (error) {
-    return c.json({ status: false, error: "invalid key" }, {
-      status: 500,
-    });
-  }
+
+  return c.json({ status: true }, { status: 200 });
 });
 
 export default app;

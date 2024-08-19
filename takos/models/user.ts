@@ -1,4 +1,9 @@
 import mongoose from "mongoose";
+import type {
+  IdentityKeyPub,
+  AccountKeyPub,
+  MasterKeyPub,
+} from "takosEncryptInk";
 const userSchema = new mongoose.Schema({
   uuid: {
     type: String,

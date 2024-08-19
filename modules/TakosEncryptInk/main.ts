@@ -24,6 +24,9 @@ export type {
   MasterKeyPrivate,
   MasterKeyPub,
   Sign,
+  deviceKeyPub,
+  deviceKeyPrivate,
+  deviceKey,
 }
 import { decode, encode } from "base64-arraybuffer"
 
