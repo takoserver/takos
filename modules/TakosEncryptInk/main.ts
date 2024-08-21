@@ -441,7 +441,7 @@ export async function isValidIdentityKeyHashChain(
   masterKey: MasterKeyPub,
   //すべてのハッシュチェーンかどうか
   isAll: boolean,
-) {
+): Promise<boolean> {
   if(isAll) {
     const firstHash = OtherUserIdentityKeys[0].hashChain.hash
     const firstSign = OtherUserIdentityKeys[0].hashChain.sign
