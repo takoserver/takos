@@ -15,7 +15,7 @@ import type {
   AccountKeyPub,
   deviceKey,
  } from "takosEncryptInk";
-import User from "@/models/user.ts";
+import User from "@/models/users.ts";
 const app = new Hono();
 
 app.post("/", async (c) => {
@@ -46,6 +46,7 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
+  console.log(user);
   if(user.setup) {
     return c.json({ status: false, error: "already setup" }, {
       status: 500,
@@ -106,12 +107,6 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
-  const deviceVerify = isValidDeviceKey(master_key, device_key);
-  if (!deviceVerify) {
-    return c.json({ status: false, error: "invalid device key" }, {
-      status: 500,
-    });
-  }
   try {
     const iconArrayBuffer = base64ToArrayBuffer(icon);
     const iconImage = await imagescript.decode(new Uint8Array(iconArrayBuffer));
@@ -125,7 +120,7 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
-  await user.updateOne({ uuid: session.uuid }, {
+  await User.updateOne({ uuid: session.uuid }, {
     $set: {
       nickName,
       age,
@@ -135,7 +130,7 @@ app.post("/", async (c) => {
       masterKey: master_key,
       setup: true,
     },
-  });
+  })
   return c.json({ status: true });
 });
 

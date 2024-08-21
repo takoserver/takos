@@ -385,9 +385,19 @@ export async function createDeviceKey(masterKey: MasterKey): Promise<deviceKey> 
 export async function isValidDeviceKey(
   masterKey: MasterKeyPub,
   deviceKey: deviceKey,
+  checkKie: "public" | "private" | "both"
 ): Promise<boolean> {
-  return await verifyKey(masterKey, deviceKey.public) &&
+  if(checkKie === "both") {
+    return await verifyKey(masterKey, deviceKey.public) &&
     await verifyKey(masterKey, deviceKey.private)
+  }
+  if(checkKie === "public") {
+    return await verifyKey(masterKey, deviceKey.public)
+  }
+  if(checkKie === "private") {
+    return await verifyKey(masterKey, deviceKey.private)
+  }
+  return false
 }
 
 export async function isValidIdentityKey(

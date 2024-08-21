@@ -229,7 +229,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         if (typeof iconBase64 !== "string") {
                           return;
                         }
-                        const iconData = iconBase64.split(",")[1];
+                        console.log(iconBase64);
                         const masterKey = await createMasterKey();
                         const { identityKey, accountKey } =
                           await createIdentityKeyAndAccountKey(masterKey);
@@ -274,19 +274,19 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         });
                         console.log(await store.getAll());
                         await tx.done;
-                        const res = await fetch("/takos/v2/client/setup", {
+                        const res = await fetch("/takos/v2/client/sessions/registers/setup", {
                           method: "POST",
                           headers: {
                             "Content-Type": "application/json",
                           },
                           body: JSON.stringify({
                             nickName: nickName,
-                            icon: iconData,
+                            icon: iconBase64,
                             age: age,
-                            account_key: accountKey,
-                            identity_key: identityKey,
-                            master_key: masterKey,
-                            device_key: deviceKey,
+                            account_key: accountKey.public,
+                            identity_key: identityKey.public,
+                            master_key: masterKey.public,
+                            device_key: deviceKey.private,
                           }),
                         });
                         const resJson = await res.json();
@@ -294,6 +294,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                           setSetUp(false);
                           alert("設定が完了しました");
                         } else {
+                          console.log(resJson);
                           alert("エラーが発生しました");
                         }
                     } catch (error) {

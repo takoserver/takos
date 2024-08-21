@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
-import User from "@/models/user.ts";
+import User from "../../../models/users.ts";
 import Sessionid from "@/models/sessionid.ts";
 
 const app = new Hono();

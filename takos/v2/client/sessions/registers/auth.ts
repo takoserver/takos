@@ -3,7 +3,7 @@ import { checkEmail } from "@/utils/checkEmail.ts";
 import { checkRecapcha } from "@/utils/checkRecapcha.ts";
 import tempUsers from "@/models/tempUser.ts";
 import { checkPassword, checkUserName } from "@/utils/checks.ts";
-import user from "@/models/user.ts";
+import user from "../../../../models/users.ts";
 const app = new Hono();
 app.post("/", async (c) => {
   let body;

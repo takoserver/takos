@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import tempUsers from "@/models/tempUser.ts";
-import User from "../../../../models/user.ts";
+import User from "../../../../models/users.ts";
 import { checkEmail } from "@/utils/checkEmail.ts";
 import { checkRecapcha } from "@/utils/checkRecapcha.ts";
 import { generateRandom16DigitNumber } from "@/utils/randomNumbers.ts";

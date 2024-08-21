@@ -14,6 +14,7 @@ import profile from "@/v2/client/profile/profile.ts";
 import nickName from "@/v2/client/profile/nickName.ts";
 import login from "@/v2/client/sessions/login.ts";
 import logout from "@/v2/client/sessions/logout.ts";
+import setup from "@/v2/client/sessions/registers/setup.ts";
 
 const app = new Hono();
 
@@ -32,4 +33,5 @@ app.route("/profile/nickName", nickName);
 app.route("/profile", profile);
 app.route("/sessions/login", login);
 app.route("/sessions/logout", logout);
+app.route("/sessions/registers/setup", setup);
 export default app;
