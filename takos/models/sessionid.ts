@@ -21,7 +21,7 @@ const sessionidSchema = new mongoose.Schema({
     default: true,
   },
   deviceKey: {
-    type: String,
+    type: Object,
   },
 });
 const Sessionid = mongoose.model("sessionid", sessionidSchema);

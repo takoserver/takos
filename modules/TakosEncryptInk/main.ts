@@ -7,6 +7,7 @@ import type {
   deviceKeyPub,
   EncryptedData,
   EncryptedDataDeviceKey,
+  EncryptedDataRoomKey,
   IdentityKey,
   IdentityKeyPrivate,
   IdentityKeyPub,
@@ -17,7 +18,7 @@ import type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-  EncryptedDataRoomKey
+  HashChainElement
 } from "./types.ts"
 export type {
   AccountKey,
@@ -28,6 +29,7 @@ export type {
   deviceKeyPub,
   EncryptedData,
   EncryptedDataDeviceKey,
+  EncryptedDataRoomKey,
   IdentityKey,
   IdentityKeyPrivate,
   IdentityKeyPub,
@@ -38,7 +40,7 @@ export type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-  EncryptedDataRoomKey
+  HashChainElement
 }
 import { decode, encode } from "base64-arraybuffer"
 
@@ -98,6 +100,7 @@ export async function createMasterKey(): Promise<MasterKey> {
 
 export async function createIdentityKeyAndAccountKey(
   masterKey: MasterKey,
+  oldIdentityHashchain?: string
 ): Promise<{ identityKey: IdentityKey; accountKey: AccountKey }> {
   const identityKeyPair = await crypto.subtle.generateKey(
     {
@@ -134,21 +137,37 @@ export async function createIdentityKeyAndAccountKey(
   const time = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString()
   const sign2 = await signKeyExpiration(masterKey, time, "master")
 
-  const identityKey: IdentityKey = {
-    public: {
-      key: identityKeyPublic,
-      keyType: "identityPub",
-      sign: identityKeySign,
-      keyExpiration: time,
-      keyExpirationSign: sign2,
-    },
-    private: {
-      key: identityKeyPrivate,
-      keyType: "identityPrivate",
-    },
-    hashHex: identityKeyHash,
+  const identityKeyPublicResult: IdentityKeyPub = {
+    key: identityKeyPublic,
+    keyType: "identityPub",
+    sign: identityKeySign,
+    keyExpiration: time,
+    keyExpirationSign: sign2,
   }
-
+  const identityKeyPrivateResult: IdentityKeyPrivate = {
+    key: identityKeyPrivate,
+    keyType: "identityPrivate",
+  }
+  let hashChain
+  if (oldIdentityHashchain) {
+    const hash = await hashString(oldIdentityHashchain + identityKeyHash)
+    const sign = await signData(masterKey, new TextEncoder().encode(hash))
+    hashChain = {
+      hash: hash,
+      sign: sign,
+    }
+  } else {
+    hashChain = {
+      hash: identityKeyHash,
+      sign: await signData(masterKey, new TextEncoder().encode(identityKeyHash)),
+    }
+  }
+  const identityKey: IdentityKey = {
+    public: identityKeyPublicResult,
+    private: identityKeyPrivateResult,
+    hashHex: identityKeyHash,
+    hashChain: hashChain,
+  }
   const accountKeySign = await signKey(identityKey, accountKeyPublic, "identity")
   const accountKey: AccountKey = {
     public: {
@@ -385,22 +404,22 @@ export async function createDeviceKey(masterKey: MasterKey): Promise<deviceKey> 
 export async function isValidDeviceKey(
   masterKey: MasterKeyPub,
   deviceKey: deviceKey,
-  checkKie: "public" | "private" | "both"
+  checkKie: "public" | "private" | "both",
 ): Promise<boolean> {
-  if(checkKie === "both") {
+  if (checkKie === "both") {
     return await verifyKey(masterKey, deviceKey.public) &&
-    await verifyKey(masterKey, deviceKey.private)
+      await verifyKey(masterKey, deviceKey.private)
   }
-  if(checkKie === "public") {
+  if (checkKie === "public") {
     return await verifyKey(masterKey, deviceKey.public)
   }
-  if(checkKie === "private") {
+  if (checkKie === "private") {
     return await verifyKey(masterKey, deviceKey.private)
   }
   return false
 }
 
-export async function isValidIdentityKey(
+export async function isValidIdentityKeySign(
   masterKeyPub: MasterKeyPub,
   identityKey: IdentityKeyPub,
 ): Promise<boolean> {
@@ -415,6 +434,39 @@ export async function isValidIdentityKey(
 
   return await verifyKey(masterKeyPub, identityKey) &&
     await isValidKeyExpiration(masterKeyPub, identityKey)
+}
+
+export async function isValidIdentityKeyHashChain(
+  OtherUserIdentityKeys: OtherUserIdentityKeys,
+  masterKey: MasterKeyPub,
+  //すべてのハッシュチェーンかどうか
+  isAll: boolean,
+) {
+  if(isAll) {
+    const firstHash = OtherUserIdentityKeys[0].hashChain.hash
+    const firstSign = OtherUserIdentityKeys[0].hashChain.sign
+    const fristPubKey = OtherUserIdentityKeys[0].identityKey
+    if (firstHash !== await generateKeyHashHex(fristPubKey.key)) {
+      return false
+    }
+    if (!await verifyData(masterKey, new TextEncoder().encode(firstHash), firstSign)) {
+      return false
+    }
+  }
+  for (let i = 1; i < OtherUserIdentityKeys.length; i++) {
+    const oldHash = OtherUserIdentityKeys[i - 1].hashChain.hash
+    const newHash = OtherUserIdentityKeys[i].hashChain.hash
+    const newSign = OtherUserIdentityKeys[i].hashChain.sign
+    const newPubKey = OtherUserIdentityKeys[i].identityKey
+    if(await hashString(oldHash + await generateKeyHashHex(newPubKey.key)) !== newHash) {
+      return false
+    }
+    if (!await verifyData(masterKey, new TextEncoder().encode(newHash), newSign)) {
+      console.log("failed to verify previousSign")
+      return false
+    }
+  }
+  return true
 }
 
 export async function isValidAccountKey(
@@ -582,17 +634,22 @@ export async function encryptAndSignDataWithAccountKey(
   const key = await importKey(accountKey, "public")
   const encryptedData = await Promise.all(
     DataArray.map(async (buffer) => {
-      return arrayBufferToBase64(await crypto.subtle.encrypt(
-        {
-          name: "RSA-OAEP",
-          iv: iv,
-        },
-        key,
-        buffer,
-      ))
+      return arrayBufferToBase64(
+        await crypto.subtle.encrypt(
+          {
+            name: "RSA-OAEP",
+            iv: iv,
+          },
+          key,
+          buffer,
+        ),
+      )
     }),
   )
-  const encryptedDataSign = await signData(identity_key, new TextEncoder().encode(JSON.stringify(encryptedData)))
+  const encryptedDataSign = await signData(
+    identity_key,
+    new TextEncoder().encode(JSON.stringify(encryptedData)),
+  )
   return {
     encryptedData: encryptedData,
     keyType: "accountKey",
@@ -650,13 +707,15 @@ export async function encryptDataDeviceKey(
     const key = await importKey(deviceKey.public, "public")
     const encryptedData = await Promise.all(
       dividedArrayBuffer.map(async (buffer) => {
-        return arrayBufferToBase64(await crypto.subtle.encrypt(
-          {
-            name: "RSA-OAEP",
-          },
-          key,
-          buffer,
-        ))
+        return arrayBufferToBase64(
+          await crypto.subtle.encrypt(
+            {
+              name: "RSA-OAEP",
+            },
+            key,
+            buffer,
+          ),
+        )
       }),
     )
     return {
@@ -690,23 +749,23 @@ export async function decryptDataDeviceKey(
 }
 
 function splitArrayBuffer(buffer: ArrayBuffer, chunkSize: number): ArrayBuffer[] {
-  const result: ArrayBuffer[] = [];
-  const view = new Uint8Array(buffer);
+  const result: ArrayBuffer[] = []
+  const view = new Uint8Array(buffer)
   for (let offset = 0; offset < buffer.byteLength; offset += chunkSize) {
-      const end = Math.min(offset + chunkSize, buffer.byteLength);
-      const chunk = view.slice(offset, end).buffer;
-      result.push(chunk);
+    const end = Math.min(offset + chunkSize, buffer.byteLength)
+    const chunk = view.slice(offset, end).buffer
+    result.push(chunk)
   }
-  return result;
+  return result
 }
 
 function rebuildArrayBuffer(buffers: ArrayBuffer[]): ArrayBuffer {
-  const totalLength = buffers.reduce((acc, buffer) => acc + buffer.byteLength, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
+  const totalLength = buffers.reduce((acc, buffer) => acc + buffer.byteLength, 0)
+  const result = new Uint8Array(totalLength)
+  let offset = 0
   for (const buffer of buffers) {
-      result.set(new Uint8Array(buffer), offset);
-      offset += buffer.byteLength;
+    result.set(new Uint8Array(buffer), offset)
+    offset += buffer.byteLength
   }
-  return result.buffer;
+  return result.buffer
 }

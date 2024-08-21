@@ -5,7 +5,6 @@ import ping from "@/v2/client/ping.ts";
 import bgimage from "@/v2/client/bgimage.ts";
 import temp from "@/v2/client/sessions/registers/temp.ts";
 import check from "@/v2/client/sessions/registers/check.ts";
-import csrftoken from "@/v2/client/csrftoken.ts";
 import recaptcha from "@/v2/client/recaptcha.ts";
 import auth from "@/v2/client/sessions/registers/auth.ts";
 import icon from "@/v2/client/profile/icon.ts";
@@ -22,7 +21,6 @@ app.use(bodyLimit({
   maxSize: 100 * 1024,
 })).route("/ping", ping);
 app.route("/bgimage", bgimage);
-app.route("/csrftoken", csrftoken);
 app.route("/sessions/registers/temp", temp);
 app.route("/sessions/registers/check", check);
 app.route("/sessions/registers/auth", auth);

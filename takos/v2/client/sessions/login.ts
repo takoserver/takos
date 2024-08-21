@@ -96,7 +96,9 @@ app.post("/", async (c) => {
       uuid: userNameUser.uuid,
       enable: true,
     });
-    setCookie(c, "sessionid", sessionid);
+    setCookie(c, "sessionid", sessionid,{
+      sameSite: "Lax"
+    });
   }
   return c.json({ status: true }, { status: 200 });
 });

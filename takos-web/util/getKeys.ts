@@ -32,9 +32,9 @@ export default async function getKeys(deviceKeyPrivate: deviceKeyPrivate) {
         throw new Error("Failed to decrypt keys");
     }
     return {
-        deviceKey,
-        identityKey,
-        masterKey,
-        accountKey
+        deviceKey: JSON.parse(deviceKeyPub.encryptedKey),
+        identityKey: JSON.parse(encryptedIdentityKey.encryptedKey),
+        masterKey: JSON.parse(encryptedMasterKey.encryptedKey),
+        accountKey: JSON.parse(encryptedAccountKey.encryptedKey),
     }
 }

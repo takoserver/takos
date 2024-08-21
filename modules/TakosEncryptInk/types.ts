@@ -12,6 +12,7 @@ type IdentityKeyPub = {
   keyExpiration: string // 鍵の有効期限
   keyExpirationSign: Sign // 有効期限に対する署名
   keyType: "identityPub" // 鍵の種類
+  //ハッシュチェーン
 }
 
 // Identity Keyの秘密鍵情報を格納する型
@@ -45,6 +46,7 @@ type IdentityKey = {
   public: IdentityKeyPub // 公開鍵情報
   private: IdentityKeyPrivate // 秘密鍵情報
   hashHex: string // 鍵のハッシュ
+  hashChain: HashChainElement // ハッシュチェーン
 }
 
 type MasterKey = {
@@ -64,12 +66,6 @@ type MasterKeyPrivate = {
 
 // 他のユーザーのMaster Key情報を格納する型
 type OtherUserMasterKeys = {
-  key: JsonWebKey // 公開鍵
-  hashHex: string // 鍵のハッシュ
-}[]
-
-// 他のユーザーのIdentity Key情報を格納する型
-type OtherUserIdentityKeys = {
   key: JsonWebKey // 公開鍵
   hashHex: string // 鍵のハッシュ
 }[]
@@ -127,6 +123,16 @@ type EncryptedDataDeviceKey = {
   encryptedKeyHashHex: string //暗号化した鍵のハッシュ値
 }
 
+type HashChainElement = {
+  hash: string;
+  sign: Sign
+};
+
+type OtherUserIdentityKeys = {
+  identityKey: IdentityKeyPub,
+  hashHex: string
+  hashChain: HashChainElement
+}[]
 
 // 型定義のエクスポート
 export type {
@@ -138,6 +144,7 @@ export type {
   deviceKeyPub,
   EncryptedData,
   EncryptedDataDeviceKey,
+  EncryptedDataRoomKey,
   IdentityKey,
   IdentityKeyPrivate,
   IdentityKeyPub,
@@ -148,6 +155,5 @@ export type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-  EncryptedDataRoomKey,
-
+  HashChainElement
 }

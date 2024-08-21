@@ -47,15 +47,6 @@ const userSchema = new mongoose.Schema({
     type: Number,
   },
   timestamp: { type: Date, default: Date.now },
-  accountKey: {
-    type: Object,
-  },
-  deviceKey: {
-    type: Object,
-  },
-  identityKey: {
-    type: Object,
-  },
   masterKey: {
     type: Object,
   },
