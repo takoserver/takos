@@ -1,17 +1,9 @@
 import { DBSchema, IDBPDatabase, openDB } from "idb";
-import type {
-  AccountKey,
-  deviceKeyPub,
-  IdentityKey,
-  MasterKey,
-  MasterKeyPub,
-} from "@takos/takos-encrypt-ink";
-
 type KeyValue = {
-  encryptedKey: string;
-  keyType: "accountKey" | "identityKey" | "masterKey" | "deviceKey";
-};
-
+    key: string; // これを追加
+    encryptedKey: string;
+    keyType: "accountKey" | "identityKey" | "masterKey" | "deviceKey";
+  };
 export interface TakosDB extends DBSchema {
   keys: {
     key: string;
@@ -20,7 +12,7 @@ export interface TakosDB extends DBSchema {
 }
 
 export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
-  return openDB<TakosDB>("takos-database", 1, {
+  return openDB<TakosDB>("takos-db", 1, {
     upgrade(db) {
       // keysオブジェクトストアを作成
       if (!db.objectStoreNames.contains("keys")) {

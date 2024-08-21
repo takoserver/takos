@@ -64,7 +64,7 @@ async function hashString(input: string): Promise<string> {
 }
 
 // JWK形式の鍵から公開鍵ハッシュを生成
-async function generateKeyHashHex(jwk: JsonWebKey): Promise<string> {
+export async function generateKeyHashHex(jwk: JsonWebKey): Promise<string> {
   const keyString = JSON.stringify(jwk)
   return await hashString(keyString)
 }

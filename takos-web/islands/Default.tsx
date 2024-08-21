@@ -234,7 +234,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         const { identityKey, accountKey } =
                           await createIdentityKeyAndAccountKey(masterKey);
                         const deviceKey = await createDeviceKey(masterKey);
-                        console.log("1")
                         const encryptedMasterKey = await encryptDataDeviceKey(
                           deviceKey,
                           JSON.stringify(masterKey),
@@ -254,21 +253,26 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         const tx = db.transaction("keys", "readwrite");
                         const store = tx.objectStore("keys");
                         store.put({
+                          key: "masterKey",
                           encryptedKey: JSON.stringify(encryptedMasterKey),
                           keyType: "masterKey",
-                        }, "masterKey");
+                        });
                         store.put({
+                          key: "identityKey",
                           encryptedKey: JSON.stringify(encryptedIdentityKey),
                           keyType: "identityKey",
-                        }, "identityKey");
+                        });
                         store.put({
+                          key: "accountKey",
                           encryptedKey: JSON.stringify(encryptedAccountKey),
                           keyType: "accountKey",
-                        }, "accountKey");
+                        });
                         store.put({
+                          key: "deviceKey",
                           encryptedKey: stringifyDeviceKeyPub,
                           keyType: "deviceKey",
-                        }, "deviceKey");
+                        });
+                        console.log(await store.getAll());
                         await tx.done;
                         const res = await fetch("/takos/v2/client/setup", {
                           method: "POST",
