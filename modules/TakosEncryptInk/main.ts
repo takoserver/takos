@@ -674,9 +674,6 @@ export async function decryptDataDeviceKey(
   deviceKey: deviceKey,
   encryptedData: EncryptedDataDeviceKey,
 ): Promise<string | null> {
-  if (deviceKey.hashHex !== encryptedData.encryptedKeyHashHex) {
-    return null
-  }
   const key = await importKey(deviceKey.private, "private")
   const decryptedDataArray = await Promise.all(
     encryptedData.encryptedData.map(async (data) => {

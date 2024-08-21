@@ -9,6 +9,7 @@ import {
   encryptDataDeviceKey,
 } from "@takos/takos-encrypt-ink";
 import { createTakosDB } from "../util/idbSchama.ts";
+import getKeys from "../util/getKeys.ts";
 export default function setDefaultState({ state }: { state: AppStateType }) {
   const [setUp, setSetUp] = useState(false);
   const [nickName, setNickName] = useState("");
@@ -28,7 +29,8 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
       }
       state.userName.value = userInfoData.userName;
 
-      const request = indexedDB.open("takos", 1);
+      const keys = await getKeys(userInfoData.data.devicekey);
+      console.log(keys)
     }
     setDefaultState();
   }, []);

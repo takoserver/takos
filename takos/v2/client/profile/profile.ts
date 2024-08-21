@@ -30,8 +30,8 @@ app.get("/", async (c) => {
       userName: userInfo.userName,
       nickName: userInfo.nickName,
       age: userInfo.age,
-      device_key: userInfo.deviceKey,
       setup: userInfo.setup,
+      devicekey: userInfo.deviceKey,
     },
   }, 200);
 });
