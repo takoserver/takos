@@ -84,7 +84,6 @@ app.post("/", async (c) => {
     (byte) => byte.toString(16).padStart(2, "0"),
   ).join("");
   await user.create({
-    uuid: crypto.randomUUID(),
     userName,
     email,
     password: hashHex,

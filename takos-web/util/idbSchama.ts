@@ -1,9 +1,14 @@
 import { DBSchema, IDBPDatabase, openDB } from "idb";
 type KeyValue = {
-    key: string; // これを追加
-    encryptedKey: string;
-    keyType: "accountKey" | "identityKey" | "masterKey" | "deviceKey";
-  };
+  key: string; // これを追加
+  encryptedKey: string;
+  keyType:
+    | "accountKey"
+    | "identityKey"
+    | "masterKey"
+    | "deviceKey"
+    | "hashChain";
+};
 export interface TakosDB extends DBSchema {
   keys: {
     key: string;

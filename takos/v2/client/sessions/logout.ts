@@ -18,7 +18,7 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
-  const userInfo = await User.findOne({ uuid: session.uuid });
+  const userInfo = await User.findOne({ userName: session.userName });
   if (!userInfo) {
     return c.json({ status: false, error: "user is not found" }, {
       status: 500,

@@ -18,7 +18,7 @@ app.get("/", async (c) => {
       status: 500,
     });
   }
-  const userInfo = await User.findOne({ uuid: session.uuid });
+  const userInfo = await User.findOne({ userName: session.userName });
   if (!userInfo) {
     return c.json({ status: false, error: "user is not found" }, {
       status: 500,
@@ -26,7 +26,9 @@ app.get("/", async (c) => {
   }
   let icon: Uint8Array;
   try {
-    icon = await Deno.readFile("./files/userIcon/" + userInfo.uuid + ".jpg");
+    icon = await Deno.readFile(
+      "./files/userIcon/" + userInfo.userName + ".jpg",
+    );
   } catch (_error) {
     icon = await Deno.readFile("./people.jpeg");
   }

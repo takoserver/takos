@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 const inviteSchema = new mongoose.Schema({
-  uuid: {
+  userName: {
     type: String,
     required: true,
     unique: true,

@@ -4,18 +4,20 @@ import { checkNickName } from "@/utils/checks.ts";
 import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
 import {
-base64ToArrayBuffer,
+  base64ToArrayBuffer,
+  generateKeyHashHex,
   isValidAccountKey,
   isValidDeviceKey,
-  isValidIdentityKey,
+  isValidIdentityKeySign,
 } from "takosEncryptInk";
 import type {
-  MasterKeyPub,
-  IdentityKeyPub,
   AccountKeyPub,
   deviceKey,
- } from "takosEncryptInk";
+  IdentityKeyPub,
+  MasterKeyPub,
+} from "takosEncryptInk";
 import User from "@/models/users.ts";
+import Keys from "@/models/keys/keys.ts";
 const app = new Hono();
 
 app.post("/", async (c) => {
@@ -40,14 +42,13 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
-  const user = await User.findOne({ uuid: session.uuid });
+  const user = await User.findOne({ userName: session.userName });
   if (!user) {
     return c.json({ status: false, error: "user is not found" }, {
       status: 500,
     });
   }
-  console.log(user);
-  if(user.setup) {
+  if (user.setup) {
     return c.json({ status: false, error: "already setup" }, {
       status: 500,
     });
@@ -95,7 +96,7 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
-  const identityVerify = isValidIdentityKey(master_key, identity_key);
+  const identityVerify = isValidIdentityKeySign(master_key, identity_key);
   if (!identityVerify) {
     return c.json({ status: false, error: "invalid identity key" }, {
       status: 500,
@@ -113,24 +114,36 @@ app.post("/", async (c) => {
     //250x250
     iconImage.resize(250, 250);
     const iconImageResizedBuffer = await iconImage.encode();
-    await Deno.writeFile(`./files/userIcon/${user.uuid}.jpeg`, iconImageResizedBuffer);
+    await Deno.writeFile(
+      `./files/userIcon/${user.userName}.jpeg`,
+      iconImageResizedBuffer,
+    );
   } catch (e) {
     console.log(e);
     return c.json({ status: false, error: "faild to load image" }, {
       status: 500,
     });
   }
-  await User.updateOne({ uuid: session.uuid }, {
+  await User.updateOne({ userName: session.userName }, {
     $set: {
       nickName,
       age,
-      accountKey: account_key,
-      deviceKey: device_key,
-      identityKey: identity_key,
       masterKey: master_key,
       setup: true,
     },
-  })
+  });
+  await Keys.create({
+    userName: session.userName,
+    timestamp: new Date(),
+    identityKey: identity_key,
+    accountKey: account_key,
+    hashHex: await generateKeyHashHex(identity_key.key),
+  });
+  await Sessionid.updateOne({ sessionid: session.sessionid }, {
+    $set: {
+      deviceKey: device_key,
+    },
+  });
   return c.json({ status: true });
 });
 

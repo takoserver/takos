@@ -62,7 +62,7 @@ app.post("/", async (c) => {
     const sessionid = createSessionid();
     await Sessionid.create({
       sessionid,
-      uuid: emailUser.uuid,
+      userName: emailUser.userName,
       enable: true,
     });
     setCookie(c, "sessionid", sessionid);
@@ -93,11 +93,11 @@ app.post("/", async (c) => {
     const sessionid = createSessionid();
     await Sessionid.create({
       sessionid,
-      uuid: userNameUser.uuid,
+      userName: userNameUser.userName,
       enable: true,
     });
-    setCookie(c, "sessionid", sessionid,{
-      sameSite: "Lax"
+    setCookie(c, "sessionid", sessionid, {
+      sameSite: "Lax",
     });
   }
   return c.json({ status: true }, { status: 200 });

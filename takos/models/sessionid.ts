@@ -5,7 +5,7 @@ const sessionidSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  uuid: {
+  userName: {
     type: String,
     required: true,
   },

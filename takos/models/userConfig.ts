@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 const userConfigSchema = new mongoose.Schema({
-  uuid: {
+  userName: {
     type: String,
     required: true,
     unique: true,

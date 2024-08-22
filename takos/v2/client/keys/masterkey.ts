@@ -27,11 +27,7 @@ app.get("/", async (c) => {
   return c.json({
     status: true,
     data: {
-      userName: userInfo.userName,
-      nickName: userInfo.nickName,
-      age: userInfo.age,
-      setup: userInfo.setup,
-      devicekey: session.deviceKey,
+      masterkey: userInfo.masterKey,
     },
   }, 200);
 });

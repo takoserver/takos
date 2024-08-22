@@ -30,7 +30,12 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
       state.userName.value = userInfoData.userName;
 
       const keys = await getKeys(userInfoData.data.devicekey);
-      console.log(keys)
+      console.log(keys);
+      const latestKeys = await fetch(
+        "/takos/v2/client/keys/keys" + "?kind=latest" + "&userName=" +
+          userInfoData.data.userName,
+      ).then((res) => res.json());
+      console.log(latestKeys);
     }
     setDefaultState();
   }, []);
@@ -227,56 +232,58 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         return;
                       }
                       const iconFile = icondata;
-                        const iconBase64 = await convertFileToBase64(iconFile);
-                        if (typeof iconBase64 !== "string") {
-                          return;
-                        }
-                        console.log(iconBase64);
-                        const masterKey = await createMasterKey();
-                        const { identityKey, accountKey } =
-                          await createIdentityKeyAndAccountKey(masterKey);
-                        const deviceKey = await createDeviceKey(masterKey);
-                        const encryptedMasterKey = await encryptDataDeviceKey(
-                          deviceKey,
-                          JSON.stringify(masterKey),
-                        );
-                        const encryptedIdentityKey = await encryptDataDeviceKey(
-                          deviceKey,
-                          JSON.stringify(identityKey),
-                        );
-                        const encryptedAccountKey = await encryptDataDeviceKey(
-                          deviceKey,
-                          JSON.stringify(accountKey),
-                        );
-                        const stringifyDeviceKeyPub = JSON.stringify(
-                          deviceKey.public,
-                        );
-                        const db = await createTakosDB();
-                        const tx = db.transaction("keys", "readwrite");
-                        const store = tx.objectStore("keys");
-                        store.put({
-                          key: "masterKey",
-                          encryptedKey: JSON.stringify(encryptedMasterKey),
-                          keyType: "masterKey",
-                        });
-                        store.put({
-                          key: "identityKey",
-                          encryptedKey: JSON.stringify(encryptedIdentityKey),
-                          keyType: "identityKey",
-                        });
-                        store.put({
-                          key: "accountKey",
-                          encryptedKey: JSON.stringify(encryptedAccountKey),
-                          keyType: "accountKey",
-                        });
-                        store.put({
-                          key: "deviceKey",
-                          encryptedKey: stringifyDeviceKeyPub,
-                          keyType: "deviceKey",
-                        });
-                        console.log(await store.getAll());
-                        await tx.done;
-                        const res = await fetch("/takos/v2/client/sessions/registers/setup", {
+                      const iconBase64 = await convertFileToBase64(iconFile);
+                      if (typeof iconBase64 !== "string") {
+                        return;
+                      }
+                      console.log(iconBase64);
+                      const masterKey = await createMasterKey();
+                      const { identityKey, accountKey } =
+                        await createIdentityKeyAndAccountKey(masterKey);
+                      const deviceKey = await createDeviceKey(masterKey);
+                      const encryptedMasterKey = await encryptDataDeviceKey(
+                        deviceKey,
+                        JSON.stringify(masterKey),
+                      );
+                      const encryptedIdentityKey = await encryptDataDeviceKey(
+                        deviceKey,
+                        JSON.stringify(identityKey),
+                      );
+                      const encryptedAccountKey = await encryptDataDeviceKey(
+                        deviceKey,
+                        JSON.stringify(accountKey),
+                      );
+                      const stringifyDeviceKeyPub = JSON.stringify(
+                        deviceKey.public,
+                      );
+                      const db = await createTakosDB();
+                      const tx = db.transaction("keys", "readwrite");
+                      const store = tx.objectStore("keys");
+                      store.put({
+                        key: "masterKey",
+                        encryptedKey: JSON.stringify(encryptedMasterKey),
+                        keyType: "masterKey",
+                      });
+                      store.put({
+                        key: "identityKey",
+                        encryptedKey: JSON.stringify(encryptedIdentityKey),
+                        keyType: "identityKey",
+                      });
+                      store.put({
+                        key: "accountKey",
+                        encryptedKey: JSON.stringify(encryptedAccountKey),
+                        keyType: "accountKey",
+                      });
+                      store.put({
+                        key: "deviceKey",
+                        encryptedKey: stringifyDeviceKeyPub,
+                        keyType: "deviceKey",
+                      });
+                      console.log(await store.getAll());
+                      await tx.done;
+                      const res = await fetch(
+                        "/takos/v2/client/sessions/registers/setup",
+                        {
                           method: "POST",
                           headers: {
                             "Content-Type": "application/json",
@@ -290,15 +297,16 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                             master_key: masterKey.public,
                             device_key: deviceKey.private,
                           }),
-                        });
-                        const resJson = await res.json();
-                        if (resJson.status) {
-                          setSetUp(false);
-                          alert("設定が完了しました");
-                        } else {
-                          console.log(resJson);
-                          alert("エラーが発生しました");
-                        }
+                        },
+                      );
+                      const resJson = await res.json();
+                      if (resJson.status) {
+                        setSetUp(false);
+                        alert("設定が完了しました");
+                      } else {
+                        console.log(resJson);
+                        alert("エラーが発生しました");
+                      }
                     } catch (error) {
                       console.log(error);
                       throw error;
