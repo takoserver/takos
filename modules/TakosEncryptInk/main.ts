@@ -823,9 +823,9 @@ export async function createKeyShareKey(
 
 export async function isValidKeyShareKey(
   masterKey: MasterKeyPub,
-  keyShareKey: KeyShareKey,
+  keyShareKey: KeyShareKeyPub,
 ): Promise<boolean> {
-  if (!await verifyKey(masterKey, keyShareKey.public) || !await isValidKeyExpiration(masterKey, keyShareKey.public)) {
+  if (!await verifyKey(masterKey, keyShareKey) || !await isValidKeyExpiration(masterKey, keyShareKey)) {
     return false;
   }
   return true;

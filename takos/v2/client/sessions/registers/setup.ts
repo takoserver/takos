@@ -9,12 +9,14 @@ import {
   isValidAccountKey,
   isValidDeviceKey,
   isValidIdentityKeySign,
+  isValidKeyShareKey,
 } from "takosEncryptInk";
 import type {
   AccountKeyPub,
   deviceKey,
   IdentityKeyPub,
   MasterKeyPub,
+  KeyShareKeyPub,
 } from "takosEncryptInk";
 import User from "@/models/users.ts";
 import Keys from "@/models/keys/keys.ts";
@@ -61,6 +63,7 @@ app.post("/", async (c) => {
     device_key,
     identity_key,
     master_key,
+    keyShareKey,
   }: {
     nickName: string;
     icon: string;
@@ -70,6 +73,7 @@ app.post("/", async (c) => {
     identity_key: IdentityKeyPub;
     master_key: MasterKeyPub;
     device_key: deviceKey;
+    keyShareKey: KeyShareKeyPub;
   } = body;
   if (!checkNickName(nickName)) {
     return c.json({ status: false, error: "invalid nickname" }, {
@@ -108,6 +112,13 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
+  const deviceVerify = isValidDeviceKey(master_key, device_key, "both");
+  if (!deviceVerify) {
+    return c.json({ status: false, error: "invalid device key" }, {
+      status: 500,
+    });
+  }
+  const verifyKeyShareKey = isValidKeyShareKey(master_key, keyShareKey);
   try {
     const iconArrayBuffer = base64ToArrayBuffer(icon);
     const iconImage = await imagescript.decode(new Uint8Array(iconArrayBuffer));

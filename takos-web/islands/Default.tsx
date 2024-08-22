@@ -5,6 +5,7 @@ import { TakosDB } from "../util/idbSchama.ts";
 import {
   createDeviceKey,
   createIdentityKeyAndAccountKey,
+  createKeyShareKey,
   createMasterKey,
   encryptDataDeviceKey,
 } from "@takos/takos-encrypt-ink";
@@ -241,6 +242,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                       const { identityKey, accountKey } =
                         await createIdentityKeyAndAccountKey(masterKey);
                       const deviceKey = await createDeviceKey(masterKey);
+                      const keyShareKey = await  createKeyShareKey(masterKey);
                       const encryptedMasterKey = await encryptDataDeviceKey(
                         deviceKey,
                         JSON.stringify(masterKey),
@@ -253,34 +255,34 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         deviceKey,
                         JSON.stringify(accountKey),
                       );
-                      const stringifyDeviceKeyPub = JSON.stringify(
-                        deviceKey.public,
+                      const encryptedKeyShareKey = await encryptDataDeviceKey(
+                        deviceKey,
+                        JSON.stringify(keyShareKey),
                       );
                       const db = await createTakosDB();
-                      const tx = db.transaction("keys", "readwrite");
-                      const store = tx.objectStore("keys");
+                      const tx = db.transaction("masterKey", "readwrite");
+                      const store = tx.objectStore("masterKey");
                       store.put({
-                        key: "masterKey",
-                        encryptedKey: JSON.stringify(encryptedMasterKey),
-                        keyType: "masterKey",
-                      });
-                      store.put({
-                        key: "identityKey",
-                        encryptedKey: JSON.stringify(encryptedIdentityKey),
-                        keyType: "identityKey",
-                      });
-                      store.put({
-                        key: "accountKey",
-                        encryptedKey: JSON.stringify(encryptedAccountKey),
-                        keyType: "accountKey",
-                      });
-                      store.put({
-                        key: "deviceKey",
-                        encryptedKey: stringifyDeviceKeyPub,
-                        keyType: "deviceKey",
-                      });
-                      console.log(await store.getAll());
+                        masterKey: encryptedMasterKey,
+                      }, "masterKey");
+                      const tx2 = db.transaction("accountAndIdentityKeys", "readwrite");
+                      const store2 = tx2.objectStore("accountAndIdentityKeys");
+                      store2.put({
+                        accountKey: encryptedAccountKey,
+                        identityKey: encryptedIdentityKey,
+                      }, accountKey.hashHex);
+                      const tx3 = db.transaction("deviceKey", "readwrite");
+                      const store3 = tx3.objectStore("deviceKey");
+                      store3.put(deviceKey.public, "deviceKey");
+                      const tx4 = db.transaction("keyShareKeys", "readwrite");
+                      const store4 = tx4.objectStore("keyShareKeys");
+                      store4.put({
+                        keyShareKey: encryptedKeyShareKey,
+                      }, keyShareKey.hashHex);
                       await tx.done;
+                      await tx2.done;
+                      await tx3.done;
+                      await tx4.done;
                       const res = await fetch(
                         "/takos/v2/client/sessions/registers/setup",
                         {
@@ -296,6 +298,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                             identity_key: identityKey.public,
                             master_key: masterKey.public,
                             device_key: deviceKey.private,
+                            keyShareKey: keyShareKey.public,
                           }),
                         },
                       );
