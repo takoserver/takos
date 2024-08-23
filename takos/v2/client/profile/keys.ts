@@ -1,6 +1,7 @@
 import { Context, Hono } from "hono";
-import type {
+import {
   AccountKeyPub,
+  IdentityKey,
   IdentityKeyPub,
   MasterKeyPub,
   OtherUserIdentityKeys,
@@ -14,14 +15,6 @@ const app = new Hono();
 
 app.get("/", async (c: Context) => {
   const sessionid = getCookie(c, "sessionid");
-  const latestAllowedIdentityKey = c.req.query("latestAllowedIdentityKey");
-  const onlyOneMasterKey = (() => {
-    const string = c.req.query("onlyOneMasterKey");
-    if (!string) {
-      return false;
-    }
-    return string === "true";
-  })();
   if (!sessionid) {
     return c.json({ status: false, error: "sessionid is not found" }, {
       status: 500,
@@ -39,47 +32,21 @@ app.get("/", async (c: Context) => {
       status: 500,
     });
   }
-  const keys = await Keys.find({ userName: userInfo.userName }) as {
-    timestamp: Date;
-    userName: string;
-    identityKey?: IdentityKeyPub;
-    accountKey?: AccountKeyPub;
-    hashHex?: string;
-    hashChain: any[];
-  }[];
+  const keys = await Keys.find({ userName: userInfo.userName })
   keys.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-  if (!onlyOneMasterKey && !latestAllowedIdentityKey) {
-    return c.json({
-      status: true,
-      data: {
-        masterKey: userInfo.masterKey,
-        keys: keys,
-      },
-    }, 200);
-  }
-  if (onlyOneMasterKey) {
-    const latestMasterKey = keys[keys.length - 1].identityKey?.sign
+    const latestMasterKey = keys[keys.length - 1].identityKeyPub?.sign
       .hashedPublicKeyHex;
     //最新のマスターキー以外のマスターキーを配列から削除する
     return c.json({
       status: true,
       data: {
         masterKey: userInfo.masterKey,
-        keys: keys.filter((key) =>
-          key.identityKey?.sign.hashedPublicKeyHex === latestMasterKey
-        ),
+        keys: {
+          AccountKey: keys.map((key) => key.accountKeyPub?.sign.hashedPublicKeyHex === latestMasterKey ? key.encryptedAccountKey : undefined).filter((key) => key !== undefined),
+          IdentityKey: keys.map((key) => key.identityKeyPub?.sign.hashedPublicKeyHex === latestMasterKey ? key.encryptedIdentityKey : undefined).filter((key) => key !== undefined),
+        }
       },
     }, 200);
-  }
-  if (latestAllowedIdentityKey) {
-    //
-  }
-  c.json({
-    status: false,
-    error: "invalid query",
-  }, {
-    status: 500,
-  });
 });
 
 export default app;

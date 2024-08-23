@@ -1,4 +1,4 @@
-import { Context, Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import User from "../../../models/users.ts";
 import Sessionid from "@/models/sessionid.ts";

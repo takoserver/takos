@@ -2,7 +2,8 @@
 type Sign = {
   signature: string; // ArrayBufferをbase64に変換したもの
   hashedPublicKeyHex: string; // 公開鍵をハッシュ化し、16進数文字列に変換したもの
-  type: "master" | "identity"; // 署名の種類
+  type: "master" | "identity"; //
+  version: number; // 署名のバージョン
 };
 
 // Identity Keyの公開鍵情報を格納する型
@@ -12,12 +13,14 @@ type IdentityKeyPub = {
   keyExpiration: string; // 鍵の有効期限
   keyExpirationSign: Sign; // 有効期限に対する署名
   keyType: "identityPub"; // 鍵の種類
+  version: number; // 鍵のバージョン
 };
 
 // Identity Keyの秘密鍵情報を格納する型
 type IdentityKeyPrivate = {
   key: JsonWebKey; // 秘密鍵
   keyType: "identityPrivate"; // 鍵の種類
+  version: number; // 鍵のバージョン
 };
 
 // Account Keyの公開鍵情報を格納する型
@@ -25,12 +28,14 @@ type AccountKeyPub = {
   key: JsonWebKey; // 公開鍵
   sign: Sign; // 署名情報
   keyType: "accountPub"; // 鍵の種類
+  version: number; // 鍵のバージョン
 };
 
 // Account Keyの秘密鍵情報を格納する型
 type AccountKeyPrivate = {
   key: JsonWebKey; // 秘密鍵
   keyType: "accountPrivate"; // 鍵の種類
+  version: number; // 鍵のバージョン
 };
 
 // Account Keyのペア情報を格納する型
@@ -38,6 +43,7 @@ type AccountKey = {
   public: AccountKeyPub; // 公開鍵情報
   private: AccountKeyPrivate; // 秘密鍵情報
   hashHex: string; // 鍵のハッシュ
+  version: number; // 鍵のバージョン
 };
 
 // Identity Keyのペア情報を格納する型
@@ -45,46 +51,53 @@ type IdentityKey = {
   public: IdentityKeyPub; // 公開鍵情報
   private: IdentityKeyPrivate; // 秘密鍵情報
   hashHex: string; // 鍵のハッシュ
-  hashChain: HashChainElement; // ハッシュチェーン
+  version: number; // 鍵のバージョン
 };
 
 type MasterKey = {
   public: MasterKeyPub;
   private: MasterKeyPrivate;
   hashHex: string;
+  version: number;
 };
 
 type MasterKeyPub = {
   key: JsonWebKey;
   keyType: "masterPub";
+  version: number;
 };
 type MasterKeyPrivate = {
   key: JsonWebKey;
   keyType: "masterPrivate";
+  version: number;
 };
 
 // 他のユーザーのMaster Key情報を格納する型
 type OtherUserMasterKeys = {
   key: JsonWebKey; // 公開鍵
   hashHex: string; // 鍵のハッシュ
+  version: number; // 鍵のバージョン
 }[];
 
 type deviceKeyPub = {
   key: JsonWebKey;
   sign: Sign;
   keyType: "devicePub";
+  version: number;
 };
 
 type deviceKeyPrivate = {
   key: JsonWebKey;
   sign: Sign;
   keyType: "devicePrivate";
+  version: number;
 };
 
 type deviceKey = {
   public: deviceKeyPub;
   private: deviceKeyPrivate;
   hashHex: string;
+  version: number;
 };
 
 type RoomKey = {
@@ -94,6 +107,7 @@ type RoomKey = {
   keyExpiration: string;
   keyExpirationSign: Sign;
   hashHex: string;
+  version: number;
 };
 
 type EncryptedData = {
@@ -105,6 +119,7 @@ type EncryptedData = {
   iv?: string; // 初期化ベクトル (Initialization Vector)
   //署名した鍵のハッシュ値
   signKeyHashHex: string;
+  version: number;
 };
 
 type EncryptedDataRoomKey = {
@@ -114,23 +129,27 @@ type EncryptedDataRoomKey = {
   encryptedDataSign: Sign; //暗号化されたデータに対する署名
   encryptedKeyHashHex: string; //暗号化した鍵のハッシュ値
   signKeyHashHex: string; //署名した鍵のハッシュ値
+  version: number;
 };
 type EncryptedDataDeviceKey = {
   encryptedData: string[]; // 暗号化されたデータの値
   keyType: "DeviceKey"; // 使用された鍵の種類
   iv?: string; // 初期化ベクトル (Initialization Vector)
   encryptedKeyHashHex: string; //暗号化した鍵のハッシュ値
+  version: number;
 };
 
 type HashChainElement = {
   hash: string;
   sign: Sign;
+  version: number;
 };
 
 type OtherUserIdentityKeys = {
   identityKey: IdentityKeyPub;
   hashHex: string;
   hashChain: HashChainElement;
+  version: number;
 }[];
 
 type KeyShareKeyPub = {
@@ -139,6 +158,7 @@ type KeyShareKeyPub = {
   keyType: "keySharePub"; // 鍵の種類
   keyExpiration: string; // 鍵の有効期限
   keyExpirationSign: Sign; // 有効期限に対する署名
+  version: number; // 鍵のバージョン
 };
 type KeyShareKeyPrivate = {
   key: JsonWebKey; // 秘密鍵
@@ -148,6 +168,7 @@ type KeyShareKey = {
   public: KeyShareKeyPub; // 公開鍵情報
   private: KeyShareKeyPrivate; // 秘密鍵情報
   hashHex: string; // 鍵のハッシュ
+  version: number; // 鍵のバージョン
 };
 
 type EncryptedDataKeyShareKey = {
@@ -157,6 +178,7 @@ type EncryptedDataKeyShareKey = {
   encryptedKeyHashHex: string; //暗号化した鍵のハッシュ値
   signKeyHashHex: string; //署名した鍵のハッシュ値
   iv?: string; // 初期化ベクトル (Initialization Vector)
+  version: number;
 };
 
 // 型定義のエクスポート

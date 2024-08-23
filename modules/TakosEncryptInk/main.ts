@@ -97,18 +97,20 @@ export async function createMasterKey(): Promise<MasterKey> {
     public: {
       key: await exportfromJWK(KeyPair.publicKey),
       keyType: "masterPub",
+      version: 1,
     },
     private: {
       key: await exportfromJWK(KeyPair.privateKey),
       keyType: "masterPrivate",
+      version: 1,
     },
     hashHex: MasterKeyPublickHex,
+    version: 1,
   };
 }
 
 export async function createIdentityKeyAndAccountKey(
   masterKey: MasterKey,
-  oldIdentityHashchain?: string,
 ): Promise<{ identityKey: IdentityKey; accountKey: AccountKey }> {
   const identityKeyPair = await crypto.subtle.generateKey(
     {
@@ -151,33 +153,18 @@ export async function createIdentityKeyAndAccountKey(
     sign: identityKeySign,
     keyExpiration: time,
     keyExpirationSign: sign2,
+    version: 1,
   };
   const identityKeyPrivateResult: IdentityKeyPrivate = {
     key: identityKeyPrivate,
     keyType: "identityPrivate",
+    version: 1,
   };
-  let hashChain;
-  if (oldIdentityHashchain) {
-    const hash = await hashString(oldIdentityHashchain + identityKeyHash);
-    const sign = await signData(masterKey, new TextEncoder().encode(hash));
-    hashChain = {
-      hash: hash,
-      sign: sign,
-    };
-  } else {
-    hashChain = {
-      hash: identityKeyHash,
-      sign: await signData(
-        masterKey,
-        new TextEncoder().encode(identityKeyHash),
-      ),
-    };
-  }
   const identityKey: IdentityKey = {
     public: identityKeyPublicResult,
     private: identityKeyPrivateResult,
     hashHex: identityKeyHash,
-    hashChain: hashChain,
+    version: 1,
   };
   const accountKeySign = await signKey(
     identityKey,
@@ -189,14 +176,16 @@ export async function createIdentityKeyAndAccountKey(
       key: accountKeyPublic,
       keyType: "accountPub",
       sign: accountKeySign,
+      version: 1,
     },
     private: {
       key: accountKeyPrivate,
       keyType: "accountPrivate",
+      version: 1,
     },
     hashHex: identityKey.hashHex,
+    version: 1,
   };
-
   return { identityKey, accountKey };
 }
 export async function importKey(
@@ -355,6 +344,7 @@ async function sign(
     signature: arrayBufferToBase64(signature),
     hashedPublicKeyHex,
     type,
+    version: 1,
   };
 }
 
@@ -426,13 +416,16 @@ export async function createDeviceKey(
       key: deviceKeyPublic,
       keyType: "devicePub",
       sign: pubKeySign,
+      version: 1,
     },
     private: {
       key: deviceKeyPrivate,
       keyType: "devicePrivate",
       sign: privKeySign,
+      version: 1,
     },
     hashHex: await generateKeyHashHex(deviceKeyPublic),
+    version: 1,
   };
 }
 
@@ -504,6 +497,7 @@ export async function signData(
     signature: arrayBufferToBase64(signature),
     hashedPublicKeyHex,
     type: "master",
+    version: 1,
   };
 }
 
@@ -558,6 +552,7 @@ export async function createRoomKey(
     keyExpirationSign: ExpirationSign,
     keyType: "roomKey",
     hashHex: roomKeyHash,
+    version: 1,
   };
 }
 
@@ -601,6 +596,7 @@ export async function encryptAndSignDataWithRoomKey(
     encryptedDataSign: encryptedDataSign,
     encryptedKeyHashHex: roomKey.hashHex,
     signKeyHashHex: roomKey.sign.hashedPublicKeyHex,
+    version: 1,
   };
 }
 
@@ -669,6 +665,7 @@ export async function encryptAndSignDataWithAccountKey(
     encryptedDataSign: encryptedDataSign,
     encryptedKeyHashHex: await generateKeyHashHex(accountKey.key),
     signKeyHashHex: accountKey.sign.hashedPublicKeyHex,
+    version: 1,
     /*
     encryptedData: string[];
     keyType: "accountKey";
@@ -734,6 +731,7 @@ export async function encryptDataDeviceKey(
       encryptedData: encryptedData,
       keyType: "DeviceKey",
       encryptedKeyHashHex: deviceKey.hashHex,
+      version: 1,
     };
   } catch (error) {
     console.error("Encryption failed:", error);
@@ -814,6 +812,7 @@ export async function createKeyShareKey(
       new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(),
       "master",
     ),
+    version: 1,
   };
   const keyShareKeyPrivate: KeyShareKeyPrivate = {
     key: keyPrivate,
@@ -823,6 +822,7 @@ export async function createKeyShareKey(
     public: keyShareKeyPublic,
     private: keyShareKeyPrivate,
     hashHex: await generateKeyHashHex(keyPublic),
+    version: 1,
   };
 }
 
@@ -872,6 +872,7 @@ export async function encryptAndSignDataWithKeyShareKey(
     encryptedDataSign: encryptedDataSign,
     encryptedKeyHashHex: await generateKeyHashHex(keyShareKey.key),
     signKeyHashHex: keyShareKey.sign.hashedPublicKeyHex,
+    version: 1,
   };
 }
 

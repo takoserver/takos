@@ -25,12 +25,30 @@ const accountKeySchema = new mongoose.Schema({
     default: Date.now,
   },
   encryptedIdentityKey: {
-    type: [Object],
+    type: [{
+      key: {
+        type: Object,
+        required: true,
+      },
+      sessionid: {
+        type: String,
+        required: true,
+      },
+    }],
     required: true,
     default: [],
   },
   encryptedAccountKey: {
-    type: [Object],
+    type: [{
+      key: {
+        type: Object,
+        required: true,
+      },
+      sessionid: {
+        type: String,
+        required: true,
+      },
+    }],
     required: true,
     default: [],
   },

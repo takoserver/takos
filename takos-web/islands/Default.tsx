@@ -30,25 +30,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
     }
     state.userName.value = userInfoData.userName;
     console.log(userInfoData);
-    const keys = await getKeys(userInfoData.data.devicekey);
-    console.log(keys);
-    const latestKeys = await fetch(
-      "/takos/v2/client/keys/keys" + "?kind=latest" + "&userName=" +
-        userInfoData.data.userName,
-    ).then((res) => res.json());
-    console.log(latestKeys);
-    if (
-      await generateKeyHashHex(latestKeys.data.identityKeyPub.key) !==
-        await generateKeyHashHex(
-          keys.accountAndIdentityKeys[0].identityKey.public.key,
-        )
-    ) {
-      const allkeys = await fetch(
-        "/takos/v2/client/keys/keys" + "?kind=all" + "&userName=" +
-          userInfoData.data.userName,
-      ).then((res) => res.json());
-      console.log(allkeys);
-    }
+    
   }
   useEffect(() => {
     setDefaultState();
