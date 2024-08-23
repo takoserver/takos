@@ -12,5 +12,6 @@
   },
   "imports": {
     "base64-arraybuffer": "npm:base64-arraybuffer@^1.0.2"
-  }
+  },
+  "license": "AGPL-3.0"
 }
