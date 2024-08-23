@@ -16,28 +16,28 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
   const [nickName, setNickName] = useState("");
   const [icon, setIcon] = useState<File | null>(null);
   const [age, setAge] = useState(0);
-  useEffect(() => {
-    //loginしているか、していたら基本情報を取得
-    async function setDefaultState() {
-      const userInfoData = await fetch("/takos/v2/client/profile").then((res) =>
-        res.json()
-      );
-      if (!userInfoData.status) {
-        window.location.href = "/";
-      }
-      if (!userInfoData.data.setup) {
-        setSetUp(true);
-      }
-      state.userName.value = userInfoData.userName;
-
-      const keys = await getKeys(userInfoData.data.devicekey);
-      console.log(keys);
-      const latestKeys = await fetch(
-        "/takos/v2/client/keys/keys" + "?kind=latest" + "&userName=" +
-          userInfoData.data.userName,
-      ).then((res) => res.json());
-      console.log(latestKeys);
+  async function setDefaultState() {
+    const userInfoData = await fetch("/takos/v2/client/profile").then((res) =>
+      res.json()
+    );
+    if (!userInfoData.status) {
+      window.location.href = "/";
     }
+    if (!userInfoData.data.setup) {
+      setSetUp(true);
+    }
+    state.userName.value = userInfoData.userName;
+    console.log(userInfoData);
+    const keys = await getKeys(userInfoData.data.devicekey);
+    await fetch("google.com");
+    console.log(keys);
+    const latestKeys = await fetch(
+      "/takos/v2/client/keys/keys" + "?kind=latest" + "&userName=" +
+        userInfoData.data.userName,
+    ).then((res) => res.json());
+    console.log(latestKeys);
+  }
+  useEffect(() => {
     setDefaultState();
   }, []);
   useEffect(() => {
@@ -242,7 +242,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                       const { identityKey, accountKey } =
                         await createIdentityKeyAndAccountKey(masterKey);
                       const deviceKey = await createDeviceKey(masterKey);
-                      const keyShareKey = await  createKeyShareKey(masterKey);
+                      const keyShareKey = await createKeyShareKey(masterKey);
                       const encryptedMasterKey = await encryptDataDeviceKey(
                         deviceKey,
                         JSON.stringify(masterKey),
@@ -259,30 +259,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         deviceKey,
                         JSON.stringify(keyShareKey),
                       );
-                      const db = await createTakosDB();
-                      const tx = db.transaction("masterKey", "readwrite");
-                      const store = tx.objectStore("masterKey");
-                      store.put({
-                        masterKey: encryptedMasterKey,
-                      }, "masterKey");
-                      const tx2 = db.transaction("accountAndIdentityKeys", "readwrite");
-                      const store2 = tx2.objectStore("accountAndIdentityKeys");
-                      store2.put({
-                        accountKey: encryptedAccountKey,
-                        identityKey: encryptedIdentityKey,
-                      }, accountKey.hashHex);
-                      const tx3 = db.transaction("deviceKey", "readwrite");
-                      const store3 = tx3.objectStore("deviceKey");
-                      store3.put(deviceKey.public, "deviceKey");
-                      const tx4 = db.transaction("keyShareKeys", "readwrite");
-                      const store4 = tx4.objectStore("keyShareKeys");
-                      store4.put({
-                        keyShareKey: encryptedKeyShareKey,
-                      }, keyShareKey.hashHex);
-                      await tx.done;
-                      await tx2.done;
-                      await tx3.done;
-                      await tx4.done;
                       const res = await fetch(
                         "/takos/v2/client/sessions/registers/setup",
                         {
@@ -304,6 +280,49 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                       );
                       const resJson = await res.json();
                       if (resJson.status) {
+                        const db = await createTakosDB();
+
+                        const tx = db.transaction("masterKey", "readwrite");
+                        const store = tx.objectStore("masterKey");
+                        store.put({
+                          key: "masterKey",
+                          masterKey: encryptedMasterKey,
+                        });
+
+                        const tx2 = db.transaction(
+                          "accountAndIdentityKeys",
+                          "readwrite",
+                        );
+                        const store2 = tx2.objectStore(
+                          "accountAndIdentityKeys",
+                        );
+                        store2.put({
+                          key: accountKey.hashHex,
+                          accountKey: encryptedAccountKey,
+                          identityKey: encryptedIdentityKey,
+                          timestamp: new Date(),
+                        });
+
+                        const tx3 = db.transaction("deviceKey", "readwrite");
+                        const store3 = tx3.objectStore("deviceKey");
+                        store3.put({
+                          key: "deviceKey",
+                          deviceKey: deviceKey.public,
+                          timestamp: new Date(),
+                        });
+
+                        const tx4 = db.transaction("keyShareKeys", "readwrite");
+                        const store4 = tx4.objectStore("keyShareKeys");
+                        store4.put({
+                          key: keyShareKey.hashHex,
+                          keyShareKey: encryptedKeyShareKey,
+                          timestamp: new Date(),
+                        });
+
+                        await tx.done;
+                        await tx2.done;
+                        await tx3.done;
+                        await tx4.done;
                         setSetUp(false);
                         alert("設定が完了しました");
                       } else {

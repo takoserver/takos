@@ -6,6 +6,7 @@ import FriendRequest from "./FriendRequest.tsx";
 import { AppStateType } from "../util/types.ts";
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
+import { createTakosDB } from "../util/idbSchama.ts";
 function TalkListContent({ state }: { state: AppStateType }) {
   if (state.page.value === 0) {
     return (
@@ -212,22 +213,23 @@ function TalkListContent({ state }: { state: AppStateType }) {
           isNewMessage={false}
           isSelected={false}
           onClick={async () => {
-            const csrftokenRes = await fetch("/api/v2/client/csrftoken");
-            const csrftokenJson = await csrftokenRes.json();
-            const csrftoken = csrftokenJson.csrftoken;
-            const res = await fetch("/api/v2/client/sessions/logout", {
+            const res = await fetch("/takos/v2/client/sessions/logout", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({
-                csrftoken: csrftoken,
-              }),
             });
             const json = await res.json();
             if (json.status === true) {
+              const db = await createTakosDB();
+              await db.clear("deviceKey");
+              await db.clear("accountAndIdentityKeys");
+              await db.clear("roomKeys");
+              await db.clear("keyShareKeys");
+              await db.clear("masterKey");
               window.location.href = "/";
             }
+            //indexedDBから削除
           }}
         />
         {settingPage.value === 2 && (

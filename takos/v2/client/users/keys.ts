@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Context, Hono } from "hono";
 import type {
   AccountKeyPub,
   IdentityKeyPub,
@@ -12,7 +12,7 @@ import Keys from "../../../models/keys/keys.ts";
 
 const app = new Hono();
 
-app.get("/", async (c) => {
+app.get("/", async (c: Context) => {
   const sessionid = getCookie(c, "sessionid");
   const latestAllowedIdentityKey = c.req.query("latestAllowedIdentityKey");
   const onlyOneMasterKey = (() => {

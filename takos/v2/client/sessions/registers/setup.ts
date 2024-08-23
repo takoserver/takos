@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import * as imagescript from "imagescript";
 import { checkNickName } from "@/utils/checks.ts";
 import { getCookie } from "hono/cookie";
@@ -15,14 +15,14 @@ import type {
   AccountKeyPub,
   deviceKey,
   IdentityKeyPub,
-  MasterKeyPub,
   KeyShareKeyPub,
+  MasterKeyPub,
 } from "takosEncryptInk";
 import User from "@/models/users.ts";
 import Keys from "@/models/keys/keys.ts";
 const app = new Hono();
 
-app.post("/", async (c) => {
+app.post("/", async (c: Context) => {
   let body;
   try {
     body = await c.req.json();
@@ -112,13 +112,12 @@ app.post("/", async (c) => {
       status: 500,
     });
   }
-  const deviceVerify = isValidDeviceKey(master_key, device_key, "both");
-  if (!deviceVerify) {
-    return c.json({ status: false, error: "invalid device key" }, {
+  const verifyKeyShareKey = isValidKeyShareKey(master_key, keyShareKey);
+  if (!verifyKeyShareKey) {
+    return c.json({ status: false, error: "invalid key share key" }, {
       status: 500,
     });
   }
-  const verifyKeyShareKey = isValidKeyShareKey(master_key, keyShareKey);
   try {
     const iconArrayBuffer = base64ToArrayBuffer(icon);
     const iconImage = await imagescript.decode(new Uint8Array(iconArrayBuffer));
@@ -141,18 +140,19 @@ app.post("/", async (c) => {
       age,
       masterKey: master_key,
       setup: true,
+      keyShareKey,
     },
   });
   await Keys.create({
     userName: session.userName,
-    timestamp: new Date(),
-    identityKey: identity_key,
-    accountKey: account_key,
-    hashHex: await generateKeyHashHex(identity_key.key),
+    identityKeyPub: identity_key,
+    accountKeyPub: account_key,
+    hashHex: await generateKeyHashHex(account_key),
   });
   await Sessionid.updateOne({ sessionid: session.sessionid }, {
     $set: {
       deviceKey: device_key,
+      keyShareKeyPub: keyShareKey,
     },
   });
   return c.json({ status: true });

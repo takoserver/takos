@@ -23,6 +23,9 @@ const sessionidSchema = new mongoose.Schema({
   deviceKey: {
     type: Object,
   },
+  KeyShareKeyPub: {
+    type: Object,
+  },
 });
 const Sessionid = mongoose.model("sessionid", sessionidSchema);
 export default Sessionid;

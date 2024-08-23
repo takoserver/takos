@@ -27,10 +27,12 @@ const accountKeySchema = new mongoose.Schema({
   encryptedIdentityKey: {
     type: [Object],
     required: true,
+    default: [],
   },
   encryptedAccountKey: {
     type: [Object],
     required: true,
+    default: [],
   },
 });
 const AccountKey = mongoose.model("keys", accountKeySchema);

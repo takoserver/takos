@@ -2,12 +2,13 @@
   "version": "3",
   "packages": {
     "specifiers": {
-      "jsr:@hono/hono@^4.5.3": "jsr:@hono/hono@4.5.3",
+      "jsr:@hono/hono@^4.5.3": "jsr:@hono/hono@4.5.8",
       "jsr:@std/dotenv@^0.225.0": "jsr:@std/dotenv@0.225.0",
       "jsr:@takos/takos-encrypt-ink@^0.3.0-unstable": "jsr:@takos/takos-encrypt-ink@0.3.0-unstable",
       "jsr:@takos/takos-encrypt-ink@^0.3.1-unstable": "jsr:@takos/takos-encrypt-ink@0.3.1-unstable",
       "jsr:@takos/takos-encrypt-ink@^0.3.2-unstable": "jsr:@takos/takos-encrypt-ink@0.3.2-unstable",
       "jsr:@takos/takos-encrypt-ink@^0.4.5-unstable": "jsr:@takos/takos-encrypt-ink@0.4.5-unstable",
+      "jsr:@takos/takos-encrypt-ink@^0.4.6-unstable": "jsr:@takos/takos-encrypt-ink@0.4.6-unstable",
       "npm:@types/node": "npm:@types/node@18.16.19",
       "npm:base64-arraybuffer@^1.0.2": "npm:base64-arraybuffer@1.0.2",
       "npm:imagescript@^1.3.0": "npm:imagescript@1.3.0",
@@ -23,6 +24,9 @@
       },
       "@hono/hono@4.5.4": {
         "integrity": "3792780b8460d5df0959b07c059db9325e4fa1a49f8b5aff7ab9bc870bdec8e3"
+      },
+      "@hono/hono@4.5.8": {
+        "integrity": "60f5b4c61edae2016022d6087b4fc381f378d337f046f56e00a3a3512c7e9c16"
       },
       "@std/dotenv@0.225.0": {
         "integrity": "44db32932c67df82790a3e6847d7007befb6cc22d71f2f3ee7b7d00e1f0d6c94"
@@ -47,6 +51,12 @@
       },
       "@takos/takos-encrypt-ink@0.4.5-unstable": {
         "integrity": "5d3d8edabb05cdf8b57158d32d66436b7ad1df9e59052b2975019a1fd10a68ae",
+        "dependencies": [
+          "npm:base64-arraybuffer@^1.0.2"
+        ]
+      },
+      "@takos/takos-encrypt-ink@0.4.6-unstable": {
+        "integrity": "064055510d40a05be6c53d9994d88d9537178c4d34f4feac81ee35e0de9fc303",
         "dependencies": [
           "npm:base64-arraybuffer@^1.0.2"
         ]
@@ -253,6 +263,7 @@
       "jsr:@std/dotenv@^0.225.0",
       "jsr:@std/uuid@^1.0.0",
       "jsr:@takos/takos-encrypt-ink@^0.4.5-unstable",
+      "jsr:@takos/takos-encrypt-ink@^0.4.6-unstable",
       "npm:imagescript@^1.3.0",
       "npm:ky@^1.5.0",
       "npm:mongoose@^8.5.2",

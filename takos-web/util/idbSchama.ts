@@ -1,35 +1,52 @@
 import { DBSchema, IDBPDatabase, openDB } from "idb";
-import type { AccountKeyPub, deviceKeyPub, IdentityKeyPub, EncryptedDataDeviceKey, RoomKey } from "@takos/takos-encrypt-ink";
+import type {
+  AccountKeyPub,
+  deviceKeyPub,
+  EncryptedDataDeviceKey,
+  IdentityKeyPub,
+  RoomKey,
+} from "@takos/takos-encrypt-ink";
 export interface TakosDB extends DBSchema {
   deviceKey: {
     key: "deviceKey";
-    value: deviceKeyPub;
+    value: {
+      deviceKey: deviceKeyPub;
+      key?: string;
+      timestamp: Date;
+    };
   };
   accountAndIdentityKeys: {
     key: string; // hashHex
     value: {
       accountKey: EncryptedDataDeviceKey;
       identityKey: EncryptedDataDeviceKey;
-    }
+      key?: string;
+      timestamp: Date;
+    };
   };
   roomKeys: {
     key: string; //roomid
     value: {
       roomKey: RoomKey;
       hashHex: string;
-    }[]
+      key?: string;
+      timestamp: Date;
+    }[];
   };
   keyShareKeys: {
     key: string;
     value: {
       keyShareKey: EncryptedDataDeviceKey;
-    }
+      key?: string;
+      timestamp: Date;
+    };
   };
   masterKey: {
     key: "masterKey";
     value: {
       masterKey: EncryptedDataDeviceKey;
-    }
+      key?: string;
+    };
   };
 }
 
@@ -49,6 +66,16 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
       }
       if (!db.objectStoreNames.contains("roomKeys")) {
         db.createObjectStore("roomKeys", {
+          keyPath: "key",
+        });
+      }
+      if (!db.objectStoreNames.contains("keyShareKeys")) {
+        db.createObjectStore("keyShareKeys", {
+          keyPath: "key",
+        });
+      }
+      if (!db.objectStoreNames.contains("masterKey")) {
+        db.createObjectStore("masterKey", {
           keyPath: "key",
         });
       }
