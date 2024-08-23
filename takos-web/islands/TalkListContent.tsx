@@ -223,8 +223,6 @@ function TalkListContent({ state }: { state: AppStateType }) {
             if (json.status === true) {
               const db = await createTakosDB();
               await db.clear("deviceKey");
-              await db.clear("accountAndIdentityKeys");
-              await db.clear("roomKeys");
               await db.clear("keyShareKeys");
               await db.clear("masterKey");
               window.location.href = "/";

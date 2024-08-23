@@ -14,6 +14,7 @@ import {
 import type {
   AccountKeyPub,
   deviceKey,
+  EncryptedDataKeyShareKey,
   IdentityKeyPub,
   KeyShareKeyPub,
   MasterKeyPub,
@@ -64,6 +65,8 @@ app.post("/", async (c: Context) => {
     identity_key,
     master_key,
     keyShareKey,
+    encryptedIdentityKey,
+    encryptedAccountKey,
   }: {
     nickName: string;
     icon: string;
@@ -74,6 +77,8 @@ app.post("/", async (c: Context) => {
     master_key: MasterKeyPub;
     device_key: deviceKey;
     keyShareKey: KeyShareKeyPub;
+    encryptedIdentityKey: EncryptedDataKeyShareKey;
+    encryptedAccountKey: EncryptedDataKeyShareKey;
   } = body;
   if (!checkNickName(nickName)) {
     return c.json({ status: false, error: "invalid nickname" }, {
@@ -148,6 +153,8 @@ app.post("/", async (c: Context) => {
     identityKeyPub: identity_key,
     accountKeyPub: account_key,
     hashHex: await generateKeyHashHex(account_key),
+    encryptedAccountKey: [encryptedAccountKey],
+    encryptedIdentityKey: [encryptedIdentityKey],
   });
   await Sessionid.updateOne({ sessionid: session.sessionid }, {
     $set: {

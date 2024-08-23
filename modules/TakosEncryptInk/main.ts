@@ -7,11 +7,15 @@ import type {
   deviceKeyPub,
   EncryptedData,
   EncryptedDataDeviceKey,
+  EncryptedDataKeyShareKey,
   EncryptedDataRoomKey,
   HashChainElement,
   IdentityKey,
   IdentityKeyPrivate,
   IdentityKeyPub,
+  KeyShareKey,
+  KeyShareKeyPrivate,
+  KeyShareKeyPub,
   MasterKey,
   MasterKeyPrivate,
   MasterKeyPub,
@@ -19,10 +23,6 @@ import type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-  KeyShareKey,
-  KeyShareKeyPrivate,
-  KeyShareKeyPub,
-  EncryptedDataKeyShareKey
 } from "./types.ts";
 export type {
   AccountKey,
@@ -33,11 +33,15 @@ export type {
   deviceKeyPub,
   EncryptedData,
   EncryptedDataDeviceKey,
+  EncryptedDataKeyShareKey,
   EncryptedDataRoomKey,
   HashChainElement,
   IdentityKey,
   IdentityKeyPrivate,
   IdentityKeyPub,
+  KeyShareKey,
+  KeyShareKeyPrivate,
+  KeyShareKeyPub,
   MasterKey,
   MasterKeyPrivate,
   MasterKeyPub,
@@ -45,10 +49,6 @@ export type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-  KeyShareKey,
-  KeyShareKeyPrivate,
-  KeyShareKeyPub,
-  EncryptedDataKeyShareKey
 };
 import { decode, encode } from "base64-arraybuffer";
 
@@ -295,7 +295,7 @@ export async function verifyKey(
     | deviceKeyPub
     | deviceKeyPrivate
     | RoomKey
-    | KeyShareKeyPub
+    | KeyShareKeyPub,
 ): Promise<boolean> {
   const importedKey = await crypto.subtle.importKey(
     "jwk",
@@ -788,7 +788,7 @@ function rebuildArrayBuffer(buffers: ArrayBuffer[]): ArrayBuffer {
   return result.buffer;
 }
 export async function createKeyShareKey(
-  masterKey: MasterKey
+  masterKey: MasterKey,
 ): Promise<KeyShareKey> {
   const keyPair = await crypto.subtle.generateKey(
     {
@@ -807,8 +807,13 @@ export async function createKeyShareKey(
     key: keyPublic,
     keyType: "keySharePub",
     sign: pubKeySign,
-    keyExpiration: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(),
-    keyExpirationSign: await signKeyExpiration(masterKey, new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(), "master"),
+    keyExpiration: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365)
+      .toISOString(),
+    keyExpirationSign: await signKeyExpiration(
+      masterKey,
+      new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(),
+      "master",
+    ),
   };
   const keyShareKeyPrivate: KeyShareKeyPrivate = {
     key: keyPrivate,
@@ -825,7 +830,10 @@ export async function isValidKeyShareKey(
   masterKey: MasterKeyPub,
   keyShareKey: KeyShareKeyPub,
 ): Promise<boolean> {
-  if (!await verifyKey(masterKey, keyShareKey) || !await isValidKeyExpiration(masterKey, keyShareKey)) {
+  if (
+    !await verifyKey(masterKey, keyShareKey) ||
+    !await isValidKeyExpiration(masterKey, keyShareKey)
+  ) {
     return false;
   }
   return true;
@@ -853,7 +861,10 @@ export async function encryptAndSignDataWithKeyShareKey(
       );
     }),
   );
-  const encryptedDataSign = await signData(master_key, new TextEncoder().encode(JSON.stringify(encryptedData)));
+  const encryptedDataSign = await signData(
+    master_key,
+    new TextEncoder().encode(JSON.stringify(encryptedData)),
+  );
   return {
     encryptedData: encryptedData,
     keyType: "keyShareKey",
@@ -867,7 +878,7 @@ export async function encryptAndSignDataWithKeyShareKey(
 export async function decryptAndVerifyDataWithKeyShareKey(
   keyShareKey: KeyShareKey,
   encryptedData: EncryptedDataKeyShareKey,
-  master_key: MasterKeyPub
+  master_key: MasterKeyPub,
 ): Promise<string | null> {
   if (
     !await verifyData(

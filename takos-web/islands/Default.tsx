@@ -7,7 +7,9 @@ import {
   createIdentityKeyAndAccountKey,
   createKeyShareKey,
   createMasterKey,
+  encryptAndSignDataWithKeyShareKey,
   encryptDataDeviceKey,
+  generateKeyHashHex,
 } from "@takos/takos-encrypt-ink";
 import { createTakosDB } from "../util/idbSchama.ts";
 import getKeys from "../util/getKeys.ts";
@@ -29,23 +31,26 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
     state.userName.value = userInfoData.userName;
     console.log(userInfoData);
     const keys = await getKeys(userInfoData.data.devicekey);
-    await fetch("google.com");
     console.log(keys);
     const latestKeys = await fetch(
       "/takos/v2/client/keys/keys" + "?kind=latest" + "&userName=" +
         userInfoData.data.userName,
     ).then((res) => res.json());
     console.log(latestKeys);
+    if (
+      await generateKeyHashHex(latestKeys.data.identityKeyPub.key) !==
+        await generateKeyHashHex(
+          keys.accountAndIdentityKeys[0].identityKey.public.key,
+        )
+    ) {
+      const allkeys = await fetch(
+        "/takos/v2/client/keys/keys" + "?kind=all" + "&userName=" +
+          userInfoData.data.userName,
+      ).then((res) => res.json());
+      console.log(allkeys);
+    }
   }
   useEffect(() => {
-    setDefaultState();
-  }, []);
-  useEffect(() => {
-    async function setDefaultState() {
-      const friendListData = await fetch("/api/v2/client/friends/list");
-      const friendListJson = await friendListData.json();
-      state.friendList.value = friendListJson.friends;
-    }
     setDefaultState();
   }, []);
   useEffect(() => {
@@ -247,14 +252,18 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         deviceKey,
                         JSON.stringify(masterKey),
                       );
-                      const encryptedIdentityKey = await encryptDataDeviceKey(
-                        deviceKey,
-                        JSON.stringify(identityKey),
-                      );
-                      const encryptedAccountKey = await encryptDataDeviceKey(
-                        deviceKey,
-                        JSON.stringify(accountKey),
-                      );
+                      const encryptedIdentityKey =
+                        await encryptAndSignDataWithKeyShareKey(
+                          keyShareKey.public,
+                          JSON.stringify(identityKey),
+                          masterKey,
+                        );
+                      const encryptedAccountKey =
+                        await encryptAndSignDataWithKeyShareKey(
+                          keyShareKey.public,
+                          JSON.stringify(accountKey),
+                          masterKey,
+                        );
                       const encryptedKeyShareKey = await encryptDataDeviceKey(
                         deviceKey,
                         JSON.stringify(keyShareKey),
@@ -275,6 +284,8 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                             master_key: masterKey.public,
                             device_key: deviceKey.private,
                             keyShareKey: keyShareKey.public,
+                            encryptedIdentityKey: encryptedIdentityKey,
+                            encryptedAccountKey: encryptedAccountKey,
                           }),
                         },
                       );
@@ -287,20 +298,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         store.put({
                           key: "masterKey",
                           masterKey: encryptedMasterKey,
-                        });
-
-                        const tx2 = db.transaction(
-                          "accountAndIdentityKeys",
-                          "readwrite",
-                        );
-                        const store2 = tx2.objectStore(
-                          "accountAndIdentityKeys",
-                        );
-                        store2.put({
-                          key: accountKey.hashHex,
-                          accountKey: encryptedAccountKey,
-                          identityKey: encryptedIdentityKey,
-                          timestamp: new Date(),
                         });
 
                         const tx3 = db.transaction("deviceKey", "readwrite");
@@ -318,9 +315,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                           keyShareKey: encryptedKeyShareKey,
                           timestamp: new Date(),
                         });
-
                         await tx.done;
-                        await tx2.done;
                         await tx3.done;
                         await tx4.done;
                         setSetUp(false);

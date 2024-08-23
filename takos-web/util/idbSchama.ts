@@ -15,24 +15,6 @@ export interface TakosDB extends DBSchema {
       timestamp: Date;
     };
   };
-  accountAndIdentityKeys: {
-    key: string; // hashHex
-    value: {
-      accountKey: EncryptedDataDeviceKey;
-      identityKey: EncryptedDataDeviceKey;
-      key?: string;
-      timestamp: Date;
-    };
-  };
-  roomKeys: {
-    key: string; //roomid
-    value: {
-      roomKey: RoomKey;
-      hashHex: string;
-      key?: string;
-      timestamp: Date;
-    }[];
-  };
   keyShareKeys: {
     key: string;
     value: {
@@ -56,16 +38,6 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
       // keysオブジェクトストアを作成
       if (!db.objectStoreNames.contains("deviceKey")) {
         db.createObjectStore("deviceKey", {
-          keyPath: "key",
-        });
-      }
-      if (!db.objectStoreNames.contains("accountAndIdentityKeys")) {
-        db.createObjectStore("accountAndIdentityKeys", {
-          keyPath: "key",
-        });
-      }
-      if (!db.objectStoreNames.contains("roomKeys")) {
-        db.createObjectStore("roomKeys", {
           keyPath: "key",
         });
       }

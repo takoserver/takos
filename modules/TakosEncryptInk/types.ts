@@ -139,16 +139,16 @@ type KeyShareKeyPub = {
   keyType: "keySharePub"; // 鍵の種類
   keyExpiration: string; // 鍵の有効期限
   keyExpirationSign: Sign; // 有効期限に対する署名
-}
+};
 type KeyShareKeyPrivate = {
   key: JsonWebKey; // 秘密鍵
   keyType: "keySharePrivate"; // 鍵の種類
-}
+};
 type KeyShareKey = {
   public: KeyShareKeyPub; // 公開鍵情報
   private: KeyShareKeyPrivate; // 秘密鍵情報
   hashHex: string; // 鍵のハッシュ
-}
+};
 
 type EncryptedDataKeyShareKey = {
   encryptedData: string[]; // 暗号化されたデータの値
@@ -169,11 +169,15 @@ export type {
   deviceKeyPub,
   EncryptedData,
   EncryptedDataDeviceKey,
+  EncryptedDataKeyShareKey,
   EncryptedDataRoomKey,
   HashChainElement,
   IdentityKey,
   IdentityKeyPrivate,
   IdentityKeyPub,
+  KeyShareKey,
+  KeyShareKeyPrivate,
+  KeyShareKeyPub,
   MasterKey,
   MasterKeyPrivate,
   MasterKeyPub,
@@ -181,8 +185,4 @@ export type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-  KeyShareKey,
-  KeyShareKeyPrivate,
-  KeyShareKeyPub,
-  EncryptedDataKeyShareKey,
 };
