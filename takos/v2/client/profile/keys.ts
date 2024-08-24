@@ -5,6 +5,7 @@ import {
   IdentityKeyPub,
   MasterKeyPub,
   OtherUserIdentityKeys,
+  signKeyExpiration,
 } from "takosEncryptInk";
 import User from "@/models/users.ts";
 import { getCookie } from "jsr:@hono/hono@^4.5.3/cookie";
@@ -27,7 +28,7 @@ app.get("/", async (c: Context) => {
     });
   }
   const userInfo = await User.findOne({ userName: session.userName });
-  if (!userInfo) {
+  if (!userInfo || userInfo.setup !== true) {
     return c.json({ status: false, error: "user is not found" }, {
       status: 500,
     });
@@ -37,16 +38,38 @@ app.get("/", async (c: Context) => {
     const latestMasterKey = keys[keys.length - 1].identityKeyPub?.sign
       .hashedPublicKeyHex;
     //最新のマスターキー以外のマスターキーを配列から削除する
-    return c.json({
+    const result = {
       status: true,
       data: {
         masterKey: userInfo.masterKey,
-        keys: {
-          AccountKey: keys.map((key) => key.accountKeyPub?.sign.hashedPublicKeyHex === latestMasterKey ? key.encryptedAccountKey : undefined).filter((key) => key !== undefined),
-          IdentityKey: keys.map((key) => key.identityKeyPub?.sign.hashedPublicKeyHex === latestMasterKey ? key.encryptedIdentityKey : undefined).filter((key) => key !== undefined),
-        }
+          identityKeyAndAccountKey: keys.map((key) => {
+            if (key.identityKeyPub?.sign.hashedPublicKeyHex === latestMasterKey) {
+              return {
+                identityKey: key.encryptedIdentityKey.map((key) => {
+                  if(key.sessionid === sessionid) {
+                    return key
+                  }
+                  return undefined
+                }).filter((key) => key !== undefined)[0],
+                accountKey: key.encryptedAccountKey.map((key) => {
+                  if(key.sessionid === sessionid) {
+                    return key
+                  }
+                  return undefined
+                }).filter((key) => key !== undefined)[0],
+                keyExpiration: key.identityKeyPub?.keyExpiration,
+              };
+            } else {
+              return undefined;
+            }
+          }).filter((key) => key !== undefined),
       },
-    }, 200);
+    }
+    //早い順に並べ替える
+    result.data.identityKeyAndAccountKey.sort((a, b) => {
+      return new Date(a.keyExpiration).getTime() - new Date(b.keyExpiration).getTime();
+    });
+    return c.json(result, 200);
 });
 
 export default app;

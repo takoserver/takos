@@ -17,14 +17,14 @@ import type {
 export default async function getKeys(
   deviceKeyPrivate: deviceKeyPrivate,
   keys: {
-    encryptedIdentityKey: {
+    identityKey: {
       key: EncryptedDataKeyShareKey;
       sessionid: string
-    }[];
-    encryptedAccountKey: {
+    };
+    accountKey: {
       key: EncryptedDataKeyShareKey;
       sessionid: string
-    }[];
+    };
   }[]
 ): Promise<{
   masterKey: MasterKey;
@@ -62,14 +62,12 @@ export default async function getKeys(
     const identityKeyAndAccountKeys = await Promise.all(keys.map(async (key) => {
       const cookie = document.cookie;
       const sessionid = cookie.split("sessionid=")[1].split(";")[0];
-      const encryptedIdentityKeyArray = key.encryptedIdentityKey;
-      const encryptedAccountKeyArray = key.encryptedAccountKey;
-      const encryptedIdentityKey = encryptedIdentityKeyArray.find((key) => key.sessionid === sessionid);
-      const encryptedAccountKey = encryptedAccountKeyArray.find((key) => key.sessionid === sessionid);
-      if(!encryptedIdentityKey || !encryptedAccountKey) {
-        throw new Error("encryptedIdentityKey or encryptedAccountKey is not found");
+      if(!sessionid || sessionid !== key.identityKey.sessionid || sessionid !== key.accountKey.sessionid) {
+        throw new Error("sessionid is not found");
       }
-      const keyShareKey = keyShareKeys.find((key) => key.hashHex === encryptedIdentityKey.key.encryptedKeyHashHex);
+      const encryptedIdentityKey = key.identityKey
+      const encryptedAccountKey = key.accountKey
+      const keyShareKey = keyShareKeys.find((keyShareKey) => keyShareKey.hashHex === encryptedIdentityKey.key.encryptedKeyHashHex);
       if(!keyShareKey) {
         throw new Error("keyShareKey is not found");
       }

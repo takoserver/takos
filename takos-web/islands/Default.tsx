@@ -25,12 +25,17 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
     if (!userInfoData.status) {
       window.location.href = "/";
     }
-    if (!userInfoData.data.setup) {
+    if(userInfoData.data.setup) {
+      state.userName.value = userInfoData.userName;
+      console.log(userInfoData);
+      const encryptedKeys = await fetch("/takos/v2/client/profile/keys").then((res) => res.json());
+      console.log(encryptedKeys.data.identityKeyAndAccountKey[0]);
+      console.log(userInfoData.data);
+      const idbKeys = await getKeys(userInfoData.data.devicekey, encryptedKeys.data.identityKeyAndAccountKey);
+      console.log(idbKeys);
+    } else {
       setSetUp(true);
     }
-    state.userName.value = userInfoData.userName;
-    console.log(userInfoData);
-    
   }
   useEffect(() => {
     setDefaultState();

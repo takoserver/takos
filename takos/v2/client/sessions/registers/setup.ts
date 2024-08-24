@@ -153,8 +153,14 @@ app.post("/", async (c: Context) => {
     identityKeyPub: identity_key,
     accountKeyPub: account_key,
     hashHex: await generateKeyHashHex(account_key),
-    encryptedAccountKey: [encryptedAccountKey],
-    encryptedIdentityKey: [encryptedIdentityKey],
+    encryptedAccountKey: [{
+      key: encryptedAccountKey,
+      sessionid: session.sessionid,
+    }],
+    encryptedIdentityKey: [{
+      key: encryptedIdentityKey,
+      sessionid: session.sessionid,
+    }],
   });
   await Sessionid.updateOne({ sessionid: session.sessionid }, {
     $set: {
