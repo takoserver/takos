@@ -225,6 +225,8 @@ function TalkListContent({ state }: { state: AppStateType }) {
               await db.clear("deviceKey");
               await db.clear("keyShareKeys");
               await db.clear("masterKey");
+              await db.clear("config");
+              await db.clear("identityAndAccountKeys");
               window.location.href = "/";
             }
             //indexedDBから削除

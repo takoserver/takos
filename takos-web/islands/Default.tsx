@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { AppStateType } from "../util/types.ts";
 import { setIschoiseUser } from "../util/takosClient.ts";
-import { TakosDB } from "../util/idbSchama.ts";
+import { saveToDbDeviceKey, saveToDbIdentityAndAccountKeys, saveToDbKeyShareKeys, saveToDbMasterKey, TakosDB } from "../util/idbSchama.ts";
 import {
   createDeviceKey,
   createIdentityKeyAndAccountKey,
@@ -10,11 +10,15 @@ import {
   encryptAndSignDataWithKeyShareKey,
   encryptDataDeviceKey,
   generateKeyHashHex,
+  decryptDataDeviceKey,
+  type deviceKey,
 } from "@takos/takos-encrypt-ink";
 import { createTakosDB } from "../util/idbSchama.ts";
 import getKeys from "../util/getKeys.ts";
+import { generate } from "$fresh/src/dev/manifest.ts";
 export default function setDefaultState({ state }: { state: AppStateType }) {
   const [setUp, setSetUp] = useState(false);
+  const [shareKey , setShareKey] = useState(false);
   const [nickName, setNickName] = useState("");
   const [icon, setIcon] = useState<File | null>(null);
   const [age, setAge] = useState(0);
@@ -26,13 +30,67 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
       window.location.href = "/";
     }
     if(userInfoData.data.setup) {
-      state.userName.value = userInfoData.userName;
-      console.log(userInfoData);
-      const encryptedKeys = await fetch("/takos/v2/client/profile/keys").then((res) => res.json());
-      console.log(encryptedKeys.data.identityKeyAndAccountKey[0]);
-      console.log(userInfoData.data);
-      const idbKeys = await getKeys(userInfoData.data.devicekey, encryptedKeys.data.identityKeyAndAccountKey);
-      console.log(idbKeys);
+      const db = await createTakosDB();
+      //get masterKey
+      const masterKey = await db.get("masterKey", "masterKey");
+      if (!masterKey) {
+        setShareKey(true);
+        return;
+      }
+      const deviceKeyPub = await db.get("deviceKey", "deviceKey");
+      if(!deviceKeyPub) {
+        console.log("deviceKeyPub is not found");
+        return;
+      }
+      const deviceKey: deviceKey = {
+        public: deviceKeyPub.deviceKey,
+        private: userInfoData.data.devicekey,
+        hashHex: await generateKeyHashHex(deviceKeyPub.deviceKey.key),
+      };
+      const idbIdentityAndAccountKeys = await db.getAll("identityAndAccountKeys");
+      //期限が長い順
+      idbIdentityAndAccountKeys.sort((a, b) => {
+        return new Date(b.keyExpiration).getTime() - new Date(a.keyExpiration).getTime();
+      });
+      const newKeys = await fetch(
+        "/takos/v2/client/profile/keys?hashHex=" +
+          idbIdentityAndAccountKeys[0].hashHex,
+      ).then((res) => res.json());
+      if(!newKeys.status) {
+        alert("エラーが発生しました");
+        return;
+      }
+      if(newKeys.data.identityKeyAndAndAccountKey.length === 0) {
+        const masterKeyString = await decryptDataDeviceKey(deviceKey, masterKey.masterKey);
+        if(!masterKeyString) {
+          console.log("masterKeyString is decrypt error");
+          return;
+        }
+        const masterKeyData = JSON.parse(masterKeyString);
+        const decryptedIdentityAndAccountKeys = await Promise.all(idbIdentityAndAccountKeys.map(async (key) => {
+          console.log(key);
+          const identityKey = await decryptDataDeviceKey(deviceKey, key.encryptedIdentityKey);
+          const accountKey = await decryptDataDeviceKey(deviceKey, key.encryptedAccountKey);
+          if(!identityKey || !accountKey) {
+            console.log("identityKey or accountKey is decrypt error");
+            return null;
+          }
+          return {
+            identityKey: JSON.parse(identityKey),
+            accountKey: JSON.parse(accountKey),
+            hashHex: key.hashHex,
+            keyExpiration: key.keyExpiration,
+          };
+        }));
+        if(!decryptedIdentityAndAccountKeys) {
+          console.log("decryptedIdentityAndAccountKeys is not found");
+          return;
+        }
+        state.IdentityKeyAndAccountKeys.value = decryptedIdentityAndAccountKeys;
+        state.MasterKey.value = masterKeyData;
+        state.DeviceKey.value = deviceKey;
+        return;
+      }
     } else {
       setSetUp(true);
     }
@@ -123,6 +181,47 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
   }, []);
   return (
     <>
+      {shareKey && (
+        <div class="fixed z-50 w-full h-full bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px]">
+        <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 w-full h-full p-5 rounded-xl shadow-lg relative md:ml-[78px]">
+          <div class="absolute right-0 top-0 p-4">
+            <span
+              class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
+              onClick={() => {
+                setShareKey(false);
+              }}
+            >
+              ×
+            </span>
+          </div>
+          <div class="w-4/5 mx-auto my-auto mt-10 h-full space-y-8 text-center">
+            <h1 class="text-center text-2xl text-black dark:text-white hover:underline font-medium">
+              鍵移行
+            </h1>
+            <div class="mt-12">
+              <div class="lg:w-1/2 md:w-2/3 w-full m-10 mx-auto">
+                <form>
+                </form>
+              </div>
+            </div>
+            <div class="">
+              <button
+                type="submit"
+                class="rounded-lg block mx-auto m-2 text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
+                onClick={async () => {}}
+              >
+                他のデバイスにリクエスト
+              </button>
+              <button
+              type="submit"
+              class="rounded-lg mx-auto block m-2 text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
+              onClick={async () => {}}
+              >新しい鍵を作成</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      )}
       {setUp && (
         <div class="fixed z-50 w-full h-full bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px]">
           <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 w-full h-full p-5 rounded-xl shadow-lg relative md:ml-[78px]">
@@ -212,7 +311,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                   </form>
                 </div>
               </div>
-
               <div class="flex">
                 <button
                   type="submit"
@@ -278,33 +376,20 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                       );
                       const resJson = await res.json();
                       if (resJson.status) {
+                        const encryptedIdentityKeyWithDeviceKey = await encryptDataDeviceKey(deviceKey, JSON.stringify(identityKey));
+                        const encryptedAccountKeyWithDeviceKey = await encryptDataDeviceKey(deviceKey, JSON.stringify(accountKey));
+                        const hashHex = await generateKeyHashHex(identityKey.public.key);
+                        await saveToDbMasterKey(encryptedMasterKey);
+                        await saveToDbDeviceKey(deviceKey.public);
+                        await saveToDbKeyShareKeys(encryptedKeyShareKey, keyShareKey.hashHex);
+                        await saveToDbIdentityAndAccountKeys(encryptedIdentityKeyWithDeviceKey, encryptedAccountKeyWithDeviceKey, hashHex,
+                          identityKey.public.keyExpiration
+                        );
                         const db = await createTakosDB();
-
-                        const tx = db.transaction("masterKey", "readwrite");
-                        const store = tx.objectStore("masterKey");
-                        store.put({
-                          key: "masterKey",
-                          masterKey: encryptedMasterKey,
-                        });
-
-                        const tx3 = db.transaction("deviceKey", "readwrite");
-                        const store3 = tx3.objectStore("deviceKey");
-                        store3.put({
-                          key: "deviceKey",
-                          deviceKey: deviceKey.public,
-                          timestamp: new Date(),
-                        });
-
-                        const tx4 = db.transaction("keyShareKeys", "readwrite");
-                        const store4 = tx4.objectStore("keyShareKeys");
-                        store4.put({
-                          key: keyShareKey.hashHex,
-                          keyShareKey: encryptedKeyShareKey,
-                          timestamp: new Date(),
-                        });
-                        await tx.done;
-                        await tx3.done;
-                        await tx4.done;
+                        console.log(await db.getAll("identityAndAccountKeys"));
+                        console.log(await db.getAll("keyShareKeys"));
+                        console.log(await db.get("masterKey", "masterKey"));
+                        console.log(await db.get("deviceKey", "deviceKey"));
                         setSetUp(false);
                         alert("設定が完了しました");
                       } else {

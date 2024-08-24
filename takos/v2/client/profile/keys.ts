@@ -16,6 +16,7 @@ const app = new Hono();
 
 app.get("/", async (c: Context) => {
   const sessionid = getCookie(c, "sessionid");
+  const hashHex = c.req.query("hashHex");
   if (!sessionid) {
     return c.json({ status: false, error: "sessionid is not found" }, {
       status: 500,
@@ -33,43 +34,42 @@ app.get("/", async (c: Context) => {
       status: 500,
     });
   }
-  const keys = await Keys.find({ userName: userInfo.userName })
-  keys.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-    const latestMasterKey = keys[keys.length - 1].identityKeyPub?.sign
-      .hashedPublicKeyHex;
-    //最新のマスターキー以外のマスターキーを配列から削除する
-    const result = {
-      status: true,
-      data: {
-        masterKey: userInfo.masterKey,
-          identityKeyAndAccountKey: keys.map((key) => {
-            if (key.identityKeyPub?.sign.hashedPublicKeyHex === latestMasterKey) {
-              return {
-                identityKey: key.encryptedIdentityKey.map((key) => {
-                  if(key.sessionid === sessionid) {
-                    return key
-                  }
-                  return undefined
-                }).filter((key) => key !== undefined)[0],
-                accountKey: key.encryptedAccountKey.map((key) => {
-                  if(key.sessionid === sessionid) {
-                    return key
-                  }
-                  return undefined
-                }).filter((key) => key !== undefined)[0],
-                keyExpiration: key.identityKeyPub?.keyExpiration,
-              };
-            } else {
-              return undefined;
-            }
-          }).filter((key) => key !== undefined),
-      },
-    }
-    //早い順に並べ替える
-    result.data.identityKeyAndAccountKey.sort((a, b) => {
-      return new Date(a.keyExpiration).getTime() - new Date(b.keyExpiration).getTime();
+  // hashHexが指定してる鍵より新しい鍵をデータベースから取得
+  const HashHexKey = await Keys.findOne({ hashHex: hashHex });
+  if (!HashHexKey) {
+    return c.json({ status: false, error: "key is not found hint: HashHex" }, {
+      status: 500,
     });
-    return c.json(result, 200);
+  }
+  const key = await Keys.find({ timestamp: { $gt: HashHexKey.timestamp } });
+  if (!key) {
+    return c.json({ status: false, error: "key is not found" }, {
+      status: 500,
+    });
+  }
+  return c.json({
+    status: true,
+    data: {
+      identityKeyAndAndAccountKey: key.map((k) => {
+        return {
+          identityKeyPub: k.encryptedIdentityKey.map((i) => {
+            if(i.sessionid === sessionid) {
+              return i.key;
+            }
+            return null;
+          }).filter((i) => i !== null)[0],
+          accountKeyPub: k.encryptedAccountKey.map((i) => {
+            if(i.sessionid === sessionid) {
+              return i.key;
+            }
+            return null;
+            }).filter((i) => i !== null)[0],
+
+          hashHex: k.hashHex,
+        };
+      })
+    },
+  }, 200);
 });
 
 export default app;

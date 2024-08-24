@@ -18,9 +18,7 @@ import keys from "./profile/keys.ts";
 
 const app = new Hono();
 
-app.use(bodyLimit({
-  maxSize: 100 * 1024,
-})).route("/ping", ping);
+app.route("/ping", ping);
 app.route("/bgimage", bgimage);
 app.route("/sessions/registers/temp", temp);
 app.route("/sessions/registers/check", check);

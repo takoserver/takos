@@ -26,6 +26,11 @@ function createAppState(obj: {
   const roomType = signal("");
   const friendid = signal(obj.friendid || "");
   const ChatUserInfo = signal({});
+  const MasterKey = signal({});
+  const IdentityKey = signal([]);
+  const KeyShareKey = signal({});
+  const DeviceKey = signal({});
+  const roomKey = signal(new Map());
   return {
     isChoiceUser: isChoiceUser,
     ws: ws,
@@ -41,6 +46,11 @@ function createAppState(obj: {
     roomType: roomType,
     friendid: friendid,
     ChatUserInfo: ChatUserInfo,
+    MasterKey: MasterKey,
+    KeyShareKey: KeyShareKey,
+    DeviceKey: DeviceKey,
+    roomKey: roomKey,
+    IdentityKeyAndAccountKeys: IdentityKey,
   };
 }
 function chat(props: { page: any }) {

@@ -30,12 +30,28 @@ export interface TakosDB extends DBSchema {
       key?: string;
     };
   };
+  config: {
+    key: "config";
+    value: {
+      value: string
+      key?: string;
+    };
+  };
+  identityAndAccountKeys: {
+    key: string;
+    value: {
+      encryptedIdentityKey: EncryptedDataDeviceKey;
+      encryptedAccountKey: EncryptedDataDeviceKey;
+      hashHex: string;
+      keyExpiration: string;
+      key?: string;
+    };
+  };
 }
 
 export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
-  return openDB<TakosDB>("takos-db", 1, {
+  return openDB<TakosDB>("takos-db", 4, {
     upgrade(db) {
-      // keysオブジェクトストアを作成
       if (!db.objectStoreNames.contains("deviceKey")) {
         db.createObjectStore("deviceKey", {
           keyPath: "key",
@@ -51,6 +67,62 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
           keyPath: "key",
         });
       }
+      if (!db.objectStoreNames.contains("config")) {
+        db.createObjectStore("config", {
+          keyPath: "key",
+        });
+      }
+      if (!db.objectStoreNames.contains("identityAndAccountKeys")) {
+        db.createObjectStore("identityAndAccountKeys", {
+          keyPath: "key",
+        });
+      }
     },
+  });
+}
+export async function saveToDbMasterKey(masterKey: EncryptedDataDeviceKey): Promise<void> {
+  const db = await createTakosDB();
+  await db.put("masterKey", {
+    masterKey: masterKey,
+    key: "masterKey",
+  });
+}
+export async function saveToDbDeviceKey(deviceKey: deviceKeyPub): Promise<void> {
+  const db = await createTakosDB();
+  await db.put("deviceKey", {
+    deviceKey: deviceKey,
+    key: "deviceKey",
+    timestamp: new Date(),
+  });
+}
+export async function saveToDbKeyShareKeys(keyShareKey: EncryptedDataDeviceKey, hashHex: string): Promise<void> {
+  const db = await createTakosDB();
+  await db.put("keyShareKeys", {
+    keyShareKey: keyShareKey,
+    key: hashHex,
+    timestamp: new Date(),
+  });
+}
+export async function saveToDbConfig(value: string, key: string): Promise<void> {
+  const db = await createTakosDB();
+  await db.put("config", {
+    value: value,
+    key: key,
+  });
+}
+
+export async function saveToDbIdentityAndAccountKeys(
+  encryptedIdentityKey: EncryptedDataDeviceKey,
+  encryptedAccountKey: EncryptedDataDeviceKey,
+  hashHex: string,
+  keyExpiration: string
+): Promise<void> {
+  const db = await createTakosDB();
+  await db.put("identityAndAccountKeys", {
+    encryptedIdentityKey: encryptedIdentityKey,
+    encryptedAccountKey: encryptedAccountKey,
+    hashHex: hashHex,
+    keyExpiration: keyExpiration,
+    key: hashHex,
   });
 }

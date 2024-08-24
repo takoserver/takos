@@ -1,6 +1,6 @@
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 const app = new Hono();
-app.get("/", async (c) => {
+app.get("/", async (c: Context) => {
   try {
     // ./backgroundImages/にある画像すべてを取得
     const dirPath = "./backgroundImages";
