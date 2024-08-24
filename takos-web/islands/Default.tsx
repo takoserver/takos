@@ -94,7 +94,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
           const data = JSON.parse(event.data);
           switch (data.type) {
             case "requestShareKey":
-              
+              requestShareKey(data);
           }
         }
         return;
@@ -365,5 +365,4 @@ const convertFileToBase64 = (file: File): Promise<string> => {
 };
 
 async function requestShareKey(data: any) {
-  
 }

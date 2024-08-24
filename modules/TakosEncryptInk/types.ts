@@ -200,6 +200,23 @@ type migrateKey = {
   version: number;
 };
 
+type migrateDataSignKeyPub = {
+  key: JsonWebKey;
+  keyType: "migrateDataSignPub";
+  version: number;
+};
+type migrateDataSignKeyPrivate = {
+  key: JsonWebKey;
+  keyType: "migrateDataSignPrivate";
+  version: number;
+};
+type migrateDataSignKey = {
+  public: migrateDataSignKeyPub;
+  private: migrateDataSignKeyPrivate;
+  hashHex: string;
+  version: number;
+};
+
 // 型定義のエクスポート
 export type {
   AccountKey,
@@ -229,4 +246,7 @@ export type {
   migrateKey,
   migrateKeyPrivate,
   migrateKeyPub,
+  migrateDataSignKey,
+  migrateDataSignKeyPrivate,
+  migrateDataSignKeyPub,
 };

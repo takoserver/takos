@@ -52,7 +52,7 @@ app.get("/", async (c: Context) => {
     data: {
       identityKeyAndAndAccountKey: key.map((k) => {
         return {
-          identityKeyPub: k.encryptedIdentityKey.map((i) => {
+          identityKeyPub: k.encryptedIdentityKey.map((i: { sessionid: string; key: any; }) => {
             if(i.sessionid === sessionid) {
               return i.key;
             }

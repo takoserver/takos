@@ -19,6 +19,9 @@ import type {
   MasterKey,
   MasterKeyPrivate,
   MasterKeyPub,
+  migrateDataSignKey,
+  migrateDataSignKeyPrivate,
+  migrateDataSignKeyPub,
   migrateKey,
   migrateKeyPrivate,
   migrateKeyPub,
@@ -205,7 +208,9 @@ export async function importKey(
     | KeyShareKeyPub
     | KeyShareKeyPrivate
     | migrateKeyPub
-    | migrateKeyPrivate,
+    | migrateKeyPrivate
+    | migrateDataSignKeyPub
+    | migrateDataSignKeyPrivate,
   usages?: "public" | "private",
 ): Promise<CryptoKey> {
   const jwk = inputKey.key;
@@ -250,6 +255,12 @@ export async function importKey(
       break;
     case "migratePrivate":
       type = "RSA-OAEP";
+      break;
+    case "migrateDataSignPub":
+      type = "RSA-PSS";
+      break;
+    case "migrateDataSignPrivate":
+      type = "RSA-PSS";
       break;
     default:
       throw new Error(`Unsupported keyType: ${keyType}`);
@@ -946,18 +957,27 @@ export async function generateMigrateKey(): Promise<migrateKey> {
 }
 
 export async function encryptDataWithMigrateKey(
-  migrateKey: migrateKey,
+  migrateKey: migrateKeyPub,
   data: string,
 ): Promise<string> {
-  const key = await importKey(migrateKey.public, "public");
-  const encryptedData = await crypto.subtle.encrypt(
-    {
-      name: "RSA-OAEP",
-    },
-    key,
-    new TextEncoder().encode(data),
-  );
-  return arrayBufferToBase64(encryptedData);
+  const vi = crypto.getRandomValues(new Uint8Array(12));
+  const key = await importKey(migrateKey, "public");
+  const DataArray = splitArrayBuffer(new TextEncoder().encode(data), 160);
+  const encryptedData = await Promise.all(
+    DataArray.map(async (buffer) => {
+      return arrayBufferToBase64(
+        await crypto.subtle.encrypt(
+          {
+            name: "RSA-OAEP",
+            iv: vi,
+          },
+          key,
+          buffer,
+        ),
+      )
+    }
+  ));
+  return JSON.stringify(encryptedData);
 }
 
 export async function decryptDataWithMigrateKey(
@@ -965,12 +985,80 @@ export async function decryptDataWithMigrateKey(
   encryptedData: string,
 ): Promise<string> {
   const key = await importKey(migrateKey.private, "private");
-  const decryptedData = await crypto.subtle.decrypt(
+  const encryptedDataArray = JSON.parse(encryptedData);
+  const decryptedDataArray = await Promise.all(
+    encryptedDataArray.map(async (data: string) => {
+      return await crypto.subtle.decrypt(
+        {
+          name: "RSA-OAEP",
+        },
+        key,
+        base64ToArrayBuffer(data),
+      );
+    }),
+  );
+  const decryptedData = rebuildArrayBuffer(decryptedDataArray);
+  return new TextDecoder().decode(decryptedData);
+}
+
+export async function generateMigrateDataSignKey(): Promise<migrateDataSignKey> {
+  const keyPair = await crypto.subtle.generateKey(
     {
-      name: "RSA-OAEP",
+      name: "RSA-PSS",
+      modulusLength: 4096,
+      publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+      hash: "SHA-256",
+    },
+    true,
+    ["sign", "verify"],
+  );
+  const keyPublic = await exportfromJWK(keyPair.publicKey);
+  const keyPrivate = await exportfromJWK(keyPair.privateKey);
+  return {
+    public: {
+      key: keyPublic,
+      keyType: "migrateDataSignPub",
+      version: 1,
+    },
+    private: {
+      key: keyPrivate,
+      keyType: "migrateDataSignPrivate",
+      version: 1,
+    },
+    hashHex: await generateKeyHashHex(keyPublic),
+    version: 1,
+  };
+}
+
+export async function signDataWithMigrateDataSignKey(
+  migrateDataSignKey: migrateDataSignKey,
+  data: string,
+): Promise<string> {
+  const key = await importKey(migrateDataSignKey.private, "private");
+  const signature = await crypto.subtle.sign(
+    {
+      name: "RSA-PSS",
+      saltLength: 32,
     },
     key,
-    base64ToArrayBuffer(encryptedData),
+    new TextEncoder().encode(data),
   );
-  return new TextDecoder().decode(decryptedData);
+  return arrayBufferToBase64(signature);
+}
+
+export async function verifyDataWithMigrateDataSignKey(
+  migrateDataSignKey: migrateDataSignKeyPub,
+  data: string,
+  signature: string,
+): Promise<boolean> {
+  const key = await importKey(migrateDataSignKey, "public");
+  return await crypto.subtle.verify(
+    {
+      name: "RSA-PSS",
+      saltLength: 32,
+    },
+    key,
+    base64ToArrayBuffer(signature),
+    new TextEncoder().encode(data),
+  );
 }
