@@ -19,6 +19,9 @@ import type {
   MasterKey,
   MasterKeyPrivate,
   MasterKeyPub,
+  migrateKey,
+  migrateKeyPrivate,
+  migrateKeyPub,
   OtherUserIdentityKeys,
   OtherUserMasterKeys,
   RoomKey,
@@ -200,7 +203,9 @@ export async function importKey(
     | deviceKeyPub
     | deviceKeyPrivate
     | KeyShareKeyPub
-    | KeyShareKeyPrivate,
+    | KeyShareKeyPrivate
+    | migrateKeyPub
+    | migrateKeyPrivate,
   usages?: "public" | "private",
 ): Promise<CryptoKey> {
   const jwk = inputKey.key;
@@ -238,6 +243,12 @@ export async function importKey(
       type = "RSA-OAEP";
       break;
     case "keySharePrivate":
+      type = "RSA-OAEP";
+      break;
+    case "migratePub":
+      type = "RSA-OAEP";
+      break;
+    case "migratePrivate":
       type = "RSA-OAEP";
       break;
     default:
@@ -903,4 +914,63 @@ export async function decryptAndVerifyDataWithKeyShareKey(
     }),
   );
   return new TextDecoder().decode(rebuildArrayBuffer(decryptedDataArray));
+}
+
+export async function generateMigrateKey(): Promise<migrateKey> {
+  const keyPair = await crypto.subtle.generateKey(
+    {
+      name: "RSA-OAEP",
+      modulusLength: 4096,
+      publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+      hash: "SHA-256",
+    },
+    true,
+    ["encrypt", "decrypt"],
+  );
+  const keyPublic = await exportfromJWK(keyPair.publicKey);
+  const keyPrivate = await exportfromJWK(keyPair.privateKey);
+  return {
+    public: {
+      key: keyPublic,
+      keyType: "migratePub",
+      version: 1,
+    },
+    private: {
+      key: keyPrivate,
+      keyType: "migratePrivate",
+      version: 1,
+    },
+    hashHex: await generateKeyHashHex(keyPublic),
+    version: 1,
+  };
+}
+
+export async function encryptDataWithMigrateKey(
+  migrateKey: migrateKey,
+  data: string,
+): Promise<string> {
+  const key = await importKey(migrateKey.public, "public");
+  const encryptedData = await crypto.subtle.encrypt(
+    {
+      name: "RSA-OAEP",
+    },
+    key,
+    new TextEncoder().encode(data),
+  );
+  return arrayBufferToBase64(encryptedData);
+}
+
+export async function decryptDataWithMigrateKey(
+  migrateKey: migrateKey,
+  encryptedData: string,
+): Promise<string> {
+  const key = await importKey(migrateKey.private, "private");
+  const decryptedData = await crypto.subtle.decrypt(
+    {
+      name: "RSA-OAEP",
+    },
+    key,
+    base64ToArrayBuffer(encryptedData),
+  );
+  return new TextDecoder().decode(decryptedData);
 }

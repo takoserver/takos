@@ -89,6 +89,14 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
         state.IdentityKeyAndAccountKeys.value = decryptedIdentityAndAccountKeys;
         state.MasterKey.value = masterKeyData;
         state.DeviceKey.value = deviceKey;
+        state.ws.value = new WebSocket("ws://localhost:8080/ws");
+        state.ws.value.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          switch (data.type) {
+            case "requestShareKey":
+              
+          }
+        }
         return;
       }
     } else {
@@ -108,77 +116,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
       state.isValidInput.value = false;
     }
   }, [state.inputMessage.value]);
-  useEffect(() => {
-    state.ws.value = new WebSocket("/api/v2/client/main");
-    state.ws.value.onopen = () => {
-      console.log("connected");
-    };
-    state.ws.value.onmessage = (event: any) => {
-      const data = JSON.parse(event.data);
-      switch (data.type) {
-        case "connected":
-          state.sessionid.value = data.sessionid;
-          if (state.friendid.value) {
-            state.ws.value?.send(JSON.stringify({
-              type: "joinFriend",
-              sessionid: state.sessionid.value,
-              friendid: state.friendid.value,
-            }));
-          }
-          break;
-        case "joined":
-          {
-            if (data.roomType === "friend") {
-              state.roomType.value = "friend";
-              const roomInfo = state.friendList.value.find((room: any) =>
-                room.userName === data.friendid
-              );
-              state.roomid.value = "";
-              state.friendid.value = data.friendid;
-              state.roomName.value = roomInfo.nickName;
-              setIschoiseUser(true, state.isChoiceUser);
-              window.history.pushState(
-                "",
-                "",
-                "/talk/friends/" + state.friendid.value,
-              );
-              const talkData = fetch(
-                "/api/v2/client/talks/friend/data?friendid=" +
-                  state.friendid.value + "&limit=50",
-              );
-              talkData.then((res) => res.json()).then((res) => {
-                const data = res.data as any[];
-                //timestamp順にソート
-                data.sort((a, b) => {
-                  return new Date(a.timestamp).getTime() -
-                    new Date(b.timestamp).getTime();
-                });
-                state.talkData.value = data;
-              });
-            }
-          }
-          break;
-        case "text": {
-          console.log(data);
-          const message = {
-            messageid: data.messageid,
-            type: "text",
-            message: data.message,
-            userName: data.userName,
-            timestamp: data.time,
-            read: [],
-          };
-          const result = state.talkData.value.concat(message);
-          result.sort((a, b) => {
-            return new Date(a.timestamp).getTime() -
-              new Date(b.timestamp).getTime();
-          });
-          state.talkData.value = result;
-          break;
-        }
-      }
-    };
-  }, []);
   return (
     <>
       {shareKey && (
@@ -426,3 +363,7 @@ const convertFileToBase64 = (file: File): Promise<string> => {
     reader.onerror = reject;
   });
 };
+
+async function requestShareKey(data: any) {
+  
+}

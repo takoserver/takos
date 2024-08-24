@@ -1,8 +1,10 @@
-import { Hono } from "hono";
+import { Context, Hono, } from "hono"
+import type { WSContext } from "hono/ws";
 import { upgradeWebSocket } from "hono/deno";
 import { getCookie } from "hono/cookie";
 import redis from "redis";
 import { load } from "@std/dotenv";
+import Sessionid from "@/models/sessionid.ts";
 
 const env = await load();
 const redisURL = env["REDIS_URL"];
@@ -10,18 +12,32 @@ const redisch = env["REDIS_CH"];
 const subClient = redis.createClient({
   url: redisURL,
 });
-await subClient.connect();
 const app = new Hono();
 interface WebSocketSessionObject {
-  userid: string;
-  ws: WebSocket;
+  ws: WSContext;
   roomid: string;
   roomType: string;
   userName: string;
   lastActivityTime: Date;
 }
+/*
+    const cookie = getCookie(c, "sessionid");
+    if (!cookie) {
+      return c.json({
+        status: false,
+        message: "sessionid is not found",
+      });
+    }
+    const sessionInfo = await Sessionid.findOne({ sessionid: cookie });
+    if (!sessionInfo) {
+      return c.json({
+        status: false,
+        message: "session is not found",
+      });
+    }
+    const wsSessionid = crypto.getRandomValues(new Uint8Array(16)).toString();
+*/
 const sessions = new Map<string, WebSocketSessionObject>();
-/**メインコンテンツ開始 */
 await subClient.connect();
 async function subscribeMessage(channel: string | string[]) {
   await subClient.subscribe(channel, async (message) => {
@@ -32,22 +48,40 @@ async function subscribeMessage(channel: string | string[]) {
 }
 app.get(
   "/",
-  (c) => {
-    const cookie = getCookie(c, "sessionid");
-    if (!cookie) {
-      return c.json({
-        status: false,
-        message: "sessionid is not found",
-      });
+  upgradeWebSocket(async (c: Context) => {
+    return {
+      onOpen: async (event, ws) => {
+        const cookie = getCookie(c, "sessionid");
+        if (!cookie) {
+          return c.json({
+            status: false,
+            message: "sessionid is not found",
+          });
+        }
+        const sessionInfo = await Sessionid.findOne({ sessionid: cookie });
+        if (!sessionInfo) {
+          return c.json({
+            status: false,
+            message: "session is not found",
+          });
+        }
+        const wsSessionid = crypto.getRandomValues(new Uint8Array(16)).toString();
+        sessions.set(wsSessionid, {
+          ws,
+          roomid: "",
+          roomType: "",
+          userName: sessionInfo.userName,
+          lastActivityTime: new Date(),
+        });
+      },
+      onMessage: async (event, ws) => {
+        if(typeof event.data === "string") {
+          const data = JSON.parse(event.data);
+        }
+      }
     }
-    return c.json({
-      status: true,
-      message: "Hello World",
-    });
-  },
+  })
 );
-/**メインコンテンツ終了*/
-await subscribeMessage(redisch);
 function UpdateLastActivityTime(sessionId: string) {
   const session = sessions.get(sessionId);
   if (!session) {
@@ -73,3 +107,4 @@ function invalidateOldSessions() {
 setInterval(invalidateOldSessions, 5 * 60 * 1000);
 
 export default app;
+await subscribeMessage(redisch);

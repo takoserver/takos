@@ -181,6 +181,25 @@ type EncryptedDataKeyShareKey = {
   version: number;
 };
 
+type migrateKeyPub = {
+  key: JsonWebKey;
+  keyType: "migratePub";
+  version: number;
+};
+
+type migrateKeyPrivate = {
+  key: JsonWebKey;
+  keyType: "migratePrivate";
+  version: number;
+};
+
+type migrateKey = {
+  public: migrateKeyPub;
+  private: migrateKeyPrivate;
+  hashHex: string;
+  version: number;
+};
+
 // 型定義のエクスポート
 export type {
   AccountKey,
@@ -207,4 +226,7 @@ export type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
+  migrateKey,
+  migrateKeyPrivate,
+  migrateKeyPub,
 };

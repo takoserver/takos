@@ -69,7 +69,6 @@ export interface MessageTypes {
   messageType: string;
 }
 export interface WebSocketSessionObject {
-  userid: string;
   ws: WebSocket;
   roomid: string;
   roomType: string;
