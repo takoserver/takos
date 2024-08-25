@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import Sessionid from "@/models/sessionid.ts";
 import User from "@/models/users.ts";
 import { getCookie } from "hono/cookie";
-import keyShareSessionId from "@/models/keys/keyShareSessionId.ts";
+import keyShareSessionIdDB from "@/models/keys/keyShareSessionId.ts";
 import pubClient from "@/utils/pubClient.ts";
 
 const app = new Hono();
@@ -35,13 +35,13 @@ app.post("/requestKeyShare", async (c) => {
   const { migrateKey } = body;
   if (!migrateKey) return c.json({ status: false }, 400);
   const sessionId = crypto.getRandomValues(new Uint8Array(16)).join("");
-  await keyShareSessionId.create({
+  await keyShareSessionIdDB.create({
     keyShareSessionId: sessionId,
     migrateKeyPublic: migrateKey,
   });
   pubClient(JSON.stringify({
     type: "keyShareRequest",
-    sessionId,
+    keyShareSessionId: sessionId,
     userName: userInfo.userName,
   }));
   return c.json({ status: true, sessionId });
@@ -74,7 +74,7 @@ app.post("/acceptKeyShareRequest", async (c) => {
   }
   const { sessionId, migrateDataSignKey } = body;
   if (!sessionId || !migrateDataSignKey) return c.json({ status: false }, 400);
-  const keyShareSession = await keyShareSessionId.findOne({
+  const keyShareSession = await keyShareSessionIdDB.findOne({
     keyShareSessionId: sessionId,
   });
   if (!keyShareSession) return c.json({ status: false }, 400);
@@ -110,7 +110,7 @@ app.get("/migrateDataSignKey", async (c) => {
   }
   const keyShareSessionid = c.req.query("sessionId");
   if (!keyShareSessionid) return c.json({ status: false }, 400);
-  const keyShareSession = await keyShareSessionId.findOne({
+  const keyShareSession = await keyShareSessionIdDB.findOne({
     keyShareSessionId: keyShareSessionid,
   });
   if (!keyShareSession) return c.json({ status: false }, 400);
@@ -141,7 +141,7 @@ app.get("/migrateKey", async (c) => {
   }
   const keyShareSessionid = c.req.query("sessionId");
   if (!keyShareSessionid) return c.json({ status: false }, 400);
-  const keyShareSession = await keyShareSessionId.findOne({
+  const keyShareSession = await keyShareSessionIdDB.findOne({
     keyShareSessionId: keyShareSessionid,
   });
   if (!keyShareSession) return c.json({ status: false }, 400);
@@ -172,7 +172,7 @@ app.get("/keyShareData", async (c) => {
   }
   const keyShareSessionid = c.req.query("sessionId");
   if (!keyShareSessionid) return c.json({ status: false }, 400);
-  const keyShareSession = await keyShareSessionId.findOne({
+  const keyShareSession = await keyShareSessionIdDB.findOne({
     keyShareSessionId: keyShareSessionid,
   });
   if (!keyShareSession) return c.json({ status: false }, 400);
@@ -210,7 +210,7 @@ app.post("/sendKeyShareData", async (c) => {
   }
   const { sessionId, sign, data } = body;
   if (!sessionId || !sign || !data) return c.json({ status: false }, 400);
-  const keyShareSession = await keyShareSessionId.findOne({
+  const keyShareSession = await keyShareSessionIdDB.findOne({
     keyShareSessionId: sessionId,
   });
   if (!keyShareSession) return c.json({ status: false }, 400);
@@ -224,6 +224,40 @@ app.post("/sendKeyShareData", async (c) => {
     userName: userInfo.userName,
   }));
   return c.json({ status: true });
+});
+
+app.post("/updateSessionKeys", async (c) => {
+    const sessionid = getCookie(c, "sessionid");
+    if (!sessionid) {
+      return c.json({ status: false, error: "sessionid is not found" }, {
+        status: 500,
+      });
+    }
+    const session = await Sessionid.findOne({ sessionid: sessionid });
+    if (!session) {
+      return c.json({ status: false, error: "session is not found" }, {
+        status: 500,
+      });
+    }
+    const userInfo = await User.findOne({ userName: session.userName });
+    if (!userInfo) {
+      return c.json({ status: false, error: "user is not found" }, {
+        status: 500,
+      });
+    }
+    let body;
+    try {
+      body = await c.req.json();
+    } catch (e) {
+      return c.json({ status: false }, 400);
+    }
+    const { deviceKeyPrivate, keyShareKeyPub} = body;
+    if (!deviceKeyPrivate || !keyShareKeyPub) return c.json({ status: false }, 400);
+    await Sessionid.updateOne({ sessionid }, {
+        deviceKey: deviceKeyPrivate,
+        KeyShareKeyPub: keyShareKeyPub,
+    });
+    return c.json({ status: true });
 });
 
 export default app;
