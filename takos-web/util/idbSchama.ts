@@ -33,7 +33,7 @@ export interface TakosDB extends DBSchema {
   config: {
     key: "config";
     value: {
-      value: string
+      value: string;
       key?: string;
     };
   };
@@ -80,14 +80,18 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
     },
   });
 }
-export async function saveToDbMasterKey(masterKey: EncryptedDataDeviceKey): Promise<void> {
+export async function saveToDbMasterKey(
+  masterKey: EncryptedDataDeviceKey,
+): Promise<void> {
   const db = await createTakosDB();
   await db.put("masterKey", {
     masterKey: masterKey,
     key: "masterKey",
   });
 }
-export async function saveToDbDeviceKey(deviceKey: deviceKeyPub): Promise<void> {
+export async function saveToDbDeviceKey(
+  deviceKey: deviceKeyPub,
+): Promise<void> {
   const db = await createTakosDB();
   await db.put("deviceKey", {
     deviceKey: deviceKey,
@@ -95,7 +99,10 @@ export async function saveToDbDeviceKey(deviceKey: deviceKeyPub): Promise<void> 
     timestamp: new Date(),
   });
 }
-export async function saveToDbKeyShareKeys(keyShareKey: EncryptedDataDeviceKey, hashHex: string): Promise<void> {
+export async function saveToDbKeyShareKeys(
+  keyShareKey: EncryptedDataDeviceKey,
+  hashHex: string,
+): Promise<void> {
   const db = await createTakosDB();
   await db.put("keyShareKeys", {
     keyShareKey: keyShareKey,
@@ -103,7 +110,10 @@ export async function saveToDbKeyShareKeys(keyShareKey: EncryptedDataDeviceKey, 
     timestamp: new Date(),
   });
 }
-export async function saveToDbConfig(value: string, key: string): Promise<void> {
+export async function saveToDbConfig(
+  value: string,
+  key: string,
+): Promise<void> {
   const db = await createTakosDB();
   await db.put("config", {
     value: value,
@@ -115,7 +125,7 @@ export async function saveToDbIdentityAndAccountKeys(
   encryptedIdentityKey: EncryptedDataDeviceKey,
   encryptedAccountKey: EncryptedDataDeviceKey,
   hashHex: string,
-  keyExpiration: string
+  keyExpiration: string,
 ): Promise<void> {
   const db = await createTakosDB();
   await db.put("identityAndAccountKeys", {

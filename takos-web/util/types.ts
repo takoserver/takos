@@ -56,7 +56,7 @@ export interface AppStateType {
   KeyShareKey: any;
   DeviceKey: any;
   roomKey: any;
-  IdentityKeyAndAccountKeys: any
+  IdentityKeyAndAccountKeys: any;
 }
 export interface MessageTypes {
   type: string;

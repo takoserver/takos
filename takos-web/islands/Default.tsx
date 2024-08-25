@@ -1,27 +1,43 @@
 import { useEffect, useState } from "preact/hooks";
 import { AppStateType } from "../util/types.ts";
 import { setIschoiseUser } from "../util/takosClient.ts";
-import { saveToDbDeviceKey, saveToDbIdentityAndAccountKeys, saveToDbKeyShareKeys, saveToDbMasterKey, TakosDB } from "../util/idbSchama.ts";
+import {
+  saveToDbDeviceKey,
+  saveToDbIdentityAndAccountKeys,
+  saveToDbKeyShareKeys,
+  saveToDbMasterKey,
+  TakosDB,
+} from "../util/idbSchama.ts";
 import {
   createDeviceKey,
   createIdentityKeyAndAccountKey,
   createKeyShareKey,
   createMasterKey,
+  decryptDataDeviceKey,
+  type deviceKey,
   encryptAndSignDataWithKeyShareKey,
   encryptDataDeviceKey,
   generateKeyHashHex,
-  decryptDataDeviceKey,
-  type deviceKey,
+  generateMigrateDataSignKey,
+  generateMigrateKey,
 } from "@takos/takos-encrypt-ink";
+import type { MigrateKey } from "@takos/takos-encrypt-ink";
 import { createTakosDB } from "../util/idbSchama.ts";
 import getKeys from "../util/getKeys.ts";
 import { generate } from "$fresh/src/dev/manifest.ts";
 export default function setDefaultState({ state }: { state: AppStateType }) {
   const [setUp, setSetUp] = useState(false);
-  const [shareKey , setShareKey] = useState(false);
+  const [shareKey, setShareKey] = useState(false);
   const [nickName, setNickName] = useState("");
   const [icon, setIcon] = useState<File | null>(null);
   const [age, setAge] = useState(0);
+  const [isShowKeySharePopup, setIsShowKeySharePopup] = useState(false);
+  const [keyShareSessionId, setKeyShareSessionId] = useState("");
+  const [migrateKeyPublic, setMigrateKeyPublic] = useState("");
+  const [migrateDataSignKeyPublic, setMigrateDataSignKeyPublic] = useState("");
+  const [migrateKey, setMigrateKey] = useState<MigrateKey>({});
+  const [migrateDataSignKey, setMigrateDataSignKey] = useState({});
+  const [requester, setRequester] = useState(false);
   async function setDefaultState() {
     const userInfoData = await fetch("/takos/v2/client/profile").then((res) =>
       res.json()
@@ -29,7 +45,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
     if (!userInfoData.status) {
       window.location.href = "/";
     }
-    if(userInfoData.data.setup) {
+    if (userInfoData.data.setup) {
       const db = await createTakosDB();
       //get masterKey
       const masterKey = await db.get("masterKey", "masterKey");
@@ -38,7 +54,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
         return;
       }
       const deviceKeyPub = await db.get("deviceKey", "deviceKey");
-      if(!deviceKeyPub) {
+      if (!deviceKeyPub) {
         console.log("deviceKeyPub is not found");
         return;
       }
@@ -46,57 +62,76 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
         public: deviceKeyPub.deviceKey,
         private: userInfoData.data.devicekey,
         hashHex: await generateKeyHashHex(deviceKeyPub.deviceKey.key),
+        version: 1,
       };
-      const idbIdentityAndAccountKeys = await db.getAll("identityAndAccountKeys");
+      const idbIdentityAndAccountKeys = await db.getAll(
+        "identityAndAccountKeys",
+      );
       //期限が長い順
       idbIdentityAndAccountKeys.sort((a, b) => {
-        return new Date(b.keyExpiration).getTime() - new Date(a.keyExpiration).getTime();
+        return new Date(b.keyExpiration).getTime() -
+          new Date(a.keyExpiration).getTime();
       });
       const newKeys = await fetch(
         "/takos/v2/client/profile/keys?hashHex=" +
           idbIdentityAndAccountKeys[0].hashHex,
       ).then((res) => res.json());
-      if(!newKeys.status) {
+      if (!newKeys.status) {
         alert("エラーが発生しました");
         return;
       }
-      if(newKeys.data.identityKeyAndAndAccountKey.length === 0) {
-        const masterKeyString = await decryptDataDeviceKey(deviceKey, masterKey.masterKey);
-        if(!masterKeyString) {
+      if (newKeys.data.identityKeyAndAndAccountKey.length === 0) {
+        const masterKeyString = await decryptDataDeviceKey(
+          deviceKey,
+          masterKey.masterKey,
+        );
+        if (!masterKeyString) {
           console.log("masterKeyString is decrypt error");
           return;
         }
         const masterKeyData = JSON.parse(masterKeyString);
-        const decryptedIdentityAndAccountKeys = await Promise.all(idbIdentityAndAccountKeys.map(async (key) => {
-          console.log(key);
-          const identityKey = await decryptDataDeviceKey(deviceKey, key.encryptedIdentityKey);
-          const accountKey = await decryptDataDeviceKey(deviceKey, key.encryptedAccountKey);
-          if(!identityKey || !accountKey) {
-            console.log("identityKey or accountKey is decrypt error");
-            return null;
-          }
-          return {
-            identityKey: JSON.parse(identityKey),
-            accountKey: JSON.parse(accountKey),
-            hashHex: key.hashHex,
-            keyExpiration: key.keyExpiration,
-          };
-        }));
-        if(!decryptedIdentityAndAccountKeys) {
+        const decryptedIdentityAndAccountKeys = await Promise.all(
+          idbIdentityAndAccountKeys.map(async (key) => {
+            console.log(key);
+            const identityKey = await decryptDataDeviceKey(
+              deviceKey,
+              key.encryptedIdentityKey,
+            );
+            const accountKey = await decryptDataDeviceKey(
+              deviceKey,
+              key.encryptedAccountKey,
+            );
+            if (!identityKey || !accountKey) {
+              console.log("identityKey or accountKey is decrypt error");
+              return null;
+            }
+            return {
+              identityKey: JSON.parse(identityKey),
+              accountKey: JSON.parse(accountKey),
+              hashHex: key.hashHex,
+              keyExpiration: key.keyExpiration,
+            };
+          }),
+        );
+        if (!decryptedIdentityAndAccountKeys) {
           console.log("decryptedIdentityAndAccountKeys is not found");
           return;
         }
         state.IdentityKeyAndAccountKeys.value = decryptedIdentityAndAccountKeys;
         state.MasterKey.value = masterKeyData;
         state.DeviceKey.value = deviceKey;
-        state.ws.value = new WebSocket("ws://localhost:8080/ws");
+        state.ws.value = new WebSocket("/takos/v2/client/ws");
         state.ws.value.onmessage = (event) => {
           const data = JSON.parse(event.data);
           switch (data.type) {
-            case "requestShareKey":
-              requestShareKey(data);
+            case "keyShareRequest":
+              if (requester) break;
+              setIsShowKeySharePopup(true);
+              setKeyShareSessionId(data.sessionId);
+              break;
           }
-        }
+          console.log(data);
+        };
         return;
       }
     } else {
@@ -116,48 +151,84 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
       state.isValidInput.value = false;
     }
   }, [state.inputMessage.value]);
+  const [keySharePage, setKeySharePage] = useState(1);
+  const [acceptKeySharePage, setAcceptKeySharePage] = useState(1);
+  const [checkKeyCode, setCheckKeyCode] = useState("");
   return (
     <>
       {shareKey && (
         <div class="fixed z-50 w-full h-full bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px]">
-        <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 w-full h-full p-5 rounded-xl shadow-lg relative md:ml-[78px]">
-          <div class="absolute right-0 top-0 p-4">
-            <span
-              class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
-              onClick={() => {
-                setShareKey(false);
-              }}
-            >
-              ×
-            </span>
-          </div>
-          <div class="w-4/5 mx-auto my-auto mt-10 h-full space-y-8 text-center">
-            <h1 class="text-center text-2xl text-black dark:text-white hover:underline font-medium">
-              鍵移行
-            </h1>
-            <div class="mt-12">
-              <div class="lg:w-1/2 md:w-2/3 w-full m-10 mx-auto">
-                <form>
-                </form>
-              </div>
-            </div>
-            <div class="">
-              <button
-                type="submit"
-                class="rounded-lg block mx-auto m-2 text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
-                onClick={async () => {}}
+          <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 w-full h-full p-5 rounded-xl shadow-lg relative md:ml-[78px]">
+            <div class="absolute right-0 top-0 p-4">
+              <span
+                class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
+                onClick={() => {
+                  setShareKey(false);
+                }}
               >
-                他のデバイスにリクエスト
-              </button>
-              <button
-              type="submit"
-              class="rounded-lg mx-auto block m-2 text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
-              onClick={async () => {}}
-              >新しい鍵を作成</button>
+                ×
+              </span>
+            </div>
+            <div class="w-4/5 mx-auto my-auto mt-10 h-full space-y-8 text-center">
+              <h1 class="text-center text-2xl text-black dark:text-white hover:underline font-medium">
+                鍵移行
+              </h1>
+              <div class="mt-12">
+                <div class="lg:w-1/2 md:w-2/3 w-full m-10 mx-auto">
+                  <form>
+                  </form>
+                </div>
+              </div>
+              {keySharePage === 1 && (
+                <div class="">
+                  <button
+                    type="submit"
+                    class="rounded-lg mx-auto block m-2 text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
+                    onClick={async () => {
+                      const maigrateKey = await generateMigrateKey();
+                      setMigrateKey(maigrateKey);
+                      const res = await fetch(
+                        "/takos/v2/client/sessions/key/requestKeyShare",
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            migrateKey: maigrateKey.public,
+                          }),
+                        },
+                      );
+                      const resJson = await res.json();
+                      if (resJson.status) {
+                        setRequester(true);
+                        setKeyShareSessionId(resJson.keyShareSessionId);
+                        setKeySharePage(2);
+                      } else {
+                        console.log(resJson);
+                        alert("エラーが発生しました");
+                      }
+                    }}
+                  >
+                    他のデバイスにリクエスト
+                  </button>
+                  <button
+                    type="submit"
+                    class="rounded-lg block mx-auto m-2 text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
+                    onClick={async () => {}}
+                  >
+                    新しい鍵を作成
+                  </button>
+                </div>
+              )}
+              {keySharePage === 2 && (
+                <div class="flex w-full h-full">
+                  <p class="m-auto">他のデバイスからの承認を待機中</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      </div>
       )}
       {setUp && (
         <div class="fixed z-50 w-full h-full bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px]">
@@ -313,14 +384,30 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                       );
                       const resJson = await res.json();
                       if (resJson.status) {
-                        const encryptedIdentityKeyWithDeviceKey = await encryptDataDeviceKey(deviceKey, JSON.stringify(identityKey));
-                        const encryptedAccountKeyWithDeviceKey = await encryptDataDeviceKey(deviceKey, JSON.stringify(accountKey));
-                        const hashHex = await generateKeyHashHex(identityKey.public.key);
+                        const encryptedIdentityKeyWithDeviceKey =
+                          await encryptDataDeviceKey(
+                            deviceKey,
+                            JSON.stringify(identityKey),
+                          );
+                        const encryptedAccountKeyWithDeviceKey =
+                          await encryptDataDeviceKey(
+                            deviceKey,
+                            JSON.stringify(accountKey),
+                          );
+                        const hashHex = await generateKeyHashHex(
+                          identityKey.public.key,
+                        );
                         await saveToDbMasterKey(encryptedMasterKey);
                         await saveToDbDeviceKey(deviceKey.public);
-                        await saveToDbKeyShareKeys(encryptedKeyShareKey, keyShareKey.hashHex);
-                        await saveToDbIdentityAndAccountKeys(encryptedIdentityKeyWithDeviceKey, encryptedAccountKeyWithDeviceKey, hashHex,
-                          identityKey.public.keyExpiration
+                        await saveToDbKeyShareKeys(
+                          encryptedKeyShareKey,
+                          keyShareKey.hashHex,
+                        );
+                        await saveToDbIdentityAndAccountKeys(
+                          encryptedIdentityKeyWithDeviceKey,
+                          encryptedAccountKeyWithDeviceKey,
+                          hashHex,
+                          identityKey.public.keyExpiration,
                         );
                         const db = await createTakosDB();
                         console.log(await db.getAll("identityAndAccountKeys"));
@@ -346,6 +433,111 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
           </div>
         </div>
       )}
+      {isShowKeySharePopup && (
+        <div class="fixed z-50 w-full h-full overflow-hidden bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-5">
+          <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 max-w-md max-h-[350px] w-full h-full rounded-xl shadow-lg relative p-5">
+            <div class="absolute right-0 top-0 p-4">
+              <span
+                class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
+                onClick={() => {
+                  setIsShowKeySharePopup(false);
+                }}
+              >
+                ×
+              </span>
+            </div>
+            {acceptKeySharePage === 1 && (
+              <form
+                class="h-full px-2 lg:px-3 flex flex-col"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                }}
+              >
+                <div class="text-sm">
+                  <p class="text-black dark:text-white font-bold text-3xl mt-4 mb-5">
+                    鍵共有リクエスト
+                  </p>
+                </div>
+
+                <div class="flex h-full">
+                  <button
+                    type="submit"
+                    class="rounded-lg m-auto text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
+                    onClick={async () => {
+                      const migrateDataSignKey =
+                        await generateMigrateDataSignKey();
+                      setMigrateDataSignKey(migrateDataSignKey);
+                      const res = await fetch(
+                        "/takos/v2/client/sessions/key/acceptKeyShareRequest",
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            sessionId: keyShareSessionId,
+                            migrateDataSignKey: migrateDataSignKey.public,
+                          }),
+                        },
+                      );
+                      setAcceptKeySharePage(2);
+                    }}
+                  >
+                    {"承認"}
+                  </button>
+                </div>
+              </form>
+            )}
+            {acceptKeySharePage === 2 && (
+              <form
+                class="h-full px-2 lg:px-3 flex flex-col"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const trueHash = await generateKeyHashHex(
+                    migrateDataSignKey.public.key
+                  );
+                }}
+              >
+                <div class="text-sm">
+                  <p class="text-black dark:text-white font-bold text-3xl mt-4 mb-5">
+                    鍵共有リクエスト
+                  </p>
+                </div>
+                <div class="flex flex-col">
+                  <label
+                    for="email"
+                    class="block mb-2 text-sm font-medium text-black dark:text-white"
+                  >
+                    確認コード
+                  </label>
+                  <div class="w-full mb-2">
+                    <input
+                      class="bg-white border border-[rgba(0,0,0,5%)] shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_0_rgba(0,122,255,50%)] focus:shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_3px_rgba(0,122,255,50%)] text-gray-900 text-sm rounded-lg focus:ring-2 ring-1 ring-[rgba(0,0,0,5%)] outline-none block w-full p-2.5"
+                      onChange={(e) => {
+                        if (!e.target) {
+                          return;
+                        }
+                        const target = e.target as HTMLInputElement;
+                        setCheckKeyCode(target.value);
+                      }}
+                      placeholder={"xxxxxxxxxx"}
+                      type={"text"}
+                    />
+                  </div>
+                </div>
+                <div class="flex justify-end w-full pt-2 gap-1">
+                  <button
+                    type="submit"
+                    class="rounded-lg text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
+                  >
+                    {"送信"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -363,6 +555,3 @@ const convertFileToBase64 = (file: File): Promise<string> => {
     reader.onerror = reject;
   });
 };
-
-async function requestShareKey(data: any) {
-}

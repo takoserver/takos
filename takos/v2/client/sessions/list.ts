@@ -13,10 +13,10 @@ app.get("/", async (c: Context) => {
     });
   }
   const sessions = await Sessionid.find({ userName: session.userName });
-    return c.json({
-        status: true,
-        data: sessions,
-    }, 200);
+  return c.json({
+    status: true,
+    data: sessions,
+  }, 200);
 });
 
 export default app;

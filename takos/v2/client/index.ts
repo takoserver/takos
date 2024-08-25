@@ -16,6 +16,7 @@ import logout from "@/v2/client/sessions/logout.ts";
 import setup from "@/v2/client/sessions/registers/setup.ts";
 import keys from "./profile/keys.ts";
 import ws from "@/v2/client/ws/ws.ts";
+import sessionKey from "@/v2/client/sessions/key.ts";
 
 const app = new Hono();
 
@@ -34,4 +35,5 @@ app.route("/sessions/logout", logout);
 app.route("/sessions/registers/setup", setup);
 app.route("/profile/keys", keys);
 app.route("/ws", ws);
+app.route("/sessions/key", sessionKey);
 export default app;

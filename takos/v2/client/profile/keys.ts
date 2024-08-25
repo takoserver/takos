@@ -52,22 +52,23 @@ app.get("/", async (c: Context) => {
     data: {
       identityKeyAndAndAccountKey: key.map((k) => {
         return {
-          identityKeyPub: k.encryptedIdentityKey.map((i: { sessionid: string; key: any; }) => {
-            if(i.sessionid === sessionid) {
+          identityKeyPub:
+            k.encryptedIdentityKey.map((i: { sessionid: string; key: any }) => {
+              if (i.sessionid === sessionid) {
+                return i.key;
+              }
+              return null;
+            }).filter((i) => i !== null)[0],
+          accountKeyPub: k.encryptedAccountKey.map((i) => {
+            if (i.sessionid === sessionid) {
               return i.key;
             }
             return null;
           }).filter((i) => i !== null)[0],
-          accountKeyPub: k.encryptedAccountKey.map((i) => {
-            if(i.sessionid === sessionid) {
-              return i.key;
-            }
-            return null;
-            }).filter((i) => i !== null)[0],
 
           hashHex: k.hashHex,
         };
-      })
+      }),
     },
   }, 200);
 });

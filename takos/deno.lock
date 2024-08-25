@@ -10,8 +10,7 @@
       "jsr:@takos/takos-encrypt-ink@^0.3.0-unstable": "jsr:@takos/takos-encrypt-ink@0.3.0-unstable",
       "jsr:@takos/takos-encrypt-ink@^0.3.1-unstable": "jsr:@takos/takos-encrypt-ink@0.3.1-unstable",
       "jsr:@takos/takos-encrypt-ink@^0.3.2-unstable": "jsr:@takos/takos-encrypt-ink@0.3.2-unstable",
-      "jsr:@takos/takos-encrypt-ink@^0.4.6-unstable": "jsr:@takos/takos-encrypt-ink@0.4.6-unstable",
-      "jsr:@takos/takos-encrypt-ink@^0.4.8-unstable": "jsr:@takos/takos-encrypt-ink@0.4.8-unstable",
+      "jsr:@takos/takos-encrypt-ink@^0.4.10-unstable": "jsr:@takos/takos-encrypt-ink@0.4.10-unstable",
       "npm:@types/node": "npm:@types/node@18.16.19",
       "npm:base64-arraybuffer@^1.0.2": "npm:base64-arraybuffer@1.0.2",
       "npm:imagescript@^1.3.0": "npm:imagescript@1.3.0",
@@ -65,14 +64,8 @@
           "npm:base64-arraybuffer@^1.0.2"
         ]
       },
-      "@takos/takos-encrypt-ink@0.4.6-unstable": {
-        "integrity": "064055510d40a05be6c53d9994d88d9537178c4d34f4feac81ee35e0de9fc303",
-        "dependencies": [
-          "npm:base64-arraybuffer@^1.0.2"
-        ]
-      },
-      "@takos/takos-encrypt-ink@0.4.8-unstable": {
-        "integrity": "a32e48296e1720958413aefc10d1c0bd0f1c4cc8b8acb4ebe0dbd64b45263655",
+      "@takos/takos-encrypt-ink@0.4.10-unstable": {
+        "integrity": "f651eec555defbce49e93296cd599a5bbca77bf927d9adc723d041bd6855ee9b",
         "dependencies": [
           "npm:base64-arraybuffer@^1.0.2"
         ]
@@ -278,8 +271,7 @@
       "jsr:@hono/hono@^4.5.3",
       "jsr:@std/dotenv@^0.225.0",
       "jsr:@std/uuid@^1.0.0",
-      "jsr:@takos/takos-encrypt-ink@^0.4.6-unstable",
-      "jsr:@takos/takos-encrypt-ink@^0.4.8-unstable",
+      "jsr:@takos/takos-encrypt-ink@^0.4.10-unstable",
       "npm:imagescript@^1.3.0",
       "npm:ky@^1.5.0",
       "npm:mongoose@^8.5.2",

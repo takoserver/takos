@@ -3,14 +3,14 @@
     "@/": "./",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.0",
     "@std/uuid": "jsr:@std/uuid@^1.0.0",
-    "@takos/takos-encrypt-ink": "jsr:@takos/takos-encrypt-ink@^0.4.8-unstable",
+    "@takos/takos-encrypt-ink": "jsr:@takos/takos-encrypt-ink@^0.4.10-unstable",
     "hono": "jsr:@hono/hono@^4.5.3",
     "imagescript": "npm:imagescript@^1.3.0",
     "ky": "npm:ky@^1.5.0",
     "mongoose": "npm:mongoose@^8.5.2",
     "nodemailer": "npm:nodemailer@^6.9.14",
     "redis": "npm:redis@^4.7.0",
-    "takosEncryptInk": "jsr:@takos/takos-encrypt-ink@^0.4.6-unstable"
+    "takosEncryptInk": "jsr:@takos/takos-encrypt-ink@^0.4.10-unstable"
   },
   "tasks": {
     "start": "deno run -A main.ts",

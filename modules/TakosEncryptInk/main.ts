@@ -55,6 +55,12 @@ export type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
+  migrateKey,
+  migrateKeyPrivate,
+  migrateKeyPub,
+  migrateDataSignKey,
+  migrateDataSignKeyPrivate,
+  migrateDataSignKeyPub,
 };
 import { decode, encode } from "base64-arraybuffer";
 
