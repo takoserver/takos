@@ -17,6 +17,10 @@ import setup from "@/v2/client/sessions/registers/setup.ts";
 import keys from "./profile/keys.ts";
 import ws from "@/v2/client/ws/ws.ts";
 import sessionKey from "@/v2/client/sessions/key.ts";
+import friendAccept from "@/v2/client/friends/accept.ts";
+import friendRequest from "@/v2/client/friends/request.ts";
+import friendsReqList from "@/v2/client/friends/requestList.ts";
+import iconUser from "@/v2/client/users/icon.ts";
 
 const app = new Hono();
 
@@ -36,4 +40,8 @@ app.route("/sessions/registers/setup", setup);
 app.route("/profile/keys", keys);
 app.route("/ws", ws);
 app.route("/sessions/key", sessionKey);
+app.route("/friends/accept", friendAccept);
+app.route("/friends/request", friendRequest);
+app.route("/friends/requestList", friendsReqList);
+app.route("/users/icon", iconUser);
 export default app;

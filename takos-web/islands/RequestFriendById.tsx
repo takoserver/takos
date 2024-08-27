@@ -110,17 +110,12 @@ function Input({
           onClick={async () => {
             setIsError(false);
             setIsSending(true);
-            const csrftokenRes = await fetch(
-              `/api/v2/client/csrftoken`,
-            );
-            const csrftoken = await csrftokenRes.json();
-            const result = await fetch("/api/v2/client/friends/request/name", {
+            const result = await fetch("/takos/v2/client/friends/request", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                csrftoken: csrftoken.csrftoken,
                 userName: value,
               }),
             });

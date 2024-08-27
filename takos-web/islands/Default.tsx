@@ -1,14 +1,11 @@
 import { useEffect, useState } from "preact/hooks";
 import { AppStateType } from "../util/types.ts";
-import { setIschoiseUser } from "../util/takosClient.ts";
-import { equal } from 'assert'
 import fnv1a from '@sindresorhus/fnv1a';
 import {
   saveToDbDeviceKey,
   saveToDbIdentityAndAccountKeys,
   saveToDbKeyShareKeys,
   saveToDbMasterKey,
-  TakosDB,
 } from "../util/idbSchama.ts";
 import { useSignal } from "@preact/signals"
 import {
@@ -30,8 +27,6 @@ import {
 } from "@takos/takos-encrypt-ink";
 import type { migrateKey, migrateDataSignKey, migrateDataSignKeyPub, migrateKeyPub } from "@takos/takos-encrypt-ink";
 import { createTakosDB } from "../util/idbSchama.ts";
-import getKeys from "../util/getKeys.ts";
-import { generate } from "$fresh/src/dev/manifest.ts";
 export default function setDefaultState({ state }: { state: AppStateType }) {
   const [setUp, setSetUp] = useState(false);
   const [shareKey, setShareKey] = useState(false);
@@ -586,6 +581,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
             {acceptKeySharePage === 1 && (
               <form
                 class="h-full px-2 lg:px-3 flex flex-col"
+                // deno-lint-ignore require-await
                 onSubmit={async (e) => {
                   e.preventDefault();
                 }}

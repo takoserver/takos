@@ -227,37 +227,39 @@ app.post("/sendKeyShareData", async (c) => {
 });
 
 app.post("/updateSessionKeys", async (c) => {
-    const sessionid = getCookie(c, "sessionid");
-    if (!sessionid) {
-      return c.json({ status: false, error: "sessionid is not found" }, {
-        status: 500,
-      });
-    }
-    const session = await Sessionid.findOne({ sessionid: sessionid });
-    if (!session) {
-      return c.json({ status: false, error: "session is not found" }, {
-        status: 500,
-      });
-    }
-    const userInfo = await User.findOne({ userName: session.userName });
-    if (!userInfo) {
-      return c.json({ status: false, error: "user is not found" }, {
-        status: 500,
-      });
-    }
-    let body;
-    try {
-      body = await c.req.json();
-    } catch (e) {
-      return c.json({ status: false }, 400);
-    }
-    const { deviceKeyPrivate, keyShareKeyPub} = body;
-    if (!deviceKeyPrivate || !keyShareKeyPub) return c.json({ status: false }, 400);
-    await Sessionid.updateOne({ sessionid }, {
-        deviceKey: deviceKeyPrivate,
-        KeyShareKeyPub: keyShareKeyPub,
+  const sessionid = getCookie(c, "sessionid");
+  if (!sessionid) {
+    return c.json({ status: false, error: "sessionid is not found" }, {
+      status: 500,
     });
-    return c.json({ status: true });
+  }
+  const session = await Sessionid.findOne({ sessionid: sessionid });
+  if (!session) {
+    return c.json({ status: false, error: "session is not found" }, {
+      status: 500,
+    });
+  }
+  const userInfo = await User.findOne({ userName: session.userName });
+  if (!userInfo) {
+    return c.json({ status: false, error: "user is not found" }, {
+      status: 500,
+    });
+  }
+  let body;
+  try {
+    body = await c.req.json();
+  } catch (e) {
+    return c.json({ status: false }, 400);
+  }
+  const { deviceKeyPrivate, keyShareKeyPub } = body;
+  if (!deviceKeyPrivate || !keyShareKeyPub) {
+    return c.json({ status: false }, 400);
+  }
+  await Sessionid.updateOne({ sessionid }, {
+    deviceKey: deviceKeyPrivate,
+    KeyShareKeyPub: keyShareKeyPub,
+  });
+  return c.json({ status: true });
 });
 
 export default app;

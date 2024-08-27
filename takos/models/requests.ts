@@ -1,25 +1,27 @@
 import mongoose from "mongoose";
-const inviteSchema = new mongoose.Schema({
-  userName: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  invitedBy: {
+
+const requestShema = new mongoose.Schema({
+  requesterId: {
     type: String,
     required: true,
   },
-  invitedUser: {
+  targetName: {
     type: String,
     required: true,
   },
-  inviteRoom: {
-    type: String,
+  request: {
+    type: Object,
     required: true,
   },
   type: {
     type: String,
     required: true,
+    enum: ["friend", "group"],
   },
-  timestamp: { type: Date, default: Date.now },
+  uuid: {
+    type: String,
+    required: true,
+  },
 });
+
+export default mongoose.model("Request", requestShema);

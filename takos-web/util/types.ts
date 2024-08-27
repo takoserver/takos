@@ -85,3 +85,8 @@ export interface WebSocketJoiningFriend {
   sessionid: string;
   friendid: string;
 }
+
+export interface friendRequest {
+  userName: string;
+  friendName: string;
+}
