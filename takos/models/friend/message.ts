@@ -5,21 +5,17 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  sender: {
+  userId: {
     type: String,
     required: true,
   },
-  message: {
-    type: String,
+  messageObj: {
+    type: Object,
     required: true,
   },
-  sign: {
-    type: String,
-    required: true,
-  },
-  keyHashHex: {
-    type: String,
-    required: true,
+  timestamp: {
+    type: Date,
+    default: Date.now,
   },
 });
 

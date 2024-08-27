@@ -12,7 +12,7 @@ const roomKeySchema = new mongoose.Schema({
         required: true,
       },
       key: {
-        type: String,
+        type: Object,
         required: true,
       },
     },

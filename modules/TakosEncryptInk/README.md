@@ -3,7 +3,6 @@
 ## example
 
 ```ts
-
 import {
   createIdentityKeyAndAccountKey,
   createMasterKey,
@@ -45,5 +44,4 @@ async function main() {
 }
 
 main();
-
 ```

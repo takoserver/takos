@@ -2,6 +2,11 @@ import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
 import User from "@/models/users.ts";
+import Friends from "@/models/friends.ts";
+import FriendRoom from "@/models/friend/room.ts";
+import FriendMessage from "@/models/friend/message.ts";
+import { load } from "@std/dotenv";
+const env = await load();
 
 const app = new Hono();
 
@@ -28,7 +33,34 @@ app.get("/", async (c) => {
     type: string;
     userName?: string;
     roomId?: string;
+    isCreatedRoom: boolean;
     roomName?: string;
     latestMessage?: any;
   }[] = [];
+  const friends = await Friends.find({ userName: userInfo.userName });
+  for (const friend of friends) {
+    const room = await FriendRoom.findOne({
+      users: {
+        $all: [userInfo.userName + "@" + env["DOMAIN"], friend.friendId],
+      },
+    });
+    if (!room) {
+      result.push({
+        type: "friend",
+        userName: friend.friendId,
+        isCreatedRoom: false,
+      });
+      continue;
+    }
+    const latestMessage = await FriendMessage.findOne({
+      roomId: room.roomid,
+    }).sort({ timestamp: -1 });
+    result.push({
+      type: "room",
+      userName: friend.friendId,
+      latestMessage,
+      isCreatedRoom: true,
+    });
+  }
+  return c.json({ status: true, result });
 });

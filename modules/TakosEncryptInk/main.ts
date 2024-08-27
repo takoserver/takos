@@ -6,6 +6,7 @@ import type {
   deviceKeyPrivate,
   deviceKeyPub,
   EncryptedData,
+  EncryptedDataAccountKey,
   EncryptedDataDeviceKey,
   EncryptedDataKeyShareKey,
   EncryptedDataRoomKey,
@@ -30,7 +31,6 @@ import type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-  EncryptedDataAccountKey
 } from "./types.ts";
 export type {
   AccountKey,
@@ -40,6 +40,7 @@ export type {
   deviceKeyPrivate,
   deviceKeyPub,
   EncryptedData,
+  EncryptedDataAccountKey,
   EncryptedDataDeviceKey,
   EncryptedDataKeyShareKey,
   EncryptedDataRoomKey,
@@ -64,7 +65,6 @@ export type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-  EncryptedDataAccountKey
 };
 import { decode, encode } from "base64-arraybuffer";
 

@@ -243,6 +243,7 @@ export type {
   deviceKeyPrivate,
   deviceKeyPub,
   EncryptedData,
+  EncryptedDataAccountKey,
   EncryptedDataDeviceKey,
   EncryptedDataKeyShareKey,
   EncryptedDataRoomKey,
@@ -267,5 +268,4 @@ export type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-  EncryptedDataAccountKey
 };
