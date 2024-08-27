@@ -142,12 +142,10 @@ function TalkListContent({ state }: { state: AppStateType }) {
             return (
               <User
                 userName={talk.nickName}
-                latestMessage={talk.latestMessage}
-                icon={"http://" + talk.userName.split("@")[1] +
-                  "/api/v2/client/friends/info/" + talk.userName +
-                  "/icon/friend"}
+                latestMessage={talk.latestMessage ? talk.latestMessage.message : ""}
+                icon={"/takos/v2/client/users/icon/friend?userName=" + talk.userName}
                 userName2={talk.userName}
-                isNewMessage={talk.isNewMessage}
+                isNewMessage={talk.isNewMessage ? talk.isNewMessage : false}
                 isSelected={talk.isSelect}
                 onClick={() => {
                   console.log(state.sessionid.value);

@@ -6,6 +6,7 @@ import Friends from "@/models/friends.ts";
 import FriendRoom from "@/models/friend/room.ts";
 import FriendMessage from "@/models/friend/message.ts";
 import { load } from "@std/dotenv";
+import { splitUserName } from "@/utils/utils.ts";
 const env = await load();
 
 const app = new Hono();
@@ -32,6 +33,7 @@ app.get("/", async (c) => {
   const result: {
     type: string;
     userName?: string;
+    nickName?: string;
     roomId?: string;
     isCreatedRoom: boolean;
     roomName?: string;
@@ -39,6 +41,12 @@ app.get("/", async (c) => {
   }[] = [];
   const friends = await Friends.find({ userName: userInfo.userName });
   for (const friend of friends) {
+    const { userName: friendName, domain: friendDomain } = splitUserName(friend.friendId);
+    if(env["DOMAIN"] !== friendDomain) continue;
+    if(!friendName) continue;
+    const friendInfo = await User.findOne({ userName: friendName });
+    if(!friendInfo || !friendInfo.nickName) continue;
+    if(!friendInfo) continue;
     const room = await FriendRoom.findOne({
       users: {
         $all: [userInfo.userName + "@" + env["DOMAIN"], friend.friendId],
@@ -49,6 +57,7 @@ app.get("/", async (c) => {
         type: "friend",
         userName: friend.friendId,
         isCreatedRoom: false,
+        nickName: friendInfo?.nickName,
       });
       continue;
     }
@@ -60,7 +69,10 @@ app.get("/", async (c) => {
       userName: friend.friendId,
       latestMessage,
       isCreatedRoom: true,
+      nickName: friendInfo?.nickName,
     });
   }
   return c.json({ status: true, result });
 });
+
+export default app;

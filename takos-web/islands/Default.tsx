@@ -125,15 +125,22 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
         if (!decryptedIdentityAndAccountKeys) {
           console.log("decryptedIdentityAndAccountKeys is not found");
           return;
+        } else {
+          state.IdentityKeyAndAccountKeys.value = decryptedIdentityAndAccountKeys;
+          state.MasterKey.value = masterKeyData;
+          state.DeviceKey.value = deviceKey;
         }
-        state.IdentityKeyAndAccountKeys.value = decryptedIdentityAndAccountKeys;
-        state.MasterKey.value = masterKeyData;
-        state.DeviceKey.value = deviceKey;
-        return;
       }
     } else {
       setSetUp(true);
     }
+    const list = await fetch("/takos/v2/client/list").then((res) => res.json());
+    console.log(list);
+    if (!list.status) {
+      console.log("list is not found");
+      return;
+    }
+    state.friendList.value = list.result;
   }
   useEffect(() => {
     setDefaultState();

@@ -76,7 +76,7 @@ app.post("/", async (c) => {
   if (room) {
     return c.json({ status: false }, 400);
   }
-  const roomid = uuid();
+  const roomid = uuid() + "@" + env["DOMAIN"];
   await FriendRoom.create({
     roomid,
     users: [userInfo.userName + "@" + env["DOMAIN"], userName],

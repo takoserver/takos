@@ -44,8 +44,8 @@ app.get("/friend", async (c) => {
   if (!userFriendData) {
     return c.json({ status: false });
   }
-  const icon = await Deno.readFile(`./files/userIcon/${userName}.png`);
-  return c.json({ status: true, icon });
+  const icon = await Deno.readFile(`./files/userIcon/${splitUserName(userName).userName}.jpeg`);
+  return c.body(icon);
 });
 
 app.get("/requester", async (c) => {

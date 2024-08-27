@@ -17,6 +17,7 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
   let DateState: any;
   return (
     <>
+    {/*
       {state.talkData.value.map((data: any, index: number) => {
         const date = new Date(data.timestamp);
         const isEncodeDate = new Date(DateState).toLocaleDateString() !==
@@ -134,6 +135,7 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
           return <ChatDate date={new Date(data.timestamp)} />;
         }
       })}
+      */}
     </>
   );
 }
