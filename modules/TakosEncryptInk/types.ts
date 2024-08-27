@@ -122,6 +122,15 @@ type EncryptedData = {
   version: number;
 };
 
+type EncryptedDataAccountKey = {
+  encryptedData: string[];
+  keyType: "accountKey"; // 使用された鍵の種類
+  //暗号化した鍵のハッシュ値
+  encryptedKeyHashHex: string;
+  iv?: string; // 初期化ベクトル (Initialization Vector)
+  version: number;
+};
+
 type EncryptedDataRoomKey = {
   encryptedData: string;
   keyType: "roomKey";
@@ -258,4 +267,5 @@ export type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
+  EncryptedDataAccountKey
 };

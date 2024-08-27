@@ -30,6 +30,7 @@ import type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
+  EncryptedDataAccountKey
 } from "./types.ts";
 export type {
   AccountKey,
@@ -63,6 +64,7 @@ export type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
+  EncryptedDataAccountKey
 };
 import { decode, encode } from "base64-arraybuffer";
 
@@ -662,11 +664,10 @@ export async function decryptAndVerifyDataWithRoomKey(
 }
 
 // AccountKeyを使って暗号化する関数
-export async function encryptAndSignDataWithAccountKey(
+export async function encryptWithAccountKey(
   accountKey: AccountKeyPub,
   data: string,
-  identity_key: IdentityKey,
-): Promise<EncryptedData> {
+): Promise<EncryptedDataAccountKey> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const DataArray = splitArrayBuffer(new TextEncoder().encode(data), 160);
   const key = await importKey(accountKey, "public");
@@ -684,43 +685,20 @@ export async function encryptAndSignDataWithAccountKey(
       );
     }),
   );
-  const encryptedDataSign = await signData(
-    identity_key,
-    new TextEncoder().encode(JSON.stringify(encryptedData)),
-  );
   return {
     encryptedData: encryptedData,
     keyType: "accountKey",
     iv: arrayBufferToBase64(iv),
-    encryptedDataSign: encryptedDataSign,
     encryptedKeyHashHex: await generateKeyHashHex(accountKey.key),
-    signKeyHashHex: accountKey.sign.hashedPublicKeyHex,
     version: 1,
-    /*
-    encryptedData: string[];
-    keyType: "accountKey";
-    encryptedDataSign: Sign;
-    encryptedKeyHashHex: string;
-    signKeyHashHex: string;
-    */
   };
 }
 
 // AccountKeyで暗号化されたデータを復号化し、検証する関数
-export async function decryptAndVerifyDataWithAccountKey(
+export async function decryptDataWithAccountKey(
   accountKey: AccountKey,
-  encryptedData: EncryptedData,
-  identity_key: IdentityKeyPub,
+  encryptedData: EncryptedDataAccountKey,
 ): Promise<string | null> {
-  if (
-    !await verifyData(
-      identity_key,
-      new TextEncoder().encode(JSON.stringify(encryptedData.encryptedData)),
-      encryptedData.encryptedDataSign,
-    )
-  ) {
-    return null;
-  }
   const key = await importKey(accountKey.private, "private");
   const decryptedDataArray = await Promise.all(
     encryptedData.encryptedData.map(async (data) => {
