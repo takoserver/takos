@@ -1,13 +1,13 @@
 import { useEffect, useState } from "preact/hooks";
 import { AppStateType } from "../util/types.ts";
-import fnv1a from '@sindresorhus/fnv1a';
+import fnv1a from "@sindresorhus/fnv1a";
 import {
   saveToDbDeviceKey,
   saveToDbIdentityAndAccountKeys,
   saveToDbKeyShareKeys,
   saveToDbMasterKey,
 } from "../util/idbSchama.ts";
-import { useSignal } from "@preact/signals"
+import { useSignal } from "@preact/signals";
 import {
   createDeviceKey,
   createIdentityKeyAndAccountKey,
@@ -25,7 +25,12 @@ import {
   signDataWithMigrateDataSignKey,
   verifyDataWithMigrateDataSignKey,
 } from "@takos/takos-encrypt-ink";
-import type { migrateKey, migrateDataSignKey, migrateDataSignKeyPub, migrateKeyPub } from "@takos/takos-encrypt-ink";
+import type {
+  migrateDataSignKey,
+  migrateDataSignKeyPub,
+  migrateKey,
+  migrateKeyPub,
+} from "@takos/takos-encrypt-ink";
 import { createTakosDB } from "../util/idbSchama.ts";
 export default function setDefaultState({ state }: { state: AppStateType }) {
   const [setUp, setSetUp] = useState(false);
@@ -36,7 +41,9 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
   const [isShowKeySharePopup, setIsShowKeySharePopup] = useState(false);
   const keyShareSessionId = useSignal("");
   const migrateKeyPublic = useSignal<migrateKeyPub | null>(null);
-  const migrateDataSignKeyPublic = useSignal<migrateDataSignKeyPub | null>(null);
+  const migrateDataSignKeyPublic = useSignal<migrateDataSignKeyPub | null>(
+    null,
+  );
   const migrateKey = useSignal<migrateKey | null>(null);
   const migrateDataSignKey = useSignal<migrateDataSignKey | null>(null);
   const requester = useSignal(false);
@@ -135,65 +142,77 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
       const data = JSON.parse(event.data);
       console.log(data, requester.value);
       switch (data.type) {
-        case "keyShareRequest": {
-          if (requester.value) break;
-          setIsShowKeySharePopup(true);
-          keyShareSessionId.value = data.keyShareSessionId;
-        }
-          break;
-        case "keyShareAccept": {
-          if(!requester.value) break;
-          const migrateDataSignKeyRes = await fetch("/takos/v2/client/sessions/key/migrateDataSignKey?sessionId=" + keyShareSessionId.value).then((res) => res.json());
-          if (!migrateDataSignKeyRes) {
-            console.log("migrateDataSignKey is not found");
-          } else {
-            console.log("public   " + migrateDataSignKey)
-            migrateDataSignKeyPublic.value = migrateDataSignKeyRes.migrateDataSignKeyPublic
-            const hash = fnv1a(
-              JSON.stringify(migrateKey.value?.public) +
-                JSON.stringify(migrateDataSignKeyPublic.value),
-            { size: 32 });
-            const hashHex = String(Number(hash))
-            setCheckKeyCode(hashHex);
-            setKeySharePage(3);
+        case "keyShareRequest":
+          {
+            if (requester.value) break;
+            setIsShowKeySharePopup(true);
+            keyShareSessionId.value = data.keyShareSessionId;
           }
-        }
+          break;
+        case "keyShareAccept":
+          {
+            if (!requester.value) break;
+            const migrateDataSignKeyRes = await fetch(
+              "/takos/v2/client/sessions/key/migrateDataSignKey?sessionId=" +
+                keyShareSessionId.value,
+            ).then((res) => res.json());
+            if (!migrateDataSignKeyRes) {
+              console.log("migrateDataSignKey is not found");
+            } else {
+              console.log("public   " + migrateDataSignKey);
+              migrateDataSignKeyPublic.value =
+                migrateDataSignKeyRes.migrateDataSignKeyPublic;
+              const hash = fnv1a(
+                JSON.stringify(migrateKey.value?.public) +
+                  JSON.stringify(migrateDataSignKeyPublic.value),
+                { size: 32 },
+              );
+              const hashHex = String(Number(hash));
+              setCheckKeyCode(hashHex);
+              setKeySharePage(3);
+            }
+          }
           break;
         case "keyShareData": {
-          if(!requester.value) break;
+          if (!requester.value) break;
           const res = await fetch(
-            "/takos/v2/client/sessions/key/keyShareData?sessionId=" + keyShareSessionId.value
+            "/takos/v2/client/sessions/key/keyShareData?sessionId=" +
+              keyShareSessionId.value,
           ).then((res) => res.json());
           if (!res) {
             console.log("keyShareData is not found");
             return;
           }
-          if(!migrateKey.value) {
+          if (!migrateKey.value) {
             console.log("migrateKey is not found");
             return;
           }
-          const migrateData = await decryptDataWithMigrateKey(migrateKey.value, res.data);
+          const migrateData = await decryptDataWithMigrateKey(
+            migrateKey.value,
+            res.data,
+          );
           if (!migrateData) {
             console.log("migrateData is decrypt error");
             return;
           }
-          if(!migrateDataSignKeyPublic.value) {
+          if (!migrateDataSignKeyPublic.value) {
             console.log("migrateDataSignKey is not found");
             return;
           }
           const verify = await verifyDataWithMigrateDataSignKey(
             migrateDataSignKeyPublic.value,
             res.data,
-            res.sign
+            res.sign,
           );
-          if(!verify) {
+          if (!verify) {
             console.log("verify is false");
             return;
           }
           const db = await createTakosDB();
           const migrateDataJson = JSON.parse(migrateData);
           const masterKey = migrateDataJson.masterKeyData;
-          const identityAndAccountKeys = migrateDataJson.identityAndAccountKeysData;
+          const identityAndAccountKeys =
+            migrateDataJson.identityAndAccountKeysData;
           const deviceKey = await createDeviceKey(masterKey);
           const keyShareKey = await createKeyShareKey(masterKey);
           const encryptedMasterKey = await encryptDataDeviceKey(
@@ -201,22 +220,31 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
             JSON.stringify(masterKey),
           );
           const encryptedIdentityAndAccountKeys = await Promise.all(
-            (JSON.parse(identityAndAccountKeys)).map(async (key: { identityKey: any; accountKey: any; hashHex: any; keyExpiration: any; }) => {
-              const encryptedIdentityKey = await encryptDataDeviceKey(
-                deviceKey,
-                JSON.stringify(key.identityKey),
-              );
-              const encryptedAccountKey = await encryptDataDeviceKey(
-                deviceKey,
-                JSON.stringify(key.accountKey),
-              );
-              return {
-                encryptedIdentityKey,
-                encryptedAccountKey,
-                hashHex: key.hashHex,
-                keyExpiration: key.keyExpiration,
-              };
-            }),
+            (JSON.parse(identityAndAccountKeys)).map(
+              async (
+                key: {
+                  identityKey: any;
+                  accountKey: any;
+                  hashHex: any;
+                  keyExpiration: any;
+                },
+              ) => {
+                const encryptedIdentityKey = await encryptDataDeviceKey(
+                  deviceKey,
+                  JSON.stringify(key.identityKey),
+                );
+                const encryptedAccountKey = await encryptDataDeviceKey(
+                  deviceKey,
+                  JSON.stringify(key.accountKey),
+                );
+                return {
+                  encryptedIdentityKey,
+                  encryptedAccountKey,
+                  hashHex: key.hashHex,
+                  keyExpiration: key.keyExpiration,
+                };
+              },
+            ),
           );
           const encryptedKeyShareKey = await encryptDataDeviceKey(
             deviceKey,
@@ -327,7 +355,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                       const resJson = await res.json();
                       if (resJson.status) {
                         keyShareSessionId.value = resJson.sessionId;
-                        console.log(resJson.sessionId)
+                        console.log(resJson.sessionId);
                         setKeySharePage(2);
                       } else {
                         requester.value = false;
@@ -354,7 +382,9 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
               )}
               {keySharePage === 3 && (
                 <div class="w-full h-full">
-                  <p class="m-auto">この数字を相手のデバイスに打ち込んでください</p>
+                  <p class="m-auto">
+                    この数字を相手のデバイスに打ち込んでください
+                  </p>
                   <p class="m-auto">{checkKeyCode}</p>
                 </div>
               )}
@@ -597,7 +627,10 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                     type="submit"
                     class="rounded-lg m-auto text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
                     onClick={async () => {
-                      const migrateKeyData = await fetch("/takos/v2/client/sessions/key/migrateKey?sessionId=" + keyShareSessionId.value).then((res) => res.json());
+                      const migrateKeyData = await fetch(
+                        "/takos/v2/client/sessions/key/migrateKey?sessionId=" +
+                          keyShareSessionId.value,
+                      ).then((res) => res.json());
                       if (!migrateKeyData.status) {
                         console.log("migrateKey is not found");
                         return;
@@ -640,11 +673,21 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                 class="h-full px-2 lg:px-3 flex flex-col"
                 onSubmit={async (e) => {
                   e.preventDefault();
-                  console.log(migrateDataSignKey.value?.public, checkKeyCode, migrateKeyPublic.value);
-                  if(!migrateDataSignKey.value?.public || !checkKeyCode || !migrateKeyPublic.value) {
-                    return
+                  console.log(
+                    migrateDataSignKey.value?.public,
+                    checkKeyCode,
+                    migrateKeyPublic.value,
+                  );
+                  if (
+                    !migrateDataSignKey.value?.public || !checkKeyCode ||
+                    !migrateKeyPublic.value
+                  ) {
+                    return;
                   }
-                  console.log(migrateKeyPublic.value, migrateDataSignKeyPublic.value)
+                  console.log(
+                    migrateKeyPublic.value,
+                    migrateDataSignKeyPublic.value,
+                  );
                   const hash = fnv1a(
                     JSON.stringify(migrateKeyPublic.value) +
                       JSON.stringify(migrateDataSignKey.value.public),
@@ -665,14 +708,20 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                     (res) => res.json(),
                   );
                   const deviceKeyPrivate = userInfo.data.devicekey;
-                  if(!masterKey || !deviceKeyPub || !identityKeyAndAndAccountKeys) {
-                    console.log("masterKey or deviceKeyPub or identityKeyAndAndAccountKeys is not found");
+                  if (
+                    !masterKey || !deviceKeyPub || !identityKeyAndAndAccountKeys
+                  ) {
+                    console.log(
+                      "masterKey or deviceKeyPub or identityKeyAndAndAccountKeys is not found",
+                    );
                     return;
                   }
                   const deviceKey = {
                     public: deviceKeyPub.deviceKey,
                     private: deviceKeyPrivate,
-                    hashHex: await generateKeyHashHex(deviceKeyPub.deviceKey.key),
+                    hashHex: await generateKeyHashHex(
+                      deviceKeyPub.deviceKey.key,
+                    ),
                     version: 1,
                   };
                   const decryptedMasterKey = await decryptDataDeviceKey(
@@ -683,7 +732,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                     console.log("decryptedMasterKey is decrypt error");
                     return;
                   }
-                  console.log("うごいてるぜ☆")
+                  console.log("うごいてるぜ☆");
                   const masterKeyData = JSON.parse(decryptedMasterKey);
                   const decryptedIdentityAndAccountKeys = await Promise.all(
                     identityKeyAndAndAccountKeys.map(async (key) => {
@@ -696,7 +745,9 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         key.encryptedAccountKey,
                       );
                       if (!identityKey || !accountKey) {
-                        console.log("identityKey or accountKey is decrypt error");
+                        console.log(
+                          "identityKey or accountKey is decrypt error",
+                        );
                         return null;
                       }
                       return {
@@ -705,17 +756,29 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         hashHex: key.hashHex,
                         keyExpiration: key.keyExpiration,
                       };
-                    })
-                  )
-                  console.log("うごいてるぜ☆")
-                  const identityAndAccountKeysData = JSON.stringify(decryptedIdentityAndAccountKeys.filter((key) => key !== null))
+                    }),
+                  );
+                  console.log("うごいてるぜ☆");
+                  const identityAndAccountKeysData = JSON.stringify(
+                    decryptedIdentityAndAccountKeys.filter((key) =>
+                      key !== null
+                    ),
+                  );
                   const resData = JSON.stringify({
                     masterKeyData,
-                    identityAndAccountKeysData
-                  })
-                  if(!migrateKeyPublic.value || !migrateDataSignKey.value) return
-                  const encryptedResData = await encryptDataWithMigrateKey(migrateKeyPublic.value, resData)
-                  const sign = await signDataWithMigrateDataSignKey(migrateDataSignKey.value, encryptedResData)
+                    identityAndAccountKeysData,
+                  });
+                  if (!migrateKeyPublic.value || !migrateDataSignKey.value) {
+                    return;
+                  }
+                  const encryptedResData = await encryptDataWithMigrateKey(
+                    migrateKeyPublic.value,
+                    resData,
+                  );
+                  const sign = await signDataWithMigrateDataSignKey(
+                    migrateDataSignKey.value,
+                    encryptedResData,
+                  );
                   const res = await fetch(
                     "/takos/v2/client/sessions/key/sendKeyShareData",
                     {
@@ -736,8 +799,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                     requester.value = false;
                     setIsShowKeySharePopup(false);
                   }
-                }
-              }
+                }}
               >
                 <div class="text-sm">
                   <p class="text-black dark:text-white font-bold text-3xl mt-4 mb-5">

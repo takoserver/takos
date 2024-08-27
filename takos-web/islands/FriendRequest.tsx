@@ -75,11 +75,11 @@ function Input() {
 // Define the VideoList component
 const VideoList = () => {
   const [items, setItems] = useState<{
-    requesterId: string
-    targetName: string
-    type: string
-    uuid: string
-}[]>([]);
+    requesterId: string;
+    targetName: string;
+    type: string;
+    uuid: string;
+  }[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -105,14 +105,33 @@ const VideoList = () => {
                   return (
                     <User
                       key={index}
-                      icon={"/takos/v2/client/users/icon/requester?userName=" + video.requesterId}
+                      icon={"/takos/v2/client/users/icon/requester?userName=" +
+                        video.requesterId}
                       userName={video.requesterId}
                       type={video.type}
-                      acceptOnClick={() => {
-                        console.log("accept");
+                      acceptOnClick={async () => {
+                        const res = await fetch(
+                          "/takos/v2/client/friends/accept",
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                              uuid: video.uuid,
+                            }),
+                          },
+                        );
+                        const data = await res.json();
+                        if (data.status === false) {
+                          alert("エラーが発生しました");
+                        } else {
+                          alert("リクエストを承認しました");
+                        }
+                        console.log(data);
                       }}
                       rejectOnClick={() => {
-                        console.log("reject");
+                        alert("まだ対応してません");
                       }}
                     />
                   );

@@ -3,8 +3,12 @@ import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
 import User from "@/models/users.ts";
 import Requests from "@/models/requests.ts";
-import { load } from "@std/dotenv";
 import { acceptFriendRequest } from "@/v2/client/friends/acceptActions.ts";
+import { load } from "@std/dotenv";
+import { splitUserName } from "@/utils/utils.ts";
+import friends from "@/models/friends.ts";
+import Request from "@/models/requests.ts";
+import sendRequests from "@/models/sendRequests.ts";
 const env = await load();
 
 const app = new Hono();
@@ -43,11 +47,28 @@ app.post("/", async (c) => {
   }
   switch (request.type) {
     case "friend": {
-      await acceptFriendRequest(
-        c,
-        request,
-      );
-      break;
+      const { requesterId, targetName } = request;
+      const { userName: requesterName, domain: requesterDomain } =
+        splitUserName(requesterId);
+      if (requesterDomain !== env["DOMAIN"]) {
+        return c.json({
+          status: false,
+          message: {
+            error: "developing",
+          },
+        }, 400);
+      }
+      await friends.create({
+        userName: requesterName,
+        friendId: targetName + "@" + env["DOMAIN"],
+      });
+      await friends.create({
+        userName: targetName,
+        friendId: requesterName + "@" + env["DOMAIN"],
+      });
+      await Request.deleteOne({ uuid: request.uuid });
+      await sendRequests.deleteOne({ uuid: request.uuid });
+      return c.json({ status: true }, 200);
     }
     default:
       return c.json({ status: false }, 400);

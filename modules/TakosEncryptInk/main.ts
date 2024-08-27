@@ -19,6 +19,7 @@ import type {
   MasterKey,
   MasterKeyPrivate,
   MasterKeyPub,
+  Message,
   migrateDataSignKey,
   migrateDataSignKeyPrivate,
   migrateDataSignKeyPub,
@@ -51,16 +52,17 @@ export type {
   MasterKey,
   MasterKeyPrivate,
   MasterKeyPub,
+  Message,
+  migrateDataSignKey,
+  migrateDataSignKeyPrivate,
+  migrateDataSignKeyPub,
+  migrateKey,
+  migrateKeyPrivate,
+  migrateKeyPub,
   OtherUserIdentityKeys,
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-  migrateKey,
-  migrateKeyPrivate,
-  migrateKeyPub,
-  migrateDataSignKey,
-  migrateDataSignKeyPrivate,
-  migrateDataSignKeyPub,
 };
 import { decode, encode } from "base64-arraybuffer";
 
@@ -980,9 +982,9 @@ export async function encryptDataWithMigrateKey(
           key,
           buffer,
         ),
-      )
-    }
-  ));
+      );
+    }),
+  );
   return JSON.stringify(encryptedData);
 }
 
@@ -1007,7 +1009,9 @@ export async function decryptDataWithMigrateKey(
   return new TextDecoder().decode(decryptedData);
 }
 
-export async function generateMigrateDataSignKey(): Promise<migrateDataSignKey> {
+export async function generateMigrateDataSignKey(): Promise<
+  migrateDataSignKey
+> {
   const keyPair = await crypto.subtle.generateKey(
     {
       name: "RSA-PSS",
@@ -1067,4 +1071,32 @@ export async function verifyDataWithMigrateDataSignKey(
     base64ToArrayBuffer(signature),
     new TextEncoder().encode(data),
   );
+}
+
+export async function encryptMessage(
+  message: Message,
+  roomKey: RoomKey,
+  identityKey: IdentityKey,
+): Promise<EncryptedDataRoomKey> {
+  return await encryptAndSignDataWithRoomKey(
+    roomKey,
+    JSON.stringify(message),
+    identityKey,
+  );
+}
+
+export async function decryptMessage(
+  encryptedMessage: EncryptedDataRoomKey,
+  roomKey: RoomKey,
+  identityKey: IdentityKeyPub,
+): Promise<Message | null> {
+  const decryptedData = await decryptAndVerifyDataWithRoomKey(
+    roomKey,
+    encryptedMessage,
+    identityKey,
+  );
+  if (!decryptedData) {
+    return null;
+  }
+  return JSON.parse(decryptedData);
 }

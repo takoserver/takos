@@ -123,14 +123,15 @@ type EncryptedData = {
 };
 
 type EncryptedDataRoomKey = {
-  encryptedData: string; // 暗号化されたデータの値
-  keyType: "roomKey"; // 使用された鍵の種類
-  iv?: string; // 初期化ベクトル (Initialization Vector)
-  encryptedDataSign: Sign; //暗号化されたデータに対する署名
-  encryptedKeyHashHex: string; //暗号化した鍵のハッシュ値
-  signKeyHashHex: string; //署名した鍵のハッシュ値
+  encryptedData: string;
+  keyType: "roomKey";
+  iv?: string;
+  encryptedDataSign: Sign;
+  encryptedKeyHashHex: string;
+  signKeyHashHex: string;
   version: number;
 };
+
 type EncryptedDataDeviceKey = {
   encryptedData: string[]; // 暗号化されたデータの値
   keyType: "DeviceKey"; // 使用された鍵の種類
@@ -217,6 +218,13 @@ type migrateDataSignKey = {
   version: number;
 };
 
+type Message = {
+  message: string;
+  type: "text" | "image" | "video" | "audio";
+  timestamp: string;
+  version: number;
+};
+
 // 型定義のエクスポート
 export type {
   AccountKey,
@@ -239,14 +247,15 @@ export type {
   MasterKey,
   MasterKeyPrivate,
   MasterKeyPub,
+  Message,
+  migrateDataSignKey,
+  migrateDataSignKeyPrivate,
+  migrateDataSignKeyPub,
+  migrateKey,
+  migrateKeyPrivate,
+  migrateKeyPub,
   OtherUserIdentityKeys,
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-  migrateKey,
-  migrateKeyPrivate,
-  migrateKeyPub,
-  migrateDataSignKey,
-  migrateDataSignKeyPrivate,
-  migrateDataSignKeyPub,
 };

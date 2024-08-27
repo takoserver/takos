@@ -1,6 +1,5 @@
 // books.ts
 import { Hono } from "hono";
-import { bodyLimit } from "hono/body-limit";
 import ping from "@/v2/client/ping.ts";
 import bgimage from "@/v2/client/bgimage.ts";
 import temp from "@/v2/client/sessions/registers/temp.ts";
@@ -21,9 +20,7 @@ import friendAccept from "@/v2/client/friends/accept.ts";
 import friendRequest from "@/v2/client/friends/request.ts";
 import friendsReqList from "@/v2/client/friends/requestList.ts";
 import iconUser from "@/v2/client/users/icon.ts";
-
 const app = new Hono();
-
 app.route("/ping", ping);
 app.route("/bgimage", bgimage);
 app.route("/sessions/registers/temp", temp);

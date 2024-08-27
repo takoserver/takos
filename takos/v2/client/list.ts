@@ -1,10 +1,7 @@
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
-import Requests from "@/models/requests.ts";
 import User from "@/models/users.ts";
-import { load } from "@std/dotenv";
-const env = await load();
 
 const app = new Hono();
 
@@ -27,10 +24,11 @@ app.get("/", async (c) => {
       status: 500,
     });
   }
-  const requests = await Requests.find({
-    targetName: userInfo.userName,
-  });
-  return c.json({ status: true, requests });
+  const result: {
+    type: string;
+    userName?: string;
+    roomId?: string;
+    roomName?: string;
+    latestMessage?: any;
+  }[] = [];
 });
-
-export default app;
