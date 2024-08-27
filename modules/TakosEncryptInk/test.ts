@@ -2,17 +2,16 @@ import {
   createIdentityKeyAndAccountKey,
   createMasterKey,
   createRoomKey,
-  decryptAndVerifyDataWithRoomKey,
   decryptMessage,
   encryptMessage,
 } from "./main.ts";
-import { Message } from "./types.ts";
+import type { Message } from "./types.ts";
 
 async function main() {
   const masterkey = await createMasterKey();
   const {
     identityKey,
-    accountKey,
+    accountKey: _accountKey,
   } = await createIdentityKeyAndAccountKey(masterkey);
 
   const roomKey = await createRoomKey(identityKey);
