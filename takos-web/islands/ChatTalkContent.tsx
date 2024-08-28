@@ -17,7 +17,8 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
   let DateState: any;
   return (
     <>
-    {/*
+      {
+        /*
       {state.talkData.value.map((data: any, index: number) => {
         const date = new Date(data.timestamp);
         const isEncodeDate = new Date(DateState).toLocaleDateString() !==
@@ -135,18 +136,34 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
           return <ChatDate date={new Date(data.timestamp)} />;
         }
       })}
-      */}
+      */
+      }
     </>
   );
 }
 
 function ChatTalk({ state }: { state: AppStateType }) {
   if (state.isChoiceUser.value === true) {
-    return (
-      <ul className="c-talk-chat-list">
-        <ChatTalkMain state={state} />
-      </ul>
-    );
+    if (state.isCreateRoom.value) {
+      return (
+        <ul className="c-talk-chat-list">
+          <ChatTalkMain state={state} />
+        </ul>
+      );
+    } else {
+      return (
+        <div className="flex w-full h-full">
+          <div class="m-auto">
+            <p className="">トークルームを作成してください</p>
+            <div class="w-full">
+              <button class="mx-auto block bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                作成する
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
   } else {
     return (
       <div className="flex w-full h-full">

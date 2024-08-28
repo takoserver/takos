@@ -9,6 +9,8 @@ import { splitUserName } from "@/utils/utils.ts";
 import friends from "@/models/friends.ts";
 import Request from "@/models/requests.ts";
 import sendRequests from "@/models/sendRequests.ts";
+import FriendRoom from "@/models/friend/room.ts";
+import roomkeys from "@/models/friend/roomkeys.ts";
 const env = await load();
 
 const app = new Hono();
@@ -38,7 +40,7 @@ app.post("/", async (c) => {
   } catch (e) {
     return c.json({ status: false }, 400);
   }
-  const { uuid } = body;
+  const { uuid, roomKey } = body;
   if (!uuid) return c.json({ status: false }, 400);
   const request = await Requests.findOne({ uuid });
   if (!request) return c.json({ status: false }, 400);
@@ -68,6 +70,34 @@ app.post("/", async (c) => {
       });
       await Request.deleteOne({ uuid: request.uuid });
       await sendRequests.deleteOne({ uuid: request.uuid });
+      //roomKeyが { userId: string, key: Object }[] であることを確認
+      const roomKeyJson = JSON.parse(roomKey);
+      if (!Array.isArray(roomKeyJson)) {
+        return c.json({ status: false }, 400);
+      }
+      for (const key of roomKeyJson) {
+        if (typeof key.userId !== "string" || typeof key.key !== "object") {
+          return c.json({ status: false }, 400);
+        }
+      }
+      const room = await FriendRoom.findOne({
+        users: {
+          $all: [userInfo.userName + "@" + env["DOMAIN"], requesterId],
+        },
+      });
+      if (room) {
+        return c.json({ status: false }, 400);
+      }
+      const roomid = uuid() + "@" + env["DOMAIN"];
+      await FriendRoom.create({
+        roomid,
+        users: [userInfo.userName + "@" + env["DOMAIN"], requesterId],
+        roomKey: roomKeyJson,
+      });
+      await roomkeys.create({
+        roomid,
+        keys: roomKeyJson,
+      });
       return c.json({ status: true }, 200);
     }
     default:

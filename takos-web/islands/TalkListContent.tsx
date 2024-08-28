@@ -142,13 +142,18 @@ function TalkListContent({ state }: { state: AppStateType }) {
             return (
               <User
                 userName={talk.nickName}
-                latestMessage={talk.latestMessage ? talk.latestMessage.message : ""}
-                icon={"/takos/v2/client/users/icon/friend?userName=" + talk.userName}
+                latestMessage={talk.latestMessage
+                  ? talk.latestMessage.message
+                  : ""}
+                icon={"/takos/v2/client/users/icon/friend?userName=" +
+                  talk.userName}
                 userName2={talk.userName}
                 isNewMessage={talk.isNewMessage ? talk.isNewMessage : false}
                 isSelected={talk.isSelect}
                 onClick={() => {
-                  console.log(state.sessionid.value);
+                  state.isChoiceUser.value = true;
+                  state.roomName.value = talk.nickName;
+                  state.isCreateRoom.value = talk.isCreatedRoom;
                   state.ws.value?.send(
                     JSON.stringify({
                       type: "joinFriend",

@@ -126,7 +126,8 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
           console.log("decryptedIdentityAndAccountKeys is not found");
           return;
         } else {
-          state.IdentityKeyAndAccountKeys.value = decryptedIdentityAndAccountKeys;
+          state.IdentityKeyAndAccountKeys.value =
+            decryptedIdentityAndAccountKeys;
           state.MasterKey.value = masterKeyData;
           state.DeviceKey.value = deviceKey;
         }

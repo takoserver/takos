@@ -57,6 +57,7 @@ export interface AppStateType {
   DeviceKey: any;
   roomKey: any;
   IdentityKeyAndAccountKeys: any;
+  isCreateRoom: { value: boolean | null };
 }
 export interface MessageTypes {
   type: string;
