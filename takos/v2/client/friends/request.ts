@@ -53,6 +53,12 @@ app.post("/", async (c) => {
     });
     if (friend) return true;
   })();
+  const isMine = userInfo.userName === targetUserName;
+  if (isMine) {
+    return c.json({ status: false, error: "cannot add yourself" }, {
+      status: 500,
+    });
+  }
   if (isFriend) {
     return c.json({ status: false, error: "already friend" }, {
       status: 500,

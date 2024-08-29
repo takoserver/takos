@@ -1,3 +1,4 @@
+// deno-lint-ignore-file
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
@@ -11,6 +12,7 @@ import Request from "@/models/requests.ts";
 import sendRequests from "@/models/sendRequests.ts";
 import FriendRoom from "@/models/friend/room.ts";
 import roomkeys from "@/models/friend/roomkeys.ts";
+import uuidv7, { timestamp } from "ui7";
 const env = await load();
 
 const app = new Hono();
@@ -73,11 +75,11 @@ app.post("/", async (c) => {
       // create room
       const roomKeyJson = roomKey;
       if (!Array.isArray(roomKeyJson)) {
-        return c.json({ status: false }, 400);
+        return c.json({ status: false, error: "invide format" }, 400);
       }
       for (const key of roomKeyJson) {
         if (typeof key.userId !== "string" || typeof key.key !== "object") {
-          return c.json({ status: false }, 400);
+          return c.json({ status: false, error: "invide typeof" }, 400);
         }
       }
       const room = await FriendRoom.findOne({
@@ -85,18 +87,18 @@ app.post("/", async (c) => {
           $all: [userInfo.userName + "@" + env["DOMAIN"], requesterId],
         },
       });
-      if (room) {
+      if (!!room) {
         return c.json({ status: false }, 400);
       }
-      const roomid = uuid() + "@" + env["DOMAIN"];
+      const roomid = uuidv7() + "@" + env["DOMAIN"];
       await FriendRoom.create({
         roomid,
         users: [userInfo.userName + "@" + env["DOMAIN"], requesterId],
-        roomKey: roomKeyJson,
       });
+      console.log(roomKeyJson);
       await roomkeys.create({
         roomid,
-        keys: roomKeyJson,
+        key: roomKeyJson,
       });
       return c.json({ status: true }, 200);
     }

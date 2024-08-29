@@ -143,7 +143,10 @@ const VideoList = (
                             },
                             body: JSON.stringify({
                               uuid: video.uuid,
-                              roomKey: [encryptedRoomKey],
+                              roomKey: [{
+                                userId: video.requesterId,
+                                key: encryptedRoomKey,
+                              }],
                             }),
                           },
                         );

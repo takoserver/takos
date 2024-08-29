@@ -393,7 +393,98 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                   <button
                     type="submit"
                     class="rounded-lg block mx-auto m-2 text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
-                    onClick={async () => {}}
+                    onClick={async () => {
+                      const db = await createTakosDB();
+                      await db.clear("config");
+                      await db.clear("deviceKey");
+                      await db.clear("identityAndAccountKeys");
+                      await db.clear("keyShareKeys");
+                      await db.clear("masterKey");
+                      const masterKey = await createMasterKey();
+                      const { identityKey, accountKey } =
+                        await createIdentityKeyAndAccountKey(masterKey);
+                      const deviceKey = await createDeviceKey(masterKey);
+                      const keyShareKey = await createKeyShareKey(masterKey);
+                      const encryptedMasterKey = await encryptDataDeviceKey(
+                        deviceKey,
+                        JSON.stringify(masterKey),
+                      );
+                      const encryptedIdentityKey =
+                        await encryptAndSignDataWithKeyShareKey(
+                          keyShareKey.public,
+                          JSON.stringify(identityKey),
+                          masterKey,
+                        );
+                      const encryptedAccountKey =
+                        await encryptAndSignDataWithKeyShareKey(
+                          keyShareKey.public,
+                          JSON.stringify(accountKey),
+                          masterKey,
+                        );
+                      const encryptedKeyShareKey = await encryptDataDeviceKey(
+                        deviceKey,
+                        JSON.stringify(keyShareKey),
+                      );
+                      const res = await fetch(
+                        "/takos/v2/client/profile/resetKey",
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            account_key: accountKey.public,
+                            identity_key: identityKey.public,
+                            master_key: masterKey.public,
+                            device_key: deviceKey.private,
+                            keyShareKey: keyShareKey.public,
+                            encryptedIdentityKey: encryptedIdentityKey,
+                            encryptedAccountKey: encryptedAccountKey,
+                          }),
+                        },
+                      );
+                      await fetch("/takos/v2/client/profile/resetKey").then(res => res.json()).then(data => {
+                        console.log(data)
+                      })
+                      const resJson = await res.json();
+                      if (resJson.status) {
+                        const encryptedIdentityKeyWithDeviceKey =
+                          await encryptDataDeviceKey(
+                            deviceKey,
+                            JSON.stringify(identityKey),
+                          );
+                        const encryptedAccountKeyWithDeviceKey =
+                          await encryptDataDeviceKey(
+                            deviceKey,
+                            JSON.stringify(accountKey),
+                          );
+                        const hashHex = await generateKeyHashHex(
+                          identityKey.public.key,
+                        );
+                        await saveToDbMasterKey(encryptedMasterKey);
+                        await saveToDbDeviceKey(deviceKey.public);
+                        await saveToDbKeyShareKeys(
+                          encryptedKeyShareKey,
+                          keyShareKey.hashHex,
+                        );
+                        await saveToDbIdentityAndAccountKeys(
+                          encryptedIdentityKeyWithDeviceKey,
+                          encryptedAccountKeyWithDeviceKey,
+                          hashHex,
+                          identityKey.public.keyExpiration,
+                        );
+                        const db = await createTakosDB();
+                        console.log(await db.getAll("identityAndAccountKeys"));
+                        console.log(await db.getAll("keyShareKeys"));
+                        console.log(await db.get("masterKey", "masterKey"));
+                        console.log(await db.get("deviceKey", "deviceKey"));
+                        setShareKey(false);
+                        alert("設定が完了しました");
+                      } else {
+                        console.log(resJson);
+                        alert("エラーが発生しました");
+                      }
+                    }}
                   >
                     新しい鍵を作成
                   </button>
