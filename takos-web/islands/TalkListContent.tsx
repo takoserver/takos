@@ -144,7 +144,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
                 userName={talk.nickName}
                 latestMessage={talk.latestMessage
                   ? talk.latestMessage.message
-                  : ""}
+                  : "トーク履歴がありません"}
                 icon={"/takos/v2/client/users/icon/friend?userName=" +
                   talk.userName}
                 userName2={talk.userName}
@@ -171,7 +171,10 @@ function TalkListContent({ state }: { state: AppStateType }) {
   } else if (state.page.value === 2) {
     return (
       <>
-        <FriendRequest></FriendRequest>
+        <FriendRequest
+          state={state}
+        >
+        </FriendRequest>
         <h1 class="text-lg">友達を追加</h1>
         <RequestFriendById />
         <User

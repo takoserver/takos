@@ -4,7 +4,7 @@ import TalkListContent from "../islands/TalkListContent.tsx";
 import SetDefaultState from "../islands/Default.tsx";
 import { effect, signal, useSignal } from "@preact/signals";
 import { createContext } from "preact";
-import { AppStateType } from "../util/types.ts";
+import { AppStateType, IdentityKeyAndAccountKeysState } from "../util/types.ts";
 import Main from "./chatmain.tsx";
 function createAppState(obj: {
   isChoiceUser: boolean;
@@ -27,7 +27,7 @@ function createAppState(obj: {
   const friendid = signal(obj.friendid || "");
   const ChatUserInfo = signal({});
   const MasterKey = signal({});
-  const IdentityKey = signal([]);
+  const IdentityKey = signal<IdentityKeyAndAccountKeysState>([]);
   const KeyShareKey = signal({});
   const DeviceKey = signal({});
   const roomKey = signal(new Map());

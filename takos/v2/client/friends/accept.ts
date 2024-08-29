@@ -70,8 +70,8 @@ app.post("/", async (c) => {
       });
       await Request.deleteOne({ uuid: request.uuid });
       await sendRequests.deleteOne({ uuid: request.uuid });
-      //roomKeyが { userId: string, key: Object }[] であることを確認
-      const roomKeyJson = JSON.parse(roomKey);
+      // create room
+      const roomKeyJson = roomKey;
       if (!Array.isArray(roomKeyJson)) {
         return c.json({ status: false }, 400);
       }

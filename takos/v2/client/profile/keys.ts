@@ -41,7 +41,10 @@ app.get("/", async (c: Context) => {
       status: 500,
     });
   }
-  const key = await Keys.find({ timestamp: { $gt: HashHexKey.timestamp } });
+  const key = await Keys.find({
+    timestamp: { $gt: HashHexKey.timestamp },
+    userName: userInfo.userName,
+  });
   if (!key) {
     return c.json({ status: false, error: "key is not found" }, {
       status: 500,

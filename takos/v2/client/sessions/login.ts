@@ -98,6 +98,7 @@ app.post("/", async (c: Context) => {
     });
     setCookie(c, "sessionid", sessionid, {
       sameSite: "Lax",
+      maxAge: 60 * 60 * 24 * 400,
     });
   }
   return c.json({ status: true }, { status: 200 });

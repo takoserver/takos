@@ -1,4 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
+import { AppStateType } from "../util/types.ts";
+import { createRoomKey, encryptWithAccountKey } from "@takos/takos-encrypt-ink";
 
 // Define the InputProps interface for type-checking
 interface InputProps {
@@ -8,7 +10,7 @@ interface InputProps {
 }
 
 // Define the RegisterForm component
-export default function RegisterForm() {
+export default function RegisterForm({ state }: { state: AppStateType }) {
   const [showModal, setShowModal] = useState(false);
   const [value, setValue] = useState("");
 
@@ -51,7 +53,9 @@ export default function RegisterForm() {
                 </p>
               </div>
               <div class="grow">
-                <Input />
+                <Input
+                  state={state}
+                />
               </div>
             </div>
           </div>
@@ -62,18 +66,24 @@ export default function RegisterForm() {
 }
 
 // Define the Input component
-function Input() {
+function Input(
+  { state }: { state: AppStateType },
+) {
   return (
     <>
       <div class="w-full text-gray-900 text-sm rounded-lg h-full">
-        <VideoList />
+        <VideoList
+          state={state}
+        />
       </div>
     </>
   );
 }
 
 // Define the VideoList component
-const VideoList = () => {
+const VideoList = (
+  { state }: { state: AppStateType },
+) => {
   const [items, setItems] = useState<{
     requesterId: string;
     targetName: string;
@@ -110,6 +120,20 @@ const VideoList = () => {
                       userName={video.requesterId}
                       type={video.type}
                       acceptOnClick={async () => {
+                        const latestIdentityAndAccountKeys =
+                          state.IdentityKeyAndAccountKeys.value[0];
+                        const keys = await fetch(
+                          `/takos/v2/client/users/keys/${video.requesterId}/friendRequest`,
+                        )
+                          .then((res) => res.json());
+                        const roomKey = await createRoomKey(
+                          latestIdentityAndAccountKeys.identityKey,
+                        );
+                        const encryptedRoomKey = await encryptWithAccountKey(
+                          keys.keys.accountKey,
+                          JSON.stringify(roomKey),
+                        );
+                        //const roomKey = createRoomKey(
                         const res = await fetch(
                           "/takos/v2/client/friends/accept",
                           {
@@ -119,6 +143,7 @@ const VideoList = () => {
                             },
                             body: JSON.stringify({
                               uuid: video.uuid,
+                              roomKey: [encryptedRoomKey],
                             }),
                           },
                         );

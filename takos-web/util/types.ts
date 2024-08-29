@@ -1,3 +1,9 @@
+import { AccountKey } from "@takos/takos-encrypt-ink";
+import {
+  EncryptedDataDeviceKey,
+  IdentityKey,
+} from "https://jsr.io/@takos/takos-encrypt-ink/1.0.0/types.ts";
+
 export interface serverRequest {
   host: string;
   body: string;
@@ -56,7 +62,9 @@ export interface AppStateType {
   KeyShareKey: any;
   DeviceKey: any;
   roomKey: any;
-  IdentityKeyAndAccountKeys: any;
+  IdentityKeyAndAccountKeys: {
+    value: IdentityKeyAndAccountKeysState;
+  };
   isCreateRoom: { value: boolean | null };
 }
 export interface MessageTypes {
@@ -91,3 +99,10 @@ export interface friendRequest {
   userName: string;
   friendName: string;
 }
+
+export type IdentityKeyAndAccountKeysState = {
+  identityKey: IdentityKey;
+  accountKey: AccountKey;
+  hashHex: string;
+  keyExpiration: string;
+}[];

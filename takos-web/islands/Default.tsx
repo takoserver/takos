@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { AppStateType } from "../util/types.ts";
+import { AppStateType, IdentityKeyAndAccountKeysState } from "../util/types.ts";
 import fnv1a from "@sindresorhus/fnv1a";
 import {
   saveToDbDeviceKey,
@@ -26,6 +26,8 @@ import {
   verifyDataWithMigrateDataSignKey,
 } from "@takos/takos-encrypt-ink";
 import type {
+  AccountKey,
+  IdentityKey,
   migrateDataSignKey,
   migrateDataSignKeyPub,
   migrateKey,
@@ -89,6 +91,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
         alert("エラーが発生しました");
         return;
       }
+      console.log(newKeys);
       if (newKeys.data.identityKeyAndAndAccountKey.length === 0) {
         const masterKeyString = await decryptDataDeviceKey(
           deviceKey,
@@ -122,12 +125,25 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
             };
           }),
         );
+        //新しい順
+        const filteredKeys = decryptedIdentityAndAccountKeys.filter(
+          (key): key is {
+            identityKey: IdentityKey;
+            accountKey: AccountKey;
+            hashHex: string;
+            keyExpiration: string;
+          } => key !== null,
+        );
+        // 新しい順
+        filteredKeys.sort((a, b) => {
+          return new Date(b.keyExpiration).getTime() -
+            new Date(a.keyExpiration).getTime();
+        });
         if (!decryptedIdentityAndAccountKeys) {
           console.log("decryptedIdentityAndAccountKeys is not found");
           return;
         } else {
-          state.IdentityKeyAndAccountKeys.value =
-            decryptedIdentityAndAccountKeys;
+          state.IdentityKeyAndAccountKeys.value = filteredKeys;
           state.MasterKey.value = masterKeyData;
           state.DeviceKey.value = deviceKey;
         }
