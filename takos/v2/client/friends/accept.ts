@@ -91,6 +91,16 @@ app.post("/", async (c: Context) => {
       if (!!room) {
         return c.json({ status: false }, 400);
       }
+      if((() => {
+        for (const key of roomKeyJson) {
+          if (key.userId === requesterId || key.userId === userInfo.userName + "@" + env["DOMAIN"]) {
+            return false;
+          }
+        }
+        return true
+      })()) {
+        return c.json({ status: false }, 400);
+      }
       const roomid = uuidv7() + "@" + env["DOMAIN"];
       await FriendRoom.create({
         roomid,

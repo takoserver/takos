@@ -467,16 +467,13 @@ async function sign(
     await importKey(key.private, "private"),
     data,
   );
-  const publicKeyHashBuffer = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(JSON.stringify(key.public.key)),
-  );
-  const hashedPublicKeyHex = Array.from(new Uint8Array(publicKeyHashBuffer))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
   return {
     signature: arrayBufferToBase64(signature),
-    hashedPublicKeyHex,
+    hashedPublicKeyHex: await generateKeyHashHexCryptoKey(
+      await importKey(key.public, "public"),
+      type === "master" ? "masterPub" : "identityPub",
+      1,
+    ),
     type,
     version: 1,
   };
@@ -810,11 +807,7 @@ export async function encryptWithAccountKey(
     encryptedData: encryptedData,
     keyType: "accountKey",
     iv: arrayBufferToBase64(iv),
-    encryptedKeyHashHex: await generateKeyHashHexCryptoKey(
-      key,
-      "accountPub",
-      1,
-    ),
+    encryptedKeyHashHex: accountKey.sign.hashedPublicKeyHex,
     version: 1,
   };
 }

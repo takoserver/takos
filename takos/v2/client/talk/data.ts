@@ -18,7 +18,6 @@ app.get("/:userId/friend", async (c) => {
   const before = c.req.param("before") || "";
   const after = c.req.param("after") || "";
   const ignoreKeysString = c.req.param("ignoreKeys") || "";
-  const ignoreKeys = JSON.parse(ignoreKeysString);
   // around, before, afterはどれか一つだけ指定可能
   if ((before && after)) {
     return c.json({ status: false, message: "Invalid parameter" }, 400);
@@ -52,7 +51,7 @@ app.get("/:userId/friend", async (c) => {
     return c.json({ status: false, message: "Invalid domain" }, 400);
   }
   const room = await FriendRoom.findOne({
-    users: { $all: [userInfo.userName, targetUserName] },
+    users: { $all: [userInfo.userName + "@" + env["DOMAIN"], userId] },
   });
   if (!room) {
     return c.json({ status: false, message: "Room not found" }, 404);
@@ -101,6 +100,12 @@ app.get("/:userId/friend", async (c) => {
   const keysHashHex: string[] = messages.map((message) => {
     return message.roomKeyHashHex;
   });
+  let ignoreKeys
+  try {
+    ignoreKeys = JSON.parse(ignoreKeysString);
+  } catch (error) {
+    ignoreKeys = [];
+  }
   keysHashHex.filter((key) => {
     return !ignoreKeys.includes(key);
   });
@@ -119,6 +124,21 @@ app.get("/:userId/friend", async (c) => {
   }).filter((key) => {
     return key !== null;
   });
+  if(keysArray.length === 0) {
+    const latestKey = await FriendKeys.findOne({
+        roomid,
+    }).sort({ timestamp: -1 });
+    if (!latestKey) {
+      return c.json({ status: false, message: "Key not found" }, 404);
+    }
+    const key = latestKey.key.find((key) => {
+      return key.userId === userInfo.userName + "@" + env["DOMAIN"];
+    });
+    if (!key) {
+      return c.json({ status: false, message: "Key not found2" }, 404);
+    }
+    keysArray.push(key.key);
+  }
   return c.json({ status: true, messages: messageList, keys: keysArray });
 });
 

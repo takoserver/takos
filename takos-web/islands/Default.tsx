@@ -53,10 +53,10 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
     const userInfoData = await fetch("/takos/v2/client/profile").then((res) =>
       res.json()
     );
-    state.userId.value = userInfoData.data.userId;
     if (!userInfoData.status) {
       window.location.href = "/";
     }
+    state.userId.value = userInfoData.data.userId;
     if (userInfoData.data.setup) {
       const db = await createTakosDB();
       //get masterKey
@@ -92,7 +92,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
         alert("エラーが発生しました");
         return;
       }
-      console.log(newKeys);
       if (newKeys.data.identityKeyAndAndAccountKey.length === 0) {
         const masterKeyString = await decryptDataDeviceKey(
           deviceKey,
@@ -141,9 +140,9 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
             new Date(a.keyExpiration).getTime();
         });
         if (!decryptedIdentityAndAccountKeys) {
-          console.log("decryptedIdentityAndAccountKeys is not found");
           return;
         } else {
+          console.log(filteredKeys);
           state.IdentityKeyAndAccountKeys.value = filteredKeys;
           state.MasterKey.value = masterKeyData;
           state.DeviceKey.value = deviceKey;
@@ -153,7 +152,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
       setSetUp(true);
     }
     const list = await fetch("/takos/v2/client/list").then((res) => res.json());
-    console.log(list);
     if (!list.status) {
       console.log("list is not found");
       return;

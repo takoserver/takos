@@ -10,6 +10,7 @@ import { createTakosDB } from "../util/idbSchama.ts";
 import {
   decryptAndVerifyDataWithRoomKey,
   decryptDataWithAccountKey,
+  EncryptedDataAccountKey,
 } from "@takos/takos-encrypt-ink";
 function TalkListContent({ state }: { state: AppStateType }) {
   if (state.page.value === 0) {
@@ -160,6 +161,40 @@ function TalkListContent({ state }: { state: AppStateType }) {
                   state.friendid.value = talk.userName;
                   setIschoiseUser(true, state.isChoiceUser);
                   state.roomType.value = "friend";
+                  const talkData = await fetch(
+                    "/takos/v2/client/talk/data/" + talk.userName + "/friend",
+                  ).then((res) => res.json());
+                  console.log(talkData);
+                  const roomKeys: any[] = (await Promise.all(
+                    talkData.keys.map(async (key: EncryptedDataAccountKey) => {
+                      const encryptedAccountKeyHash = key.encryptedKeyHashHex;
+                      console.log(key)
+                      const accountKey = state.IdentityKeyAndAccountKeys.value.find(
+                        (key2) => {
+                          console.log(key2.hashHex, encryptedAccountKeyHash)
+                          return key2.hashHex === encryptedAccountKeyHash
+                        }
+                      );
+                      if (!accountKey) {
+                        return;
+                      }
+                      const decryptedRoomKeyString = await decryptDataWithAccountKey(
+                        accountKey.accountKey,
+                        key
+                      )
+                      if(!decryptedRoomKeyString) {
+                        return;
+                      }
+                      return JSON.parse(decryptedRoomKeyString);
+                    })
+                  )).filter((key) => {
+                    if(key) {
+                      return true;
+                    }
+                    return false;
+                  });
+                  console.log(roomKeys, "roomKeys");
+                  return;
                   state.ws.value?.send(
                     JSON.stringify({
                       type: "joinFriend",

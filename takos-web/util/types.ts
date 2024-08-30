@@ -61,7 +61,7 @@ export interface AppStateType {
   MasterKey: any;
   KeyShareKey: any;
   DeviceKey: any;
-  roomKey: any;
+  roomKey: { value: Map<string, string> };
   IdentityKeyAndAccountKeys: {
     value: IdentityKeyAndAccountKeysState;
   };
