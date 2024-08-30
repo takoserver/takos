@@ -6,7 +6,7 @@ import {
   type AccountKeyPub,
   type deviceKey,
   type EncryptedDataKeyShareKey,
-  generateKeyHashHex,
+  generateKeyHashHexJWK,
   type IdentityKeyPub,
   isValidAccountKey,
   isValidIdentityKeySign,
@@ -93,7 +93,7 @@ app.post("/", async (c: Context) => {
     userName: session.userName,
     identityKeyPub: identity_key,
     accountKeyPub: account_key,
-    hashHex: await generateKeyHashHex(identity_key.key),
+    hashHex: await generateKeyHashHexJWK(identity_key.key),
     encryptedAccountKey: [{
       key: encryptedAccountKey,
       sessionid: session.sessionid,

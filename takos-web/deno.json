@@ -17,7 +17,7 @@
     "@preact/signals": "https://esm.sh/*@preact/signals@1.2.2",
     "@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.5.1",
     "@sindresorhus/fnv1a": "npm:@sindresorhus/fnv1a@^3.1.0",
-    "@takos/takos-encrypt-ink": "jsr:@takos/takos-encrypt-ink@^1.0.1",
+    "@takos/takos-encrypt-ink": "jsr:@takos/takos-encrypt-ink@^1.0.2",
     "assert": "npm:assert@^2.1.0",
     "fnv1a": "npm:fnv1a@^1.1.1",
     "idb": "npm:idb@^8.0.0",

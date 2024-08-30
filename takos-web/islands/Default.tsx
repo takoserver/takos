@@ -19,7 +19,7 @@ import {
   encryptAndSignDataWithKeyShareKey,
   encryptDataDeviceKey,
   encryptDataWithMigrateKey,
-  generateKeyHashHex,
+  generateKeyHashHexJWK,
   generateMigrateDataSignKey,
   generateMigrateKey,
   signDataWithMigrateDataSignKey,
@@ -73,7 +73,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
       const deviceKey: deviceKey = {
         public: deviceKeyPub.deviceKey,
         private: userInfoData.data.devicekey,
-        hashHex: await generateKeyHashHex(deviceKeyPub.deviceKey.key),
+        hashHex: await generateKeyHashHexJWK(deviceKeyPub.deviceKey.key),
         version: 1,
       };
       const idbIdentityAndAccountKeys = await db.getAll(
@@ -456,7 +456,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                             deviceKey,
                             JSON.stringify(accountKey),
                           );
-                        const hashHex = await generateKeyHashHex(
+                        const hashHex = await generateKeyHashHexJWK(
                           identityKey.public.key,
                         );
                         await saveToDbMasterKey(encryptedMasterKey);
@@ -610,7 +610,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                       if (typeof iconBase64 !== "string") {
                         return;
                       }
-                      console.log(iconBase64);
                       const masterKey = await createMasterKey();
                       const { identityKey, accountKey } =
                         await createIdentityKeyAndAccountKey(masterKey);
@@ -625,7 +624,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                           keyShareKey.public,
                           JSON.stringify(identityKey),
                           masterKey,
-                        );
+                      );
                       const encryptedAccountKey =
                         await encryptAndSignDataWithKeyShareKey(
                           keyShareKey.public,
@@ -669,7 +668,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                             deviceKey,
                             JSON.stringify(accountKey),
                           );
-                        const hashHex = await generateKeyHashHex(
+                        const hashHex = await generateKeyHashHexJWK(
                           identityKey.public.key,
                         );
                         await saveToDbMasterKey(encryptedMasterKey);
@@ -832,7 +831,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                   const deviceKey = {
                     public: deviceKeyPub.deviceKey,
                     private: deviceKeyPrivate,
-                    hashHex: await generateKeyHashHex(
+                    hashHex: await generateKeyHashHexJWK(
                       deviceKeyPub.deviceKey.key,
                     ),
                     version: 1,
