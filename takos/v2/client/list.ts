@@ -35,7 +35,6 @@ app.get("/", async (c) => {
     userName?: string;
     nickName?: string;
     roomId?: string;
-    isCreatedRoom: boolean;
     roomName?: string;
     latestMessage?: any;
   }[] = [];
@@ -58,7 +57,6 @@ app.get("/", async (c) => {
       result.push({
         type: "friend",
         userName: friend.friendId,
-        isCreatedRoom: false,
         nickName: friendInfo?.nickName,
       });
       continue;
@@ -67,10 +65,9 @@ app.get("/", async (c) => {
       roomId: room.roomid,
     }).sort({ timestamp: -1 });
     result.push({
-      type: "room",
+      type: "friend",
       userName: friend.friendId,
       latestMessage,
-      isCreatedRoom: true,
       nickName: friendInfo?.nickName,
     });
   }

@@ -31,7 +31,7 @@ function createAppState(obj: {
   const KeyShareKey = signal({});
   const DeviceKey = signal({});
   const roomKey = signal(new Map());
-  const isNotCreateRoom = signal<boolean | null>(null);
+  const userId = signal("");
   return {
     isChoiceUser: isChoiceUser,
     ws: ws,
@@ -52,7 +52,7 @@ function createAppState(obj: {
     DeviceKey: DeviceKey,
     roomKey: roomKey,
     IdentityKeyAndAccountKeys: IdentityKey,
-    isCreateRoom: isNotCreateRoom,
+    userId: userId,
   };
 }
 function chat(props: { page: any }) {

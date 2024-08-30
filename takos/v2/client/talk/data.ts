@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
 import User from "@/models/users.ts";
-import Friends from "@/models/friends.ts";
 import FriendRoom from "@/models/friend/room.ts";
 import FriendMessage from "@/models/friend/message.ts";
 import FriendKeys from "@/models/friend/roomkeys.ts";
@@ -12,7 +11,7 @@ const env = await load();
 
 const app = new Hono();
 
-app.get("/friend", async (c) => {
+app.get("/:userId/friend", async (c) => {
   const sessionid = getCookie(c, "sessionid");
   if (!sessionid) {
     return c.json({ status: false, error: "sessionid is not found" }, {
@@ -31,7 +30,7 @@ app.get("/friend", async (c) => {
       status: 500,
     });
   }
-  const userName = c.req.query("userName");
+  const userName = c.req.param("userId");
   if (!userName) return c.json({ status: false }, 400);
   const {
     userName: targetUserName,
@@ -68,9 +67,33 @@ app.get("/friend", async (c) => {
       userId: message.userId,
     });
   }
+  const latestRoomKey = await FriendKeys.findOne({
+    roomid: FriendRooms.roomid,
+  }).sort({ timestamp: -1 });
+  if (!latestRoomKey) return c.json({ status: false }, 400);
+  const hashHex = c.req.query("hashHex");
+  if (!hashHex) {
+    return c.json({
+      status: true,
+      isCreatedRoom: true,
+      talkData,
+      latestRoomKey: latestRoomKey.key.find((key) => key.userId === userInfo.userName + "@" + env["DOMAIN"]),
+    });
+  }
+  const hashHexData = await FriendKeys.findOne({
+    keyHashHex: hashHex,
+  });
+  if (!hashHexData) return c.json({ status: false }, 400);
+  const updateHashHex = await FriendKeys.find({
+    timestamp: { $gt: hashHexData.timestamp },
+  }).sort({ timestamp: -1 }).limit(Number(limit));
+  //console.log(updateHashHex);
   return c.json({
     status: true,
     isCreatedRoom: true,
     talkData,
+    updateKey: updateHashHex,
   });
 });
+
+export default app;

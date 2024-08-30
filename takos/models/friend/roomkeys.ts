@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { timestamp } from "ui7";
 
 const roomKeySchema = new mongoose.Schema({
   roomid: {
@@ -17,6 +18,14 @@ const roomKeySchema = new mongoose.Schema({
       },
     },
   ],
+  keyHashHex: {
+    type: String,
+    required: true,
+  },
+  timestamp: {
+    type: Date,
+    default: new Date(),
+  },
 });
 
 export default mongoose.model("friendRoomKey", roomKeySchema);

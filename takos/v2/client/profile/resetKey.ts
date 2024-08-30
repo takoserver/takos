@@ -18,7 +18,6 @@ import Keys from "@/models/keys/keys.ts";
 const app = new Hono();
 
 app.post("/", async (c) => {
-  console.log("resetKey");
   const sessionid = getCookie(c, "sessionid");
   if (!sessionid) {
     return c.json({ status: false, error: "sessionid is not found" }, {
@@ -86,7 +85,10 @@ app.post("/", async (c) => {
     },
   });
   await Keys.deleteMany({ userName: session.userName });
-  await Sessionid.deleteMany({ userName: session.userName, sessionid: { $ne: session.sessionid } });
+  await Sessionid.deleteMany({
+    userName: session.userName,
+    sessionid: { $ne: session.sessionid },
+  });
   await Keys.create({
     userName: session.userName,
     identityKeyPub: identity_key,
@@ -107,7 +109,8 @@ app.post("/", async (c) => {
       keyShareKeyPub: keyShareKey,
     },
   });
-  return c.json({ status: true });
+  console.log("resetKey success");
+  return c.json({ status: true }, 200);
 });
 
 export default app;

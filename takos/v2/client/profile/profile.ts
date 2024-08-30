@@ -28,6 +28,7 @@ app.get("/", async (c: Context) => {
     status: true,
     data: {
       userName: userInfo.userName,
+      userId: userInfo.userName + "@" + Deno.env.get("DOMAIN"),
       nickName: userInfo.nickName,
       age: userInfo.age,
       setup: userInfo.setup,

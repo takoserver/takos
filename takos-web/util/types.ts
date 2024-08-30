@@ -65,7 +65,7 @@ export interface AppStateType {
   IdentityKeyAndAccountKeys: {
     value: IdentityKeyAndAccountKeysState;
   };
-  isCreateRoom: { value: boolean | null };
+  userId: { value: string };
 }
 export interface MessageTypes {
   type: string;

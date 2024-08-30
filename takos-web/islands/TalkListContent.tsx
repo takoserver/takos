@@ -6,7 +6,8 @@ import FriendRequest from "./FriendRequest.tsx";
 import { AppStateType } from "../util/types.ts";
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
-import { createTakosDB } from "../util/idbSchama.ts";
+import { createTakosDB, saveToDbRoomKeys } from "../util/idbSchama.ts";
+import { decryptAndVerifyDataWithRoomKey, decryptDataWithAccountKey } from "@takos/takos-encrypt-ink";
 function TalkListContent({ state }: { state: AppStateType }) {
   if (state.page.value === 0) {
     return (
@@ -117,7 +118,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
             </>
           )}
         {state.friendList.value.map((talk: any) => {
-          console.log(talk);
+          console.log(talk.type);
           if (talk.type === "group") {
             return (
               <User
@@ -150,10 +151,49 @@ function TalkListContent({ state }: { state: AppStateType }) {
                 userName2={talk.userName}
                 isNewMessage={talk.isNewMessage ? talk.isNewMessage : false}
                 isSelected={talk.isSelect}
-                onClick={() => {
+                onClick={async () => {
                   state.isChoiceUser.value = true;
                   state.roomName.value = talk.nickName;
-                  state.isCreateRoom.value = talk.isCreatedRoom;
+                  state.friendid.value = talk.userName;
+                  setIschoiseUser(true, state.isChoiceUser);
+                  state.roomType.value = "friend";
+                  const db = await createTakosDB();
+                  const roomKey = await db.getAll("roomKeys", talk.userName)
+                    .then((res) => {
+                      return res.sort((a, b) => {
+                        return b.timestamp.getTime() - a.timestamp.getTime();
+                      });
+                    });
+                  const latestRoomKey = roomKey[0];
+                  let talkData: any
+                  if (!latestRoomKey) {
+                    talkData = await fetch(
+                      `/takos/v2/client/talk/data/${talk.userName}/friend`,
+                    ).then((res) => res.json());
+                    const accountKey = state.IdentityKeyAndAccountKeys.value.find(key => key.accountKey.hashHex === talkData.latestRoomKey.key.encryptedKeyHashHex)
+                    if(!accountKey) {
+                      console.log("accountKey is not found")
+                      console.log(state.IdentityKeyAndAccountKeys.value[0].accountKey.hashHex, talkData.latestRoomKey.key.encryptedKeyHashHex)
+                      return
+                    }
+                    const decryptedRoomKey = await decryptDataWithAccountKey(
+                      accountKey.accountKey,
+                      talkData.latestRoomKey
+                    )
+                    console.log(decryptedRoomKey)
+                    saveToDbRoomKeys(
+                      talkData.latestRoomKey,
+                      talkData.latestRoomKey.hashHex,
+                      new Date(),
+                      talk.userName,
+                      "friend",
+                    );
+                  } else {
+                    talkData = await fetch(
+                      `/takos/v2/client/talk/data/${talk.userName}/friend?hashHex=${latestRoomKey.hashHex}`,
+                    ).then((res) => res.json());
+                  }
+                  state.talkData.value = talkData;
                   state.ws.value?.send(
                     JSON.stringify({
                       type: "joinFriend",
@@ -233,6 +273,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
               await db.clear("masterKey");
               await db.clear("config");
               await db.clear("identityAndAccountKeys");
+              await db.clear("roomKeys");
               window.location.href = "/";
             }
             //indexedDBから削除

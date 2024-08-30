@@ -53,6 +53,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
     const userInfoData = await fetch("/takos/v2/client/profile").then((res) =>
       res.json()
     );
+    state.userId.value = userInfoData.data.userId;
     if (!userInfoData.status) {
       window.location.href = "/";
     }
@@ -443,9 +444,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                           }),
                         },
                       );
-                      await fetch("/takos/v2/client/profile/resetKey").then(res => res.json()).then(data => {
-                        console.log(data)
-                      })
                       const resJson = await res.json();
                       if (resJson.status) {
                         const encryptedIdentityKeyWithDeviceKey =

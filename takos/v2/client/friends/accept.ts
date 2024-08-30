@@ -42,7 +42,8 @@ app.post("/", async (c) => {
   } catch (e) {
     return c.json({ status: false }, 400);
   }
-  const { uuid, roomKey } = body;
+  const { uuid, roomKey, hashHex } = body;
+  if (!hashHex) return c.json({ status: false }, 400);
   if (!uuid) return c.json({ status: false }, 400);
   const request = await Requests.findOne({ uuid });
   if (!request) return c.json({ status: false }, 400);
@@ -95,10 +96,10 @@ app.post("/", async (c) => {
         roomid,
         users: [userInfo.userName + "@" + env["DOMAIN"], requesterId],
       });
-      console.log(roomKeyJson);
       await roomkeys.create({
         roomid,
         key: roomKeyJson,
+        keyHashHex: hashHex,
       });
       return c.json({ status: true }, 200);
     }
