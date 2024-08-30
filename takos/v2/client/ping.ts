@@ -1,5 +1,5 @@
-import { Hono } from "hono";
+import { Context, Hono } from "hono";
 const app = new Hono();
-app.get("/", (c) => c.json({ status: true }));
+app.get("/", (c: Context) => c.json({ status: true }));
 
 export default app;

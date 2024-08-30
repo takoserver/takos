@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Context, Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import Friends from "@/models/friends.ts";
 import Sessionid from "@/models/sessionid.ts";
@@ -9,7 +9,7 @@ const env = await load();
 
 const app = new Hono();
 
-app.get("/friend", async (c) => {
+app.get("/friend", async (c: Context) => {
   const cookie = getCookie(c, "sessionid");
   if (!cookie) {
     return c.json({
@@ -50,7 +50,7 @@ app.get("/friend", async (c) => {
   return c.body(icon);
 });
 
-app.get("/requester", async (c) => {
+app.get("/requester", async (c: Context) => {
   const cookie = getCookie(c, "sessionid");
   if (!cookie) {
     return c.json({

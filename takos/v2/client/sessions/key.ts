@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Context, Hono } from "hono";
 import Sessionid from "@/models/sessionid.ts";
 import User from "@/models/users.ts";
 import { getCookie } from "hono/cookie";
@@ -7,7 +7,7 @@ import pubClient from "@/utils/pubClient.ts";
 
 const app = new Hono();
 
-app.post("/requestKeyShare", async (c) => {
+app.post("/requestKeyShare", async (c: Context) => {
   const sessionid = getCookie(c, "sessionid");
   if (!sessionid) {
     return c.json({ status: false, error: "sessionid is not found" }, {
@@ -47,7 +47,7 @@ app.post("/requestKeyShare", async (c) => {
   return c.json({ status: true, sessionId });
 });
 
-app.post("/acceptKeyShareRequest", async (c) => {
+app.post("/acceptKeyShareRequest", async (c: Context) => {
   const sessionid = getCookie(c, "sessionid");
   if (!sessionid) {
     return c.json({ status: false, error: "sessionid is not found" }, {
@@ -89,7 +89,7 @@ app.post("/acceptKeyShareRequest", async (c) => {
   return c.json({ status: true });
 });
 
-app.get("/migrateDataSignKey", async (c) => {
+app.get("/migrateDataSignKey", async (c: Context) => {
   const sessionid = getCookie(c, "sessionid");
   if (!sessionid) {
     return c.json({ status: false, error: "sessionid is not found" }, {
@@ -120,7 +120,7 @@ app.get("/migrateDataSignKey", async (c) => {
   });
 });
 
-app.get("/migrateKey", async (c) => {
+app.get("/migrateKey", async (c: Context) => {
   const sessionid = getCookie(c, "sessionid");
   if (!sessionid) {
     return c.json({ status: false, error: "sessionid is not found" }, {
@@ -151,7 +151,7 @@ app.get("/migrateKey", async (c) => {
   });
 });
 
-app.get("/keyShareData", async (c) => {
+app.get("/keyShareData", async (c: Context) => {
   const sessionid = getCookie(c, "sessionid");
   if (!sessionid) {
     return c.json({ status: false, error: "sessionid is not found" }, {
@@ -183,7 +183,7 @@ app.get("/keyShareData", async (c) => {
   });
 });
 
-app.post("/sendKeyShareData", async (c) => {
+app.post("/sendKeyShareData", async (c: Context) => {
   const sessionid = getCookie(c, "sessionid");
   if (!sessionid) {
     return c.json({ status: false, error: "sessionid is not found" }, {
@@ -226,7 +226,7 @@ app.post("/sendKeyShareData", async (c) => {
   return c.json({ status: true });
 });
 
-app.post("/updateSessionKeys", async (c) => {
+app.post("/updateSessionKeys", async (c: Context) => {
   const sessionid = getCookie(c, "sessionid");
   if (!sessionid) {
     return c.json({ status: false, error: "sessionid is not found" }, {

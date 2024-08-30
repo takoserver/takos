@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Context, Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
 import User from "@/models/users.ts";
@@ -17,7 +17,7 @@ import {
 import Keys from "@/models/keys/keys.ts";
 const app = new Hono();
 
-app.post("/", async (c) => {
+app.post("/", async (c: Context) => {
   const sessionid = getCookie(c, "sessionid");
   if (!sessionid) {
     return c.json({ status: false, error: "sessionid is not found" }, {

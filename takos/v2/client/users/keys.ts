@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Context, Hono } from "hono";
 import app from "@/v2/client/ping.ts";
 import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
@@ -10,7 +10,7 @@ import User from "@/models/users.ts";
 import Requests from "@/models/requests.ts";
 const env = await load();
 
-app.get("/:userId/friend", async (c) => {
+app.get("/:userId/friend", async (c: Context) => {
   const userId = c.req.param("userId");
   if (!userId) {
     return c.json({ status: false, error: "userName is not found" }, {
@@ -64,7 +64,7 @@ app.get("/:userId/friend", async (c) => {
     },
   });
 });
-app.get("/:userId/friendRequest", async (c) => {
+app.get("/:userId/friendRequest", async (c: Context) => {
   const userId = c.req.param("userId");
   if (!userId) {
     return c.json({ status: false, error: "userName is not found" }, {
