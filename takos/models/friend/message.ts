@@ -21,6 +21,14 @@ const messageSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  messageid: {
+    type: String,
+    required: true,
+  },
+  roomKeyHashHex: {
+    type: String,
+    required: true,
+  },
 });
 
 export default mongoose.model("friendMessage", messageSchema);

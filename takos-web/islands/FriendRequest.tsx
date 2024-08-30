@@ -1,7 +1,10 @@
 import { useEffect, useState } from "preact/hooks";
 import { AppStateType } from "../util/types.ts";
-import { createRoomKey, encryptWithAccountKey, encryptDataDeviceKey } from "@takos/takos-encrypt-ink";
-import { saveToDbRoomKeys } from "../util/idbSchama.ts";
+import {
+  createRoomKey,
+  encryptDataDeviceKey,
+  encryptWithAccountKey,
+} from "@takos/takos-encrypt-ink";
 
 // Define the InputProps interface for type-checking
 interface InputProps {
@@ -130,25 +133,16 @@ const VideoList = (
                         const roomKey = await createRoomKey(
                           latestIdentityAndAccountKeys.identityKey,
                         );
-                        const encryptedRoomKeyByDeviceKey = await encryptDataDeviceKey(
-                          state.DeviceKey.value,
-                          JSON.stringify(roomKey),
-                        );
-                        saveToDbRoomKeys(
-                          encryptedRoomKeyByDeviceKey,
-                          roomKey.hashHex,
-                          new Date(),
-                          video.requesterId,
-                          "friend",
-                        );
                         const encryptedRoomKey = await encryptWithAccountKey(
                           keys.keys.accountKey,
                           JSON.stringify(roomKey),
                         );
-                        const encryptedRoomKeyForMe = await encryptWithAccountKey(
-                          state.IdentityKeyAndAccountKeys.value[0].accountKey.public,
-                          JSON.stringify(roomKey),
-                        );
+                        const encryptedRoomKeyForMe =
+                          await encryptWithAccountKey(
+                            state.IdentityKeyAndAccountKeys.value[0].accountKey
+                              .public,
+                            JSON.stringify(roomKey),
+                          );
                         const res = await fetch(
                           "/takos/v2/client/friends/accept",
                           {
@@ -161,7 +155,7 @@ const VideoList = (
                               roomKey: [{
                                 userId: video.requesterId,
                                 key: encryptedRoomKey,
-                              },{
+                              }, {
                                 userId: state.userId.value,
                                 key: encryptedRoomKeyForMe,
                               }],

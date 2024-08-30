@@ -73,7 +73,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
       const deviceKey: deviceKey = {
         public: deviceKeyPub.deviceKey,
         private: userInfoData.data.devicekey,
-        hashHex: await generateKeyHashHexJWK(deviceKeyPub.deviceKey.key),
+        hashHex: await generateKeyHashHexJWK(deviceKeyPub.deviceKey),
         version: 1,
       };
       const idbIdentityAndAccountKeys = await db.getAll(
@@ -457,7 +457,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                             JSON.stringify(accountKey),
                           );
                         const hashHex = await generateKeyHashHexJWK(
-                          identityKey.public.key,
+                          identityKey.public,
                         );
                         await saveToDbMasterKey(encryptedMasterKey);
                         await saveToDbDeviceKey(deviceKey.public);
@@ -624,7 +624,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                           keyShareKey.public,
                           JSON.stringify(identityKey),
                           masterKey,
-                      );
+                        );
                       const encryptedAccountKey =
                         await encryptAndSignDataWithKeyShareKey(
                           keyShareKey.public,
@@ -669,7 +669,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                             JSON.stringify(accountKey),
                           );
                         const hashHex = await generateKeyHashHexJWK(
-                          identityKey.public.key,
+                          identityKey.public,
                         );
                         await saveToDbMasterKey(encryptedMasterKey);
                         await saveToDbDeviceKey(deviceKey.public);
@@ -832,7 +832,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                     public: deviceKeyPub.deviceKey,
                     private: deviceKeyPrivate,
                     hashHex: await generateKeyHashHexJWK(
-                      deviceKeyPub.deviceKey.key,
+                      deviceKeyPub.deviceKey,
                     ),
                     version: 1,
                   };

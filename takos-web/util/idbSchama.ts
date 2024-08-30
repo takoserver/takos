@@ -47,17 +47,6 @@ export interface TakosDB extends DBSchema {
       key?: string;
     };
   };
-  roomKeys: {
-    key: string;
-    value: {
-      roomKey: EncryptedDataDeviceKey;
-      key?: string;
-      hashHex: string;
-      timestamp: Date;
-      roomid?: string;
-      friendId?: string;
-    };
-  };
 }
 
 export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
@@ -85,11 +74,6 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
       }
       if (!db.objectStoreNames.contains("identityAndAccountKeys")) {
         db.createObjectStore("identityAndAccountKeys", {
-          keyPath: "key",
-        });
-      }
-      if (!db.objectStoreNames.contains("roomKeys")) {
-        db.createObjectStore("roomKeys", {
           keyPath: "key",
         });
       }
@@ -151,33 +135,4 @@ export async function saveToDbIdentityAndAccountKeys(
     keyExpiration: keyExpiration,
     key: hashHex,
   });
-}
-
-export async function saveToDbRoomKeys(
-  roomKey: EncryptedDataDeviceKey,
-  hashHex: string,
-  timestamp: Date,
-  id: string,
-  type: string,
-): Promise<void> {
-  const db = await createTakosDB();
-  const tx = db.transaction([
-    "deviceKey",
-    "keyShareKeys",
-    "masterKey",
-    "config",
-    "identityAndAccountKeys",
-    "roomKeys",
-  ], "readwrite");
-  const store = tx.objectStore("roomKeys");
-  if (type === "friend") {
-    await store.put({
-      roomKey: roomKey,
-      key: hashHex,
-      hashHex: hashHex,
-      timestamp: timestamp,
-      friendId: id,
-    });
-    await tx.done;
-  }
 }

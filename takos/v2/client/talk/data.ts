@@ -7,93 +7,119 @@ import FriendMessage from "@/models/friend/message.ts";
 import FriendKeys from "@/models/friend/roomkeys.ts";
 import { load } from "@std/dotenv";
 import { splitUserName } from "@/utils/utils.ts";
+import friends from "@/models/friends.ts";
 const env = await load();
 
 const app = new Hono();
 
 app.get("/:userId/friend", async (c) => {
+  const userId = c.req.param("userId");
+  const limit = Number(c.req.param("limit")) || 50;
+  const before = c.req.param("before") || "";
+  const after = c.req.param("after") || "";
+  const ignoreKeysString = c.req.param("ignoreKeys") || "";
+  const ignoreKeys = JSON.parse(ignoreKeysString);
+  // around, before, afterはどれか一つだけ指定可能
+  if ((before && after)) {
+    return c.json({ status: false, message: "Invalid parameter" }, 400);
+  }
   const sessionid = getCookie(c, "sessionid");
   if (!sessionid) {
-    return c.json({ status: false, error: "sessionid is not found" }, {
-      status: 500,
-    });
+    return c.json({ status: false, message: "Unauthorized" }, 401);
   }
-  const session = await Sessionid.findOne({ sessionid: sessionid });
+  const session = await Sessionid.findOne({ sessionid });
   if (!session) {
-    return c.json({ status: false, error: "session is not found" }, {
-      status: 500,
-    });
+    return c.json({ status: false, message: "Unauthorized" }, 401);
   }
-  const userInfo = await User.findOne({ userName: session.userName });
+  const userInfo = await User.findOne({
+    userName: session.userName,
+  });
   if (!userInfo) {
-    return c.json({ status: false, error: "user is not found" }, {
-      status: 500,
-    });
+    return c.json({ status: false, message: "Unauthorized" }, 401);
   }
-  const userName = c.req.param("userId");
-  if (!userName) return c.json({ status: false }, 400);
-  const {
-    userName: targetUserName,
-    domain: targetDomain,
-  } = splitUserName(userName);
-  if (!targetUserName || !targetDomain) return c.json({ status: false }, 400);
-  if (targetDomain !== env["DOMAIN"]) return c.json({ status: false }, 400);
-  const FriendRooms = await FriendRoom.findOne({
-    users: {
-      $all: [
-        userInfo.userName + "@" + env["DOMAIN"],
-        targetUserName + "@" + targetDomain,
-      ],
-    },
-  });
-  if (!FriendRooms) {
-    return c.json({
-      status: false,
-      isCreatedRoom: false,
-      talkData: [],
-    });
-  }
-  const talkData = [];
-  const limit = c.req.query("limit") || 50;
-  if (Number(limit) > 100) return c.json({ status: false }, 400);
-  const messages = await FriendMessage.find({
-    roomId: FriendRooms.roomid,
-  }).sort({ timestamp: -1 }).limit(Number(limit));
 
-  for (const message of messages) {
-    talkData.push({
-      message: message.messageObj,
+  const { userName: targetUserName, domain: targetDomain } = splitUserName(
+    userId,
+  );
+  const isFriend = !!await friends.findOne({
+    userName: userInfo.userName,
+    friendId: userId,
+  });
+  if (!isFriend) {
+    return c.json({ status: false, message: "Not friend" }, 403);
+  }
+  if (targetDomain !== env.DOMAIN) {
+    return c.json({ status: false, message: "Invalid domain" }, 400);
+  }
+  const room = await FriendRoom.findOne({
+    users: { $all: [userInfo.userName, targetUserName] },
+  });
+  if (!room) {
+    return c.json({ status: false, message: "Room not found" }, 404);
+  }
+  const roomid = room.roomid;
+
+  let messages;
+  if (before) {
+    const beforeMessage = await FriendMessage.findOne({
+      roomid,
+      messageid: before,
+    });
+    if (!beforeMessage) {
+      return c.json({ status: false, message: "Message not found" }, 404);
+    }
+    messages = await FriendMessage.find({
+      roomid,
+      messageid: { $lt: before },
+    }).sort({ messageid: -1 }).limit(limit);
+  } else if (after) {
+    const afterMessage = await FriendMessage.findOne({
+      roomid,
+      messageid: after,
+    });
+    if (!afterMessage) {
+      return c.json({ status: false, message: "Message not found" }, 404);
+    }
+    messages = await FriendMessage.find({
+      roomid,
+      messageid: { $gt: after },
+    }).sort({ messageid: 1 }).limit(limit);
+  } else {
+    messages = await FriendMessage.find({
+      roomid,
+    }).sort({ messageid: -1 }).limit(limit);
+  }
+  const messageList = messages.map((message) => {
+    return {
+      messageid: message.messageid,
+      userName: message.userId,
+      messages: message.messageObj,
       timestamp: message.timestamp,
-      userId: message.userId,
-    });
-  }
-  const latestRoomKey = await FriendKeys.findOne({
-    roomid: FriendRooms.roomid,
-  }).sort({ timestamp: -1 });
-  if (!latestRoomKey) return c.json({ status: false }, 400);
-  const hashHex = c.req.query("hashHex");
-  if (!hashHex) {
-    return c.json({
-      status: true,
-      isCreatedRoom: true,
-      talkData,
-      latestRoomKey: latestRoomKey.key.find((key) => key.userId === userInfo.userName + "@" + env["DOMAIN"]),
-    });
-  }
-  const hashHexData = await FriendKeys.findOne({
-    keyHashHex: hashHex,
+      type: message.messageObj.type,
+    };
   });
-  if (!hashHexData) return c.json({ status: false }, 400);
-  const updateHashHex = await FriendKeys.find({
-    timestamp: { $gt: hashHexData.timestamp },
-  }).sort({ timestamp: -1 }).limit(Number(limit));
-  //console.log(updateHashHex);
-  return c.json({
-    status: true,
-    isCreatedRoom: true,
-    talkData,
-    updateKey: updateHashHex,
+  const keysHashHex: string[] = messages.map((message) => {
+    return message.roomKeyHashHex;
   });
+  keysHashHex.filter((key) => {
+    return !ignoreKeys.includes(key);
+  });
+  const keys = await FriendKeys.find({
+    roomid,
+    keyHashHex: { $in: keysHashHex },
+  });
+  const keysArray = keys.map((keys) => {
+    const key = keys.key.find((key) => {
+      return key.userId === userInfo.userName + "@" + env["DOMAIN"];
+    });
+    if (!key) {
+      return null;
+    }
+    return key.key;
+  }).filter((key) => {
+    return key !== null;
+  });
+  return c.json({ status: true, messages: messageList, keys: keysArray });
 });
 
 export default app;

@@ -215,11 +215,13 @@ type migrateDataSignKeyPub = {
   keyType: "migrateDataSignPub";
   version: number;
 };
+
 type migrateDataSignKeyPrivate = {
   key: JsonWebKey;
   keyType: "migrateDataSignPrivate";
   version: number;
 };
+
 type migrateDataSignKey = {
   public: migrateDataSignKeyPub;
   private: migrateDataSignKeyPrivate;

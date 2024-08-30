@@ -93,7 +93,7 @@ app.post("/", async (c: Context) => {
     userName: session.userName,
     identityKeyPub: identity_key,
     accountKeyPub: account_key,
-    hashHex: await generateKeyHashHexJWK(identity_key.key),
+    hashHex: await generateKeyHashHexJWK(identity_key),
     encryptedAccountKey: [{
       key: encryptedAccountKey,
       sessionid: session.sessionid,
