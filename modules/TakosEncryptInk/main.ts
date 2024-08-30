@@ -89,12 +89,6 @@ async function hashString(input: string): Promise<string> {
     .join("");
 }
 
-// JWK形式の鍵から公開鍵ハッシュを生成
-export async function generateKeyHashHex(jwk: JsonWebKey): Promise<string> {
-  const keyString = JSON.stringify(jwk);
-  return await hashString(keyString);
-}
-
 export async function generateKeyHashHexCryptoKey(
   key: CryptoKey,
 ): Promise<string> {
@@ -115,6 +109,13 @@ export async function generateKeyHashHexCryptoKey(
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
   return hashHex;
+}
+
+export async function generateKeyHashHexJWK(
+  key: MasterKeyPub | IdentityKeyPub | AccountKeyPub | deviceKeyPub | KeyShareKeyPub | migrateKeyPub | migrateDataSignKeyPub | RoomKey,
+): Promise<string> {
+  //上の関数と同じものを返す
+  return await generateKeyHashHexCryptoKey(await importKey(key, "public"));
 }
 
 export async function createMasterKey(): Promise<MasterKey> {
