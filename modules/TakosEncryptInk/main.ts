@@ -99,7 +99,8 @@ export async function generateKeyHashHexCryptoKey(
     | "keySharePub"
     | "migratePub"
     | "migrateDataSignPub"
-    | "roomKey",
+    | "roomKey"
+    | "devicePrivate",
   version: number,
 ): Promise<string> {
   if (version == 1) {
@@ -128,6 +129,9 @@ export async function generateKeyHashHexCryptoKey(
         break;
       case "roomKey":
         keyType = "AESKey";
+        break;
+      case "devicePrivate":
+        keyType = "RSAPriv";
         break;
     }
     if (keyType == "AESKey") {
@@ -159,6 +163,19 @@ export async function generateKeyHashHexCryptoKey(
       const keyArray = new Uint8Array(keyBuffer);
       const base64Key = btoa(String.fromCharCode(...keyArray));
       //ハッシュ化
+      const hashBuffer = await crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(base64Key),
+      );
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      return hashHex;
+    }
+    if(keyType == "RSAPriv"){
+      const keyBuffer = await crypto.subtle.exportKey("pkcs8", key);
+      const keyArray = new Uint8Array(keyBuffer);
+      const base64Key = btoa(String.fromCharCode(...keyArray));
       const hashBuffer = await crypto.subtle.digest(
         "SHA-256",
         new TextEncoder().encode(base64Key),
@@ -257,9 +274,27 @@ export async function createIdentityKeyAndAccountKey(
   const accountKeyPublic = await exportfromJWK(accountKeyPair.publicKey);
   const accountKeyPrivate = await exportfromJWK(accountKeyPair.privateKey);
 
+  const identityKeyPublicText: IdentityKeyPub = {
+    key: identityKeyPublic,
+    keyType: "identityPub",
+    sign: {
+      signature: "",
+      hashedPublicKeyHex: "",
+      type: "master",
+      version: 1,
+    },
+    keyExpiration: "time",
+    keyExpirationSign: {
+      signature: "",
+      hashedPublicKeyHex: "",
+      type: "master",
+      version: 1,
+    },
+    version: 1,
+  };
   const identityKeySign = await signKey(
     masterKey,
-    identityKeyPublic,
+    identityKeyPublicText,
     "master",
   );
   const time = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString();
@@ -284,9 +319,20 @@ export async function createIdentityKeyAndAccountKey(
     hashHex: identityKeyHash,
     version: 1,
   };
+  const accountKeyPubTest: AccountKeyPub = {
+    key: accountKeyPublic,
+    keyType: "accountPub",
+    sign: {
+      signature: "",
+      hashedPublicKeyHex: "",
+      type: "identity",
+      version: 1,
+    },
+    version: 1,
+  };
   const accountKeySign = await signKey(
     identityKey,
-    accountKeyPublic,
+    accountKeyPubTest,
     "identity",
   );
   const accountKey: AccountKey = {
@@ -306,6 +352,7 @@ export async function createIdentityKeyAndAccountKey(
   };
   return { identityKey, accountKey };
 }
+
 export async function importKey(
   inputKey:
     | IdentityKeyPub
@@ -420,15 +467,34 @@ export async function verifyKey(
     | RoomKey
     | KeyShareKeyPub,
 ): Promise<boolean> {
-  const importedKey = await crypto.subtle.importKey(
-    "jwk",
-    key.key,
-    { name: "RSA-PSS", hash: { name: "SHA-256" } },
-    true,
-    ["verify"],
+  let keyType: "public" | "private"
+  switch (signedKey.keyType) {
+    case "identityPub":
+      keyType = "public";
+      break;
+    case "accountPub":
+      keyType = "public";
+      break;
+    case "devicePub":
+      keyType = "public";
+      break;
+    case "devicePrivate":
+      keyType = "private";
+      break;
+    case "roomKey":
+      keyType = "public";
+      break;
+    case "keySharePub":
+      keyType = "public";
+      break;
+    default:
+      throw new Error(`Unsupported keyType: ${"keyToSign.keyType"}`);
+   }
+  const importedKey = await importKey(key, keyType);
+  const keyBuffer = await crypto.subtle.exportKey(
+    ((keyType === "public") ? "spki" : "pkcs8"),
+    importedKey,
   );
-  const keyBuffer = new TextEncoder().encode(JSON.stringify(signedKey.key));
-
   return await crypto.subtle.verify(
     {
       name: "RSA-PSS",
@@ -443,15 +509,54 @@ export async function verifyKey(
 export async function signKey(
   //署名する鍵の変数
   key: MasterKey | IdentityKey,
-  keyToSign: JsonWebKey,
+  keyToSign: IdentityKeyPub | AccountKeyPub | deviceKeyPub | deviceKeyPrivate | RoomKey | KeyShareKeyPub,
   type: "master" | "identity",
 ): Promise<Sign> {
-  const keyBuffer = new TextEncoder().encode(JSON.stringify(keyToSign));
-  return await sign(
-    key,
-    keyBuffer,
-    type,
-  );
+  let keyType: "public" | "private" | "roomKey";
+  switch (keyToSign.keyType) {
+    case "identityPub":
+      keyType = "public";
+      break;
+    case "accountPub":
+      keyType = "public";
+      break;
+    case "devicePub":
+      keyType = "public";
+      break;
+    case "devicePrivate":
+      keyType = "private";
+      break;
+    case "roomKey":
+      keyType = "roomKey";
+      break;
+    case "keySharePub":
+      keyType = "public";
+      break;
+    default:
+      throw new Error(`Unsupported keyType: ${"keyToSign.keyType"}`);
+   }
+   if(keyType === "roomKey"){
+    const importedKey = await importKey(keyToSign, "public");
+    const keyBuffer = await crypto.subtle.exportKey(
+      "raw",
+      importedKey,
+    )
+    return await sign(
+      key,
+      keyBuffer,
+      type,
+    );
+   }
+   const importedKey = await importKey(keyToSign, keyType);
+   const keyBuffer = await crypto.subtle.exportKey(
+     ((keyType === "public") ? "spki" : "pkcs8"),
+     importedKey,
+   )
+   return await sign(
+     key,
+     keyBuffer,
+     type,
+   );
 }
 
 async function sign(
@@ -540,8 +645,30 @@ export async function createDeviceKey(
   );
   const deviceKeyPublic = await exportfromJWK(deviceKeyPair.publicKey);
   const deviceKeyPrivate = await exportfromJWK(deviceKeyPair.privateKey);
-  const pubKeySign = await signKey(masterKey, deviceKeyPublic, "master");
-  const privKeySign = await signKey(masterKey, deviceKeyPrivate, "master");
+  const deviceKeyPublicText: deviceKeyPub = {
+    key: deviceKeyPublic,
+    keyType: "devicePub",
+    sign: {
+      signature: "",
+      hashedPublicKeyHex: "",
+      type: "master",
+      version: 1,
+    },
+    version: 1,
+  };
+  const deviceKeyPrivateText: deviceKeyPrivate = {
+    key: deviceKeyPrivate,
+    keyType: "devicePrivate",
+    version: 1,
+    sign: {
+      signature: "",
+      hashedPublicKeyHex: "",
+      type: "master",
+      version: 1,
+    },
+  };
+  const pubKeySign = await signKey(masterKey, deviceKeyPublicText, "master");
+  const privKeySign = await signKey(masterKey, deviceKeyPrivateText, "master");
   return {
     public: {
       key: deviceKeyPublic,
@@ -681,7 +808,26 @@ export async function createRoomKey(
     ["encrypt", "decrypt"],
   );
   const roomKeyJWK = await exportfromJWK(roomKey);
-  const roomKeySign = await signKey(identity_key, roomKeyJWK, "identity");
+  const roomKeyText: RoomKey = {
+    key: roomKeyJWK,
+    sign: {
+      signature: "",
+      hashedPublicKeyHex: "",
+      type: "identity",
+      version: 1,
+    },
+    keyExpiration: "Expiration",
+    keyExpirationSign: {
+      signature: "",
+      hashedPublicKeyHex: "",
+      type: "identity",
+      version: 1,
+    },
+    keyType: "roomKey",
+    hashHex: "roomKeyHash",
+    version: 1,
+  }
+  const roomKeySign = await signKey(identity_key, roomKeyText, "identity");
   const Expiration = new Date(Date.now() + 1000 * 60 * 60 * 24 * 60)
     .toISOString();
   const ExpirationSign = await signKeyExpiration(
@@ -926,7 +1072,25 @@ export async function createKeyShareKey(
   );
   const keyPublic = await exportfromJWK(keyPair.publicKey);
   const keyPrivate = await exportfromJWK(keyPair.privateKey);
-  const pubKeySign = await signKey(masterKey, keyPublic, "master");
+  const keyShareKeyPublicText: KeyShareKeyPub = {
+    key: keyPublic,
+    keyType: "keySharePub",
+    sign: {
+      signature: "",
+      hashedPublicKeyHex: "",
+      type: "master",
+      version: 1,
+    },
+    keyExpiration: "time",
+    keyExpirationSign: {
+      signature: "",
+      hashedPublicKeyHex: "",
+      type: "master",
+      version: 1,
+    },
+    version: 1,
+  };
+  const pubKeySign = await signKey(masterKey, keyShareKeyPublicText, "master");
   const keyShareKeyPublic: KeyShareKeyPub = {
     key: keyPublic,
     keyType: "keySharePub",

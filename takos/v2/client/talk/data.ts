@@ -114,7 +114,7 @@ app.get("/:userId/friend", async (c) => {
     keyHashHex: { $in: keysHashHex },
   });
   const keysArray = keys.map((keys) => {
-    const key = keys.key.find((key) => {
+    const key = keys.key.find((key: { userId: string; }) => {
       return key.userId === userInfo.userName + "@" + env["DOMAIN"];
     });
     if (!key) {
