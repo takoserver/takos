@@ -6,6 +6,7 @@ import FriendRoom from "@/models/friend/room.ts";
 import FriendMessage from "@/models/friend/message.ts";
 import FriendKeys from "@/models/friend/roomkeys.ts";
 import { load } from "@std/dotenv";
+import { EncryptedDataAccountKey } from "takosEncryptInk";
 import uuid from "ui7";
 const env = await load();
 
@@ -34,6 +35,9 @@ app.post("/:userId/friend", async (c) => {
     return c.json({ status: false, message: "Invalid body" }, 400);
   }
   const { message } = body;
+  if(message instanceof EncryptedDataAccountKey){
+    return c.json({ status: false, message: "Invalid body" }, 400);
+  }
   const room = await FriendRoom.findOne({
     users: { $all: [session.userName, friendId] },
   });

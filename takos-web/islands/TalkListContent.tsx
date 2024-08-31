@@ -170,10 +170,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
                       const encryptedAccountKeyHash = key.encryptedKeyHashHex;
                       console.log(key)
                       const accountKey = state.IdentityKeyAndAccountKeys.value.find(
-                        (key2) => {
-                          console.log(key2.hashHex, encryptedAccountKeyHash)
-                          return key2.hashHex === encryptedAccountKeyHash
-                        }
+                        (key2) => key2.hashHex === encryptedAccountKeyHash
                       );
                       if (!accountKey) {
                         return;
@@ -193,8 +190,14 @@ function TalkListContent({ state }: { state: AppStateType }) {
                     }
                     return false;
                   });
-                  console.log(roomKeys, "roomKeys");
-                  return;
+                  const resultMap = new Map();
+                  roomKeys.forEach((key) => {
+                    resultMap.set(key.hashHex, key);
+                  });
+                  if (!(state.roomKey.value instanceof Map)) {
+                    state.roomKey.value = new Map();
+                  }
+                  state.roomKey.value = new Map([...resultMap, ...state.roomKey.value]);
                   state.ws.value?.send(
                     JSON.stringify({
                       type: "joinFriend",

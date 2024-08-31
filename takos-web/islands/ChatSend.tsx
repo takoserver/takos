@@ -14,7 +14,7 @@ function ChatSend({ state }: { state: AppStateType }) {
       }
       const msg = state.inputMessage.value;
       const res = fetch(
-        "/api/v2/client/talks/friend/text",
+        `/takos/v2/client/talk/send/${state.friendid}/${state.roomType}`,
         {
           method: "POST",
           headers: {

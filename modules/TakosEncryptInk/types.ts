@@ -100,7 +100,7 @@ type deviceKey = {
   version: number;
 };
 
-type RoomKey = {
+interface RoomKey {
   key: JsonWebKey;
   sign: Sign;
   keyType: "roomKey";
@@ -110,7 +110,7 @@ type RoomKey = {
   version: number;
 };
 
-type EncryptedData = {
+interface EncryptedData {
   encryptedData: string[];
   keyType: "accountKey"; // 使用された鍵の種類
   encryptedDataSign: Sign; // 暗号化されたデータをJSON.stringifyしたものに対する署名
@@ -122,7 +122,7 @@ type EncryptedData = {
   version: number;
 };
 
-type EncryptedDataAccountKey = {
+interface EncryptedDataAccountKey {
   encryptedData: string[];
   keyType: "accountKey"; // 使用された鍵の種類
   //暗号化した鍵のハッシュ値
@@ -131,7 +131,7 @@ type EncryptedDataAccountKey = {
   version: number;
 };
 
-type EncryptedDataRoomKey = {
+interface EncryptedDataRoomKey {
   encryptedData: string;
   keyType: "roomKey";
   iv?: string;
@@ -141,7 +141,7 @@ type EncryptedDataRoomKey = {
   version: number;
 };
 
-type EncryptedDataDeviceKey = {
+interface EncryptedDataDeviceKey {
   encryptedData: string[]; // 暗号化されたデータの値
   keyType: "DeviceKey"; // 使用された鍵の種類
   iv?: string; // 初期化ベクトル (Initialization Vector)
@@ -149,20 +149,20 @@ type EncryptedDataDeviceKey = {
   version: number;
 };
 
-type HashChainElement = {
+interface HashChainElement {
   hash: string;
   sign: Sign;
   version: number;
 };
 
-type OtherUserIdentityKeys = {
+interface OtherUserIdentityKeys {
   identityKey: IdentityKeyPub;
   hashHex: string;
   hashChain: HashChainElement;
   version: number;
 }[];
 
-type KeyShareKeyPub = {
+interface KeyShareKeyPub {
   key: JsonWebKey; // 公開鍵
   sign: Sign; // 署名情報
   keyType: "keySharePub"; // 鍵の種類
@@ -170,18 +170,18 @@ type KeyShareKeyPub = {
   keyExpirationSign: Sign; // 有効期限に対する署名
   version: number; // 鍵のバージョン
 };
-type KeyShareKeyPrivate = {
+interface KeyShareKeyPrivate {
   key: JsonWebKey; // 秘密鍵
   keyType: "keySharePrivate"; // 鍵の種類
 };
-type KeyShareKey = {
+interface KeyShareKey {
   public: KeyShareKeyPub; // 公開鍵情報
   private: KeyShareKeyPrivate; // 秘密鍵情報
   hashHex: string; // 鍵のハッシュ
   version: number; // 鍵のバージョン
 };
 
-type EncryptedDataKeyShareKey = {
+interface EncryptedDataKeyShareKey {
   encryptedData: string[]; // 暗号化されたデータの値
   keyType: "keyShareKey"; // 使用された鍵の種類
   encryptedDataSign: Sign; //暗号化されたデータに対する署名
@@ -191,45 +191,45 @@ type EncryptedDataKeyShareKey = {
   version: number;
 };
 
-type migrateKeyPub = {
+interface migrateKeyPub {
   key: JsonWebKey;
   keyType: "migratePub";
   version: number;
 };
 
-type migrateKeyPrivate = {
+interface migrateKeyPrivate {
   key: JsonWebKey;
   keyType: "migratePrivate";
   version: number;
 };
 
-type migrateKey = {
+interface migrateKey {
   public: migrateKeyPub;
   private: migrateKeyPrivate;
   hashHex: string;
   version: number;
 };
 
-type migrateDataSignKeyPub = {
+interface migrateDataSignKeyPub {
   key: JsonWebKey;
   keyType: "migrateDataSignPub";
   version: number;
 };
 
-type migrateDataSignKeyPrivate = {
+interface migrateDataSignKeyPrivate {
   key: JsonWebKey;
   keyType: "migrateDataSignPrivate";
   version: number;
 };
 
-type migrateDataSignKey = {
+interface migrateDataSignKey {
   public: migrateDataSignKeyPub;
   private: migrateDataSignKeyPrivate;
   hashHex: string;
   version: number;
 };
 
-type Message = {
+interface Message {
   message: string;
   type: "text" | "image" | "video" | "audio";
   timestamp: string;
