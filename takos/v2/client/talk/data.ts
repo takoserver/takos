@@ -131,7 +131,7 @@ app.get("/:userId/friend", async (c) => {
     if (!latestKey) {
       return c.json({ status: false, message: "Key not found" }, 404);
     }
-    const key = latestKey.key.find((key) => {
+    const key = latestKey.key.find((key: { userId: string; }) => {
       return key.userId === userInfo.userName + "@" + env["DOMAIN"];
     });
     if (!key) {
