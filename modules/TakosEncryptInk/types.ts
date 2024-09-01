@@ -10,8 +10,8 @@ type Sign = {
 type IdentityKeyPub = {
   key: JsonWebKey; // 公開鍵
   sign: Sign; // 署名情報
-  keyExpiration: string; // 鍵の有効期限
-  keyExpirationSign: Sign; // 有効期限に対する署名
+  timestamp: string; // 鍵の作成日時
+  timestampSign: Sign; // 鍵の作成日時に対する署名
   keyType: "identityPub"; // 鍵の種類
   version: number; // 鍵のバージョン
 };
@@ -104,11 +104,11 @@ interface RoomKey {
   key: JsonWebKey;
   sign: Sign;
   keyType: "roomKey";
-  keyExpiration: string;
-  keyExpirationSign: Sign;
+  timestamp: string; // 鍵の作成日時
+  timestampSign: Sign; // 鍵の作成日時に対する署名
   hashHex: string;
   version: number;
-};
+}
 
 interface EncryptedData {
   encryptedData: string[];
@@ -120,7 +120,7 @@ interface EncryptedData {
   //署名した鍵のハッシュ値
   signKeyHashHex: string;
   version: number;
-};
+}
 
 interface EncryptedDataAccountKey {
   encryptedData: string[];
@@ -129,7 +129,7 @@ interface EncryptedDataAccountKey {
   encryptedKeyHashHex: string;
   iv?: string; // 初期化ベクトル (Initialization Vector)
   version: number;
-};
+}
 
 interface EncryptedDataRoomKey {
   encryptedData: string;
@@ -137,7 +137,7 @@ interface EncryptedDataRoomKey {
   iv: string;
   encryptedKeyHashHex: string;
   version: number;
-};
+}
 
 interface EncryptedDataDeviceKey {
   encryptedData: string[]; // 暗号化されたデータの値
@@ -145,39 +145,40 @@ interface EncryptedDataDeviceKey {
   iv?: string; // 初期化ベクトル (Initialization Vector)
   encryptedKeyHashHex: string; //暗号化した鍵のハッシュ値
   version: number;
-};
+}
 
 interface HashChainElement {
   hash: string;
   sign: Sign;
   version: number;
-};
+}
 
 interface OtherUserIdentityKeys {
   identityKey: IdentityKeyPub;
   hashHex: string;
   hashChain: HashChainElement;
   version: number;
-}[];
+}
+[];
 
 interface KeyShareKeyPub {
   key: JsonWebKey; // 公開鍵
   sign: Sign; // 署名情報
   keyType: "keySharePub"; // 鍵の種類
-  keyExpiration: string; // 鍵の有効期限
-  keyExpirationSign: Sign; // 有効期限に対する署名
+  timestamp: string; // 鍵の作成日時
+  timestampSign: Sign; // 鍵の作成日時に対する署名
   version: number; // 鍵のバージョン
-};
+}
 interface KeyShareKeyPrivate {
   key: JsonWebKey; // 秘密鍵
   keyType: "keySharePrivate"; // 鍵の種類
-};
+}
 interface KeyShareKey {
   public: KeyShareKeyPub; // 公開鍵情報
   private: KeyShareKeyPrivate; // 秘密鍵情報
   hashHex: string; // 鍵のハッシュ
   version: number; // 鍵のバージョン
-};
+}
 
 interface EncryptedDataKeyShareKey {
   encryptedData: string[]; // 暗号化されたデータの値
@@ -187,52 +188,52 @@ interface EncryptedDataKeyShareKey {
   signKeyHashHex: string; //署名した鍵のハッシュ値
   iv?: string; // 初期化ベクトル (Initialization Vector)
   version: number;
-};
+}
 
 interface migrateKeyPub {
   key: JsonWebKey;
   keyType: "migratePub";
   version: number;
-};
+}
 
 interface migrateKeyPrivate {
   key: JsonWebKey;
   keyType: "migratePrivate";
   version: number;
-};
+}
 
 interface migrateKey {
   public: migrateKeyPub;
   private: migrateKeyPrivate;
   hashHex: string;
   version: number;
-};
+}
 
 interface migrateDataSignKeyPub {
   key: JsonWebKey;
   keyType: "migrateDataSignPub";
   version: number;
-};
+}
 
 interface migrateDataSignKeyPrivate {
   key: JsonWebKey;
   keyType: "migrateDataSignPrivate";
   version: number;
-};
+}
 
 interface migrateDataSignKey {
   public: migrateDataSignKeyPub;
   private: migrateDataSignKeyPrivate;
   hashHex: string;
   version: number;
-};
+}
 
 interface Message {
   message: string;
   type: "text" | "image" | "video" | "audio";
   timestamp: string;
   version: number;
-};
+}
 
 // 型定義のエクスポート
 export type {

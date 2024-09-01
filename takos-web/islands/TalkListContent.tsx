@@ -8,10 +8,10 @@ import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
 import { createTakosDB } from "../util/idbSchama.ts";
 import {
-  decryptAndVerifyDataWithRoomKey,
   decryptDataWithAccountKey,
   EncryptedDataAccountKey,
   generateKeyHashHexJWK,
+  verifyAndDecryptMessageChain,
   type RoomKey,
 } from "@takos/takos-encrypt-ink";
 function TalkListContent({ state }: { state: AppStateType }) {
@@ -170,44 +170,48 @@ function TalkListContent({ state }: { state: AppStateType }) {
                   const roomKeys: RoomKey[] = (await Promise.all(
                     talkData.keys.map(async (key: EncryptedDataAccountKey) => {
                       const encryptedAccountKeyHash = key.encryptedKeyHashHex;
-                      console.log(key)
-                      const accountKey = state.IdentityKeyAndAccountKeys.value.find(
-                        (key2) => key2.hashHex === encryptedAccountKeyHash
-                      );
+                      const accountKey = state.IdentityKeyAndAccountKeys.value
+                        .find(
+                          (key2) => key2.hashHex === encryptedAccountKeyHash,
+                        );
                       if (!accountKey) {
                         return;
                       }
-                      const decryptedRoomKeyString = await decryptDataWithAccountKey(
-                        accountKey.accountKey,
-                        key
-                      )
-                      if(!decryptedRoomKeyString) {
+                      const decryptedRoomKeyString =
+                        await decryptDataWithAccountKey(
+                          accountKey.accountKey,
+                          key,
+                        );
+                      if (!decryptedRoomKeyString) {
                         return;
                       }
                       return JSON.parse(decryptedRoomKeyString);
-                    })
+                    }),
                   )).filter((key) => {
-                    if(key) {
+                    if (key) {
                       return true;
                     }
                     return false;
                   });
                   roomKeys.forEach(async (key: RoomKey) => {
-                    if(await generateKeyHashHexJWK(key) === key.hashHex) {
+                    if (await generateKeyHashHexJWK(key) === key.hashHex) {
                       state.roomKey.value.push({
                         key: key,
                         hashHex: key.hashHex,
                       });
-                      return
+                      return;
                     }
                   });
                   if (!(state.roomKey.value instanceof Array)) {
-                    state.roomKey.value = []
+                    state.roomKey.value = [];
                   }
-                  state.latestRoomKeyhashHex.value = await generateKeyHashHexJWK(
-                    roomKeys[0],
+                  state.latestRoomKeyhashHex.value =
+                    await generateKeyHashHexJWK(
+                      roomKeys[0],
                   );
-                  console.log(state.roomKey.value);
+
+                  state.talkData.value = talkData.messages;
+                  console.log(state.talkData.value);
                   state.ws.value?.send(
                     JSON.stringify({
                       type: "joinFriend",

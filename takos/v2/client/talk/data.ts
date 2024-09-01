@@ -100,7 +100,7 @@ app.get("/:userId/friend", async (c) => {
   const keysHashHex: string[] = messages.map((message) => {
     return message.roomKeyHashHex;
   });
-  let ignoreKeys
+  let ignoreKeys;
   try {
     ignoreKeys = JSON.parse(ignoreKeysString);
   } catch (error) {
@@ -114,7 +114,7 @@ app.get("/:userId/friend", async (c) => {
     keyHashHex: { $in: keysHashHex },
   });
   const keysArray = keys.map((keys) => {
-    const key = keys.key.find((key: { userId: string; }) => {
+    const key = keys.key.find((key: { userId: string }) => {
       return key.userId === userInfo.userName + "@" + env["DOMAIN"];
     });
     if (!key) {
@@ -126,14 +126,14 @@ app.get("/:userId/friend", async (c) => {
   }).sort((a, b) => {
     return a.timestamp - b.timestamp;
   });
-  if(keysArray.length === 0) {
+  if (keysArray.length === 0) {
     const latestKey = await FriendKeys.findOne({
-        roomid,
+      roomid,
     }).sort({ timestamp: -1 });
     if (!latestKey) {
       return c.json({ status: false, message: "Key not found" }, 404);
     }
-    const key = latestKey.key.find((key: { userId: string; }) => {
+    const key = latestKey.key.find((key: { userId: string }) => {
       return key.userId === userInfo.userName + "@" + env["DOMAIN"];
     });
     if (!key) {

@@ -172,7 +172,7 @@ export async function generateKeyHashHexCryptoKey(
         .join("");
       return hashHex;
     }
-    if(keyType == "RSAPriv"){
+    if (keyType == "RSAPriv") {
       const keyBuffer = await crypto.subtle.exportKey("pkcs8", key);
       const keyArray = new Uint8Array(keyBuffer);
       const base64Key = btoa(String.fromCharCode(...keyArray));
@@ -283,8 +283,8 @@ export async function createIdentityKeyAndAccountKey(
       type: "master",
       version: 1,
     },
-    keyExpiration: "time",
-    keyExpirationSign: {
+    timestamp: "time",
+    timestampSign: {
       signature: "",
       hashedPublicKeyHex: "",
       type: "master",
@@ -297,27 +297,27 @@ export async function createIdentityKeyAndAccountKey(
     identityKeyPublicText,
     "master",
   );
-  const time = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString();
+  const time = new Date(Date.now()).toISOString();
   const sign2 = await signKeyExpiration(masterKey, time, {
     key: identityKeyPublic,
     keyType: "identityPub",
     sign: identityKeySign,
-    keyExpiration: time,
-    keyExpirationSign: {
+    timestamp: "time",
+    timestampSign: {
       signature: "",
       hashedPublicKeyHex: "",
       type: "master",
       version: 1,
     },
     version: 1,
-  } , "master");
+  }, "master");
 
   const identityKeyPublicResult: IdentityKeyPub = {
     key: identityKeyPublic,
     keyType: "identityPub",
     sign: identityKeySign,
-    keyExpiration: time,
-    keyExpirationSign: sign2,
+    timestamp: time,
+    timestampSign: sign2,
     version: 1,
   };
   const identityKeyPrivateResult: IdentityKeyPrivate = {
@@ -479,7 +479,7 @@ export async function verifyKey(
     | RoomKey
     | KeyShareKeyPub,
 ): Promise<boolean> {
-  let keyType: "public" | "private"
+  let keyType: "public" | "private";
   switch (signedKey.keyType) {
     case "identityPub":
       keyType = "public";
@@ -501,10 +501,10 @@ export async function verifyKey(
       break;
     default:
       throw new Error(`Unsupported keyType: ${"keyToSign.keyType"}`);
-   }
+  }
   const importedKey = await importKey(key, keyType);
   const keyBuffer = await crypto.subtle.exportKey(
-    ((keyType === "public") ? "spki" : "pkcs8"),
+    (keyType === "public") ? "spki" : "pkcs8",
     importedKey,
   );
   return await crypto.subtle.verify(
@@ -521,7 +521,13 @@ export async function verifyKey(
 export async function signKey(
   //署名する鍵の変数
   key: MasterKey | IdentityKey,
-  keyToSign: IdentityKeyPub | AccountKeyPub | deviceKeyPub | deviceKeyPrivate | RoomKey | KeyShareKeyPub,
+  keyToSign:
+    | IdentityKeyPub
+    | AccountKeyPub
+    | deviceKeyPub
+    | deviceKeyPrivate
+    | RoomKey
+    | KeyShareKeyPub,
   type: "master" | "identity",
 ): Promise<Sign> {
   let keyType: "public" | "private" | "roomKey";
@@ -546,29 +552,29 @@ export async function signKey(
       break;
     default:
       throw new Error(`Unsupported keyType: ${"keyToSign.keyType"}`);
-   }
-   if(keyType === "roomKey"){
+  }
+  if (keyType === "roomKey") {
     const importedKey = await importKey(keyToSign, "public");
     const keyBuffer = await crypto.subtle.exportKey(
       "raw",
       importedKey,
-    )
+    );
     return await sign(
       key,
       keyBuffer,
       type,
     );
-   }
-   const importedKey = await importKey(keyToSign, keyType);
-   const keyBuffer = await crypto.subtle.exportKey(
-     ((keyType === "public") ? "spki" : "pkcs8"),
-     importedKey,
-   )
-   return await sign(
-     key,
-     keyBuffer,
-     type,
-   );
+  }
+  const importedKey = await importKey(keyToSign, keyType);
+  const keyBuffer = await crypto.subtle.exportKey(
+    (keyType === "public") ? "spki" : "pkcs8",
+    importedKey,
+  );
+  return await sign(
+    key,
+    keyBuffer,
+    type,
+  );
 }
 
 async function sign(
@@ -599,7 +605,12 @@ async function sign(
 export async function signKeyExpiration(
   key: MasterKey | IdentityKey,
   date: string,
-  signedKey: IdentityKeyPub | AccountKeyPub | deviceKeyPub | RoomKey | KeyShareKeyPub,
+  signedKey:
+    | IdentityKeyPub
+    | AccountKeyPub
+    | deviceKeyPub
+    | RoomKey
+    | KeyShareKeyPub,
   type: "master" | "identity",
 ): Promise<Sign> {
   const hashHex = await generateKeyHashHexJWK(signedKey);
@@ -614,8 +625,13 @@ export async function signKeyExpiration(
 
 export async function isValidKeyExpiration(
   key: MasterKeyPub | IdentityKeyPub,
-  signAndKey: { keyExpiration: string; keyExpirationSign: Sign },
-  signedKey: IdentityKeyPub | AccountKeyPub | deviceKeyPub | RoomKey | KeyShareKeyPub,
+  signAndKey: { timestamp: string; timestampSign: Sign },
+  signedKey:
+    | IdentityKeyPub
+    | AccountKeyPub
+    | deviceKeyPub
+    | RoomKey
+    | KeyShareKeyPub,
 ): Promise<boolean> {
   try {
     const importedKey = await crypto.subtle.importKey(
@@ -626,10 +642,12 @@ export async function isValidKeyExpiration(
       ["verify"],
     );
     const signatureBuffer = base64ToArrayBuffer(
-      signAndKey.keyExpirationSign.signature,
+      signAndKey.timestampSign.signature,
     );
     const hashHex = await generateKeyHashHexJWK(signedKey);
-    const hashBuffer = new TextEncoder().encode(signAndKey.keyExpiration + hashHex);
+    const hashBuffer = new TextEncoder().encode(
+      signAndKey.timestamp + hashHex,
+    );
     return await crypto.subtle.verify(
       {
         name: "RSA-PSS",
@@ -737,10 +755,6 @@ export async function isValidIdentityKeySign(
   if (identityKey.sign.hashedPublicKeyHex !== masterKeyHashHex) {
     return false;
   }
-  const now = new Date();
-  if (new Date(identityKey.keyExpiration) < now) {
-    return false;
-  }
   return await verifyKey(masterKeyPub, identityKey) &&
     await isValidKeyExpiration(masterKeyPub, identityKey, identityKey);
 }
@@ -833,8 +847,8 @@ export async function createRoomKey(
       type: "identity",
       version: 1,
     },
-    keyExpiration: "Expiration",
-    keyExpirationSign: {
+    timestamp: "Expiration",
+    timestampSign: {
       signature: "",
       hashedPublicKeyHex: "",
       type: "identity",
@@ -843,7 +857,7 @@ export async function createRoomKey(
     keyType: "roomKey",
     hashHex: "roomKeyHash",
     version: 1,
-  }
+  };
   const roomKeySign = await signKey(identity_key, roomKeyText, "identity");
   const Expiration = new Date(Date.now() + 1000 * 60 * 60 * 24 * 60)
     .toISOString();
@@ -853,8 +867,8 @@ export async function createRoomKey(
     {
       key: roomKeyJWK,
       sign: roomKeySign,
-      keyExpiration: Expiration,
-      keyExpirationSign: {
+      timestamp: Expiration,
+      timestampSign: {
         signature: "",
         hashedPublicKeyHex: "",
         type: "identity",
@@ -870,8 +884,8 @@ export async function createRoomKey(
   return {
     key: roomKeyJWK,
     sign: roomKeySign,
-    keyExpiration: Expiration,
-    keyExpirationSign: ExpirationSign,
+    timestamp: Expiration,
+    timestampSign: ExpirationSign,
     keyType: "roomKey",
     hashHex: roomKeyHash,
     version: 1,
@@ -893,7 +907,7 @@ export async function isValidRoomKey(
   ) {
     return false;
   }
-  if (roomKey.keyExpiration < new Date().toISOString()) {
+  if (roomKey.timestamp < new Date().toISOString()) {
     return false;
   }
   return await verifyKey(identity_key, roomKey) &&
@@ -901,7 +915,6 @@ export async function isValidRoomKey(
 }
 
 //RoomKeyを使って暗号化
-
 
 // AccountKeyを使って暗号化する関数
 export async function encryptWithAccountKey(
@@ -1057,8 +1070,8 @@ export async function createKeyShareKey(
       type: "master",
       version: 1,
     },
-    keyExpiration: "time",
-    keyExpirationSign: {
+    timestamp: "time",
+    timestampSign: {
       signature: "",
       hashedPublicKeyHex: "",
       type: "master",
@@ -1071,11 +1084,11 @@ export async function createKeyShareKey(
     key: keyPublic,
     keyType: "keySharePub",
     sign: pubKeySign,
-    keyExpiration: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365)
+    timestamp: new Date(Date.now())
       .toISOString(),
-    keyExpirationSign: await signKeyExpiration(
+      timestampSign: await signKeyExpiration(
       masterKey,
-      new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(),
+      new Date(Date.now()).toISOString(),
       keyShareKeyPublicText,
       "master",
     ),
@@ -1326,7 +1339,6 @@ export async function verifyDataWithMigrateDataSignKey(
   );
 }
 
-
 export async function encryptDataRoomKey(
   roomKey: RoomKey,
   data: string,
@@ -1368,12 +1380,12 @@ export async function decryptDataRoomKey(
 
 export interface messageBlockValue {
   previousHashHex: string;
-  data: EncryptedDataRoomKey,
+  data: EncryptedDataRoomKey;
 }
 
 export interface messageBlock {
-  value: messageBlockValue,
-  signature: Sign,
+  value: messageBlockValue;
+  signature: Sign;
 }
 
 export async function createMessageBlock(
@@ -1381,7 +1393,7 @@ export async function createMessageBlock(
   identityKey: IdentityKey,
   beforeBlock?: messageBlock,
 ): Promise<messageBlock> {
-  if(beforeBlock){
+  if (beforeBlock) {
     const previousHash = await crypto.subtle.digest(
       "SHA-256",
       new TextEncoder().encode(JSON.stringify(beforeBlock)),
@@ -1394,7 +1406,10 @@ export async function createMessageBlock(
       previousHashHex: previousHashHex,
       data: data,
     };
-    const signature = await signData(identityKey, new TextEncoder().encode(JSON.stringify(value)));
+    const signature = await signData(
+      identityKey,
+      new TextEncoder().encode(JSON.stringify(value)),
+    );
     return {
       value: value,
       signature: signature,
@@ -1404,7 +1419,10 @@ export async function createMessageBlock(
       previousHashHex: "",
       data: data,
     };
-    const signature = await signData(identityKey, new TextEncoder().encode(JSON.stringify(value)));
+    const signature = await signData(
+      identityKey,
+      new TextEncoder().encode(JSON.stringify(value)),
+    );
     return {
       value: value,
       signature: signature,
@@ -1416,18 +1434,22 @@ export async function isValidMessage(
   message: messageBlock,
   identityKey: IdentityKeyPub,
 ): Promise<boolean> {
-  return await verifyData(identityKey, new TextEncoder().encode(JSON.stringify(message.value)), message.signature);
+  return await verifyData(
+    identityKey,
+    new TextEncoder().encode(JSON.stringify(message.value)),
+    message.signature,
+  );
 }
 
 //古いメッセージがブロックチェーンにあるか確認する関数
 
 export async function verifyAndDecryptMessageChain(
   messageChain: {
-    messageBlock: messageBlock,
-    sender: string,
+    messageBlock: messageBlock;
+    sender: string;
   }[],
   identityKey: {
-    [key: string]: IdentityKeyPub[]
+    [key: string]: IdentityKeyPub[];
   },
   roomKey: RoomKey[],
 ): Promise<Message[] | false> {
@@ -1435,10 +1457,13 @@ export async function verifyAndDecryptMessageChain(
   for (let i = 0; i < messageChain.length; i++) {
     const message = messageChain[i];
     //iが0,1の時は0でiが2,3の時は1の変数を使う
-    let identityKeyPub
+    let identityKeyPub;
     for (let i = 0; i < identityKey[message.sender].length; i++) {
       const identityKeyPub2 = identityKey[message.sender][i];
-      if (await generateKeyHashHexJWK(identityKeyPub2) === message.messageBlock.signature.hashedPublicKeyHex) {
+      if (
+        await generateKeyHashHexJWK(identityKeyPub2) ===
+          message.messageBlock.signature.hashedPublicKeyHex
+      ) {
         identityKeyPub = identityKeyPub2;
         break;
       }
@@ -1452,11 +1477,16 @@ export async function verifyAndDecryptMessageChain(
       console.log(identityKey[message.sender].length);
       return false;
     }
-    const roomKey2 = roomKey.find((key) => key.hashHex === message.messageBlock.value.data.encryptedKeyHashHex);
+    const roomKey2 = roomKey.find((key) =>
+      key.hashHex === message.messageBlock.value.data.encryptedKeyHashHex
+    );
     if (!roomKey2) {
       return false;
     }
-    const data = await decryptDataRoomKey(roomKey2, message.messageBlock.value.data);
+    const data = await decryptDataRoomKey(
+      roomKey2,
+      message.messageBlock.value.data,
+    );
     if (!data) {
       return false;
     }

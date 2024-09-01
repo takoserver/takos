@@ -1,6 +1,6 @@
 import React from "preact/compat";
 import { AppStateType } from "../util/types.ts";
-import { encryptAndSignDataWithRoomKey } from "@takos/takos-encrypt-ink";
+import { createMessageBlock } from "@takos/takos-encrypt-ink";
 
 function ChatSend({ state }: { state: AppStateType }) {
   const sendHandler = async () => {
@@ -17,7 +17,7 @@ function ChatSend({ state }: { state: AppStateType }) {
       const roomKey = (state.roomKey.value.find(
         (data) =>
           data.hashHex ===
-          state.latestRoomKeyhashHex.value,
+            state.latestRoomKeyhashHex.value,
       ))?.key;
       if (!roomKey) {
         console.log(state.latestRoomKeyhashHex.value);
@@ -27,11 +27,7 @@ function ChatSend({ state }: { state: AppStateType }) {
         );
         return;
       }
-      const encryptedData = await encryptAndSignDataWithRoomKey(
-        roomKey,
-        msg,
-        state.IdentityKeyAndAccountKeys.value[0].identityKey,
-      );
+      //
       const res = fetch(
         `/takos/v2/client/talk/send/${state.friendid}/${state.roomType}`,
         {

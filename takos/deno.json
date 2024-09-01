@@ -3,7 +3,7 @@
     "@/": "./",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.0",
     "@std/uuid": "jsr:@std/uuid@^1.0.0",
-    "@takos/takos-encrypt-ink": "jsr:@takos/takos-encrypt-ink@^1.1.2",
+    "@takos/takos-encrypt-ink": "jsr:@takos/takos-encrypt-ink@^1.2.0",
     "hono": "jsr:@hono/hono@^4.5.3",
     "imagescript": "npm:imagescript@^1.3.0",
     "ky": "npm:ky@^1.5.0",

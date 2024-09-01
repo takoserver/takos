@@ -50,6 +50,31 @@ app.post("/:userId/friend", async (c) => {
   if (latestKey.keyHashHex !== message.encryptedKeyHashHex) {
     return c.json({ status: false, message: "Invalid key" }, 400);
   }
+  //最新のメッセージを取得
+  const latestMessage = (await FriendMessage.find({
+    roomid,
+  }).sort({ timestamp: -1 }).limit(1))[0];
+  if (!latestMessage) {
+    await FriendMessage.create({
+      roomid,
+      userId: session.userName + "@" + env["DOMAIN"],
+      messageObj: message,
+      read: false,
+      messageid: uuid(),
+      roomKeyHashHex: message.encryptedKeyHashHex,
+    });
+  }
+  const priviousHash = Array.from(
+    new Uint8Array(
+      await crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(JSON.stringify(latestMessage.messageObj)),
+      ),
+    ),
+  ).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  if (priviousHash !== message.previousHashHex) {
+    return c.json({ status: false, message: "Invalid previous hash" }, 400);
+  }
   await FriendMessage.create({
     roomid,
     userId: session.userName + "@" + env["DOMAIN"],
