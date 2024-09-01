@@ -1,8 +1,9 @@
 import React from "preact/compat";
 import { AppStateType } from "../util/types.ts";
+import { encryptAndSignDataWithRoomKey } from "@takos/takos-encrypt-ink";
 
 function ChatSend({ state }: { state: AppStateType }) {
-  const sendHandler = () => {
+  const sendHandler = async () => {
     if (state.inputMessage.value) {
       if (
         state.inputMessage.value.length > 100
@@ -13,6 +14,24 @@ function ChatSend({ state }: { state: AppStateType }) {
         return;
       }
       const msg = state.inputMessage.value;
+      const roomKey = (state.roomKey.value.find(
+        (data) =>
+          data.hashHex ===
+          state.latestRoomKeyhashHex.value,
+      ))?.key;
+      if (!roomKey) {
+        console.log(state.latestRoomKeyhashHex.value);
+        console.log(state.roomKey.value);
+        alert(
+          "メッセージの送信に失敗しました",
+        );
+        return;
+      }
+      const encryptedData = await encryptAndSignDataWithRoomKey(
+        roomKey,
+        msg,
+        state.IdentityKeyAndAccountKeys.value[0].identityKey,
+      );
       const res = fetch(
         `/takos/v2/client/talk/send/${state.friendid}/${state.roomType}`,
         {

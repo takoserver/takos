@@ -1,4 +1,4 @@
-import { AccountKey } from "@takos/takos-encrypt-ink";
+import { AccountKey, RoomKey } from "@takos/takos-encrypt-ink";
 import {
   EncryptedDataDeviceKey,
   IdentityKey,
@@ -61,11 +61,12 @@ export interface AppStateType {
   MasterKey: any;
   KeyShareKey: any;
   DeviceKey: any;
-  roomKey: { value: Map<string, string> };
+  roomKey: { value: { key: RoomKey; hashHex: any; }[] };
   IdentityKeyAndAccountKeys: {
     value: IdentityKeyAndAccountKeysState;
   };
   userId: { value: string };
+  latestRoomKeyhashHex: { value: string };
 }
 export interface MessageTypes {
   type: string;

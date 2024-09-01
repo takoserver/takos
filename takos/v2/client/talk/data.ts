@@ -123,6 +123,8 @@ app.get("/:userId/friend", async (c) => {
     return key.key;
   }).filter((key) => {
     return key !== null;
+  }).sort((a, b) => {
+    return a.timestamp - b.timestamp;
   });
   if(keysArray.length === 0) {
     const latestKey = await FriendKeys.findOne({

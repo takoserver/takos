@@ -11,6 +11,8 @@ import {
   decryptAndVerifyDataWithRoomKey,
   decryptDataWithAccountKey,
   EncryptedDataAccountKey,
+  generateKeyHashHexJWK,
+  type RoomKey,
 } from "@takos/takos-encrypt-ink";
 function TalkListContent({ state }: { state: AppStateType }) {
   if (state.page.value === 0) {
@@ -68,7 +70,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
               <div class="flex items-center space-x-2">
                 <img
                   src="https://via.placeholder.com/50"
-                  alt="がっきー"
+                  alt=""
                   class="w-10 h-10 rounded-full"
                 />
                 <div>
@@ -79,7 +81,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
               <div class="flex items-center space-x-2">
                 <img
                   src="https://via.placeholder.com/50"
-                  alt="富山 豊"
+                  alt=""
                   class="w-10 h-10 rounded-full"
                 />
                 <div>
@@ -165,7 +167,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
                     "/takos/v2/client/talk/data/" + talk.userName + "/friend",
                   ).then((res) => res.json());
                   console.log(talkData);
-                  const roomKeys: any[] = (await Promise.all(
+                  const roomKeys: RoomKey[] = (await Promise.all(
                     talkData.keys.map(async (key: EncryptedDataAccountKey) => {
                       const encryptedAccountKeyHash = key.encryptedKeyHashHex;
                       console.log(key)
@@ -190,14 +192,22 @@ function TalkListContent({ state }: { state: AppStateType }) {
                     }
                     return false;
                   });
-                  const resultMap = new Map();
-                  roomKeys.forEach((key) => {
-                    resultMap.set(key.hashHex, key);
+                  roomKeys.forEach(async (key: RoomKey) => {
+                    if(await generateKeyHashHexJWK(key) === key.hashHex) {
+                      state.roomKey.value.push({
+                        key: key,
+                        hashHex: key.hashHex,
+                      });
+                      return
+                    }
                   });
-                  if (!(state.roomKey.value instanceof Map)) {
-                    state.roomKey.value = new Map();
+                  if (!(state.roomKey.value instanceof Array)) {
+                    state.roomKey.value = []
                   }
-                  state.roomKey.value = new Map([...resultMap, ...state.roomKey.value]);
+                  state.latestRoomKeyhashHex.value = await generateKeyHashHexJWK(
+                    roomKeys[0],
+                  );
+                  console.log(state.roomKey.value);
                   state.ws.value?.send(
                     JSON.stringify({
                       type: "joinFriend",

@@ -6,7 +6,6 @@ import FriendRoom from "@/models/friend/room.ts";
 import FriendMessage from "@/models/friend/message.ts";
 import FriendKeys from "@/models/friend/roomkeys.ts";
 import { load } from "@std/dotenv";
-import { EncryptedDataAccountKey } from "takosEncryptInk";
 import uuid from "ui7";
 const env = await load();
 
@@ -35,9 +34,6 @@ app.post("/:userId/friend", async (c) => {
     return c.json({ status: false, message: "Invalid body" }, 400);
   }
   const { message } = body;
-  if(message instanceof EncryptedDataAccountKey){
-    return c.json({ status: false, message: "Invalid body" }, 400);
-  }
   const room = await FriendRoom.findOne({
     users: { $all: [session.userName, friendId] },
   });
@@ -51,7 +47,7 @@ app.post("/:userId/friend", async (c) => {
   if (!latestKey) {
     return c.json({ status: false, message: "Key not found" }, 404);
   }
-  if (latestKey.keyHashHex !== message.keyHashHex) {
+  if (latestKey.keyHashHex !== message.encryptedKeyHashHex) {
     return c.json({ status: false, message: "Invalid key" }, 400);
   }
   await FriendMessage.create({
@@ -60,7 +56,7 @@ app.post("/:userId/friend", async (c) => {
     messageObj: message,
     read: false,
     messageid: uuid(),
-    roomKeyHashHex: message.keyHashHex,
+    roomKeyHashHex: message.encryptedKeyHashHex,
   });
   return c.json({ status: true });
 });

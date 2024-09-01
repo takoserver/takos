@@ -134,10 +134,8 @@ interface EncryptedDataAccountKey {
 interface EncryptedDataRoomKey {
   encryptedData: string;
   keyType: "roomKey";
-  iv?: string;
-  encryptedDataSign: Sign;
+  iv: string;
   encryptedKeyHashHex: string;
-  signKeyHashHex: string;
   version: number;
 };
 

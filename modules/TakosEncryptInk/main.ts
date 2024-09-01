@@ -298,7 +298,19 @@ export async function createIdentityKeyAndAccountKey(
     "master",
   );
   const time = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString();
-  const sign2 = await signKeyExpiration(masterKey, time, "master");
+  const sign2 = await signKeyExpiration(masterKey, time, {
+    key: identityKeyPublic,
+    keyType: "identityPub",
+    sign: identityKeySign,
+    keyExpiration: time,
+    keyExpirationSign: {
+      signature: "",
+      hashedPublicKeyHex: "",
+      type: "master",
+      version: 1,
+    },
+    version: 1,
+  } , "master");
 
   const identityKeyPublicResult: IdentityKeyPub = {
     key: identityKeyPublic,
@@ -587,11 +599,14 @@ async function sign(
 export async function signKeyExpiration(
   key: MasterKey | IdentityKey,
   date: string,
+  signedKey: IdentityKeyPub | AccountKeyPub | deviceKeyPub | RoomKey | KeyShareKeyPub,
   type: "master" | "identity",
 ): Promise<Sign> {
+  const hashHex = await generateKeyHashHexJWK(signedKey);
+  const buffer = new TextEncoder().encode(date + hashHex);
   const signResult = await sign(
     key,
-    new TextEncoder().encode(date),
+    buffer,
     type,
   );
   return signResult;
@@ -599,7 +614,8 @@ export async function signKeyExpiration(
 
 export async function isValidKeyExpiration(
   key: MasterKeyPub | IdentityKeyPub,
-  signedKey: { keyExpiration: string; keyExpirationSign: Sign },
+  signAndKey: { keyExpiration: string; keyExpirationSign: Sign },
+  signedKey: IdentityKeyPub | AccountKeyPub | deviceKeyPub | RoomKey | KeyShareKeyPub,
 ): Promise<boolean> {
   try {
     const importedKey = await crypto.subtle.importKey(
@@ -609,12 +625,11 @@ export async function isValidKeyExpiration(
       true,
       ["verify"],
     );
-
-    const keyBuffer = new TextEncoder().encode(signedKey.keyExpiration);
     const signatureBuffer = base64ToArrayBuffer(
-      signedKey.keyExpirationSign.signature,
+      signAndKey.keyExpirationSign.signature,
     );
-
+    const hashHex = await generateKeyHashHexJWK(signedKey);
+    const hashBuffer = new TextEncoder().encode(signAndKey.keyExpiration + hashHex);
     return await crypto.subtle.verify(
       {
         name: "RSA-PSS",
@@ -622,7 +637,7 @@ export async function isValidKeyExpiration(
       },
       importedKey,
       signatureBuffer,
-      keyBuffer,
+      hashBuffer,
     );
   } catch (error) {
     console.error("Verification failed:", error);
@@ -727,7 +742,7 @@ export async function isValidIdentityKeySign(
     return false;
   }
   return await verifyKey(masterKeyPub, identityKey) &&
-    await isValidKeyExpiration(masterKeyPub, identityKey);
+    await isValidKeyExpiration(masterKeyPub, identityKey, identityKey);
 }
 
 export async function isValidAccountKey(
@@ -762,9 +777,11 @@ export async function signData(
     "SHA-256",
     new TextEncoder().encode(JSON.stringify(key.public.key)),
   );
-  const hashedPublicKeyHex = Array.from(new Uint8Array(publicKeyHashBuffer))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  const hashedPublicKeyHex = await generateKeyHashHexCryptoKey(
+    await importKey(key.public, "public"),
+    key.public.keyType,
+    key.public.version,
+  );
   return {
     signature: arrayBufferToBase64(signature),
     hashedPublicKeyHex,
@@ -833,6 +850,20 @@ export async function createRoomKey(
   const ExpirationSign = await signKeyExpiration(
     identity_key,
     Expiration,
+    {
+      key: roomKeyJWK,
+      sign: roomKeySign,
+      keyExpiration: Expiration,
+      keyExpirationSign: {
+        signature: "",
+        hashedPublicKeyHex: "",
+        type: "identity",
+        version: 1,
+      },
+      keyType: "roomKey",
+      hashHex: "roomKeyHash",
+      version: 1,
+    },
     "identity",
   );
   const roomKeyHash = await generateKeyHashHexCryptoKey(roomKey, "roomKey", 1);
@@ -866,66 +897,11 @@ export async function isValidRoomKey(
     return false;
   }
   return await verifyKey(identity_key, roomKey) &&
-    await isValidKeyExpiration(identity_key, roomKey);
+    await isValidKeyExpiration(identity_key, roomKey, roomKey);
 }
 
 //RoomKeyを使って暗号化
-export async function encryptAndSignDataWithRoomKey(
-  roomKey: RoomKey,
-  data: string,
-  identity_key: IdentityKey,
-): Promise<EncryptedDataRoomKey> {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encryptedData = await crypto.subtle.encrypt(
-    {
-      name: "AES-GCM",
-      iv: iv,
-    },
-    await importKey(roomKey, "public"),
-    new TextEncoder().encode(data),
-  );
-  const encryptedDataSign = await signData(identity_key, encryptedData);
-  return {
-    encryptedData: arrayBufferToBase64(encryptedData),
-    keyType: "roomKey",
-    iv: arrayBufferToBase64(iv),
-    encryptedDataSign: encryptedDataSign,
-    encryptedKeyHashHex: roomKey.hashHex,
-    signKeyHashHex: roomKey.sign.hashedPublicKeyHex,
-    version: 1,
-  };
-}
 
-export async function decryptAndVerifyDataWithRoomKey(
-  roomKey: RoomKey,
-  encryptedData: EncryptedDataRoomKey,
-  identity_key: IdentityKeyPub,
-): Promise<string | null> {
-  if (roomKey.hashHex !== encryptedData.encryptedKeyHashHex) {
-    return null;
-  }
-  if (roomKey.sign.hashedPublicKeyHex !== encryptedData.signKeyHashHex) {
-    return null;
-  }
-  if (
-    !await verifyData(
-      identity_key,
-      base64ToArrayBuffer(encryptedData.encryptedData),
-      encryptedData.encryptedDataSign,
-    )
-  ) {
-    return null;
-  }
-  const decryptedData = await crypto.subtle.decrypt(
-    {
-      name: "AES-GCM",
-      iv: base64ToArrayBuffer(encryptedData.iv || ""),
-    },
-    await importKey(roomKey, "private"),
-    base64ToArrayBuffer(encryptedData.encryptedData),
-  );
-  return new TextDecoder().decode(decryptedData);
-}
 
 // AccountKeyを使って暗号化する関数
 export async function encryptWithAccountKey(
@@ -1100,6 +1076,7 @@ export async function createKeyShareKey(
     keyExpirationSign: await signKeyExpiration(
       masterKey,
       new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(),
+      keyShareKeyPublicText,
       "master",
     ),
     version: 1,
@@ -1126,7 +1103,7 @@ export async function isValidKeyShareKey(
 ): Promise<boolean> {
   if (
     !await verifyKey(masterKey, keyShareKey) ||
-    !await isValidKeyExpiration(masterKey, keyShareKey)
+    !await isValidKeyExpiration(masterKey, keyShareKey, keyShareKey)
   ) {
     return false;
   }
@@ -1349,30 +1326,197 @@ export async function verifyDataWithMigrateDataSignKey(
   );
 }
 
-export async function encryptMessage(
-  message: Message,
+
+async function encryptDataRoomKey(
   roomKey: RoomKey,
-  identityKey: IdentityKey,
+  data: string,
 ): Promise<EncryptedDataRoomKey> {
-  return await encryptAndSignDataWithRoomKey(
-    roomKey,
-    JSON.stringify(message),
-    identityKey,
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await importKey(roomKey, "public");
+  const encryptedData = await crypto.subtle.encrypt(
+    {
+      name: "AES-GCM",
+      iv: iv,
+    },
+    key,
+    new TextEncoder().encode(data),
   );
+  return {
+    encryptedData: arrayBufferToBase64(encryptedData),
+    keyType: "roomKey",
+    iv: arrayBufferToBase64(iv),
+    encryptedKeyHashHex: roomKey.hashHex,
+    version: 1,
+  };
 }
 
-export async function decryptMessage(
-  encryptedMessage: EncryptedDataRoomKey,
+async function decryptDataRoomKey(
   roomKey: RoomKey,
-  identityKey: IdentityKeyPub,
-): Promise<Message | null> {
-  const decryptedData = await decryptAndVerifyDataWithRoomKey(
-    roomKey,
-    encryptedMessage,
-    identityKey,
+  encryptedData: EncryptedDataRoomKey,
+): Promise<string | null> {
+  const key = await importKey(roomKey, "private");
+  const decryptedData = await crypto.subtle.decrypt(
+    {
+      name: "AES-GCM",
+      iv: base64ToArrayBuffer(encryptedData.iv),
+    },
+    key,
+    base64ToArrayBuffer(encryptedData.encryptedData),
   );
-  if (!decryptedData) {
-    return null;
-  }
-  return JSON.parse(decryptedData);
+  return new TextDecoder().decode(decryptedData);
 }
+
+export interface messageBlockValue {
+  previousHashHex: string;
+  data: EncryptedDataRoomKey,
+}
+
+export interface messageBlock {
+  value: messageBlockValue,
+  signature: Sign,
+}
+
+export async function createMessageBlock(
+  data: EncryptedDataRoomKey,
+  identityKey: IdentityKey,
+  beforeBlock?: messageBlock,
+): Promise<messageBlock> {
+  if(beforeBlock){
+    const previousHash = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(JSON.stringify(beforeBlock)),
+    );
+    //16進数に変換
+    const previousHashHex = Array.from(new Uint8Array(previousHash))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+    const value: messageBlockValue = {
+      previousHashHex: previousHashHex,
+      data: data,
+    };
+    const signature = await signData(identityKey, new TextEncoder().encode(JSON.stringify(value)));
+    return {
+      value: value,
+      signature: signature,
+    };
+  } else {
+    const value: messageBlockValue = {
+      previousHashHex: "",
+      data: data,
+    };
+    const signature = await signData(identityKey, new TextEncoder().encode(JSON.stringify(value)));
+    return {
+      value: value,
+      signature: signature,
+    };
+  }
+}
+
+export async function isValidMessage(
+  message: messageBlock,
+  identityKey: IdentityKeyPub,
+): Promise<boolean> {
+  return await verifyData(identityKey, new TextEncoder().encode(JSON.stringify(message.value)), message.signature);
+}
+
+//古いメッセージがブロックチェーンにあるか確認する関数
+
+export async function verifyAndDecryptMessageChain(
+  messageChain: {
+    messageBlock: messageBlock,
+    sender: string,
+  }[],
+  identityKey: {
+    [key: string]: IdentityKeyPub[]
+  },
+  roomKey: RoomKey[],
+): Promise<Message[] | false> {
+  const messages: Message[] = [];
+  for (let i = 0; i < messageChain.length; i++) {
+    const message = messageChain[i];
+    //iが0,1の時は0でiが2,3の時は1の変数を使う
+    let identityKeyPub
+    for (let i = 0; i < identityKey[message.sender].length; i++) {
+      const identityKeyPub2 = identityKey[message.sender][i];
+      if (await generateKeyHashHexJWK(identityKeyPub2) === message.messageBlock.signature.hashedPublicKeyHex) {
+        identityKeyPub = identityKeyPub2;
+        break;
+      }
+    }
+    if (!identityKeyPub) {
+      return false;
+    }
+    const isValid = await isValidMessage(message.messageBlock, identityKeyPub);
+    if (!isValid) {
+      console.log("Invalid message");
+      console.log(identityKey[message.sender].length);
+      return false;
+    }
+    const roomKey2 = roomKey.find((key) => key.hashHex === message.messageBlock.value.data.encryptedKeyHashHex);
+    if (!roomKey2) {
+      return false;
+    }
+    const data = await decryptDataRoomKey(roomKey2, message.messageBlock.value.data);
+    if (!data) {
+      return false;
+    }
+    messages.push(JSON.parse(data));
+  }
+  return messages;
+}
+
+const test = async () => {
+  const tako = await createMasterKey();
+  const ika = await createMasterKey();
+  const takoIdentityKeys = await (async () => {
+    const keys = [];
+    for (let i = 0; i < 5; i++) {
+      keys.push(await ((await createIdentityKeyAndAccountKey(tako)).identityKey));
+    }
+    return keys;
+  })()
+  const ikaIdentityKeys = await (async () => {
+    const keys = [];
+    for (let i = 0; i < 5; i++) {
+      keys.push(await ((await createIdentityKeyAndAccountKey(ika)).identityKey));
+    }
+    return keys;
+  })()
+  const takoIdentityKeyPubs = takoIdentityKeys.map((key) => key.public);
+  const ikaIdentityKeyPubs = ikaIdentityKeys.map((key) => key.public);
+  const roomKey = await createRoomKey(takoIdentityKeys[0]);
+  const roomKey2 = await createRoomKey(ikaIdentityKeys[0]);
+
+  //かかる時間を計測
+  const start = performance.now();
+
+  const messagesChain = await (async (): Promise<messageBlock[]> => {
+    const message: Message = {
+      message: "string",
+      type: "text",
+      timestamp: new Date().toISOString(),
+      version: 1,
+    };
+    //takoとikaが交互にメッセージを送る
+    const messages: messageBlock[] = [];
+    for (let i = 0; i < 5; i++) {
+      messages.push(await createMessageBlock(await encryptDataRoomKey(roomKey, JSON.stringify(message)), takoIdentityKeys[i], messages[i - 1]));
+      messages.push(await createMessageBlock(await encryptDataRoomKey(roomKey2, JSON.stringify(message)), ikaIdentityKeys[i], messages[i]));
+    }
+    return messages;
+  })()
+  const messages = await verifyAndDecryptMessageChain(messagesChain.map((messageBlock, index) => {
+    return {
+      messageBlock: messageBlock,
+      sender: index % 2 === 0 ? "tako" : "ika",
+    }
+  }), {
+    tako: takoIdentityKeyPubs,
+    ika: ikaIdentityKeyPubs,
+  }, [roomKey, roomKey2]);
+  const end = performance.now();
+  console.log(messages);
+  console.log("Time:", (end - start) / 1000 + "s");
+}
+
+test();
