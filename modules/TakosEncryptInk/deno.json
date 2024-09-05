@@ -4,14 +4,16 @@
   },
 
   "name": "@takos/takos-encrypt-ink",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "exports": "./main.ts",
   "fmt": {
     "lineWidth": 100,
     "semiColons": false
   },
   "imports": {
-    "base64-arraybuffer": "npm:base64-arraybuffer@^1.0.2"
+    "base64-arraybuffer": "npm:base64-arraybuffer@^1.0.2",
+    "crystals-kyber": "npm:crystals-kyber@^5.1.0",
+    "dilithium-crystals": "npm:dilithium-crystals@^1.0.6"
   },
   "license": "AGPL-3.0"
 }

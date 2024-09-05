@@ -31,7 +31,7 @@ import type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-} from "./types.ts";
+} from "./types.ts"
 export type {
   AccountKey,
   AccountKeyPrivate,
@@ -65,28 +65,32 @@ export type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-};
-import { decode, encode } from "base64-arraybuffer";
+}
+import { decode, encode } from "base64-arraybuffer"
+
+import {dilithium} from 'dilithium-crystals';
+
+import kyber from 'crystals-kyber';
 
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  return encode(buffer);
+  return encode(buffer)
 }
 
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  return decode(base64);
+  return decode(base64)
 }
 
 export async function exportfromJWK(key: CryptoKey): Promise<JsonWebKey> {
-  return await crypto.subtle.exportKey("jwk", key);
+  return await crypto.subtle.exportKey("jwk", key)
 }
 
 // 文字列のハッシュを生成
 async function hashString(input: string): Promise<string> {
-  const buffer = new TextEncoder().encode(input);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  const buffer = new TextEncoder().encode(input)
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer)
   return [...new Uint8Array(hashBuffer)]
     .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+    .join("")
 }
 
 export async function generateKeyHashHexCryptoKey(
@@ -104,89 +108,89 @@ export async function generateKeyHashHexCryptoKey(
   version: number,
 ): Promise<string> {
   if (version == 1) {
-    let keyType;
+    let keyType
     switch (type) {
       case "masterPub":
-        keyType = "RSAPub";
-        break;
+        keyType = "RSAPub"
+        break
       case "identityPub":
-        keyType = "RSAPub";
-        break;
+        keyType = "RSAPub"
+        break
       case "accountPub":
-        keyType = "RSAPub";
-        break;
+        keyType = "RSAPub"
+        break
       case "devicePub":
-        keyType = "RSAPub";
-        break;
+        keyType = "RSAPub"
+        break
       case "keySharePub":
-        keyType = "RSAPub";
-        break;
+        keyType = "RSAPub"
+        break
       case "migratePub":
-        keyType = "RSAPub";
-        break;
+        keyType = "RSAPub"
+        break
       case "migrateDataSignPub":
-        keyType = "RSAPub";
-        break;
+        keyType = "RSAPub"
+        break
       case "roomKey":
-        keyType = "AESKey";
-        break;
+        keyType = "AESKey"
+        break
       case "devicePrivate":
-        keyType = "RSAPriv";
-        break;
+        keyType = "RSAPriv"
+        break
     }
     if (keyType == "AESKey") {
       // CryptoKeyをArrayBufferに変換
-      const keyBuffer = await crypto.subtle.exportKey("raw", key);
+      const keyBuffer = await crypto.subtle.exportKey("raw", key)
 
       // ArrayBufferをUint8Arrayに変換
-      const keyArray = new Uint8Array(keyBuffer);
+      const keyArray = new Uint8Array(keyBuffer)
 
       // Uint8ArrayをBase64文字列に変換
-      const base64Key = btoa(String.fromCharCode(...keyArray));
+      const base64Key = btoa(String.fromCharCode(...keyArray))
 
       // Base64文字列をハッシュ化
       const hashBuffer = await crypto.subtle.digest(
         "SHA-256",
         new TextEncoder().encode(base64Key),
-      );
+      )
 
       // ハッシュ値を16進数文字列に変換
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
       const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
+        .join("")
 
-      return hashHex;
+      return hashHex
     }
     if (keyType == "RSAPub") {
       //base64に変換
-      const keyBuffer = await crypto.subtle.exportKey("spki", key);
-      const keyArray = new Uint8Array(keyBuffer);
-      const base64Key = btoa(String.fromCharCode(...keyArray));
+      const keyBuffer = await crypto.subtle.exportKey("spki", key)
+      const keyArray = new Uint8Array(keyBuffer)
+      const base64Key = btoa(String.fromCharCode(...keyArray))
       //ハッシュ化
       const hashBuffer = await crypto.subtle.digest(
         "SHA-256",
         new TextEncoder().encode(base64Key),
-      );
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      )
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
       const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-      return hashHex;
+        .join("")
+      return hashHex
     }
     if (keyType == "RSAPriv") {
-      const keyBuffer = await crypto.subtle.exportKey("pkcs8", key);
-      const keyArray = new Uint8Array(keyBuffer);
-      const base64Key = btoa(String.fromCharCode(...keyArray));
+      const keyBuffer = await crypto.subtle.exportKey("pkcs8", key)
+      const keyArray = new Uint8Array(keyBuffer)
+      const base64Key = btoa(String.fromCharCode(...keyArray))
       const hashBuffer = await crypto.subtle.digest(
         "SHA-256",
         new TextEncoder().encode(base64Key),
-      );
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      )
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
       const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-      return hashHex;
+        .join("")
+      return hashHex
     }
   }
-  throw new Error(`Unsupported keyType: ${type}`);
+  throw new Error(`Unsupported keyType: ${type}`)
 }
 
 export async function generateKeyHashHexJWK(
@@ -205,7 +209,7 @@ export async function generateKeyHashHexJWK(
     await importKey(key, "public"),
     key.keyType,
     Number(key.version),
-  );
+  )
 }
 
 export async function createMasterKey(): Promise<MasterKey> {
@@ -218,12 +222,12 @@ export async function createMasterKey(): Promise<MasterKey> {
     },
     true,
     ["sign", "verify"],
-  );
+  )
   const MasterKeyPublickHex = await generateKeyHashHexCryptoKey(
     KeyPair.publicKey,
     "masterPub",
     1,
-  );
+  )
   return {
     public: {
       key: await exportfromJWK(KeyPair.publicKey),
@@ -237,7 +241,7 @@ export async function createMasterKey(): Promise<MasterKey> {
     },
     hashHex: MasterKeyPublickHex,
     version: 1,
-  };
+  }
 }
 
 export async function createIdentityKeyAndAccountKey(
@@ -252,14 +256,14 @@ export async function createIdentityKeyAndAccountKey(
     },
     true,
     ["sign", "verify"],
-  );
-  const identityKeyPublic = await exportfromJWK(identityKeyPair.publicKey);
-  const identityKeyPrivate = await exportfromJWK(identityKeyPair.privateKey);
+  )
+  const identityKeyPublic = await exportfromJWK(identityKeyPair.publicKey)
+  const identityKeyPrivate = await exportfromJWK(identityKeyPair.privateKey)
   const identityKeyHash = await generateKeyHashHexCryptoKey(
     identityKeyPair.publicKey,
     "identityPub",
     1,
-  );
+  )
 
   const accountKeyPair = await crypto.subtle.generateKey(
     {
@@ -270,9 +274,9 @@ export async function createIdentityKeyAndAccountKey(
     },
     true,
     ["encrypt", "decrypt"],
-  );
-  const accountKeyPublic = await exportfromJWK(accountKeyPair.publicKey);
-  const accountKeyPrivate = await exportfromJWK(accountKeyPair.privateKey);
+  )
+  const accountKeyPublic = await exportfromJWK(accountKeyPair.publicKey)
+  const accountKeyPrivate = await exportfromJWK(accountKeyPair.privateKey)
 
   const identityKeyPublicText: IdentityKeyPub = {
     key: identityKeyPublic,
@@ -284,53 +288,58 @@ export async function createIdentityKeyAndAccountKey(
       version: 1,
     },
     timestamp: "time",
-    timestampSign: {
+    expiration: "Expiration",
+    timeAndExpirationSign: {
       signature: "",
       hashedPublicKeyHex: "",
       type: "master",
       version: 1,
     },
     version: 1,
-  };
+  }
   const identityKeySign = await signKey(
     masterKey,
     identityKeyPublicText,
     "master",
-  );
-  const time = new Date(Date.now()).toISOString();
-  const sign2 = await signKeyExpiration(masterKey, time, {
+  )
+  const time = new Date(Date.now()).toISOString()
+  const expiration = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+    .toISOString()
+  const sign2 = await signKeyExpiration(masterKey, time, expiration, {
     key: identityKeyPublic,
     keyType: "identityPub",
     sign: identityKeySign,
     timestamp: "time",
-    timestampSign: {
+    timeAndExpirationSign: {
       signature: "",
       hashedPublicKeyHex: "",
       type: "master",
       version: 1,
     },
+    expiration: "Expiration",
     version: 1,
-  }, "master");
+  }, "master")
 
   const identityKeyPublicResult: IdentityKeyPub = {
     key: identityKeyPublic,
     keyType: "identityPub",
     sign: identityKeySign,
     timestamp: time,
-    timestampSign: sign2,
+    expiration: expiration,
+    timeAndExpirationSign: sign2,
     version: 1,
-  };
+  }
   const identityKeyPrivateResult: IdentityKeyPrivate = {
     key: identityKeyPrivate,
     keyType: "identityPrivate",
     version: 1,
-  };
+  }
   const identityKey: IdentityKey = {
     public: identityKeyPublicResult,
     private: identityKeyPrivateResult,
     hashHex: identityKeyHash,
     version: 1,
-  };
+  }
   const accountKeyPubTest: AccountKeyPub = {
     key: accountKeyPublic,
     keyType: "accountPub",
@@ -341,12 +350,12 @@ export async function createIdentityKeyAndAccountKey(
       version: 1,
     },
     version: 1,
-  };
+  }
   const accountKeySign = await signKey(
     identityKey,
     accountKeyPubTest,
     "identity",
-  );
+  )
   const accountKey: AccountKey = {
     public: {
       key: accountKeyPublic,
@@ -361,8 +370,8 @@ export async function createIdentityKeyAndAccountKey(
     },
     hashHex: identityKey.hashHex,
     version: 1,
-  };
-  return { identityKey, accountKey };
+  }
+  return { identityKey, accountKey }
 }
 
 export async function importKey(
@@ -384,88 +393,86 @@ export async function importKey(
     | migrateDataSignKeyPrivate,
   usages?: "public" | "private",
 ): Promise<CryptoKey> {
-  const jwk = inputKey.key;
-  const keyType = inputKey.keyType;
-  let type: string;
+  const jwk = inputKey.key
+  const keyType = inputKey.keyType
+  let type: string
   switch (keyType) {
     case "identityPub":
-      type = "RSA-PSS";
-      break;
+      type = "RSA-PSS"
+      break
     case "identityPrivate":
-      type = "RSA-PSS";
-      break;
+      type = "RSA-PSS"
+      break
     case "accountPub":
-      type = "RSA-OAEP";
-      break;
+      type = "RSA-OAEP"
+      break
     case "accountPrivate":
-      type = "RSA-OAEP";
-      break;
+      type = "RSA-OAEP"
+      break
     case "masterPub":
-      type = "RSA-PSS";
-      break;
+      type = "RSA-PSS"
+      break
     case "masterPrivate":
-      type = "RSA-PSS";
-      break;
+      type = "RSA-PSS"
+      break
     case "roomKey":
-      type = "AES-GCM";
-      break;
+      type = "AES-GCM"
+      break
     case "devicePub":
-      type = "RSA-OAEP";
-      break;
+      type = "RSA-OAEP"
+      break
     case "devicePrivate":
-      type = "RSA-OAEP";
-      break;
+      type = "RSA-OAEP"
+      break
     case "keySharePub":
-      type = "RSA-OAEP";
-      break;
+      type = "RSA-OAEP"
+      break
     case "keySharePrivate":
-      type = "RSA-OAEP";
-      break;
+      type = "RSA-OAEP"
+      break
     case "migratePub":
-      type = "RSA-OAEP";
-      break;
+      type = "RSA-OAEP"
+      break
     case "migratePrivate":
-      type = "RSA-OAEP";
-      break;
+      type = "RSA-OAEP"
+      break
     case "migrateDataSignPub":
-      type = "RSA-PSS";
-      break;
+      type = "RSA-PSS"
+      break
     case "migrateDataSignPrivate":
-      type = "RSA-PSS";
-      break;
+      type = "RSA-PSS"
+      break
     default:
-      throw new Error(`Unsupported keyType: ${keyType}`);
+      throw new Error(`Unsupported keyType: ${keyType}`)
   }
-  let key: CryptoKey;
+  let key: CryptoKey
   if (type === "RSA-OAEP") {
-    const keyUsages: KeyUsage[] = usages === "public"
-      ? ["encrypt"]
-      : ["decrypt"];
+    const keyUsages: KeyUsage[] = usages === "public" ? ["encrypt"] : ["decrypt"]
     key = await crypto.subtle.importKey(
       "jwk",
       jwk,
       { name: type, hash: { name: "SHA-256" } },
       true,
       keyUsages,
-    );
+    )
   } else if (type === "RSA-PSS") {
-    const keyUsages: KeyUsage[] = usages === "public" ? ["verify"] : ["sign"];
+    const keyUsages: KeyUsage[] = usages === "public" ? ["verify"] : ["sign"]
     key = await crypto.subtle.importKey(
       "jwk",
       jwk,
       { name: type, hash: { name: "SHA-256" } },
       true,
       keyUsages,
-    );
+    )
   } else if (type === "AES-GCM") {
     key = await crypto.subtle.importKey("jwk", jwk, { name: "AES-GCM" }, true, [
       "encrypt",
       "decrypt",
-    ]);
+    ])
   } else {
-    throw new Error(`Unsupported type: ${type}`);
+    throw new Error(`Unsupported type: ${type}`)
   }
-  return key;
+  return key
 }
 
 export async function verifyKey(
@@ -479,34 +486,34 @@ export async function verifyKey(
     | RoomKey
     | KeyShareKeyPub,
 ): Promise<boolean> {
-  let keyType: "public" | "private";
+  let keyType: "public" | "private"
   switch (signedKey.keyType) {
     case "identityPub":
-      keyType = "public";
-      break;
+      keyType = "public"
+      break
     case "accountPub":
-      keyType = "public";
-      break;
+      keyType = "public"
+      break
     case "devicePub":
-      keyType = "public";
-      break;
+      keyType = "public"
+      break
     case "devicePrivate":
-      keyType = "private";
-      break;
+      keyType = "private"
+      break
     case "roomKey":
-      keyType = "public";
-      break;
+      keyType = "public"
+      break
     case "keySharePub":
-      keyType = "public";
-      break;
+      keyType = "public"
+      break
     default:
-      throw new Error(`Unsupported keyType: ${"keyToSign.keyType"}`);
+      throw new Error(`Unsupported keyType: ${"keyToSign.keyType"}`)
   }
-  const importedKey = await importKey(key, keyType);
+  const importedKey = await importKey(key, keyType)
   const keyBuffer = await crypto.subtle.exportKey(
     (keyType === "public") ? "spki" : "pkcs8",
     importedKey,
-  );
+  )
   return await crypto.subtle.verify(
     {
       name: "RSA-PSS",
@@ -515,7 +522,7 @@ export async function verifyKey(
     importedKey,
     base64ToArrayBuffer(signedKey.sign.signature),
     keyBuffer, // ensure the same data is used
-  );
+  )
 }
 
 export async function signKey(
@@ -530,51 +537,51 @@ export async function signKey(
     | KeyShareKeyPub,
   type: "master" | "identity",
 ): Promise<Sign> {
-  let keyType: "public" | "private" | "roomKey";
+  let keyType: "public" | "private" | "roomKey"
   switch (keyToSign.keyType) {
     case "identityPub":
-      keyType = "public";
-      break;
+      keyType = "public"
+      break
     case "accountPub":
-      keyType = "public";
-      break;
+      keyType = "public"
+      break
     case "devicePub":
-      keyType = "public";
-      break;
+      keyType = "public"
+      break
     case "devicePrivate":
-      keyType = "private";
-      break;
+      keyType = "private"
+      break
     case "roomKey":
-      keyType = "roomKey";
-      break;
+      keyType = "roomKey"
+      break
     case "keySharePub":
-      keyType = "public";
-      break;
+      keyType = "public"
+      break
     default:
-      throw new Error(`Unsupported keyType: ${"keyToSign.keyType"}`);
+      throw new Error(`Unsupported keyType: ${"keyToSign.keyType"}`)
   }
   if (keyType === "roomKey") {
-    const importedKey = await importKey(keyToSign, "public");
+    const importedKey = await importKey(keyToSign, "public")
     const keyBuffer = await crypto.subtle.exportKey(
       "raw",
       importedKey,
-    );
+    )
     return await sign(
       key,
       keyBuffer,
       type,
-    );
+    )
   }
-  const importedKey = await importKey(keyToSign, keyType);
+  const importedKey = await importKey(keyToSign, keyType)
   const keyBuffer = await crypto.subtle.exportKey(
     (keyType === "public") ? "spki" : "pkcs8",
     importedKey,
-  );
+  )
   return await sign(
     key,
     keyBuffer,
     type,
-  );
+  )
 }
 
 async function sign(
@@ -589,7 +596,7 @@ async function sign(
     },
     await importKey(key.private, "private"),
     data,
-  );
+  )
   return {
     signature: arrayBufferToBase64(signature),
     hashedPublicKeyHex: await generateKeyHashHexCryptoKey(
@@ -599,12 +606,13 @@ async function sign(
     ),
     type,
     version: 1,
-  };
+  }
 }
 
 export async function signKeyExpiration(
   key: MasterKey | IdentityKey,
-  date: string,
+  time: string,
+  expiration: string,
   signedKey:
     | IdentityKeyPub
     | AccountKeyPub
@@ -613,19 +621,23 @@ export async function signKeyExpiration(
     | KeyShareKeyPub,
   type: "master" | "identity",
 ): Promise<Sign> {
-  const hashHex = await generateKeyHashHexJWK(signedKey);
-  const buffer = new TextEncoder().encode(date + hashHex);
+  const hashHex = await generateKeyHashHexJWK(signedKey)
+  const buffer = new TextEncoder().encode(time + expiration + hashHex)
   const signResult = await sign(
     key,
     buffer,
     type,
-  );
-  return signResult;
+  )
+  return signResult
 }
 
 export async function isValidKeyExpiration(
   key: MasterKeyPub | IdentityKeyPub,
-  signAndKey: { timestamp: string; timestampSign: Sign },
+  signAndKey: {
+    timestamp: string // 鍵の作成日時
+    expiration: string // 鍵の有効期限
+    timeAndExpirationSign: Sign // 鍵の作成日時と有効期限に対する署名
+  },
   signedKey:
     | IdentityKeyPub
     | AccountKeyPub
@@ -640,14 +652,14 @@ export async function isValidKeyExpiration(
       { name: "RSA-PSS", hash: { name: "SHA-256" } },
       true,
       ["verify"],
-    );
+    )
     const signatureBuffer = base64ToArrayBuffer(
-      signAndKey.timestampSign.signature,
-    );
-    const hashHex = await generateKeyHashHexJWK(signedKey);
+      signAndKey.timeAndExpirationSign.signature,
+    )
+    const hashHex = await generateKeyHashHexJWK(signedKey)
     const hashBuffer = new TextEncoder().encode(
-      signAndKey.timestamp + hashHex,
-    );
+      signAndKey.timestamp + signAndKey.expiration + hashHex,
+    )
     return await crypto.subtle.verify(
       {
         name: "RSA-PSS",
@@ -656,10 +668,10 @@ export async function isValidKeyExpiration(
       importedKey,
       signatureBuffer,
       hashBuffer,
-    );
+    )
   } catch (error) {
-    console.error("Verification failed:", error);
-    return false;
+    console.error("Verification failed:", error)
+    return false
   }
 }
 
@@ -675,9 +687,9 @@ export async function createDeviceKey(
     },
     true,
     ["encrypt", "decrypt"],
-  );
-  const deviceKeyPublic = await exportfromJWK(deviceKeyPair.publicKey);
-  const deviceKeyPrivate = await exportfromJWK(deviceKeyPair.privateKey);
+  )
+  const deviceKeyPublic = await exportfromJWK(deviceKeyPair.publicKey)
+  const deviceKeyPrivate = await exportfromJWK(deviceKeyPair.privateKey)
   const deviceKeyPublicText: deviceKeyPub = {
     key: deviceKeyPublic,
     keyType: "devicePub",
@@ -688,7 +700,7 @@ export async function createDeviceKey(
       version: 1,
     },
     version: 1,
-  };
+  }
   const deviceKeyPrivateText: deviceKeyPrivate = {
     key: deviceKeyPrivate,
     keyType: "devicePrivate",
@@ -699,9 +711,9 @@ export async function createDeviceKey(
       type: "master",
       version: 1,
     },
-  };
-  const pubKeySign = await signKey(masterKey, deviceKeyPublicText, "master");
-  const privKeySign = await signKey(masterKey, deviceKeyPrivateText, "master");
+  }
+  const pubKeySign = await signKey(masterKey, deviceKeyPublicText, "master")
+  const privKeySign = await signKey(masterKey, deviceKeyPrivateText, "master")
   return {
     public: {
       key: deviceKeyPublic,
@@ -721,7 +733,7 @@ export async function createDeviceKey(
       1,
     ),
     version: 1,
-  };
+  }
 }
 
 export async function isValidDeviceKey(
@@ -731,48 +743,48 @@ export async function isValidDeviceKey(
 ): Promise<boolean> {
   if (checkKie === "both") {
     return await verifyKey(masterKey, deviceKey.public) &&
-      await verifyKey(masterKey, deviceKey.private);
+      await verifyKey(masterKey, deviceKey.private)
   }
   if (checkKie === "public") {
-    return await verifyKey(masterKey, deviceKey.public);
+    return await verifyKey(masterKey, deviceKey.public)
   }
   if (checkKie === "private") {
-    return await verifyKey(masterKey, deviceKey.private);
+    return await verifyKey(masterKey, deviceKey.private)
   }
-  return false;
+  return false
 }
 
 export async function isValidIdentityKeySign(
   masterKeyPub: MasterKeyPub,
   identityKey: IdentityKeyPub,
 ): Promise<boolean> {
-  const masterKey = await importKey(masterKeyPub, "public");
+  const masterKey = await importKey(masterKeyPub, "public")
   const masterKeyHashHex = await generateKeyHashHexCryptoKey(
     masterKey,
     "masterPub",
     1,
-  );
+  )
   if (identityKey.sign.hashedPublicKeyHex !== masterKeyHashHex) {
-    return false;
+    return false
   }
   return await verifyKey(masterKeyPub, identityKey) &&
-    await isValidKeyExpiration(masterKeyPub, identityKey, identityKey);
+    await isValidKeyExpiration(masterKeyPub, identityKey, identityKey)
 }
 
 export async function isValidAccountKey(
   identityKey: IdentityKeyPub,
   accountKey: AccountKeyPub,
 ): Promise<boolean> {
-  const identityKeyCryptoKey = await importKey(identityKey, "public");
+  const identityKeyCryptoKey = await importKey(identityKey, "public")
   const identityKeyHashHex = await generateKeyHashHexCryptoKey(
     identityKeyCryptoKey,
     "identityPub",
     1,
-  );
+  )
   if (accountKey.sign.hashedPublicKeyHex !== identityKeyHashHex) {
-    return false;
+    return false
   }
-  return await verifyKey(identityKey, accountKey);
+  return await verifyKey(identityKey, accountKey)
 }
 
 export async function signData(
@@ -786,22 +798,22 @@ export async function signData(
     },
     await importKey(key.private, "private"),
     data,
-  );
+  )
   const publicKeyHashBuffer = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(JSON.stringify(key.public.key)),
-  );
+  )
   const hashedPublicKeyHex = await generateKeyHashHexCryptoKey(
     await importKey(key.public, "public"),
     key.public.keyType,
     key.public.version,
-  );
+  )
   return {
     signature: arrayBufferToBase64(signature),
     hashedPublicKeyHex,
     type: "master",
     version: 1,
-  };
+  }
 }
 
 export async function verifyData(
@@ -815,7 +827,7 @@ export async function verifyData(
     { name: "RSA-PSS", hash: { name: "SHA-256" } },
     true,
     ["verify"],
-  );
+  )
   return await crypto.subtle.verify(
     {
       name: "RSA-PSS",
@@ -824,7 +836,7 @@ export async function verifyData(
     importedKey,
     base64ToArrayBuffer(signature.signature),
     signedData,
-  );
+  )
 }
 
 export async function createRoomKey(
@@ -837,8 +849,8 @@ export async function createRoomKey(
     },
     true,
     ["encrypt", "decrypt"],
-  );
-  const roomKeyJWK = await exportfromJWK(roomKey);
+  )
+  const roomKeyJWK = await exportfromJWK(roomKey)
   const roomKeyText: RoomKey = {
     key: roomKeyJWK,
     sign: {
@@ -848,7 +860,8 @@ export async function createRoomKey(
       version: 1,
     },
     timestamp: "Expiration",
-    timestampSign: {
+    expiration: "Expiration",
+    timeAndExpirationSign: {
       signature: "",
       hashedPublicKeyHex: "",
       type: "identity",
@@ -857,18 +870,21 @@ export async function createRoomKey(
     keyType: "roomKey",
     hashHex: "roomKeyHash",
     version: 1,
-  };
-  const roomKeySign = await signKey(identity_key, roomKeyText, "identity");
+  }
+  const roomKeySign = await signKey(identity_key, roomKeyText, "identity")
   const Expiration = new Date(Date.now() + 1000 * 60 * 60 * 24 * 60)
-    .toISOString();
+    .toISOString()
+  const time = new Date(Date.now()).toISOString()
   const ExpirationSign = await signKeyExpiration(
     identity_key,
+    time,
     Expiration,
     {
       key: roomKeyJWK,
       sign: roomKeySign,
-      timestamp: Expiration,
-      timestampSign: {
+      timestamp: time,
+      expiration: Expiration,
+      timeAndExpirationSign: {
         signature: "",
         hashedPublicKeyHex: "",
         type: "identity",
@@ -879,24 +895,25 @@ export async function createRoomKey(
       version: 1,
     },
     "identity",
-  );
-  const roomKeyHash = await generateKeyHashHexCryptoKey(roomKey, "roomKey", 1);
+  )
+  const roomKeyHash = await generateKeyHashHexCryptoKey(roomKey, "roomKey", 1)
   return {
     key: roomKeyJWK,
     sign: roomKeySign,
-    timestamp: Expiration,
-    timestampSign: ExpirationSign,
+    timestamp: time,
+    expiration: Expiration,
+    timeAndExpirationSign: ExpirationSign,
     keyType: "roomKey",
     hashHex: roomKeyHash,
     version: 1,
-  };
+  }
 }
 
 export async function isValidRoomKey(
   identity_key: IdentityKeyPub,
   roomKey: RoomKey,
 ): Promise<boolean> {
-  const identity_key_cryptoKey = await importKey(identity_key, "public");
+  const identity_key_cryptoKey = await importKey(identity_key, "public")
   if (
     roomKey.sign.hashedPublicKeyHex !==
       await generateKeyHashHexCryptoKey(
@@ -905,13 +922,13 @@ export async function isValidRoomKey(
         1,
       )
   ) {
-    return false;
+    return false
   }
   if (roomKey.timestamp < new Date().toISOString()) {
-    return false;
+    return false
   }
   return await verifyKey(identity_key, roomKey) &&
-    await isValidKeyExpiration(identity_key, roomKey, roomKey);
+    await isValidKeyExpiration(identity_key, roomKey, roomKey)
 }
 
 //RoomKeyを使って暗号化
@@ -921,9 +938,9 @@ export async function encryptWithAccountKey(
   accountKey: AccountKeyPub,
   data: string,
 ): Promise<EncryptedDataAccountKey> {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const DataArray = splitArrayBuffer(new TextEncoder().encode(data), 160);
-  const key = await importKey(accountKey, "public");
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const DataArray = splitArrayBuffer(new TextEncoder().encode(data), 160)
+  const key = await importKey(accountKey, "public")
   const encryptedData = await Promise.all(
     DataArray.map(async (buffer) => {
       return arrayBufferToBase64(
@@ -935,16 +952,16 @@ export async function encryptWithAccountKey(
           key,
           buffer,
         ),
-      );
+      )
     }),
-  );
+  )
   return {
     encryptedData: encryptedData,
     keyType: "accountKey",
     iv: arrayBufferToBase64(iv),
     encryptedKeyHashHex: accountKey.sign.hashedPublicKeyHex,
     version: 1,
-  };
+  }
 }
 
 // AccountKeyで暗号化されたデータを復号化し、検証する関数
@@ -952,7 +969,7 @@ export async function decryptDataWithAccountKey(
   accountKey: AccountKey,
   encryptedData: EncryptedDataAccountKey,
 ): Promise<string | null> {
-  const key = await importKey(accountKey.private, "private");
+  const key = await importKey(accountKey.private, "private")
   const decryptedDataArray = await Promise.all(
     encryptedData.encryptedData.map(async (data) => {
       return await crypto.subtle.decrypt(
@@ -961,20 +978,20 @@ export async function decryptDataWithAccountKey(
         },
         key,
         base64ToArrayBuffer(data),
-      );
+      )
     }),
-  );
-  return new TextDecoder().decode(rebuildArrayBuffer(decryptedDataArray));
+  )
+  return new TextDecoder().decode(rebuildArrayBuffer(decryptedDataArray))
 }
 
 export async function encryptDataDeviceKey(
   deviceKey: deviceKey,
   data: string,
 ): Promise<EncryptedDataDeviceKey> {
-  const ArrayBuffer = new TextEncoder().encode(data);
-  const dividedArrayBuffer = splitArrayBuffer(ArrayBuffer, 160);
+  const ArrayBuffer = new TextEncoder().encode(data)
+  const dividedArrayBuffer = splitArrayBuffer(ArrayBuffer, 160)
   try {
-    const key = await importKey(deviceKey.public, "public");
+    const key = await importKey(deviceKey.public, "public")
     const encryptedData = await Promise.all(
       dividedArrayBuffer.map(async (buffer) => {
         return arrayBufferToBase64(
@@ -985,18 +1002,18 @@ export async function encryptDataDeviceKey(
             key,
             buffer,
           ),
-        );
+        )
       }),
-    );
+    )
     return {
       encryptedData: encryptedData,
       keyType: "DeviceKey",
       encryptedKeyHashHex: deviceKey.hashHex,
       version: 1,
-    };
+    }
   } catch (error) {
-    console.error("Encryption failed:", error);
-    throw error;
+    console.error("Encryption failed:", error)
+    throw error
   }
 }
 
@@ -1004,7 +1021,7 @@ export async function decryptDataDeviceKey(
   deviceKey: deviceKey,
   encryptedData: EncryptedDataDeviceKey,
 ): Promise<string | null> {
-  const key = await importKey(deviceKey.private, "private");
+  const key = await importKey(deviceKey.private, "private")
   const decryptedDataArray = await Promise.all(
     encryptedData.encryptedData.map(async (data) => {
       return await crypto.subtle.decrypt(
@@ -1013,38 +1030,38 @@ export async function decryptDataDeviceKey(
         },
         key,
         base64ToArrayBuffer(data),
-      );
+      )
     }),
-  );
-  return new TextDecoder().decode(rebuildArrayBuffer(decryptedDataArray));
+  )
+  return new TextDecoder().decode(rebuildArrayBuffer(decryptedDataArray))
 }
 
 function splitArrayBuffer(
   buffer: ArrayBuffer,
   chunkSize: number,
 ): ArrayBuffer[] {
-  const result: ArrayBuffer[] = [];
-  const view = new Uint8Array(buffer);
+  const result: ArrayBuffer[] = []
+  const view = new Uint8Array(buffer)
   for (let offset = 0; offset < buffer.byteLength; offset += chunkSize) {
-    const end = Math.min(offset + chunkSize, buffer.byteLength);
-    const chunk = view.slice(offset, end).buffer;
-    result.push(chunk);
+    const end = Math.min(offset + chunkSize, buffer.byteLength)
+    const chunk = view.slice(offset, end).buffer
+    result.push(chunk)
   }
-  return result;
+  return result
 }
 
 function rebuildArrayBuffer(buffers: ArrayBuffer[]): ArrayBuffer {
   const totalLength = buffers.reduce(
     (acc, buffer) => acc + buffer.byteLength,
     0,
-  );
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
+  )
+  const result = new Uint8Array(totalLength)
+  let offset = 0
   for (const buffer of buffers) {
-    result.set(new Uint8Array(buffer), offset);
-    offset += buffer.byteLength;
+    result.set(new Uint8Array(buffer), offset)
+    offset += buffer.byteLength
   }
-  return result.buffer;
+  return result.buffer
 }
 export async function createKeyShareKey(
   masterKey: MasterKey,
@@ -1058,9 +1075,9 @@ export async function createKeyShareKey(
     },
     true,
     ["encrypt", "decrypt"],
-  );
-  const keyPublic = await exportfromJWK(keyPair.publicKey);
-  const keyPrivate = await exportfromJWK(keyPair.privateKey);
+  )
+  const keyPublic = await exportfromJWK(keyPair.publicKey)
+  const keyPrivate = await exportfromJWK(keyPair.privateKey)
   const keyShareKeyPublicText: KeyShareKeyPub = {
     key: keyPublic,
     keyType: "keySharePub",
@@ -1071,33 +1088,38 @@ export async function createKeyShareKey(
       version: 1,
     },
     timestamp: "time",
-    timestampSign: {
+    expiration: "Expiration",
+    timeAndExpirationSign: {
       signature: "",
       hashedPublicKeyHex: "",
       type: "master",
       version: 1,
     },
     version: 1,
-  };
-  const pubKeySign = await signKey(masterKey, keyShareKeyPublicText, "master");
+  }
+  const pubKeySign = await signKey(masterKey, keyShareKeyPublicText, "master")
+  const time = new Date(Date.now()).toISOString()
+  const expiration = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+    .toISOString()
   const keyShareKeyPublic: KeyShareKeyPub = {
     key: keyPublic,
     keyType: "keySharePub",
     sign: pubKeySign,
-    timestamp: new Date(Date.now())
-      .toISOString(),
-      timestampSign: await signKeyExpiration(
+    timestamp: time,
+    expiration: expiration,
+    timeAndExpirationSign: await signKeyExpiration(
       masterKey,
-      new Date(Date.now()).toISOString(),
+      time,
+      expiration,
       keyShareKeyPublicText,
       "master",
     ),
     version: 1,
-  };
+  }
   const keyShareKeyPrivate: KeyShareKeyPrivate = {
     key: keyPrivate,
     keyType: "keySharePrivate",
-  };
+  }
   return {
     public: keyShareKeyPublic,
     private: keyShareKeyPrivate,
@@ -1107,7 +1129,7 @@ export async function createKeyShareKey(
       1,
     ),
     version: 1,
-  };
+  }
 }
 
 export async function isValidKeyShareKey(
@@ -1118,9 +1140,9 @@ export async function isValidKeyShareKey(
     !await verifyKey(masterKey, keyShareKey) ||
     !await isValidKeyExpiration(masterKey, keyShareKey, keyShareKey)
   ) {
-    return false;
+    return false
   }
-  return true;
+  return true
 }
 
 export async function encryptAndSignDataWithKeyShareKey(
@@ -1128,9 +1150,9 @@ export async function encryptAndSignDataWithKeyShareKey(
   data: string,
   master_key: MasterKey,
 ): Promise<EncryptedDataKeyShareKey> {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const DataArray = splitArrayBuffer(new TextEncoder().encode(data), 160);
-  const key = await importKey(keyShareKey, "public");
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const DataArray = splitArrayBuffer(new TextEncoder().encode(data), 160)
+  const key = await importKey(keyShareKey, "public")
   const encryptedData = await Promise.all(
     DataArray.map(async (buffer) => {
       return arrayBufferToBase64(
@@ -1142,13 +1164,13 @@ export async function encryptAndSignDataWithKeyShareKey(
           key,
           buffer,
         ),
-      );
+      )
     }),
-  );
+  )
   const encryptedDataSign = await signData(
     master_key,
     new TextEncoder().encode(JSON.stringify(encryptedData)),
-  );
+  )
   return {
     encryptedData: encryptedData,
     keyType: "keyShareKey",
@@ -1161,7 +1183,7 @@ export async function encryptAndSignDataWithKeyShareKey(
     ),
     signKeyHashHex: keyShareKey.sign.hashedPublicKeyHex,
     version: 1,
-  };
+  }
 }
 
 export async function decryptAndVerifyDataWithKeyShareKey(
@@ -1176,9 +1198,9 @@ export async function decryptAndVerifyDataWithKeyShareKey(
       encryptedData.encryptedDataSign,
     )
   ) {
-    return null;
+    return null
   }
-  const key = await importKey(keyShareKey.private, "private");
+  const key = await importKey(keyShareKey.private, "private")
   const decryptedDataArray = await Promise.all(
     encryptedData.encryptedData.map(async (data) => {
       return await crypto.subtle.decrypt(
@@ -1187,10 +1209,10 @@ export async function decryptAndVerifyDataWithKeyShareKey(
         },
         key,
         base64ToArrayBuffer(data),
-      );
+      )
     }),
-  );
-  return new TextDecoder().decode(rebuildArrayBuffer(decryptedDataArray));
+  )
+  return new TextDecoder().decode(rebuildArrayBuffer(decryptedDataArray))
 }
 
 export async function generateMigrateKey(): Promise<migrateKey> {
@@ -1203,9 +1225,9 @@ export async function generateMigrateKey(): Promise<migrateKey> {
     },
     true,
     ["encrypt", "decrypt"],
-  );
-  const keyPublic = await exportfromJWK(keyPair.publicKey);
-  const keyPrivate = await exportfromJWK(keyPair.privateKey);
+  )
+  const keyPublic = await exportfromJWK(keyPair.publicKey)
+  const keyPrivate = await exportfromJWK(keyPair.privateKey)
   return {
     public: {
       key: keyPublic,
@@ -1223,16 +1245,16 @@ export async function generateMigrateKey(): Promise<migrateKey> {
       1,
     ),
     version: 1,
-  };
+  }
 }
 
 export async function encryptDataWithMigrateKey(
   migrateKey: migrateKeyPub,
   data: string,
 ): Promise<string> {
-  const vi = crypto.getRandomValues(new Uint8Array(12));
-  const key = await importKey(migrateKey, "public");
-  const DataArray = splitArrayBuffer(new TextEncoder().encode(data), 160);
+  const vi = crypto.getRandomValues(new Uint8Array(12))
+  const key = await importKey(migrateKey, "public")
+  const DataArray = splitArrayBuffer(new TextEncoder().encode(data), 160)
   const encryptedData = await Promise.all(
     DataArray.map(async (buffer) => {
       return arrayBufferToBase64(
@@ -1244,18 +1266,18 @@ export async function encryptDataWithMigrateKey(
           key,
           buffer,
         ),
-      );
+      )
     }),
-  );
-  return JSON.stringify(encryptedData);
+  )
+  return JSON.stringify(encryptedData)
 }
 
 export async function decryptDataWithMigrateKey(
   migrateKey: migrateKey,
   encryptedData: string,
 ): Promise<string> {
-  const key = await importKey(migrateKey.private, "private");
-  const encryptedDataArray = JSON.parse(encryptedData);
+  const key = await importKey(migrateKey.private, "private")
+  const encryptedDataArray = JSON.parse(encryptedData)
   const decryptedDataArray = await Promise.all(
     encryptedDataArray.map(async (data: string) => {
       return await crypto.subtle.decrypt(
@@ -1264,11 +1286,11 @@ export async function decryptDataWithMigrateKey(
         },
         key,
         base64ToArrayBuffer(data),
-      );
+      )
     }),
-  );
-  const decryptedData = rebuildArrayBuffer(decryptedDataArray);
-  return new TextDecoder().decode(decryptedData);
+  )
+  const decryptedData = rebuildArrayBuffer(decryptedDataArray)
+  return new TextDecoder().decode(decryptedData)
 }
 
 export async function generateMigrateDataSignKey(): Promise<
@@ -1283,9 +1305,9 @@ export async function generateMigrateDataSignKey(): Promise<
     },
     true,
     ["sign", "verify"],
-  );
-  const keyPublic = await exportfromJWK(keyPair.publicKey);
-  const keyPrivate = await exportfromJWK(keyPair.privateKey);
+  )
+  const keyPublic = await exportfromJWK(keyPair.publicKey)
+  const keyPrivate = await exportfromJWK(keyPair.privateKey)
   return {
     public: {
       key: keyPublic,
@@ -1303,14 +1325,14 @@ export async function generateMigrateDataSignKey(): Promise<
       1,
     ),
     version: 1,
-  };
+  }
 }
 
 export async function signDataWithMigrateDataSignKey(
   migrateDataSignKey: migrateDataSignKey,
   data: string,
 ): Promise<string> {
-  const key = await importKey(migrateDataSignKey.private, "private");
+  const key = await importKey(migrateDataSignKey.private, "private")
   const signature = await crypto.subtle.sign(
     {
       name: "RSA-PSS",
@@ -1318,8 +1340,8 @@ export async function signDataWithMigrateDataSignKey(
     },
     key,
     new TextEncoder().encode(data),
-  );
-  return arrayBufferToBase64(signature);
+  )
+  return arrayBufferToBase64(signature)
 }
 
 export async function verifyDataWithMigrateDataSignKey(
@@ -1327,7 +1349,7 @@ export async function verifyDataWithMigrateDataSignKey(
   data: string,
   signature: string,
 ): Promise<boolean> {
-  const key = await importKey(migrateDataSignKey, "public");
+  const key = await importKey(migrateDataSignKey, "public")
   return await crypto.subtle.verify(
     {
       name: "RSA-PSS",
@@ -1336,15 +1358,15 @@ export async function verifyDataWithMigrateDataSignKey(
     key,
     base64ToArrayBuffer(signature),
     new TextEncoder().encode(data),
-  );
+  )
 }
 
 export async function encryptDataRoomKey(
   roomKey: RoomKey,
   data: string,
 ): Promise<EncryptedDataRoomKey> {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await importKey(roomKey, "public");
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const key = await importKey(roomKey, "public")
   const encryptedData = await crypto.subtle.encrypt(
     {
       name: "AES-GCM",
@@ -1352,21 +1374,21 @@ export async function encryptDataRoomKey(
     },
     key,
     new TextEncoder().encode(data),
-  );
+  )
   return {
     encryptedData: arrayBufferToBase64(encryptedData),
     keyType: "roomKey",
     iv: arrayBufferToBase64(iv),
     encryptedKeyHashHex: roomKey.hashHex,
     version: 1,
-  };
+  }
 }
 
 export async function decryptDataRoomKey(
   roomKey: RoomKey,
   encryptedData: EncryptedDataRoomKey,
 ): Promise<string | null> {
-  const key = await importKey(roomKey, "private");
+  const key = await importKey(roomKey, "private")
   const decryptedData = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
@@ -1374,22 +1396,24 @@ export async function decryptDataRoomKey(
     },
     key,
     base64ToArrayBuffer(encryptedData.encryptedData),
-  );
-  return new TextDecoder().decode(decryptedData);
+  )
+  return new TextDecoder().decode(decryptedData)
 }
 
 export interface messageBlockValue {
-  previousHashHex: string;
-  data: EncryptedDataRoomKey;
+  previousHashHex: string
+  data: EncryptedDataRoomKey
+  sender: string
 }
 
 export interface messageBlock {
-  value: messageBlockValue;
-  signature: Sign;
+  value: messageBlockValue
+  signature: Sign
 }
 
 export async function createMessageBlock(
   data: EncryptedDataRoomKey,
+  sender: string,
   identityKey: IdentityKey,
   beforeBlock?: messageBlock,
 ): Promise<messageBlock> {
@@ -1397,36 +1421,38 @@ export async function createMessageBlock(
     const previousHash = await crypto.subtle.digest(
       "SHA-256",
       new TextEncoder().encode(JSON.stringify(beforeBlock)),
-    );
+    )
     //16進数に変換
     const previousHashHex = Array.from(new Uint8Array(previousHash))
       .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("");
+      .join("")
     const value: messageBlockValue = {
       previousHashHex: previousHashHex,
       data: data,
-    };
+      sender: sender,
+    }
     const signature = await signData(
       identityKey,
       new TextEncoder().encode(JSON.stringify(value)),
-    );
+    )
     return {
       value: value,
       signature: signature,
-    };
+    }
   } else {
     const value: messageBlockValue = {
       previousHashHex: "",
       data: data,
-    };
+      sender: sender,
+    }
     const signature = await signData(
       identityKey,
       new TextEncoder().encode(JSON.stringify(value)),
-    );
+    )
     return {
       value: value,
       signature: signature,
-    };
+    }
   }
 }
 
@@ -1438,59 +1464,59 @@ export async function isValidMessage(
     identityKey,
     new TextEncoder().encode(JSON.stringify(message.value)),
     message.signature,
-  );
+  )
 }
 
 //古いメッセージがブロックチェーンにあるか確認する関数
 
 export async function verifyAndDecryptMessageChain(
   messageChain: {
-    messageBlock: messageBlock;
-    sender: string;
+    messageBlock: messageBlock
+    sender: string
   }[],
   identityKey: {
-    [key: string]: IdentityKeyPub[];
+    [key: string]: IdentityKeyPub[]
   },
   roomKey: RoomKey[],
 ): Promise<Message[] | false> {
-  const messages: Message[] = [];
+  const messages: Message[] = []
   for (let i = 0; i < messageChain.length; i++) {
-    const message = messageChain[i];
+    const message = messageChain[i]
     //iが0,1の時は0でiが2,3の時は1の変数を使う
-    let identityKeyPub;
+    let identityKeyPub
     for (let i = 0; i < identityKey[message.sender].length; i++) {
-      const identityKeyPub2 = identityKey[message.sender][i];
+      const identityKeyPub2 = identityKey[message.sender][i]
       if (
         await generateKeyHashHexJWK(identityKeyPub2) ===
           message.messageBlock.signature.hashedPublicKeyHex
       ) {
-        identityKeyPub = identityKeyPub2;
-        break;
+        identityKeyPub = identityKeyPub2
+        break
       }
     }
     if (!identityKeyPub) {
-      return false;
+      return false
     }
-    const isValid = await isValidMessage(message.messageBlock, identityKeyPub);
+    const isValid = await isValidMessage(message.messageBlock, identityKeyPub)
     if (!isValid) {
-      console.log("Invalid message");
-      console.log(identityKey[message.sender].length);
-      return false;
+      console.log("Invalid message")
+      console.log(identityKey[message.sender].length)
+      return false
     }
     const roomKey2 = roomKey.find((key) =>
       key.hashHex === message.messageBlock.value.data.encryptedKeyHashHex
-    );
+    )
     if (!roomKey2) {
-      return false;
+      return false
     }
     const data = await decryptDataRoomKey(
       roomKey2,
       message.messageBlock.value.data,
-    );
+    )
     if (!data) {
-      return false;
+      return false
     }
-    messages.push(JSON.parse(data));
+    messages.push(JSON.parse(data))
   }
-  return messages;
+  return messages
 }
