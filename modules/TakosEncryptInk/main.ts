@@ -288,7 +288,7 @@ export async function createIdentityKeyAndAccountKey(
       version: 1,
     },
     timestamp: "time",
-    expiration: "Expiration",
+    keyExpiration: "Expiration",
     timeAndExpirationSign: {
       signature: "",
       hashedPublicKeyHex: "",
@@ -316,7 +316,7 @@ export async function createIdentityKeyAndAccountKey(
       type: "master",
       version: 1,
     },
-    expiration: "Expiration",
+    keyExpiration: "Expiration",
     version: 1,
   }, "master")
 
@@ -325,7 +325,7 @@ export async function createIdentityKeyAndAccountKey(
     keyType: "identityPub",
     sign: identityKeySign,
     timestamp: time,
-    expiration: expiration,
+    keyExpiration: expiration,
     timeAndExpirationSign: sign2,
     version: 1,
   }
@@ -635,7 +635,7 @@ export async function isValidKeyExpiration(
   key: MasterKeyPub | IdentityKeyPub,
   signAndKey: {
     timestamp: string // 鍵の作成日時
-    expiration: string // 鍵の有効期限
+    keyExpiration: string // 鍵の有効期限
     timeAndExpirationSign: Sign // 鍵の作成日時と有効期限に対する署名
   },
   signedKey:
@@ -658,7 +658,7 @@ export async function isValidKeyExpiration(
     )
     const hashHex = await generateKeyHashHexJWK(signedKey)
     const hashBuffer = new TextEncoder().encode(
-      signAndKey.timestamp + signAndKey.expiration + hashHex,
+      signAndKey.timestamp + signAndKey.keyExpiration + hashHex,
     )
     return await crypto.subtle.verify(
       {
@@ -860,7 +860,7 @@ export async function createRoomKey(
       version: 1,
     },
     timestamp: "Expiration",
-    expiration: "Expiration",
+    keyExpiration: "Expiration",
     timeAndExpirationSign: {
       signature: "",
       hashedPublicKeyHex: "",
@@ -883,7 +883,7 @@ export async function createRoomKey(
       key: roomKeyJWK,
       sign: roomKeySign,
       timestamp: time,
-      expiration: Expiration,
+      keyExpiration: Expiration,
       timeAndExpirationSign: {
         signature: "",
         hashedPublicKeyHex: "",
@@ -901,7 +901,7 @@ export async function createRoomKey(
     key: roomKeyJWK,
     sign: roomKeySign,
     timestamp: time,
-    expiration: Expiration,
+    keyExpiration: Expiration,
     timeAndExpirationSign: ExpirationSign,
     keyType: "roomKey",
     hashHex: roomKeyHash,
@@ -1088,7 +1088,7 @@ export async function createKeyShareKey(
       version: 1,
     },
     timestamp: "time",
-    expiration: "Expiration",
+    keyExpiration: "Expiration",
     timeAndExpirationSign: {
       signature: "",
       hashedPublicKeyHex: "",
@@ -1106,7 +1106,7 @@ export async function createKeyShareKey(
     keyType: "keySharePub",
     sign: pubKeySign,
     timestamp: time,
-    expiration: expiration,
+    keyExpiration: expiration,
     timeAndExpirationSign: await signKeyExpiration(
       masterKey,
       time,

@@ -63,7 +63,7 @@ export interface AppStateType {
   DeviceKey: any;
   roomKey: { value: { key: RoomKey; hashHex: any }[] };
   IdentityKeyAndAccountKeys: {
-    value: IdentityKeyAndAccountKeysState;
+    value: any
   };
   userId: { value: string };
   latestRoomKeyhashHex: { value: string };

@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Context, Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
 import User from "@/models/users.ts";
@@ -12,7 +12,7 @@ const env = await load();
 
 const app = new Hono();
 
-app.get("/:userId/friend", async (c) => {
+app.get("/:userId/friend", async (c: Context) => {
   const userId = c.req.param("userId");
   const limit = Number(c.req.param("limit")) || 50;
   const before = c.req.param("before") || "";

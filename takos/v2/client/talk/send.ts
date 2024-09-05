@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Context, Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import Sessionid from "@/models/sessionid.ts";
 import User from "@/models/users.ts";
@@ -11,7 +11,7 @@ const env = await load();
 
 const app = new Hono();
 
-app.post("/:userId/friend", async (c) => {
+app.post("/:userId/friend", async (c: Context) => {
   const friendId = c.req.param("userId");
   const sessionid = getCookie(c, "sessionid");
   if (!sessionid) {

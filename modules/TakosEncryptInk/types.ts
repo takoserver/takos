@@ -11,7 +11,7 @@ type IdentityKeyPub = {
   key: JsonWebKey // 公開鍵
   sign: Sign // 署名情報
   timestamp: string // 鍵の作成日時
-  expiration: string // 鍵の有効期限
+  keyExpiration: string // 鍵の有効期限
   timeAndExpirationSign: Sign // 鍵の作成日時と有効期限に対する署名
   keyType: "identityPub" // 鍵の種類
   version: number // 鍵のバージョン
@@ -106,7 +106,7 @@ interface RoomKey {
   sign: Sign
   keyType: "roomKey"
   timestamp: string // 鍵の作成日時
-  expiration: string // 鍵の有効期限
+  keyExpiration: string // 鍵の有効期限
   timeAndExpirationSign: Sign // 鍵の作成日時と有効期限に対する署名
   hashHex: string
   version: number
@@ -168,7 +168,7 @@ interface KeyShareKeyPub {
   sign: Sign // 署名情報
   keyType: "keySharePub" // 鍵の種類
   timestamp: string // 鍵の作成日時
-  expiration: string // 鍵の有効期限
+  keyExpiration: string // 鍵の有効期限
   timeAndExpirationSign: Sign // 鍵の作成日時と有効期限に対する署名
   version: number // 鍵のバージョン
 }

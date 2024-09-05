@@ -33,7 +33,9 @@ app.get("/:userName", async (c: Context) => {
   });
   return c.json({ status: true, keys: {
     identityAndAccountKeys,
-  }});
+  },
+  masterKey: user.masterKey
+});
 });
 
 export default app;

@@ -2,18 +2,19 @@
   "version": "3",
   "packages": {
     "specifiers": {
-      "jsr:@hono/hono@^4.5.3": "jsr:@hono/hono@4.5.9",
+      "jsr:@hono/hono@^4.5.3": "jsr:@hono/hono@4.5.11",
       "jsr:@std/bytes@^1.0.2-rc.3": "jsr:@std/bytes@1.0.2",
       "jsr:@std/crypto@^1.0.2-rc.1": "jsr:@std/crypto@1.0.2",
-      "jsr:@std/dotenv@^0.225.0": "jsr:@std/dotenv@0.225.1",
+      "jsr:@std/dotenv@^0.225.0": "jsr:@std/dotenv@0.225.2",
       "jsr:@std/uuid@^1.0.0": "jsr:@std/uuid@1.0.1",
       "jsr:@takos/takos-encrypt-ink@^0.3.0-unstable": "jsr:@takos/takos-encrypt-ink@0.3.0-unstable",
       "jsr:@takos/takos-encrypt-ink@^0.3.1-unstable": "jsr:@takos/takos-encrypt-ink@0.3.1-unstable",
       "jsr:@takos/takos-encrypt-ink@^0.3.2-unstable": "jsr:@takos/takos-encrypt-ink@0.3.2-unstable",
-      "jsr:@takos/takos-encrypt-ink@^1.0.3": "jsr:@takos/takos-encrypt-ink@1.2.0",
-      "jsr:@takos/takos-encrypt-ink@^1.2.0": "jsr:@takos/takos-encrypt-ink@1.2.0",
+      "jsr:@takos/takos-encrypt-ink@^1.2.2": "jsr:@takos/takos-encrypt-ink@1.2.2",
       "npm:@types/node": "npm:@types/node@18.16.19",
       "npm:base64-arraybuffer@^1.0.2": "npm:base64-arraybuffer@1.0.2",
+      "npm:crystals-kyber@^5.1.0": "npm:crystals-kyber@5.1.0",
+      "npm:dilithium-crystals@^1.0.6": "npm:dilithium-crystals@1.0.6",
       "npm:imagescript@^1.3.0": "npm:imagescript@1.3.0",
       "npm:ky@^1.5.0": "npm:ky@1.5.0",
       "npm:mongoose@^8.5.2": "npm:mongoose@8.5.2",
@@ -23,6 +24,9 @@
       "npm:ui7@^0.2.3": "npm:ui7@0.2.3"
     },
     "jsr": {
+      "@hono/hono@4.5.11": {
+        "integrity": "5bd6b1a3a503efb746fdcf0aae3ac536dd09229d372988bde5db0798ef64ae4f"
+      },
       "@hono/hono@4.5.3": {
         "integrity": "429923b2b3c6586a1450862328d61a1346fee5841e8ae86c494250475057213c"
       },
@@ -46,6 +50,9 @@
       },
       "@std/dotenv@0.225.1": {
         "integrity": "138f31352843d76cfb6cda1b860e8aac6d02ce3b05e7e236a81bf285a9868d0c"
+      },
+      "@std/dotenv@0.225.2": {
+        "integrity": "e2025dce4de6c7bca21dece8baddd4262b09d5187217e231b033e088e0c4dd23"
       },
       "@std/uuid@1.0.1": {
         "integrity": "26f834b1e1f95b581f5f654f6b2c34c2031832fb4f598dbb1332520aa63a6740",
@@ -72,10 +79,12 @@
           "npm:base64-arraybuffer@^1.0.2"
         ]
       },
-      "@takos/takos-encrypt-ink@1.2.0": {
-        "integrity": "54a14b67be47be2a316ec837b8b4c2633f47691f7e76d7de1dbe5f99de6fed7a",
+      "@takos/takos-encrypt-ink@1.2.2": {
+        "integrity": "2ff5f93df8193df15e1513d322299f67bac6cb6b10be5a83eb450eb99dbcc910",
         "dependencies": [
-          "npm:base64-arraybuffer@^1.0.2"
+          "npm:base64-arraybuffer@^1.0.2",
+          "npm:crystals-kyber@^5.1.0",
+          "npm:dilithium-crystals@^1.0.6"
         ]
       }
     },
@@ -142,13 +151,30 @@
         "integrity": "sha512-I3yl4r9QB5ZRY3XuJVEPfc2XhZO6YweFPI+UovAzn+8/hb3oJ6lnysaFcjVpkCPfVWFUDvoZ8kmVDP7WyRtYtQ==",
         "dependencies": {}
       },
+      "base64-js@1.5.1": {
+        "integrity": "sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==",
+        "dependencies": {}
+      },
       "bson@6.8.0": {
         "integrity": "sha512-iOJg8pr7wq2tg/zSlCCHMi3hMm5JTOxLTagf3zxhcenHsFp+c6uOs6K7W5UE7A4QIJGtqh/ZovFNMP4mOPJynQ==",
         "dependencies": {}
       },
+      "buffer@6.0.3": {
+        "integrity": "sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==",
+        "dependencies": {
+          "base64-js": "base64-js@1.5.1",
+          "ieee754": "ieee754@1.2.1"
+        }
+      },
       "cluster-key-slot@1.1.2": {
         "integrity": "sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA==",
         "dependencies": {}
+      },
+      "crystals-kyber@5.1.0": {
+        "integrity": "sha512-ikM78yLEZbvOHpg+E6pkWAjpdr+YoSKMHzh9ErvJWDWSNc+Wk6YK23K9eSEKvz35aXepdpBj0BXEijdbKhcWjg==",
+        "dependencies": {
+          "sha3": "sha3@2.1.4"
+        }
       },
       "debug@4.3.6": {
         "integrity": "sha512-O/09Bd4Z1fBrU4VzkhFqVgpPzaGbw6Sm9FEkBT1A/YBXQFGuuSxa1dN2nxgxS34JmKXqYx8CZAwEVoJFImUXIg==",
@@ -156,8 +182,16 @@
           "ms": "ms@2.1.2"
         }
       },
+      "dilithium-crystals@1.0.6": {
+        "integrity": "sha512-zPMHDmr2l2A6ZU574cbwNn1AX1UkIIYcJTcN4DEycrKXtgqGp7kPYSpatzcEthTLEKwwYBWYyV6mO5HcBlZwyg==",
+        "dependencies": {}
+      },
       "generic-pool@3.9.0": {
         "integrity": "sha512-hymDOu5B53XvN4QT9dBmZxPX4CWhBPPLguTZ9MMFeFa/Kg0xWVfylOVNlJji/E7yTZWFd/q9GO5TxDLq156D7g==",
+        "dependencies": {}
+      },
+      "ieee754@1.2.1": {
+        "integrity": "sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==",
         "dependencies": {}
       },
       "imagescript@1.3.0": {
@@ -240,6 +274,12 @@
           "@redis/time-series": "@redis/time-series@1.1.0_@redis+client@1.6.0"
         }
       },
+      "sha3@2.1.4": {
+        "integrity": "sha512-S8cNxbyb0UGUM2VhRD4Poe5N58gJnJsLJ5vC7FYWGUmGhcsj4++WaIOBFVDxlG0W3To6xBuiRh+i0Qp2oNCOtg==",
+        "dependencies": {
+          "buffer": "buffer@6.0.3"
+        }
+      },
       "sift@17.1.3": {
         "integrity": "sha512-Rtlj66/b0ICeFzYTuNvX/EF1igRbbnGSvEyT79McoZa/DeGhMyC5pWKOEsZKnpkqtSeovd5FL/bjHWC3CIIvCQ==",
         "dependencies": {}
@@ -283,8 +323,8 @@
       "jsr:@hono/hono@^4.5.3",
       "jsr:@std/dotenv@^0.225.0",
       "jsr:@std/uuid@^1.0.0",
-      "jsr:@takos/takos-encrypt-ink@^1.0.3",
       "jsr:@takos/takos-encrypt-ink@^1.2.0",
+      "jsr:@takos/takos-encrypt-ink@^1.2.2",
       "npm:imagescript@^1.3.0",
       "npm:ky@^1.5.0",
       "npm:mongoose@^8.5.2",
