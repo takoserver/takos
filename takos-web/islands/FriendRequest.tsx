@@ -127,14 +127,13 @@ const VideoList = (
                         const latestIdentityAndAccountKeys =
                           state.IdentityKeyAndAccountKeys.value[0];
                         const keys = await fetch(
-                          `/takos/v2/client/users/keys/${video.requesterId}/friendRequest`,
+                          `/takos/v2/client/users/keys?userName=${video.requesterId}`,
                         ).then((res) => res.json());
-                        console.log(latestIdentityAndAccountKeys);
                         const roomKey = await createRoomKey(
                           latestIdentityAndAccountKeys.identityKey,
                         );
                         const encryptedRoomKey = await encryptWithAccountKey(
-                          keys.keys.accountKey,
+                          keys.keys[0].accountKey,
                           JSON.stringify(roomKey),
                         );
                         const encryptedRoomKeyForMe =

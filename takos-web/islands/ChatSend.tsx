@@ -27,7 +27,6 @@ function ChatSend({ state }: { state: AppStateType }) {
         );
         return;
       }
-      //
       const res = fetch(
         `/takos/v2/client/talk/send/${state.friendid}/${state.roomType}`,
         {
