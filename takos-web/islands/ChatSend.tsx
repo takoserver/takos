@@ -1,6 +1,6 @@
 import React from "preact/compat";
 import { AppStateType } from "../util/types.ts";
-import { createMessageBlock, createRoomKey } from "@takos/takos-encrypt-ink";
+import { createMessageBlock, createRoomKey, Message } from "@takos/takos-encrypt-ink";
 
 function ChatSend({ state }: { state: AppStateType }) {
   const sendHandler = async () => {
@@ -19,18 +19,12 @@ function ChatSend({ state }: { state: AppStateType }) {
           data.hashHex ===
             state.latestRoomKeyhashHex.value,
       ))?.key;
-      if (!roomKey) {
-        if(state.roomType.value === "group") {
-          alert("部屋キーがありません");
-          return;
-        }
-        if(state.roomType.value === "friend") {
-          const newRoomKey = await createRoomKey(
-            state.IdentityKeyAndAccountKeys.value[0].identityKey,
-          )
-          
-        }
-      }
+      const messageObj: Message = {
+        timestamp: new Date().toISOString(),
+        message: msg,
+        type: "text",
+        version: 1,
+      };
       const res = fetch(
         `/takos/v2/client/talk/send/${state.friendid.value}/${state.roomType.value}`,
         {

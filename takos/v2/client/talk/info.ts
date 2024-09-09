@@ -54,7 +54,6 @@ app.get("/accountKey/friend", async (c: Context) => {
     if (!friendAccount) {
         return c.json({ status: false, message: "Account not found" }, 404);
     }
-    return c.json({ status: true, accountKey: friendAccount.accountKeyPub });
+    return c.json({ status: true, accountKey: [friendAccount.accountKeyPub] });
 });
-
 export default app;

@@ -1360,7 +1360,6 @@ export async function verifyDataWithMigrateDataSignKey(
     new TextEncoder().encode(data),
   )
 }
-
 export async function encryptDataRoomKey(
   roomKey: RoomKey,
   data: string,
@@ -1383,7 +1382,6 @@ export async function encryptDataRoomKey(
     version: 1,
   }
 }
-
 export async function decryptDataRoomKey(
   roomKey: RoomKey,
   encryptedData: EncryptedDataRoomKey,
@@ -1399,124 +1397,52 @@ export async function decryptDataRoomKey(
   )
   return new TextDecoder().decode(decryptedData)
 }
-
-export interface messageBlockValue {
-  previousHashHex: string
-  data: EncryptedDataRoomKey
-  sender: string
-}
-
-export interface messageBlock {
-  value: messageBlockValue
+export type EncryptedMessage = {
+  value: EncryptedDataRoomKey
   signature: Sign
 }
 
-export async function createMessageBlock(
-  data: EncryptedDataRoomKey,
-  sender: string,
+export async function encryptMessage(
+  roomKey: RoomKey,
   identityKey: IdentityKey,
-  beforeBlock?: messageBlock,
-): Promise<messageBlock> {
-  if (beforeBlock) {
-    const previousHash = await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(JSON.stringify(beforeBlock)),
-    )
-    //16進数に変換
-    const previousHashHex = Array.from(new Uint8Array(previousHash))
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("")
-    const value: messageBlockValue = {
-      previousHashHex: previousHashHex,
-      data: data,
-      sender: sender,
-    }
-    const signature = await signData(
-      identityKey,
-      new TextEncoder().encode(JSON.stringify(value)),
-    )
-    return {
-      value: value,
-      signature: signature,
-    }
-  } else {
-    const value: messageBlockValue = {
-      previousHashHex: "",
-      data: data,
-      sender: sender,
-    }
-    const signature = await signData(
-      identityKey,
-      new TextEncoder().encode(JSON.stringify(value)),
-    )
-    return {
-      value: value,
-      signature: signature,
-    }
+  message: Message,
+): Promise<EncryptedMessage> {
+  const now = new Date(message.timestamp)
+  const roomKeyExpiration = new Date(roomKey.keyExpiration)
+  if (
+    now > roomKeyExpiration ||
+    now < new Date(roomKey.timestamp) ||
+    roomKeyExpiration.getTime() - new Date(roomKey.timestamp).getTime() > 365 * 24 * 60 * 60 * 1000
+  ) {
+    throw new Error("Room key expired")
+  }
+  if(
+    now > new Date(identityKey.public.keyExpiration) ||
+    now < new Date(identityKey.public.timestamp) ||
+    new Date(identityKey.public.keyExpiration).getTime() - new Date(identityKey.public.timestamp).getTime() > 365 * 24 * 60 * 60 * 1000
+  ) {
+    throw new Error("identity key expired")
+  }
+  const encryptedData = await encryptDataRoomKey(roomKey, JSON.stringify(message))
+  const signature = await signData(identityKey, new TextEncoder().encode(JSON.stringify(message)))
+  return {
+    value: encryptedData,
+    signature: signature,
   }
 }
 
-export async function isValidMessage(
-  message: messageBlock,
+export async function verifyAndDecryptMessage(
+  roomKey: RoomKey,
   identityKey: IdentityKeyPub,
-): Promise<boolean> {
-  return await verifyData(
-    identityKey,
-    new TextEncoder().encode(JSON.stringify(message.value)),
-    message.signature,
-  )
-}
-
-//古いメッセージがブロックチェーンにあるか確認する関数
-
-export async function verifyAndDecryptMessageChain(
-  messageChain: {
-    messageBlock: messageBlock
-    sender: string
-  }[],
-  identityKey: {
-    [key: string]: IdentityKeyPub[]
-  },
-  roomKey: RoomKey[],
-): Promise<Message[] | false> {
-  const messages: Message[] = []
-  for (let i = 0; i < messageChain.length; i++) {
-    const message = messageChain[i]
-    //iが0,1の時は0でiが2,3の時は1の変数を使う
-    let identityKeyPub
-    for (let i = 0; i < identityKey[message.sender].length; i++) {
-      const identityKeyPub2 = identityKey[message.sender][i]
-      if (
-        await generateKeyHashHexJWK(identityKeyPub2) ===
-          message.messageBlock.signature.hashedPublicKeyHex
-      ) {
-        identityKeyPub = identityKeyPub2
-        break
-      }
-    }
-    if (!identityKeyPub) {
-      return false
-    }
-    const isValid = await isValidMessage(message.messageBlock, identityKeyPub)
-    if (!isValid) {
-      console.log("Invalid message")
-      console.log(identityKey[message.sender].length)
-      return false
-    }
-    const roomKey2 = roomKey.find((key) =>
-      key.hashHex === message.messageBlock.value.data.encryptedKeyHashHex
-    )
-    if (!roomKey2) {
-      return false
-    }
-    const data = await decryptDataRoomKey(
-      roomKey2,
-      message.messageBlock.value.data,
-    )
-    if (!data) {
-      return false
-    }
-    messages.push(JSON.parse(data))
+  encryptedMessage: EncryptedMessage,
+): Promise<Message | null> {
+  if (!await verifyData(identityKey, new TextEncoder().encode(JSON.stringify(encryptedMessage.value)), encryptedMessage.signature)) {
+    return null
   }
-  return messages
+  const decryptedData = await decryptDataRoomKey(roomKey, encryptedMessage.value);
+  if (decryptedData !== null) {
+    return JSON.parse(decryptedData);
+  } else {
+    return null;
+  }
 }

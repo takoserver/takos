@@ -15,6 +15,7 @@ import {
   type MasterKeyPub,
 } from "takosEncryptInk";
 import Keys from "@/models/keys/keys.ts";
+import allowFriendMasterKey from "@/models/allowFriendMasterKey.ts";
 const app = new Hono();
 
 app.post("/", async (c: Context) => {
@@ -109,6 +110,7 @@ app.post("/", async (c: Context) => {
       keyShareKeyPub: keyShareKey,
     },
   });
+  await allowFriendMasterKey.deleteMany({ userName: session.userName });
   console.log("resetKey success");
   return c.json({ status: true }, 200);
 });
