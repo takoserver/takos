@@ -11,7 +11,6 @@ import {
   decryptDataWithAccountKey,
   EncryptedDataAccountKey,
   generateKeyHashHexJWK,
-  verifyAndDecryptMessageChain,
   type RoomKey,
 } from "@takos/takos-encrypt-ink";
 function TalkListContent({ state }: { state: AppStateType }) {

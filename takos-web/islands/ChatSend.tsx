@@ -1,6 +1,6 @@
 import React from "preact/compat";
 import { AppStateType } from "../util/types.ts";
-import { createMessageBlock, createRoomKey, Message } from "@takos/takos-encrypt-ink";
+import { createRoomKey, encryptMessage, Message } from "@takos/takos-encrypt-ink";
 
 function ChatSend({ state }: { state: AppStateType }) {
   const sendHandler = async () => {
@@ -25,6 +25,13 @@ function ChatSend({ state }: { state: AppStateType }) {
         type: "text",
         version: 1,
       };
+      const encryptedMessage = await encryptMessage(
+        roomKey,
+        state.IdentityKeyAndAccountKeys.value[0].identityKey,
+        JSON.stringify(messageObj),
+      );
+      console.log(encryptedMessage);
+      return
       const res = fetch(
         `/takos/v2/client/talk/send/${state.friendid.value}/${state.roomType.value}`,
         {

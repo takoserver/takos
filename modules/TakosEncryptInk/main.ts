@@ -68,9 +68,9 @@ export type {
 }
 import { decode, encode } from "base64-arraybuffer"
 
-import {dilithium} from 'dilithium-crystals';
+import { dilithium } from "dilithium-crystals"
 
-import kyber from 'crystals-kyber';
+import kyber from "crystals-kyber"
 
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return encode(buffer)
@@ -799,10 +799,6 @@ export async function signData(
     await importKey(key.private, "private"),
     data,
   )
-  const publicKeyHashBuffer = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(JSON.stringify(key.public.key)),
-  )
   const hashedPublicKeyHex = await generateKeyHashHexCryptoKey(
     await importKey(key.public, "public"),
     key.public.keyType,
@@ -811,7 +807,7 @@ export async function signData(
   return {
     signature: arrayBufferToBase64(signature),
     hashedPublicKeyHex,
-    type: "master",
+    type: key.public.keyType === "masterPub" ? "master" : "identity",
     version: 1,
   }
 }
@@ -1416,15 +1412,26 @@ export async function encryptMessage(
   ) {
     throw new Error("Room key expired")
   }
-  if(
-    now > new Date(identityKey.public.keyExpiration) ||
-    now < new Date(identityKey.public.timestamp) ||
-    new Date(identityKey.public.keyExpiration).getTime() - new Date(identityKey.public.timestamp).getTime() > 365 * 24 * 60 * 60 * 1000
+  if (
+    now > new Date(identityKey.public.keyExpiration)
   ) {
-    throw new Error("identity key expired")
+    throw new Error("identity key expired1")
+  }
+  if (
+    now < new Date(identityKey.public.timestamp)
+  ) {
+    throw new Error("identity key expired2")
+  }
+  if(
+  new Date(identityKey.public.keyExpiration).getTime() -
+  new Date(identityKey.public.timestamp).getTime() > 370 * 24 * 60 * 60 * 1000) {
+    throw new Error("identity key expired3")
   }
   const encryptedData = await encryptDataRoomKey(roomKey, JSON.stringify(message))
-  const signature = await signData(identityKey, new TextEncoder().encode(JSON.stringify(message)))
+  const signature = await signData(
+    identityKey,
+    new TextEncoder().encode(JSON.stringify(encryptedData)),
+  )
   return {
     value: encryptedData,
     signature: signature,
@@ -1436,13 +1443,21 @@ export async function verifyAndDecryptMessage(
   identityKey: IdentityKeyPub,
   encryptedMessage: EncryptedMessage,
 ): Promise<Message | null> {
-  if (!await verifyData(identityKey, new TextEncoder().encode(JSON.stringify(encryptedMessage.value)), encryptedMessage.signature)) {
+  if (
+    !await verifyData(
+      identityKey,
+      new TextEncoder().encode(JSON.stringify(encryptedMessage.value)),
+      encryptedMessage.signature,
+    )
+  ) {
+    console.log("Failed to verify message")
     return null
   }
-  const decryptedData = await decryptDataRoomKey(roomKey, encryptedMessage.value);
+  const decryptedData = await decryptDataRoomKey(roomKey, encryptedMessage.value)
   if (decryptedData !== null) {
-    return JSON.parse(decryptedData);
+    return JSON.parse(decryptedData)
   } else {
-    return null;
+    console.log("Failed to decrypt message")
+    return null
   }
 }
