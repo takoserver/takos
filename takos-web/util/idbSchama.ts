@@ -46,6 +46,16 @@ export interface TakosDB extends DBSchema {
       keyExpiration: string
       key?: string
     }
+  },
+  allowKeys: {
+    key: string
+    value: {
+      key?: string
+      keyHash: string
+      allowedUserId: string
+      type: "allow" | "recognition"
+      timestamp: Date
+    }
   }
 }
 
@@ -74,6 +84,11 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
       }
       if (!db.objectStoreNames.contains("identityAndAccountKeys")) {
         db.createObjectStore("identityAndAccountKeys", {
+          keyPath: "key",
+        })
+      }
+      if (!db.objectStoreNames.contains("allowKeys")) {
+        db.createObjectStore("allowKeys", {
           keyPath: "key",
         })
       }
@@ -134,5 +149,18 @@ export async function saveToDbIdentityAndAccountKeys(
     hashHex: hashHex,
     keyExpiration: keyExpiration,
     key: hashHex,
+  })
+}
+export async function saveToDbAllowKeys(
+  keyHash: string,
+  allowedUserId: string,
+  type: "allow" | "recognition",
+): Promise<void> {
+  const db = await createTakosDB()
+  await db.put("allowKeys", {
+    keyHash: keyHash,
+    allowedUserId: allowedUserId,
+    type: type,
+    timestamp: new Date(),
   })
 }

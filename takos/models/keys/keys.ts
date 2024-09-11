@@ -33,6 +33,10 @@ const accountKeySchema = new mongoose.Schema({
         type: String,
         required: true,
       },
+      sended: {
+        type: Boolean,
+        required: true,
+      },
     }],
     required: true,
     default: [],
@@ -48,6 +52,11 @@ const accountKeySchema = new mongoose.Schema({
         required: true,
       },
     }],
+    required: true,
+    default: [],
+  },
+  deliveryedSessionId: {
+    type: Array,
     required: true,
     default: [],
   },
