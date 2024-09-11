@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
 const messageSchema = new mongoose.Schema({
   roomid: {
@@ -29,6 +29,6 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-});
+})
 
-export default mongoose.model("friendMessage", messageSchema);
+export default mongoose.model("friendMessage", messageSchema)

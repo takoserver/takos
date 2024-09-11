@@ -1,39 +1,39 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks"
 interface InputProps {
-  value: string;
-  setValue: (value: string) => void;
-  origin: string;
+  value: string
+  setValue: (value: string) => void
+  origin: string
 }
 
 export default function RegisterForm(props: any) {
-  const [showModal, setShowModal] = useState(false);
-  const [value, setValue] = useState("");
+  const [showModal, setShowModal] = useState(false)
+  const [value, setValue] = useState("")
   const handleButtonClick = () => {
-    setShowModal(!showModal);
-  };
+    setShowModal(!showModal)
+  }
   useEffect(() => {
     const fetchData = async () => {
       if (showModal) {
-        const resp = await fetch("/api/v2/client/users/friendkey?reload=false");
-        const data = await resp.json();
+        const resp = await fetch("/api/v2/client/users/friendkey?reload=false")
+        const data = await resp.json()
         if (data.status === false) {
-          console.log(data.message);
-          return;
+          console.log(data.message)
+          return
         }
         const origin = window.location.protocol + "//" +
-          window.location.host;
-        const url = origin + "/?key=" + data.addFriendKey;
-        setValue(url);
+          window.location.host
+        const url = origin + "/?key=" + data.addFriendKey
+        setValue(url)
       }
-    };
-    fetchData();
-  }, [showModal]);
+    }
+    fetchData()
+  }, [showModal])
   return (
     <>
       <li class="c-talk-rooms">
         <a
           onClick={() => {
-            setShowModal(!showModal);
+            setShowModal(!showModal)
           }}
         >
           <div class="c-talk-rooms-icon">
@@ -78,15 +78,15 @@ export default function RegisterForm(props: any) {
         </div>
       )}
     </>
-  );
+  )
 }
 async function copyToClipboard(value: string, setIsCopied: any) {
   try {
-    await navigator.clipboard.writeText(value);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 3000);
+    await navigator.clipboard.writeText(value)
+    setIsCopied(true)
+    setTimeout(() => setIsCopied(false), 3000)
   } catch (err) {
-    alert("Failed to copy!");
+    alert("Failed to copy!")
   }
 }
 function Input({
@@ -95,33 +95,33 @@ function Input({
   origin,
 }: InputProps) {
   const handleChangeUrl = (event: any) => {
-    event.preventDefault();
+    event.preventDefault()
     const updateurl = async () => {
-      const csrftokenres = await fetch("/api/v2/client/csrftoken");
-      const csrftokendata = await csrftokenres.json();
+      const csrftokenres = await fetch("/api/v2/client/csrftoken")
+      const csrftokendata = await csrftokenres.json()
       if (csrftokendata.status === false) {
-        console.log(csrftokendata.message);
-        return;
+        console.log(csrftokendata.message)
+        return
       }
-      const csrftoken = csrftokendata.csrftoken;
+      const csrftoken = csrftokendata.csrftoken
       const resp = await fetch(
         "/api/v2/client/users/friendkey?reload=true&csrftoken=" + csrftoken,
-      );
-      const data = await resp.json();
+      )
+      const data = await resp.json()
       if (data.status === false) {
-        console.log(data.message);
-        return;
+        console.log(data.message)
+        return
       }
       const origin = window.location.protocol + "//" +
         window.location.host +
-        "/?key=";
-      const url = origin + data.addFriendKey;
-      setValue(url);
-    };
-    updateurl();
-  };
+        "/?key="
+      const url = origin + data.addFriendKey
+      setValue(url)
+    }
+    updateurl()
+  }
 
-  const [isCopied, setIsCopied] = useState(null);
+  const [isCopied, setIsCopied] = useState(null)
   return (
     <>
       <label
@@ -141,7 +141,7 @@ function Input({
         <div class="1/2">
           <button
             onClick={() => {
-              copyToClipboard(value, setIsCopied);
+              copyToClipboard(value, setIsCopied)
             }}
             type="submit"
             class="rounded-lg bg-white ring-1 ring-[rgba(0,0,0,5%)] shadow-[0_0.5px_2.5px_rgba(0,0,0,30%)] px-5 py-2 hover:bg-gray-100 dark:bg-[#181818] dark:hover:bg-[#2b2b2b]"
@@ -149,9 +149,7 @@ function Input({
             コピー
           </button>
           <div
-            class={isCopied
-              ? "flex items-center mt-1"
-              : "flex items-center mt-1 opacity-0"}
+            class={isCopied ? "flex items-center mt-1" : "flex items-center mt-1 opacity-0"}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -196,5 +194,5 @@ function Input({
         </div>
       </div>
     </>
-  );
+  )
 }

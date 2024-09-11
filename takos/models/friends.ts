@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
 const friendSchema = new mongoose.Schema({
   userName: {
@@ -13,6 +13,6 @@ const friendSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-});
+})
 
-export default mongoose.model("Friend", friendSchema);
+export default mongoose.model("Friend", friendSchema)

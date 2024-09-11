@@ -1,8 +1,8 @@
-import OtherMessage from "./WelcomeMessage.tsx";
-import Register from "../islands/Register.tsx";
-import Login from "../islands/Login.tsx";
-import { signal } from "@preact/signals";
-import ReCapcha from "../islands/ReCapcha.tsx";
+import OtherMessage from "./WelcomeMessage.tsx"
+import Register from "../islands/Register.tsx"
+import Login from "../islands/Login.tsx"
+import { signal } from "@preact/signals"
+import ReCapcha from "../islands/ReCapcha.tsx"
 const sampleChatData = {
   roomName: "たこたこチャット",
   talkData: [
@@ -42,22 +42,22 @@ const sampleChatData = {
     },
     { userName: "371tti", messages: "セキュリティむずすぎ" },
   ],
-};
+}
 function createAppState() {
-  const recapchav2 = signal("");
-  const recapchav3 = signal("");
-  const showWindow = signal("");
-  const email = signal("");
-  const checkCode = signal("");
-  const password = signal("");
-  const nickName = signal("");
-  const userName = signal("");
-  const LoginName = signal("");
-  const LoginPassword = signal("");
-  const RecapchaLoaded = signal(false);
-  const recapchav3Failed = signal(false);
-  const RegisterPage = signal(0);
-  const token = signal("");
+  const recapchav2 = signal("")
+  const recapchav3 = signal("")
+  const showWindow = signal("")
+  const email = signal("")
+  const checkCode = signal("")
+  const password = signal("")
+  const nickName = signal("")
+  const userName = signal("")
+  const LoginName = signal("")
+  const LoginPassword = signal("")
+  const RecapchaLoaded = signal(false)
+  const recapchav3Failed = signal(false)
+  const RegisterPage = signal(0)
+  const token = signal("")
   return {
     recapchav2,
     recapchav3,
@@ -73,10 +73,10 @@ function createAppState() {
     recapchav3Failed,
     RegisterPage,
     token,
-  };
+  }
 }
 function welcome() {
-  const state = createAppState();
+  const state = createAppState()
   return (
     <>
       <ReCapcha
@@ -108,7 +108,7 @@ function welcome() {
             />
             <button
               onClick={() => {
-                alert("まだ実装してない！！！");
+                alert("まだ実装してない！！！")
               }}
               class="bg-[#192320] text-white rounded-3xl py-2 px-4 hover:bg-[#192320] border w-full lg:mt-2 mt-3"
             >
@@ -190,23 +190,23 @@ function welcome() {
           <div class="w-5/6 m-auto h-full overflow-hidden mx-auto">
             <div class="scroll-animation talkList">
               {sampleChatData.talkData.map((data) => {
-                let iconPath = "";
+                let iconPath = ""
                 switch (data.userName) {
                   case "tako":
-                    iconPath = "/static/tako.jpeg";
-                    break;
+                    iconPath = "/static/tako.jpeg"
+                    break
                   case "371tti":
-                    iconPath = "/static/371tti.jpg";
-                    break;
+                    iconPath = "/static/371tti.jpg"
+                    break
                   case "なん":
-                    iconPath = "/static/なん.jpeg";
-                    break;
+                    iconPath = "/static/なん.jpeg"
+                    break
                   default:
-                    iconPath = "/people.jpeg";
-                    break;
+                    iconPath = "/people.jpeg"
+                    break
                 }
                 if (data.img) {
-                  return; //
+                  return //
                 }
                 if (data.messages) {
                   return (
@@ -217,7 +217,7 @@ function welcome() {
                       isPrimary={true}
                       iconPath={iconPath}
                     />
-                  );
+                  )
                 }
               })}
             </div>
@@ -232,9 +232,9 @@ function welcome() {
         </div>
       </div>
     </>
-  );
+  )
 }
 
-export default welcome;
+export default welcome
 function ServerListContext(iconurl: string, serverName: string) {
 }

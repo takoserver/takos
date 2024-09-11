@@ -1,5 +1,5 @@
-import Welcome from "../components/welcome.tsx";
-import SetUp from "../islands/setup.tsx";
+import Welcome from "../components/welcome.tsx"
+import SetUp from "../islands/setup.tsx"
 export default function Home({ data }: { data: any }) {
   return (
     <>
@@ -15,5 +15,5 @@ export default function Home({ data }: { data: any }) {
         <Welcome></Welcome>
       </>
     </>
-  );
+  )
 }

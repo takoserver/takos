@@ -1,23 +1,23 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks"
 interface InputProps {
-  value: string;
-  setValue: (value: string) => void;
-  origin: string;
-  setShowModal: (value: boolean) => void;
+  value: string
+  setValue: (value: string) => void
+  origin: string
+  setShowModal: (value: boolean) => void
 }
 
 export default function RegisterForm(props: any) {
-  const [showModal, setShowModal] = useState(false);
-  const [value, setValue] = useState("");
+  const [showModal, setShowModal] = useState(false)
+  const [value, setValue] = useState("")
   const handleButtonClick = () => {
-    setShowModal(!showModal);
-  };
+    setShowModal(!showModal)
+  }
   return (
     <>
       <li class="c-talk-rooms">
         <a
           onClick={() => {
-            setShowModal(!showModal);
+            setShowModal(!showModal)
           }}
         >
           <div class="c-talk-rooms-icon">
@@ -63,16 +63,16 @@ export default function RegisterForm(props: any) {
         </div>
       )}
     </>
-  );
+  )
 }
 function Input({
   value,
   setValue,
   setShowModal,
 }: InputProps) {
-  const [isError, setIsError] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [isSending, setIsSending] = useState(false);
+  const [isError, setIsError] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [isSending, setIsSending] = useState(false)
 
   return (
     <>
@@ -88,17 +88,13 @@ function Input({
         placeholder={"tako@takos.jp"}
         onChange={(e: any) => {
           if (e.target) {
-            setValue(e.target.value);
+            setValue(e.target.value)
           }
         }}
         class="bg-white border border-[rgba(0,0,0,5%)] shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_0_rgba(0,122,255,50%)] focus:shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_3px_rgba(0,122,255,50%)] text-gray-900 text-sm rounded-lg focus:ring-2 ring-1 ring-[rgba(0,0,0,5%)] outline-none block w-full p-2.5"
       />
-      {isError && (
-        <p class="text-sm text-red-500">ユーザーが見つかりませんでした</p>
-      )}
-      {isSuccess && (
-        <p class="text-sm text-[#259c5e]">リクエストを送信しました</p>
-      )}
+      {isError && <p class="text-sm text-red-500">ユーザーが見つかりませんでした</p>}
+      {isSuccess && <p class="text-sm text-[#259c5e]">リクエストを送信しました</p>}
       <div class="flex justify-end w-full pt-2 gap-1">
         <button
           onClick={() => setShowModal(false)}
@@ -108,8 +104,8 @@ function Input({
         </button>
         <button
           onClick={async () => {
-            setIsError(false);
-            setIsSending(true);
+            setIsError(false)
+            setIsSending(true)
             const result = await fetch("/takos/v2/client/friends/request", {
               method: "POST",
               headers: {
@@ -118,18 +114,18 @@ function Input({
               body: JSON.stringify({
                 userName: value,
               }),
-            });
-            const res = await result.json();
+            })
+            const res = await result.json()
             if (res.status == true) {
-              setIsSuccess(true);
-              setTimeout(() => setIsSuccess(false), 5000);
-              setIsSending(false);
+              setIsSuccess(true)
+              setTimeout(() => setIsSuccess(false), 5000)
+              setIsSending(false)
             } else if (result.status === 400) {
-              setIsError(true);
-              setIsSending(false);
+              setIsError(true)
+              setIsSending(false)
             } else {
-              setIsSending(false);
-              alert("Error");
+              setIsSending(false)
+              alert("Error")
             }
           }}
           type="submit"
@@ -140,5 +136,5 @@ function Input({
         </button>
       </div>
     </>
-  );
+  )
 }

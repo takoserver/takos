@@ -1,27 +1,27 @@
-import { useEffect, useState } from "preact/hooks";
-import { AppStateType } from "../util/types.ts";
+import { useEffect, useState } from "preact/hooks"
+import { AppStateType } from "../util/types.ts"
 import {
   createRoomKey,
   encryptDataDeviceKey,
   encryptWithAccountKey,
-} from "@takos/takos-encrypt-ink";
+} from "@takos/takos-encrypt-ink"
 
 // Define the InputProps interface for type-checking
 interface InputProps {
-  value: string;
-  setValue: (value: string) => void;
-  origin: string;
+  value: string
+  setValue: (value: string) => void
+  origin: string
 }
 
 // Define the RegisterForm component
 export default function RegisterForm({ state }: { state: AppStateType }) {
-  const [showModal, setShowModal] = useState(false);
-  const [value, setValue] = useState("");
+  const [showModal, setShowModal] = useState(false)
+  const [value, setValue] = useState("")
 
   // Toggle the modal visibility
   const handleButtonClick = () => {
-    setShowModal(!showModal);
-  };
+    setShowModal(!showModal)
+  }
   return (
     <>
       <li class="c-talk-rooms">
@@ -66,7 +66,7 @@ export default function RegisterForm({ state }: { state: AppStateType }) {
         </div>
       )}
     </>
-  );
+  )
 }
 
 // Define the Input component
@@ -81,7 +81,7 @@ function Input(
         />
       </div>
     </>
-  );
+  )
 }
 
 // Define the VideoList component
@@ -89,21 +89,21 @@ const VideoList = (
   { state }: { state: AppStateType },
 ) => {
   const [items, setItems] = useState<{
-    requesterId: string;
-    targetName: string;
-    type: string;
-    uuid: string;
-  }[]>([]);
+    requesterId: string
+    targetName: string
+    type: string
+    uuid: string
+  }[]>([])
 
   useEffect(() => {
     const fetchData = async () => {
-      const res = await fetch("/takos/v2/client/friends/requestList");
-      const response = await res.json();
-      console.log(response);
-      setItems(response.requests);
-    };
-    fetchData();
-  }, []);
+      const res = await fetch("/takos/v2/client/friends/requestList")
+      const response = await res.json()
+      console.log(response)
+      setItems(response.requests)
+    }
+    fetchData()
+  }, [])
 
   return (
     <div className="container mx-auto h-full">
@@ -114,7 +114,7 @@ const VideoList = (
               <>
                 {items.map((video, index) => {
                   if (!video) {
-                    return null;
+                    return null
                   }
                   return (
                     <User
@@ -125,23 +125,22 @@ const VideoList = (
                       type={video.type}
                       acceptOnClick={async () => {
                         const latestIdentityAndAccountKeys =
-                          state.IdentityKeyAndAccountKeys.value[0];
+                          state.IdentityKeyAndAccountKeys.value[0]
                         const keys = await fetch(
                           `/takos/v2/client/users/keys?userName=${video.requesterId}`,
-                        ).then((res) => res.json());
+                        ).then((res) => res.json())
                         const roomKey = await createRoomKey(
                           latestIdentityAndAccountKeys.identityKey,
-                        );
+                        )
                         const encryptedRoomKey = await encryptWithAccountKey(
                           keys.keys[0].accountKey,
                           JSON.stringify(roomKey),
-                        );
-                        const encryptedRoomKeyForMe =
-                          await encryptWithAccountKey(
-                            state.IdentityKeyAndAccountKeys.value[0].accountKey
-                              .public,
-                            JSON.stringify(roomKey),
-                          );
+                        )
+                        const encryptedRoomKeyForMe = await encryptWithAccountKey(
+                          state.IdentityKeyAndAccountKeys.value[0].accountKey
+                            .public,
+                          JSON.stringify(roomKey),
+                        )
                         const res = await fetch(
                           "/takos/v2/client/friends/accept",
                           {
@@ -161,20 +160,20 @@ const VideoList = (
                               hashHex: roomKey.hashHex,
                             }),
                           },
-                        );
-                        const data = await res.json();
+                        )
+                        const data = await res.json()
                         if (data.status === false) {
-                          alert("エラーが発生しました");
+                          alert("エラーが発生しました")
                         } else {
-                          alert("リクエストを承認しました");
+                          alert("リクエストを承認しました")
                         }
-                        console.log(data);
+                        console.log(data)
                       }}
                       rejectOnClick={() => {
-                        alert("まだ対応してません");
+                        alert("まだ対応してません")
                       }}
                     />
-                  );
+                  )
                 })}
               </>
             )
@@ -186,16 +185,16 @@ const VideoList = (
         </ul>
       </div>
     </div>
-  );
-};
+  )
+}
 
 function User(
   { icon, userName, acceptOnClick, rejectOnClick, type }: {
-    icon: string;
-    userName: string;
-    type: string;
-    acceptOnClick?: () => void;
-    rejectOnClick?: () => void;
+    icon: string
+    userName: string
+    type: string
+    acceptOnClick?: () => void
+    rejectOnClick?: () => void
   },
 ) {
   return (
@@ -239,5 +238,5 @@ function User(
         </div>
       </li>
     </>
-  );
+  )
 }

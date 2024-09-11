@@ -1,4 +1,4 @@
-import { checkEmail } from "../util/takosClient.ts";
+import { checkEmail } from "../util/takosClient.ts"
 function Login({ state }: { state: any }) {
   if (state.showWindow.value !== "login") {
     return (
@@ -6,21 +6,21 @@ function Login({ state }: { state: any }) {
         <button
           class="bg-[#192320] text-white rounded-3xl py-2 px-4 hover:bg-[#192320] border w-full lg:mt-2 mt-3"
           onClick={() => {
-            state.showWindow.value = "login";
-            console.log(state.showWindow.value);
+            state.showWindow.value = "login"
+            console.log(state.showWindow.value)
           }}
         >
           ログイン
         </button>
       </>
-    );
+    )
   }
   return (
     <>
       <button
         class="bg-[#192320] text-white rounded-3xl py-2 px-4 hover:bg-[#192320] border w-full lg:mt-2 mt-3"
         onClick={() => {
-          state.showWindow.value = "login";
+          state.showWindow.value = "login"
         }}
       >
         ログイン
@@ -31,7 +31,7 @@ function Login({ state }: { state: any }) {
             <span
               class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
               onClick={() => {
-                state.showWindow.value = "";
+                state.showWindow.value = ""
               }}
             >
               ×
@@ -40,8 +40,8 @@ function Login({ state }: { state: any }) {
           <form
             class="h-full px-2 lg:px-3 flex flex-col"
             onSubmit={async (e) => {
-              e.preventDefault();
-              const isEmail = checkEmail(state.LoginName.value);
+              e.preventDefault()
+              const isEmail = checkEmail(state.LoginName.value)
               if (isEmail) {
                 const res = await fetch("/takos/v2/client/sessions/login", {
                   method: "POST",
@@ -52,14 +52,14 @@ function Login({ state }: { state: any }) {
                     email: state.LoginName.value,
                     password: state.LoginPassword.value,
                   }),
-                });
-                const data = await res.json();
+                })
+                const data = await res.json()
                 if (data.status === true) {
-                  state.showWindow.value = "";
+                  state.showWindow.value = ""
                   //リダイレクト
-                  window.location.href = "/talk";
+                  window.location.href = "/talk"
                 } else {
-                  alert("ログインに失敗しました");
+                  alert("ログインに失敗しました")
                 }
               } else {
                 const res = await fetch("/takos/v2/client/sessions/login", {
@@ -71,14 +71,14 @@ function Login({ state }: { state: any }) {
                     userName: state.LoginName.value,
                     password: state.LoginPassword.value,
                   }),
-                });
-                const data = await res.json();
+                })
+                const data = await res.json()
                 if (data.status === true) {
-                  state.showWindow.value = "";
+                  state.showWindow.value = ""
                   //リダイレクト
-                  window.location.href = "/talk";
+                  window.location.href = "/talk"
                 } else {
-                  alert("ログインに失敗しました");
+                  alert("ログインに失敗しました")
                 }
               }
             }}
@@ -100,10 +100,10 @@ function Login({ state }: { state: any }) {
                   class="bg-white border border-[rgba(0,0,0,5%)] shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_0_rgba(0,122,255,50%)] focus:shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_3px_rgba(0,122,255,50%)] text-gray-900 text-sm rounded-lg focus:ring-2 ring-1 ring-[rgba(0,0,0,5%)] outline-none block w-full p-2.5"
                   onChange={(e) => {
                     if (!e.target) {
-                      return;
+                      return
                     }
-                    const target = e.target as HTMLInputElement;
-                    state.LoginName.value = target.value;
+                    const target = e.target as HTMLInputElement
+                    state.LoginName.value = target.value
                   }}
                   placeholder={"username"}
                   type={"text"}
@@ -120,10 +120,10 @@ function Login({ state }: { state: any }) {
                   class="bg-white border border-[rgba(0,0,0,5%)] shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_0_rgba(0,122,255,50%)] focus:shadow-[0_0.5px_1.5px_rgba(0,0,0,30%),0_0_0_3px_rgba(0,122,255,50%)] text-gray-900 text-sm rounded-lg focus:ring-2 ring-1 ring-[rgba(0,0,0,5%)] outline-none block w-full p-2.5"
                   onChange={(e) => {
                     if (!e.target) {
-                      return;
+                      return
                     }
-                    const target = e.target as HTMLInputElement;
-                    state.LoginPassword.value = target.value;
+                    const target = e.target as HTMLInputElement
+                    state.LoginPassword.value = target.value
                   }}
                   placeholder={"password"}
                   type={"password"}
@@ -142,7 +142,7 @@ function Login({ state }: { state: any }) {
         </div>
       </div>
     </>
-  );
+  )
 }
 
-export default Login;
+export default Login

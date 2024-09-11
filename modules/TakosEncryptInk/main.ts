@@ -1422,9 +1422,10 @@ export async function encryptMessage(
   ) {
     throw new Error("identity key expired2")
   }
-  if(
-  new Date(identityKey.public.keyExpiration).getTime() -
-  new Date(identityKey.public.timestamp).getTime() > 370 * 24 * 60 * 60 * 1000) {
+  if (
+    new Date(identityKey.public.keyExpiration).getTime() -
+        new Date(identityKey.public.timestamp).getTime() > 370 * 24 * 60 * 60 * 1000
+  ) {
     throw new Error("identity key expired3")
   }
   const encryptedData = await encryptDataRoomKey(roomKey, JSON.stringify(message))

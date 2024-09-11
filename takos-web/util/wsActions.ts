@@ -1,1 +1,1 @@
-import { AppStateType } from "./types.ts";
+import { AppStateType } from "./types.ts"

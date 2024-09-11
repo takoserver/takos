@@ -1,20 +1,20 @@
-import ChatDate from "../components/ChatDate.tsx";
-import ChatSendMessage from "../components/SendMessage.tsx";
-import ChatOtherMessage from "../components/OtherMessage.tsx";
-import { AppStateType } from "../util/types.ts";
-import { splitUserName } from "../util/takosClient.ts";
+import ChatDate from "../components/ChatDate.tsx"
+import ChatSendMessage from "../components/SendMessage.tsx"
+import ChatOtherMessage from "../components/OtherMessage.tsx"
+import { AppStateType } from "../util/types.ts"
+import { splitUserName } from "../util/takosClient.ts"
 interface Messages {
-  messageid: string;
-  userName: string;
-  messages: string;
-  timestamp: string;
-  type: string;
+  messageid: string
+  userName: string
+  messages: string
+  timestamp: string
+  type: string
 }
 
 function ChatTalkMain({ state }: { state: AppStateType }) {
-  let SendPrimary = true;
-  let OtherPrimary = true;
-  let DateState: any;
+  let SendPrimary = true
+  let OtherPrimary = true
+  let DateState: any
   return (
     <>
       {
@@ -139,7 +139,7 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
       */
       }
     </>
-  );
+  )
 }
 
 function ChatTalk({ state }: { state: AppStateType }) {
@@ -148,14 +148,14 @@ function ChatTalk({ state }: { state: AppStateType }) {
       <ul className="c-talk-chat-list">
         <ChatTalkMain state={state} />
       </ul>
-    );
+    )
   } else {
     return (
       <div className="flex w-full h-full">
         <p className="m-auto">友達を選択してください</p>
       </div>
-    );
+    )
   }
 }
 
-export default ChatTalk;
+export default ChatTalk

@@ -1,5 +1,5 @@
-import { AppStateType } from "../util/types.ts";
-import { setIschoiseUser } from "../util/takosClient.ts";
+import { AppStateType } from "../util/types.ts"
+import { setIschoiseUser } from "../util/takosClient.ts"
 export default function TalkArea({ state }: { state: AppStateType }) {
   return (
     <>
@@ -10,20 +10,20 @@ export default function TalkArea({ state }: { state: AppStateType }) {
             state.isChoiceUser.value === null || state.ws.value === null ||
             !(state.ws.value instanceof WebSocket)
           ) {
-            alert("websocketが接続されていません");
-            return;
+            alert("websocketが接続されていません")
+            return
           }
           state.ws.value.send(
             JSON.stringify({
               type: "leave",
               sessionid: state.sessionid.value,
             }),
-          );
-          state.isChoiceUser.value = false;
-          state.roomid.value = "";
+          )
+          state.isChoiceUser.value = false
+          state.roomid.value = ""
           //urlを変更
-          history.pushState("", "", "/talk");
-          setIschoiseUser(false, state.isChoiceUser);
+          history.pushState("", "", "/talk")
+          setIschoiseUser(false, state.isChoiceUser)
         }}
       >
         <svg
@@ -40,5 +40,5 @@ export default function TalkArea({ state }: { state: AppStateType }) {
         </svg>
       </button>
     </>
-  );
+  )
 }

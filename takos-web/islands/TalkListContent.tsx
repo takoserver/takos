@@ -1,18 +1,18 @@
-import User from "../components/User.tsx";
-import { setIschoiseUser } from "../util/takosClient.ts";
-import RequestFriendById from "./RequestFriendById.tsx";
-import GetAddFriendKey from "./getAddFriendKey.tsx";
-import FriendRequest from "./FriendRequest.tsx";
-import { AppStateType } from "../util/types.ts";
-import { useSignal } from "@preact/signals";
-import { useEffect } from "preact/hooks";
-import { createTakosDB } from "../util/idbSchama.ts";
+import User from "../components/User.tsx"
+import { setIschoiseUser } from "../util/takosClient.ts"
+import RequestFriendById from "./RequestFriendById.tsx"
+import GetAddFriendKey from "./getAddFriendKey.tsx"
+import FriendRequest from "./FriendRequest.tsx"
+import { AppStateType } from "../util/types.ts"
+import { useSignal } from "@preact/signals"
+import { useEffect } from "preact/hooks"
+import { createTakosDB } from "../util/idbSchama.ts"
 import {
   decryptDataWithAccountKey,
   EncryptedDataAccountKey,
   generateKeyHashHexJWK,
   type RoomKey,
-} from "@takos/takos-encrypt-ink";
+} from "@takos/takos-encrypt-ink"
 function TalkListContent({ state }: { state: AppStateType }) {
   if (state.page.value === 0) {
     return (
@@ -103,7 +103,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
           </div>
         </div>
       </>
-    );
+    )
   } else if (state.page.value === 1) {
     return (
       <>
@@ -117,13 +117,13 @@ function TalkListContent({ state }: { state: AppStateType }) {
                 isNewMessage={false}
                 isSelected={false}
                 onClick={() => {
-                  state.page.value = 2;
+                  state.page.value = 2
                 }}
               />
             </>
           )}
         {state.friendList.value.map((talk: any) => {
-          console.log(talk.type);
+          console.log(talk.type)
           if (talk.type === "group") {
             return (
               <User
@@ -140,10 +140,10 @@ function TalkListContent({ state }: { state: AppStateType }) {
                       sessionid: state.sessionid.value,
                       roomid: talk.roomID,
                     }),
-                  );
+                  )
                 }}
               />
-            );
+            )
           } else if (talk.type === "friend") {
             return (
               <User
@@ -157,74 +157,72 @@ function TalkListContent({ state }: { state: AppStateType }) {
                 isNewMessage={talk.isNewMessage ? talk.isNewMessage : false}
                 isSelected={talk.isSelect}
                 onClick={async () => {
-                  state.isChoiceUser.value = true;
-                  state.roomName.value = talk.nickName;
-                  state.friendid.value = talk.userName;
-                  setIschoiseUser(true, state.isChoiceUser);
-                  state.roomType.value = "friend";
+                  state.isChoiceUser.value = true
+                  state.roomName.value = talk.nickName
+                  state.friendid.value = talk.userName
+                  setIschoiseUser(true, state.isChoiceUser)
+                  state.roomType.value = "friend"
                   const talkData = await fetch(
                     "/takos/v2/client/talk/data/" + talk.userName + "/friend",
-                  ).then((res) => res.json());
-                  console.log(talkData);
+                  ).then((res) => res.json())
+                  console.log(talkData)
                   const roomKeys: RoomKey[] = (await Promise.all(
                     talkData.keys.map(async (key: EncryptedDataAccountKey) => {
-                      const encryptedAccountKeyHash = key.encryptedKeyHashHex;
+                      const encryptedAccountKeyHash = key.encryptedKeyHashHex
                       const accountKey = state.IdentityKeyAndAccountKeys.value
                         .find(
-                          (key2: { hashHex: string; }) => key2.hashHex === encryptedAccountKeyHash,
-                        );
+                          (key2: { hashHex: string }) => key2.hashHex === encryptedAccountKeyHash,
+                        )
                       if (!accountKey) {
-                        return;
+                        return
                       }
-                      const decryptedRoomKeyString =
-                        await decryptDataWithAccountKey(
-                          accountKey.accountKey,
-                          key,
-                        );
+                      const decryptedRoomKeyString = await decryptDataWithAccountKey(
+                        accountKey.accountKey,
+                        key,
+                      )
                       if (!decryptedRoomKeyString) {
-                        return;
+                        return
                       }
-                      return JSON.parse(decryptedRoomKeyString);
+                      return JSON.parse(decryptedRoomKeyString)
                     }),
                   )).filter((key) => {
                     if (key) {
-                      return true;
+                      return true
                     }
-                    return false;
-                  });
+                    return false
+                  })
                   roomKeys.forEach(async (key: RoomKey) => {
                     if (await generateKeyHashHexJWK(key) === key.hashHex) {
                       state.roomKey.value.push({
                         key: key,
                         hashHex: key.hashHex,
-                      });
-                      return;
+                      })
+                      return
                     }
-                  });
+                  })
                   if (!(state.roomKey.value instanceof Array)) {
-                    state.roomKey.value = [];
+                    state.roomKey.value = []
                   }
-                  if(roomKeys[0]) {
-                  state.latestRoomKeyhashHex.value =
-                    await generateKeyHashHexJWK(
+                  if (roomKeys[0]) {
+                    state.latestRoomKeyhashHex.value = await generateKeyHashHexJWK(
                       roomKeys[0],
-                  );
+                    )
                   }
-                  state.talkData.value = talkData.messages;
+                  state.talkData.value = talkData.messages
                   state.ws.value?.send(
                     JSON.stringify({
                       type: "joinFriend",
                       sessionid: state.sessionid.value,
                       friendid: talk.userName,
                     }),
-                  );
+                  )
                 }}
               />
-            );
+            )
           }
         })}
       </>
-    );
+    )
   } else if (state.page.value === 2) {
     return (
       <>
@@ -243,9 +241,9 @@ function TalkListContent({ state }: { state: AppStateType }) {
         />
         <GetAddFriendKey />
       </>
-    );
+    )
   } else if (state.page.value === 3) {
-    const settingPage = useSignal(0);
+    const settingPage = useSignal(0)
     return (
       <>
         <h1 class="text-lg">設定</h1>
@@ -256,7 +254,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
           isNewMessage={false}
           isSelected={false}
           onClick={() => {
-            settingPage.value = 1;
+            settingPage.value = 1
           }}
         />
         <User
@@ -266,7 +264,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
           isNewMessage={false}
           isSelected={false}
           onClick={() => {
-            settingPage.value = 2;
+            settingPage.value = 2
           }}
         />
         <User
@@ -281,23 +279,21 @@ function TalkListContent({ state }: { state: AppStateType }) {
               headers: {
                 "Content-Type": "application/json",
               },
-            });
-            const json = await res.json();
+            })
+            const json = await res.json()
             if (json.status === true) {
-              const db = await createTakosDB();
-              await db.clear("deviceKey");
-              await db.clear("keyShareKeys");
-              await db.clear("masterKey");
-              await db.clear("config");
-              await db.clear("identityAndAccountKeys");
-              window.location.href = "/";
+              const db = await createTakosDB()
+              await db.clear("deviceKey")
+              await db.clear("keyShareKeys")
+              await db.clear("masterKey")
+              await db.clear("config")
+              await db.clear("identityAndAccountKeys")
+              window.location.href = "/"
             }
             //indexedDBから削除
           }}
         />
-        {settingPage.value === 2 && (
-          <OtherSettingPage settingPage={settingPage} />
-        )}
+        {settingPage.value === 2 && <OtherSettingPage settingPage={settingPage} />}
         {settingPage.value === 1 && (
           <>
             <div class="fixed z-50 w-full h-full bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px]">
@@ -306,7 +302,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
                   <span
                     class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
                     onClick={() => {
-                      settingPage.value = 0;
+                      settingPage.value = 0
                     }}
                   >
                     ×
@@ -315,28 +311,28 @@ function TalkListContent({ state }: { state: AppStateType }) {
                 <form
                   class="w-4/5 mx-auto my-auto mt-10"
                   onSubmit={async (e) => {
-                    e.preventDefault();
+                    e.preventDefault()
                     const inputFormData = new FormData(
                       e.target as HTMLFormElement,
-                    );
-                    const nickName = inputFormData.get("nickName") as string;
-                    const icon = inputFormData.get("icon") as File;
+                    )
+                    const nickName = inputFormData.get("nickName") as string
+                    const icon = inputFormData.get("icon") as File
                     if (nickName === "" && icon.name === "") {
-                      alert("いずれかの項目を入力してください");
-                      return;
+                      alert("いずれかの項目を入力してください")
+                      return
                     }
                     const info = {
                       nickName: false,
                       icon: false,
-                    };
+                    }
                     if (nickName !== "") {
                       const csrftokenReq = await fetch(
                         "/api/v2/client/csrftoken",
                         {
                           method: "GET",
                         },
-                      );
-                      const csrftoken = await csrftokenReq.json();
+                      )
+                      const csrftoken = await csrftokenReq.json()
                       const res = await fetch(
                         "/api/v2/client/settings/nickname",
                         {
@@ -346,11 +342,11 @@ function TalkListContent({ state }: { state: AppStateType }) {
                             csrftoken: csrftoken.csrftoken,
                           }),
                         },
-                      );
-                      const result = await res.json();
-                      console.log(result);
+                      )
+                      const result = await res.json()
+                      console.log(result)
                       if (result.status === true) {
-                        info.nickName = true;
+                        info.nickName = true
                       }
                     }
                     if (icon.name !== "") {
@@ -359,35 +355,35 @@ function TalkListContent({ state }: { state: AppStateType }) {
                         {
                           method: "GET",
                         },
-                      );
-                      const csrftoken = await csrftokenReq.json();
-                      const formData = new FormData();
-                      formData.append("icon", icon);
-                      formData.append("csrftoken", csrftoken.csrftoken);
+                      )
+                      const csrftoken = await csrftokenReq.json()
+                      const formData = new FormData()
+                      formData.append("icon", icon)
+                      formData.append("csrftoken", csrftoken.csrftoken)
                       const res = await fetch("/api/v2/client/settings/icon", {
                         method: "POST",
                         body: formData,
-                      });
-                      const result = await res.json();
+                      })
+                      const result = await res.json()
                       if (result.status === true) {
-                        info.icon = true;
+                        info.icon = true
                       }
                     }
                     if (icon.name !== "" && nickName !== "") {
                       if (info.nickName === true && info.icon === true) {
-                        alert("保存しました");
-                        settingPage.value = 0;
+                        alert("保存しました")
+                        settingPage.value = 0
                         //リロード
-                        window.location.href = "/setting";
+                        window.location.href = "/setting"
                       }
                       if (info.nickName === false && info.icon === true) {
-                        alert("ニックネームの保存に失敗しました");
+                        alert("ニックネームの保存に失敗しました")
                       }
                       if (info.nickName === true && info.icon === false) {
-                        alert("アイコンの保存に失敗しました");
+                        alert("アイコンの保存に失敗しました")
                       }
                       if (info.nickName === false && info.icon === false) {
-                        alert("保存に失敗しました");
+                        alert("保存に失敗しました")
                       }
                     }
                   }}
@@ -445,22 +441,22 @@ function TalkListContent({ state }: { state: AppStateType }) {
           </>
         )}
       </>
-    );
+    )
   }
-  return <></>;
+  return <></>
 }
 function OtherSettingPage({ settingPage }: { settingPage: any }) {
-  const addFriendById = useSignal(false);
-  const allowOtherServerUsers = useSignal(false);
+  const addFriendById = useSignal(false)
+  const allowOtherServerUsers = useSignal(false)
   useEffect(() => {
     async function run() {
-      const res = await fetch("/api/v2/client/users/settings");
-      const json = await res.json();
-      addFriendById.value = json.settings.addFriendById;
-      allowOtherServerUsers.value = json.settings.allowOtherServerUsers;
+      const res = await fetch("/api/v2/client/users/settings")
+      const json = await res.json()
+      addFriendById.value = json.settings.addFriendById
+      allowOtherServerUsers.value = json.settings.allowOtherServerUsers
     }
-    run();
-  }, []);
+    run()
+  }, [])
   return (
     <>
       <div class="fixed z-50 w-full h-full bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px]">
@@ -469,7 +465,7 @@ function OtherSettingPage({ settingPage }: { settingPage: any }) {
             <span
               class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
               onClick={() => {
-                settingPage.value = 0;
+                settingPage.value = 0
               }}
             >
               ×
@@ -491,7 +487,7 @@ function OtherSettingPage({ settingPage }: { settingPage: any }) {
                       checked={addFriendById.value}
                       class="sr-only peer"
                       onChange={() => {
-                        addFriendById.value = !addFriendById.value;
+                        addFriendById.value = !addFriendById.value
                       }}
                     />
                     <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
@@ -511,7 +507,7 @@ function OtherSettingPage({ settingPage }: { settingPage: any }) {
                       class="sr-only peer"
                       onChange={() => {
                         allowOtherServerUsers.value = !allowOtherServerUsers
-                          .value;
+                          .value
                       }}
                     />
                     <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
@@ -525,9 +521,9 @@ function OtherSettingPage({ settingPage }: { settingPage: any }) {
                 type="submit"
                 class="rounded-lg mx-auto text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
                 onClick={async () => {
-                  const csrftokenRes = await fetch("/api/v2/client/csrftoken");
-                  const csrftokenJson = await csrftokenRes.json();
-                  const csrftoken = csrftokenJson.csrftoken;
+                  const csrftokenRes = await fetch("/api/v2/client/csrftoken")
+                  const csrftokenJson = await csrftokenRes.json()
+                  const csrftoken = csrftokenJson.csrftoken
                   const res = await fetch("/api/v2/client/settings/privacy", {
                     method: "POST",
                     headers: {
@@ -540,13 +536,13 @@ function OtherSettingPage({ settingPage }: { settingPage: any }) {
                       },
                       csrftoken: csrftoken,
                     }),
-                  });
-                  const json = await res.json();
+                  })
+                  const json = await res.json()
                   if (!json.status) {
-                    alert("エラーが発生しました");
-                    return;
+                    alert("エラーが発生しました")
+                    return
                   }
-                  alert("保存しました");
+                  alert("保存しました")
                 }}
               >
                 更新
@@ -556,6 +552,6 @@ function OtherSettingPage({ settingPage }: { settingPage: any }) {
         </div>
       </div>
     </>
-  );
+  )
 }
-export default TalkListContent;
+export default TalkListContent

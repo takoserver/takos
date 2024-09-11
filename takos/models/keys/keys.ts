@@ -1,6 +1,6 @@
 //AccountKey module
-import mongoose from "mongoose";
-import type { AccountKeyPub, IdentityKeyPub } from "takosEncryptInk";
+import mongoose from "mongoose"
+import type { AccountKeyPub, IdentityKeyPub } from "takosEncryptInk"
 
 const accountKeySchema = new mongoose.Schema({
   userName: {
@@ -51,6 +51,6 @@ const accountKeySchema = new mongoose.Schema({
     required: true,
     default: [],
   },
-});
-const AccountKey = mongoose.model("keys", accountKeySchema);
-export default AccountKey;
+})
+const AccountKey = mongoose.model("keys", accountKeySchema)
+export default AccountKey

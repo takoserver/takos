@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 const sessionidSchema = new mongoose.Schema({
   sessionid: {
     type: String,
@@ -26,6 +26,6 @@ const sessionidSchema = new mongoose.Schema({
   KeyShareKeyPub: {
     type: Object,
   },
-});
-const Sessionid = mongoose.model("sessionid", sessionidSchema);
-export default Sessionid;
+})
+const Sessionid = mongoose.model("sessionid", sessionidSchema)
+export default Sessionid

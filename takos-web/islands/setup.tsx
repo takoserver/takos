@@ -1,9 +1,9 @@
-import { useSignal } from "@preact/signals";
+import { useSignal } from "@preact/signals"
 const createAppState = () => {
-  const nickName = useSignal("");
-  const age = useSignal("");
-  const icon = useSignal("");
-};
+  const nickName = useSignal("")
+  const age = useSignal("")
+  const icon = useSignal("")
+}
 function setup() {
   return (
     <>
@@ -13,37 +13,37 @@ function setup() {
             class="rounded-lg border bg-card text-card-foreground shadow-sm max-w-md lg:min-w-[412px] bg-white mx-2"
             data-v0-t="card"
             onSubmit={async (e) => {
-              e.preventDefault();
-              const formData = new FormData(e.target as HTMLFormElement);
-              const nickName = formData.get("nickName") as string;
-              const age = formData.get("age") as string;
-              const icon = formData.get("icon") as string;
+              e.preventDefault()
+              const formData = new FormData(e.target as HTMLFormElement)
+              const nickName = formData.get("nickName") as string
+              const age = formData.get("age") as string
+              const icon = formData.get("icon") as string
               if (nickName === "" || age === "" || icon === "") {
-                alert("全ての項目を入力してください");
-                return;
+                alert("全ての項目を入力してください")
+                return
               }
-              const ReqFormData = new FormData();
-              ReqFormData.append("nickName", nickName);
-              ReqFormData.append("age", age);
-              ReqFormData.append("icon", icon);
+              const ReqFormData = new FormData()
+              ReqFormData.append("nickName", nickName)
+              ReqFormData.append("age", age)
+              ReqFormData.append("icon", icon)
               const csrftokenReq = await fetch("/api/v2/client/csrftoken", {
                 method: "GET",
-              });
-              const csrftoken = await csrftokenReq.json();
-              ReqFormData.append("csrftoken", csrftoken.csrftoken);
+              })
+              const csrftoken = await csrftokenReq.json()
+              ReqFormData.append("csrftoken", csrftoken.csrftoken)
               const res = await fetch(
                 "/api/v2/client/sessions/registers/setup",
                 {
                   method: "POST",
                   body: ReqFormData,
                 },
-              );
-              const result = await res.json();
+              )
+              const result = await res.json()
               if (result.status === true) {
-                alert("設定が完了しました");
-                window.location.href = "/";
+                alert("設定が完了しました")
+                window.location.href = "/"
               } else {
-                alert("設定に失敗しました");
+                alert("設定に失敗しました")
               }
             }}
           >
@@ -112,7 +112,7 @@ function setup() {
         </div>
       </div>
     </>
-  );
+  )
 }
 
-export default setup;
+export default setup

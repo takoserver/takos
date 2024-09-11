@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
 const keyShareSessionIdSchema = new mongoose.Schema({
   keyShareSessionId: {
@@ -23,6 +23,6 @@ const keyShareSessionIdSchema = new mongoose.Schema({
     default: Date.now,
     expires: 60 * 60 * 1,
   },
-});
+})
 
-export default mongoose.model("KeyShareSessionId", keyShareSessionIdSchema);
+export default mongoose.model("KeyShareSessionId", keyShareSessionIdSchema)

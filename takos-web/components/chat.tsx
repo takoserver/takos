@@ -1,38 +1,38 @@
-import Header from "../components/header.tsx";
-import TalkListHeader from "../islands/talkListHeader.tsx";
-import TalkListContent from "../islands/TalkListContent.tsx";
-import SetDefaultState from "../islands/Default.tsx";
-import { effect, signal, useSignal } from "@preact/signals";
-import { createContext } from "preact";
-import { AppStateType, IdentityKeyAndAccountKeysState } from "../util/types.ts";
-import Main from "./chatmain.tsx";
+import Header from "../components/header.tsx"
+import TalkListHeader from "../islands/talkListHeader.tsx"
+import TalkListContent from "../islands/TalkListContent.tsx"
+import SetDefaultState from "../islands/Default.tsx"
+import { effect, signal, useSignal } from "@preact/signals"
+import { createContext } from "preact"
+import { AppStateType, IdentityKeyAndAccountKeysState } from "../util/types.ts"
+import Main from "./chatmain.tsx"
 function createAppState(obj: {
-  isChoiceUser: boolean;
-  roomid: string;
-  userName?: string;
-  page: number;
-  friendid?: string;
+  isChoiceUser: boolean
+  roomid: string
+  userName?: string
+  page: number
+  friendid?: string
 }): AppStateType {
-  const isChoiceUser = signal(obj.isChoiceUser);
-  const ws = signal(null);
-  const talkData = signal([]);
-  const roomid = signal(obj.roomid);
-  const sessionid = signal("");
-  const friendList = signal([]);
-  const roomName = signal("");
-  const page = signal(obj.page);
-  const inputMessage = signal("");
-  const setIsValidInput = signal(false);
-  const roomType = signal("");
-  const friendid = signal(obj.friendid || "");
-  const ChatUserInfo = signal({});
-  const MasterKey = signal({});
-  const IdentityKey = signal<IdentityKeyAndAccountKeysState>([]);
-  const KeyShareKey = signal({});
-  const DeviceKey = signal({});
-  const roomKey = signal([]);
-  const userId = signal("");
-  const latestRoomKeyhashHex = signal("");
+  const isChoiceUser = signal(obj.isChoiceUser)
+  const ws = signal(null)
+  const talkData = signal([])
+  const roomid = signal(obj.roomid)
+  const sessionid = signal("")
+  const friendList = signal([])
+  const roomName = signal("")
+  const page = signal(obj.page)
+  const inputMessage = signal("")
+  const setIsValidInput = signal(false)
+  const roomType = signal("")
+  const friendid = signal(obj.friendid || "")
+  const ChatUserInfo = signal({})
+  const MasterKey = signal({})
+  const IdentityKey = signal<IdentityKeyAndAccountKeysState>([])
+  const KeyShareKey = signal({})
+  const DeviceKey = signal({})
+  const roomKey = signal([])
+  const userId = signal("")
+  const latestRoomKeyhashHex = signal("")
   return {
     isChoiceUser: isChoiceUser,
     ws: ws,
@@ -55,14 +55,14 @@ function createAppState(obj: {
     IdentityKeyAndAccountKeys: IdentityKey,
     userId: userId,
     latestRoomKeyhashHex: latestRoomKeyhashHex,
-  };
+  }
 }
 function chat(props: { page: any }) {
   const AppState = createAppState({
     isChoiceUser: false,
     roomid: "",
     page: props.page,
-  });
+  })
   return (
     <>
       <head>
@@ -75,7 +75,7 @@ function chat(props: { page: any }) {
       </head>
       <App state={AppState} />
     </>
-  );
+  )
 }
 function App({ state }: { state: AppStateType }) {
   return (
@@ -104,6 +104,6 @@ function App({ state }: { state: AppStateType }) {
         </main>
       </div>
     </>
-  );
+  )
 }
-export default chat;
+export default chat

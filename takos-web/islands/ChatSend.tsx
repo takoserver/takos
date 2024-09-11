@@ -1,6 +1,6 @@
-import React from "preact/compat";
-import { AppStateType } from "../util/types.ts";
-import { createRoomKey, encryptMessage, Message } from "@takos/takos-encrypt-ink";
+import React from "preact/compat"
+import { AppStateType } from "../util/types.ts"
+import { createRoomKey, encryptMessage, Message } from "@takos/takos-encrypt-ink"
 
 function ChatSend({ state }: { state: AppStateType }) {
   const sendHandler = async () => {
@@ -10,52 +10,52 @@ function ChatSend({ state }: { state: AppStateType }) {
       ) {
         alert(
           "100文字以内で入力してください",
-        );
-        return;
+        )
+        return
       }
-      const msg = state.inputMessage.value;
+      const msg = state.inputMessage.value
       const roomKey = (state.roomKey.value.find(
         (data) =>
           data.hashHex ===
             state.latestRoomKeyhashHex.value,
-      ))?.key;
+      ))?.key
       const messageObj: Message = {
         timestamp: new Date().toISOString(),
         message: msg,
         type: "text",
         version: 1,
-      };
+      }
+      if (!roomKey) {
+        return
+      }
       const encryptedMessage = await encryptMessage(
         roomKey,
         state.IdentityKeyAndAccountKeys.value[0].identityKey,
-        JSON.stringify(messageObj),
-      );
-      console.log(encryptedMessage);
-      return
+        messageObj,
+      )
       const res = fetch(
-        `/takos/v2/client/talk/send/${state.friendid.value}/${state.roomType.value}`,
+        `/takos/v2/client/talk/send/${state.roomType.value}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            sessionid: state.sessionid.value,
-            friendid: state.friendid.value,
-            text: msg,
+            message: encryptedMessage,
+            friendId: state.friendid.value,
           }),
         },
-      );
+      )
       res.then((res) => res.json()).then((res) => {
         if (res.status === false) {
           alert(
             "メッセージの送信に失敗しました",
-          );
-          return;
+          )
+          return
         }
-      });
-      state.inputMessage.value = "";
-      const friendList = state.friendList.value;
+      })
+      state.inputMessage.value = ""
+      const friendList = state.friendList.value
       friendList.map(
         (
           data: any,
@@ -64,40 +64,40 @@ function ChatSend({ state }: { state: AppStateType }) {
             data.roomid ==
               state.roomid.value
           ) {
-            data.latestMessage = state.inputMessage.value;
+            data.latestMessage = state.inputMessage.value
             data.latestMessageTime = new Date()
-              .toString();
-            data.isNewMessage = false;
+              .toString()
+            data.isNewMessage = false
           }
         },
-      );
+      )
       friendList.sort(
         (
           a: {
-            latestMessageTime: number;
+            latestMessageTime: number
           },
           b: {
-            latestMessageTime: number;
+            latestMessageTime: number
           },
         ) => {
           if (
             a.latestMessageTime <
               b.latestMessageTime
           ) {
-            return 1;
+            return 1
           }
           if (
             a.latestMessageTime >
               b.latestMessageTime
           ) {
-            return -1;
+            return -1
           }
-          return 0;
+          return 0
         },
-      );
-      state.friendList.value = friendList;
+      )
+      state.friendList.value = friendList
     }
-  };
+  }
   return (
     <div class="p-talk-chat-send">
       <form class="p-talk-chat-send__form">
@@ -120,14 +120,13 @@ function ChatSend({ state }: { state: AppStateType }) {
               value={state.inputMessage.value}
               onInput={(e) => {
                 if (e.target) {
-                  state.inputMessage.value =
-                    (e.target as HTMLTextAreaElement).value;
+                  state.inputMessage.value = (e.target as HTMLTextAreaElement).value
                 }
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendHandler();
+                  e.preventDefault()
+                  sendHandler()
                 }
               }}
             >
@@ -157,6 +156,6 @@ function ChatSend({ state }: { state: AppStateType }) {
         </div>
       </form>
     </div>
-  );
+  )
 }
-export default ChatSend;
+export default ChatSend

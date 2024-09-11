@@ -2,8 +2,7 @@
 
 ### session鍵の概要
 
-session鍵とはaccount鍵の更新のために使用する暗号化用の鍵です。
-鍵のアルゴリズムは rsa-oaep
+session鍵とはaccount鍵の更新のために使用する暗号化用の鍵です。 鍵のアルゴリズムは rsa-oaep
 
 ### 鍵のuuid
 

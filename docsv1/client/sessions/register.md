@@ -25,8 +25,7 @@ POST /takos/v2/client/sessions/registers/temp
 }
 ```
 
-**説明**
-メールアドレスを使用して仮登録を行います。成功すると`sessionid`が返されます。
+**説明** メールアドレスを使用して仮登録を行います。成功すると`sessionid`が返されます。
 
 ### 2. メール認証
 

@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 const userConfigSchema = new mongoose.Schema({
   userName: {
     type: String,
@@ -25,6 +25,6 @@ const userConfigSchema = new mongoose.Schema({
     required: true,
     default: true,
   },
-});
-const UserConfig = mongoose.model("userConfig", userConfigSchema);
-export default UserConfig;
+})
+const UserConfig = mongoose.model("userConfig", userConfigSchema)
+export default UserConfig

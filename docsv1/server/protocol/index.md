@@ -20,9 +20,9 @@ const generateKeyPair = async () => {
     },
     true,
     ["sign", "verify"],
-  );
-  return keyPair;
-};
+  )
+  return keyPair
+}
 ```
 
 ・署名

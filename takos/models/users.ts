@@ -1,10 +1,5 @@
-import mongoose from "mongoose";
-import type {
-  AccountKeyPub,
-  deviceKeyPub,
-  IdentityKeyPub,
-  MasterKeyPub,
-} from "takosEncryptInk";
+import mongoose from "mongoose"
+import type { AccountKeyPub, deviceKeyPub, IdentityKeyPub, MasterKeyPub } from "takosEncryptInk"
 const userSchema = new mongoose.Schema({
   userName: {
     type: String,
@@ -28,10 +23,9 @@ const userSchema = new mongoose.Schema({
     unique: true,
     validate: {
       validator: function (v: string) {
-        return /^[\w-]+@[\w-]+\.[a-z]{2,3}$/.test(v);
+        return /^[\w-]+@[\w-]+\.[a-z]{2,3}$/.test(v)
       },
-      message: (props: { value: any }) =>
-        `${props.value} is not a valid mail address!`,
+      message: (props: { value: any }) => `${props.value} is not a valid mail address!`,
     },
   },
   setup: {
@@ -48,6 +42,6 @@ const userSchema = new mongoose.Schema({
   keyShareKey: {
     type: [Object],
   },
-});
-const User = mongoose.model("user", userSchema);
-export default User;
+})
+const User = mongoose.model("user", userSchema)
+export default User

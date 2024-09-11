@@ -1,4 +1,4 @@
-import HeaderButton from "../islands/headerButton.tsx";
+import HeaderButton from "../islands/headerButton.tsx"
 export default function ChatHeader(props: { state: any }) {
   return (
     <>
@@ -34,8 +34,8 @@ export default function ChatHeader(props: { state: any }) {
                 stroke-linejoin="round"
                 fill="none"
               >
-                <title id="homeAltIconTitle">Home</title>{" "}
-                <path d="M3 10.182V22h18V10.182L12 2z" />{" "}
+                <title id="homeAltIconTitle">Home</title> <path d="M3 10.182V22h18V10.182L12 2z" />
+                {" "}
                 <rect width="6" height="8" x="9" y="14" />
               </svg>
             </a>
@@ -115,5 +115,5 @@ export default function ChatHeader(props: { state: any }) {
         </ul>
       </header>
     </>
-  );
+  )
 }

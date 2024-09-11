@@ -1,41 +1,41 @@
-import { checkEmail } from "../util/takosClient.ts";
-import { useEffect } from "preact/hooks";
-import { useState } from "preact/hooks";
+import { checkEmail } from "../util/takosClient.ts"
+import { useEffect } from "preact/hooks"
+import { useState } from "preact/hooks"
 function Register(
   { state }: {
-    state: any;
+    state: any
   },
 ) {
-  const [sitekeyv2, setsitekeyv2] = useState("");
+  const [sitekeyv2, setsitekeyv2] = useState("")
   useEffect(() => {
-    (async function loadRecapcha() {
+    ;(async function loadRecapcha() {
       const sitekeyv2 = await fetch(
         "/takos/v2/client/recaptcha",
-      ).then((res) => res.json()).then((res) => res.v2);
-      setsitekeyv2(sitekeyv2);
-    })();
-  }, []);
+      ).then((res) => res.json()).then((res) => res.v2)
+      setsitekeyv2(sitekeyv2)
+    })()
+  }, [])
   if (state.showWindow.value !== "Register") {
     return (
       <>
         <button
           class="bg-[#00acee] text-white rounded-3xl py-2 px-4 hover:bg-[#00a0e9] w-full"
           onClick={() => {
-            state.showWindow.value = "Register";
-            state.RegisterPage.value = 0;
+            state.showWindow.value = "Register"
+            state.RegisterPage.value = 0
           }}
         >
           このサーバーに登録する
         </button>
       </>
-    );
+    )
   }
   return (
     <>
       <button
         class="bg-[#00acee] text-white rounded-3xl py-2 px-4 hover:bg-[#00a0e9] w-full"
         onClick={() => {
-          state.showWindow.value = "Register";
+          state.showWindow.value = "Register"
         }}
       >
         このサーバーに登録する
@@ -46,7 +46,7 @@ function Register(
             <span
               class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
               onClick={() => {
-                state.showWindow.value = "";
+                state.showWindow.value = ""
               }}
             >
               ×
@@ -58,9 +58,7 @@ function Register(
               sitekeyv2={sitekeyv2}
             />
           )}
-          {state.RegisterPage.value === 1 && (
-            <CheckEmail state={state} sitekeyv2={sitekeyv2} />
-          )}
+          {state.RegisterPage.value === 1 && <CheckEmail state={state} sitekeyv2={sitekeyv2} />}
           {state.RegisterPage.value === 2 && (
             <MainRegister
               state={state}
@@ -75,7 +73,7 @@ function Register(
         </div>
       </div>
     </>
-  );
+  )
 }
 function TransFarLoginFrom({ state }: { state: any }) {
   return (
@@ -93,7 +91,7 @@ function TransFarLoginFrom({ state }: { state: any }) {
             </div>
             <button
               onClick={() => {
-                state.showWindow.value = "login";
+                state.showWindow.value = "login"
               }}
               class="rounded-lg text-white bg-[#007AFF] ring-1 ring-[rgba(0,122,255,12%)] shadow-[0_1px_2.5px_rgba(0,122,255,24%)] px-5 py-2 hover:bg-[#1f7adb] focus:outline-none disabled:bg-gray-300 disabled:dark:bg-gray-700"
             >
@@ -103,12 +101,12 @@ function TransFarLoginFrom({ state }: { state: any }) {
         </div>
       </div>
     </>
-  );
+  )
 }
 function MainRegister(
   { state, sitekeyv2 }: {
-    state: any;
-    sitekeyv2: string;
+    state: any
+    sitekeyv2: string
   },
 ) {
   return (
@@ -122,17 +120,17 @@ function MainRegister(
         <form
           class="flex-grow flex flex-col justify-center"
           onSubmit={async (e) => {
-            e.preventDefault();
+            e.preventDefault()
             if (state.checkCode.value === "") {
-              alert("トークンを入力してください");
-              return;
+              alert("トークンを入力してください")
+              return
             }
-            let data;
+            let data
             if (state.recapchav3Failed.value) {
-              const form_data = new FormData(e.target as HTMLFormElement);
+              const form_data = new FormData(e.target as HTMLFormElement)
               const recapchav2 = form_data.get(
                 "g-recaptcha-response",
-              ) as string;
+              ) as string
               const res = await fetch(
                 "/takos/v2/client/sessions/registers/auth",
                 {
@@ -150,8 +148,8 @@ function MainRegister(
                     recapchaKind: "v2",
                   }),
                 },
-              );
-              data = await res.json();
+              )
+              data = await res.json()
             } else {
               const res = await fetch(
                 "/takos/v2/client/sessions/registers/auth",
@@ -169,28 +167,28 @@ function MainRegister(
                     recapchaKind: "v3",
                   }),
                 },
-              );
-              data = await res.json();
+              )
+              data = await res.json()
               if (data.status === false) {
                 if (data.message === "rechapchav3") {
-                  state.recapchav3Failed.value = true;
-                  return;
+                  state.recapchav3Failed.value = true
+                  return
                 }
               }
             }
             if (data.status === true) {
-              console.log(data);
-              state.RegisterPage.value = 4;
-              state.recapchav3Failed.value = false;
-              state.recapchav3.value = "";
-              state.RecapchaLoaded.value = false;
-              state.token.value = "";
-              state.email.value = "";
-              state.showWindow.value = "login";
-              return;
+              console.log(data)
+              state.RegisterPage.value = 4
+              state.recapchav3Failed.value = false
+              state.recapchav3.value = ""
+              state.RecapchaLoaded.value = false
+              state.token.value = ""
+              state.email.value = ""
+              state.showWindow.value = "login"
+              return
             }
             if (data.status === false) {
-              alert(data.message);
+              alert(data.message)
             }
           }}
         >
@@ -204,10 +202,10 @@ function MainRegister(
             <input
               onChange={(e) => {
                 if (!e.target) {
-                  return;
+                  return
                 }
-                const target = e.target as HTMLInputElement;
-                state.userName.value = target.value;
+                const target = e.target as HTMLInputElement
+                state.userName.value = target.value
               }}
               value={state.userName.value}
               type={"text"}
@@ -227,10 +225,10 @@ function MainRegister(
           <input
             onChange={(e) => {
               if (!e.target) {
-                return;
+                return
               }
-              const target = e.target as HTMLInputElement;
-              state.password.value = target.value;
+              const target = e.target as HTMLInputElement
+              state.password.value = target.value
             }}
             value={state.password.value}
             type={"password"}
@@ -269,7 +267,7 @@ function MainRegister(
         </form>
       </div>
     </>
-  );
+  )
 }
 
 function CheckEmail({ state, sitekeyv2 }: { state: any; sitekeyv2: string }) {
@@ -284,17 +282,17 @@ function CheckEmail({ state, sitekeyv2 }: { state: any; sitekeyv2: string }) {
         <form
           class="flex-grow flex flex-col justify-center"
           onSubmit={async (e) => {
-            e.preventDefault();
+            e.preventDefault()
             if (state.checkCode.value === "") {
-              alert("トークンを入力してください");
-              return;
+              alert("トークンを入力してください")
+              return
             }
-            let data;
+            let data
             if (state.recapchav3Failed.value) {
-              const form_data = new FormData(e.target as HTMLFormElement);
+              const form_data = new FormData(e.target as HTMLFormElement)
               const recapchav2 = form_data.get(
                 "g-recaptcha-response",
-              ) as string;
+              ) as string
               const res = await fetch(
                 "/takos/v2/client/sessions/registers/check",
                 {
@@ -310,8 +308,8 @@ function CheckEmail({ state, sitekeyv2 }: { state: any; sitekeyv2: string }) {
                     recpachaKind: "v2",
                   }),
                 },
-              );
-              data = await res.json();
+              )
+              data = await res.json()
             } else {
               const res = await fetch(
                 "/takos/v2/client/sessions/registers/check",
@@ -329,28 +327,28 @@ function CheckEmail({ state, sitekeyv2 }: { state: any; sitekeyv2: string }) {
                     recpachaKind: "v3",
                   }),
                 },
-              );
-              data = await res.json();
+              )
+              data = await res.json()
               if (data.status === false) {
-                console.log(state.recapchav3.value);
+                console.log(state.recapchav3.value)
                 if (data.message === "rechapchav3") {
-                  state.recapchav3Failed.value = true;
-                  return;
+                  state.recapchav3Failed.value = true
+                  return
                 }
               }
             }
             if (data.status === true) {
-              console.log(data);
-              state.recapchav3.value = "";
-              state.RegisterPage.value = 2;
-              console.log(state.RecapchaLoaded.value);
-              state.RecapchaLoaded.value = false;
-              state.recapchav3Failed.value = false;
-              return;
+              console.log(data)
+              state.recapchav3.value = ""
+              state.RegisterPage.value = 2
+              console.log(state.RecapchaLoaded.value)
+              state.RecapchaLoaded.value = false
+              state.recapchav3Failed.value = false
+              return
             }
             if (data.status === false) {
-              state.RecapchaLoaded.value = false;
-              alert(data.message);
+              state.RecapchaLoaded.value = false
+              alert(data.message)
             }
           }}
         >
@@ -364,10 +362,10 @@ function CheckEmail({ state, sitekeyv2 }: { state: any; sitekeyv2: string }) {
           <input
             onChange={(e) => {
               if (!e.target) {
-                return;
+                return
               }
-              const target = e.target as HTMLInputElement;
-              state.checkCode.value = target.value;
+              const target = e.target as HTMLInputElement
+              state.checkCode.value = target.value
             }}
             value={state.checkCode.value}
             type={"text"}
@@ -406,12 +404,12 @@ function CheckEmail({ state, sitekeyv2 }: { state: any; sitekeyv2: string }) {
         </form>
       </div>
     </>
-  );
+  )
 }
 function SendEmailRegisterRequest(
   { state, sitekeyv2 }: {
-    state: any;
-    sitekeyv2: string;
+    state: any
+    sitekeyv2: string
   },
 ) {
   return (
@@ -425,13 +423,13 @@ function SendEmailRegisterRequest(
         <form
           class="flex-grow flex flex-col justify-center"
           onSubmit={async (e) => {
-            e.preventDefault();
-            let data;
+            e.preventDefault()
+            let data
             if (state.recapchav3Failed.value) {
-              const form_data = new FormData(e.target as HTMLFormElement);
+              const form_data = new FormData(e.target as HTMLFormElement)
               const recapchav2 = form_data.get(
                 "g-recaptcha-response",
-              ) as string;
+              ) as string
               const res = await fetch(
                 "/takos/v2/client/sessions/registers/temp",
                 {
@@ -446,8 +444,8 @@ function SendEmailRegisterRequest(
                     recapchaKind: "v2",
                   }),
                 },
-              );
-              data = await res.json();
+              )
+              data = await res.json()
             } else {
               const res = await fetch(
                 "/takos/v2/client/sessions/registers/temp",
@@ -462,44 +460,44 @@ function SendEmailRegisterRequest(
                     recapchaKind: "v3",
                   }),
                 },
-              );
-              data = await res.json();
+              )
+              data = await res.json()
               if (data.status === false) {
                 if (data.error === "invalid recapcha") {
-                  state.recapchav3Failed.value = true;
-                  return;
+                  state.recapchav3Failed.value = true
+                  return
                 }
               }
             }
             if (data.status === true) {
-              state.RegisterPage.value = 1;
-              state.recapchav3Failed.value = false;
-              state.recapchav3.value = "";
-              state.token.value = data.token;
-              state.RecapchaLoaded.value = false;
-              return;
+              state.RegisterPage.value = 1
+              state.recapchav3Failed.value = false
+              state.recapchav3.value = ""
+              state.token.value = data.token
+              state.RecapchaLoaded.value = false
+              return
             }
             if (data.status === false) {
               switch (data.message) {
                 case "Invalid email":
-                  alert("メールアドレスが無効です");
-                  break;
+                  alert("メールアドレスが無効です")
+                  break
                 case "Invalid recaptcha":
-                  alert("reCAPTCHAが無効です");
-                  break;
+                  alert("reCAPTCHAが無効です")
+                  break
                 case "rechapchav2":
-                  alert("reCAPTCHAが無効です");
-                  break;
+                  alert("reCAPTCHAが無効です")
+                  break
                 case "Already Registered":
-                  alert("既に登録されています");
-                  break;
+                  alert("既に登録されています")
+                  break
                 case "rechapchav3":
-                  alert("reCAPTCHAが無効です");
-                  break;
+                  alert("reCAPTCHAが無効です")
+                  break
                 default:
-                  alert("エラーが発生しました: " + data.message);
-                  console.log(data);
-                  break;
+                  alert("エラーが発生しました: " + data.message)
+                  console.log(data)
+                  break
               }
             }
           }}
@@ -514,10 +512,10 @@ function SendEmailRegisterRequest(
           <input
             onChange={(e) => {
               if (!e.target) {
-                return;
+                return
               }
-              const target = e.target as HTMLInputElement;
-              state.email.value = target.value;
+              const target = e.target as HTMLInputElement
+              state.email.value = target.value
             }}
             value={state.email.value}
             type={"email"}
@@ -556,18 +554,18 @@ function SendEmailRegisterRequest(
         </form>
       </div>
     </>
-  );
+  )
 }
-export default Register;
+export default Register
 declare global {
   interface Window {
     grecaptcha: {
-      ready: (callback: () => void) => void;
+      ready: (callback: () => void) => void
       execute: (
         siteKey: string,
         options: { action: string },
-      ) => Promise<string>;
-      render: (element: string, options: { sitekey: string }) => void;
-    };
+      ) => Promise<string>
+      render: (element: string, options: { sitekey: string }) => void
+    }
   }
 }

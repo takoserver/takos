@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
 const requestShema = new mongoose.Schema({
   requesterId: {
@@ -22,6 +22,6 @@ const requestShema = new mongoose.Schema({
     type: String,
     required: true,
   },
-});
+})
 
-export default mongoose.model("Request", requestShema);
+export default mongoose.model("Request", requestShema)

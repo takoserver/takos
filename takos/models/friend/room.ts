@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
 const roomSchema = new mongoose.Schema({
   users: {
@@ -9,6 +9,6 @@ const roomSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-});
+})
 
-export default mongoose.model("friendRoom", roomSchema);
+export default mongoose.model("friendRoom", roomSchema)
