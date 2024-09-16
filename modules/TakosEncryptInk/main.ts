@@ -1190,7 +1190,7 @@ export async function decryptAndVerifyDataWithKeyShareKey(
   if (
     !await verifyData(
       master_key,
-      new TextEncoder().encode(JSON.stringify(encryptedData.encryptedData)),
+      JSON.stringify(encryptedData.encryptedData),
       encryptedData.encryptedDataSign,
     )
   ) {
@@ -1447,7 +1447,7 @@ export async function verifyAndDecryptMessage(
   if (
     !await verifyData(
       identityKey,
-      new TextEncoder().encode(JSON.stringify(encryptedMessage.value)),
+      JSON.stringify(encryptedMessage.value),
       encryptedMessage.signature,
     )
   ) {
