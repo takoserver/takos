@@ -2,7 +2,7 @@
   "version": "3",
   "packages": {
     "specifiers": {
-      "jsr:@hono/hono@^4.5.3": "jsr:@hono/hono@4.5.11",
+      "jsr:@hono/hono@^4.5.3": "jsr:@hono/hono@4.6.1",
       "jsr:@std/bytes@^1.0.2-rc.3": "jsr:@std/bytes@1.0.2",
       "jsr:@std/crypto@^1.0.2-rc.1": "jsr:@std/crypto@1.0.2",
       "jsr:@std/dotenv@^0.225.0": "jsr:@std/dotenv@0.225.2",
@@ -10,7 +10,8 @@
       "jsr:@takos/takos-encrypt-ink@^0.3.0-unstable": "jsr:@takos/takos-encrypt-ink@0.3.0-unstable",
       "jsr:@takos/takos-encrypt-ink@^0.3.1-unstable": "jsr:@takos/takos-encrypt-ink@0.3.1-unstable",
       "jsr:@takos/takos-encrypt-ink@^0.3.2-unstable": "jsr:@takos/takos-encrypt-ink@0.3.2-unstable",
-      "jsr:@takos/takos-encrypt-ink@^1.3.1": "jsr:@takos/takos-encrypt-ink@1.3.1",
+      "jsr:@takos/takos-encrypt-ink@^1.3.1": "jsr:@takos/takos-encrypt-ink@1.3.2",
+      "jsr:@takos/takos-encrypt-ink@^1.3.2": "jsr:@takos/takos-encrypt-ink@1.3.2",
       "npm:@types/node": "npm:@types/node@18.16.19",
       "npm:base64-arraybuffer@^1.0.2": "npm:base64-arraybuffer@1.0.2",
       "npm:crystals-kyber@^5.1.0": "npm:crystals-kyber@5.1.0",
@@ -38,6 +39,9 @@
       },
       "@hono/hono@4.5.9": {
         "integrity": "47f561e67aedbd6d1e21e3a1ae26c1b80ffdb62a51c161d502e75bee17ca40af"
+      },
+      "@hono/hono@4.6.1": {
+        "integrity": "993704e3a2fa8e965c2fa46c57fc038bd277e781a982d3bf0fb278f6671b195f"
       },
       "@std/bytes@1.0.2": {
         "integrity": "fbdee322bbd8c599a6af186a1603b3355e59a5fb1baa139f8f4c3c9a1b3e3d57"
@@ -81,6 +85,14 @@
       },
       "@takos/takos-encrypt-ink@1.3.1": {
         "integrity": "c1771c51316427ccb04d4c03feae382c2ad2c6727bcda9e083c81ebf4de20c46",
+        "dependencies": [
+          "npm:base64-arraybuffer@^1.0.2",
+          "npm:crystals-kyber@^5.1.0",
+          "npm:dilithium-crystals@^1.0.6"
+        ]
+      },
+      "@takos/takos-encrypt-ink@1.3.2": {
+        "integrity": "a3ab81f618524ea67ce1b6d5911e44a398712629b33ccaf9cc0bec220d55c7ba",
         "dependencies": [
           "npm:base64-arraybuffer@^1.0.2",
           "npm:crystals-kyber@^5.1.0",
@@ -324,6 +336,7 @@
       "jsr:@std/dotenv@^0.225.0",
       "jsr:@std/uuid@^1.0.0",
       "jsr:@takos/takos-encrypt-ink@^1.3.1",
+      "jsr:@takos/takos-encrypt-ink@^1.3.2",
       "npm:imagescript@^1.3.0",
       "npm:ky@^1.5.0",
       "npm:mongoose@^8.5.2",

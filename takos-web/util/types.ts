@@ -101,7 +101,7 @@ export interface friendRequest {
   friendName: string
 }
 
-export type IdentityKeyAndAccountKeysState = {
+export interface IdentityKeyAndAccountKeysState {
   identityKey: IdentityKey
   accountKey: AccountKey
   hashHex: string

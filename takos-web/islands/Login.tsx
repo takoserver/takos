@@ -1,3 +1,4 @@
+import { createTakosDB } from "../util/idbSchama.ts"
 import { checkEmail } from "../util/takosClient.ts"
 function Login({ state }: { state: any }) {
   if (state.showWindow.value !== "login") {
@@ -55,6 +56,13 @@ function Login({ state }: { state: any }) {
                 })
                 const data = await res.json()
                 if (data.status === true) {
+                  const db = await createTakosDB()
+                  await db.clear("deviceKey")
+                  await db.clear("keyShareKeys")
+                  await db.clear("masterKey")
+                  await db.clear("config")
+                  await db.clear("allowKeys")
+                  await db.clear("identityAndAccountKeys")
                   state.showWindow.value = ""
                   //リダイレクト
                   window.location.href = "/talk"

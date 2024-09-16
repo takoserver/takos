@@ -814,7 +814,7 @@ export async function signData(
 
 export async function verifyData(
   key: AccountKeyPub | IdentityKeyPub | MasterKeyPub,
-  signedData: ArrayBuffer,
+  signedData: string,
   signature: Sign,
 ): Promise<boolean> {
   const importedKey = await crypto.subtle.importKey(
@@ -831,7 +831,7 @@ export async function verifyData(
     },
     importedKey,
     base64ToArrayBuffer(signature.signature),
-    signedData,
+    new TextEncoder().encode(signedData),
   )
 }
 

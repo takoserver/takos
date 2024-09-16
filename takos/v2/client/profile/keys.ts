@@ -61,7 +61,7 @@ app.get("/", async (c: Context) => {
               return i.key
             }
             return null
-          }).filter((i) => i !== null)[0],
+          }).filter((i: null) => i !== null)[0],
           accountKeyPub: k.encryptedAccountKey.map((i) => {
             if (i.sessionid === sessionid) {
               return i.key

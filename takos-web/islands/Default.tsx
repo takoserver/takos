@@ -23,7 +23,10 @@ import {
   generateKeyHashHexJWK,
   generateMigrateDataSignKey,
   generateMigrateKey,
+  isValidAccountKey,
+  isValidIdentityKeySign,
   signDataWithMigrateDataSignKey,
+  verifyData,
   verifyDataWithMigrateDataSignKey,
 } from "@takos/takos-encrypt-ink"
 import type {
@@ -51,106 +54,152 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
   const migrateDataSignKey = useSignal<migrateDataSignKey | null>(null)
   const requester = useSignal(false)
   async function setDefaultState() {
-    const userInfoData = await fetch("/takos/v2/client/profile").then((res) => res.json())
-    console.log(userInfoData)
-    if (!userInfoData.status) {
-      window.location.href = "/"
-    }
-    state.userId.value = userInfoData.data.userId
-    if (userInfoData.data.setup) {
+    try {
+      const userInfoData = await fetchJson("/takos/v2/client/profile")
+      console.log(userInfoData)
+      if (!userInfoData.status) {
+        return redirectToHome()
+      }
+
+      state.userId.value = userInfoData.data.userId
+
+      if (!userInfoData.data.setup) {
+        return setSetUp(true)
+      }
+
       const db = await createTakosDB()
       const masterKey = await db.get("masterKey", "masterKey")
+
       if (!masterKey) {
-        setShareKey(true)
-        return
+        return setShareKey(true)
       }
+
       const deviceKeyPub = await db.get("deviceKey", "deviceKey")
+
       if (!deviceKeyPub) {
         return
       }
+
       const deviceKey: deviceKey = {
         public: deviceKeyPub.deviceKey,
         private: userInfoData.data.devicekey,
         hashHex: await generateKeyHashHexJWK(deviceKeyPub.deviceKey),
         version: 1,
       }
-      const idbIdentityAndAccountKeys = await db.getAll(
-        "identityAndAccountKeys",
-      )
-      //期限が長い順
-      idbIdentityAndAccountKeys.sort((a, b) => {
-        return new Date(b.keyExpiration).getTime() -
-          new Date(a.keyExpiration).getTime()
-      })
-      const masterKeyString = await decryptDataDeviceKey(
+
+      const idbIdentityAndAccountKeys = await fetchAndSortKeys(db)
+      const masterKeyData = await decryptMasterKey(deviceKey, masterKey)
+
+      if (!masterKeyData) {
+        return console.error("Master key decryption error")
+      }
+
+      const filteredKeys = await decryptIdentityAndAccountKeys(
         deviceKey,
-        masterKey.masterKey,
+        idbIdentityAndAccountKeys,
       )
-      if (!masterKeyString) {
-        console.log("masterKeyString is decrypt error")
-        return
+
+      if (!filteredKeys.length) {
+        return console.error("No valid identity or account keys")
       }
-      const masterKeyData = JSON.parse(masterKeyString)
-      const decryptedIdentityAndAccountKeys = await Promise.all(
-        idbIdentityAndAccountKeys.map(async (key) => {
-          console.log(key)
-          const identityKey = await decryptDataDeviceKey(
-            deviceKey,
-            key.encryptedIdentityKey,
-          )
-          const accountKey = await decryptDataDeviceKey(
-            deviceKey,
-            key.encryptedAccountKey,
-          )
-          if (!identityKey || !accountKey) {
-            console.log("identityKey or accountKey is decrypt error")
-            return null
-          }
-          return {
-            identityKey: JSON.parse(identityKey),
-            accountKey: JSON.parse(accountKey),
-            hashHex: key.hashHex,
-            keyExpiration: key.keyExpiration,
-          }
-        }),
-      )
-      //新しい順
-      const filteredKeys = decryptedIdentityAndAccountKeys.filter(
-        (key): key is {
-          identityKey: IdentityKey
-          accountKey: AccountKey
-          hashHex: string
-          keyExpiration: string
-        } => key !== null,
-      )
-      // 新しい順
-      filteredKeys.sort((a, b) => {
-        return new Date(b.keyExpiration).getTime() -
-          new Date(a.keyExpiration).getTime()
-      })
-      if (!decryptedIdentityAndAccountKeys) {
-        return
-      } else {
-        console.log(filteredKeys)
-        state.IdentityKeyAndAccountKeys.value = filteredKeys
-        state.MasterKey.value = masterKeyData
-        state.DeviceKey.value = deviceKey
-        if (userInfoData.data.updates.identityKeyAndAccountKey.length !== 0) {
-          //
+
+      setStateKeys(filteredKeys, masterKeyData, deviceKey, userInfoData.data.updates)
+
+      const list = await fetchJson("/takos/v2/client/list")
+      if (!list.status) {
+        return console.error("Friend list not found")
+      }
+
+      state.friendList.value = list.result
+    } catch (error) {
+      console.error("Error setting default state:", error)
+    }
+  }
+
+  async function fetchJson(url: string) {
+    const response = await fetch(url)
+    return response.json()
+  }
+
+  function redirectToHome() {
+    window.location.href = "/"
+  }
+
+  async function fetchAndSortKeys(db: any) {
+    const keys = await db.getAll("identityAndAccountKeys")
+    keys.sort((
+      a: { keyExpiration: string | number | Date },
+      b: { keyExpiration: string | number | Date },
+    ) => new Date(b.keyExpiration).getTime() - new Date(a.keyExpiration).getTime())
+    return keys
+  }
+
+  async function decryptMasterKey(deviceKey: deviceKey, masterKey: any) {
+    const masterKeyString = await decryptDataDeviceKey(deviceKey, masterKey.masterKey)
+    return masterKeyString ? JSON.parse(masterKeyString) : null
+  }
+
+  async function decryptIdentityAndAccountKeys(deviceKey: deviceKey, keys: any[]) {
+    const decryptedKeys = await Promise.all(
+      keys.map(async (key) => {
+        const [identityKey, accountKey] = await Promise.all([
+          decryptDataDeviceKey(deviceKey, key.encryptedIdentityKey),
+          decryptDataDeviceKey(deviceKey, key.encryptedAccountKey),
+        ])
+
+        if (!identityKey || !accountKey) {
+          console.error("Decryption error for identity or account key")
+          return null
         }
-        if (userInfoData.data.updates.allowedKey.length !== 0) {
-          //
+
+        return {
+          identityKey: JSON.parse(identityKey),
+          accountKey: JSON.parse(accountKey),
+          hashHex: key.hashHex,
+          keyExpiration: key.keyExpiration,
+        }
+      }),
+    )
+
+    return decryptedKeys.filter((key): key is any => key !== null)
+  }
+
+  function setStateKeys(filteredKeys: any, masterKeyData: any, deviceKey: any, updates: any) {
+    state.IdentityKeyAndAccountKeys.value = filteredKeys
+    state.MasterKey.value = masterKeyData
+    state.DeviceKey.value = deviceKey
+
+    if (updates.identityKeyAndAccountKey.length !== 0) {
+      for (const key of updates.identityKeyAndAccountKey) {
+        const identityKey = key.identityKey
+        const accountKey = key.accountKey
+        const hashHex = key.hashHex
+        const timestamp = key.timestamp
+
+        if (!identityKey || !accountKey || !hashHex || !timestamp) {
+          continue
+        }
+        if(!isValidIdentityKeySign(masterKeyData, identityKey)) {
+          continue
+        }
+        if(!isValidAccountKey(identityKey, accountKey)) {
+          continue
         }
       }
-    } else {
-      setSetUp(true)
     }
-    const list = await fetch("/takos/v2/client/list").then((res) => res.json())
-    if (!list.status) {
-      console.log("list is not found")
-      return
+
+    if (updates.allowedKey.length !== 0) {
+      for (const key of updates.allowedKey) {
+        const signKeyhashHex = key.sign.hashedPublicKeyHex
+        const signKey = state.IdentityKeyAndAccountKeys.value.find(
+          (key: IdentityKeyAndAccountKeysState) => key.hashHex === signKeyhashHex,
+        )
+        if (!signKey) {
+          continue
+        }
+        if(!verifyData)
+      }
     }
-    state.friendList.value = list.result
   }
   useEffect(() => {
     setDefaultState()
@@ -226,13 +275,14 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
           }
           const db = await createTakosDB()
           const migrateDataJson = JSON.parse(migrateData)
+          console.log(migrateDataJson)
           const allowedMasterKeyArray: {
             key?: string
             keyHash: string
             allowedUserId: string
             type: "allow" | "recognition"
             timestamp: string
-          }[] = migrateDataJson.allowedMasterKeyData
+          }[] = migrateDataJson.allowedMasterKey
           const masterKey = migrateDataJson.masterKeyData
           const identityAndAccountKeys = migrateDataJson.identityAndAccountKeysData
           const deviceKey = await createDeviceKey(masterKey)
@@ -295,6 +345,15 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
           for (const key of allowedMasterKeyArray) {
             await saveToDbAllowKeys(key.keyHash, key.allowedUserId, key.type, key.timestamp)
           }
+          await fetch("/takos/v2/client/keys/allowKey/saved", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              isAll: true,
+            }),
+          })
           await fetch("/takos/v2/client/sessions/key/updateSessionKeys", {
             method: "POST",
             headers: {

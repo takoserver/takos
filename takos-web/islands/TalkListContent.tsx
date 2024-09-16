@@ -287,6 +287,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
               await db.clear("keyShareKeys")
               await db.clear("masterKey")
               await db.clear("config")
+              await db.clear("allowKeys")
               await db.clear("identityAndAccountKeys")
               window.location.href = "/"
             }

@@ -7,9 +7,10 @@ import {
   generateKeyHashHexJWK,
   isValidAccountKey,
   isValidIdentityKeySign,
+  signData,
 } from "@takos/takos-encrypt-ink"
 import { isFragment } from "https://esm.sh/v128/preact@10.19.6/compat/src/index.js"
-import { saveToDbAllowKeys } from "../util/idbSchama.ts"
+import { createTakosDB, saveToDbAllowKeys } from "../util/idbSchama.ts"
 
 // Define the InputProps interface for type-checking
 interface InputProps {
@@ -132,9 +133,10 @@ const VideoList = (
                         const latestIdentityAndAccountKeys =
                           state.IdentityKeyAndAccountKeys.value[0]
                         const keys = await fetch(
-                          `/takos/v2/client/users/keys?userName=${video.requesterId}`,
+                          `/takos/v2/client/users/keys?userId=${video.requesterId}`,
                         ).then((res) => res.json())
                         const userMasterKey = keys.masterKey
+                        console.log(keys)
                         if (
                           !isValidIdentityKeySign(
                             userMasterKey,
@@ -146,31 +148,62 @@ const VideoList = (
                         }
                         if (
                           !isValidAccountKey(
-                            keys.key[0].identityKey,
+                            keys.keys[0].identityKey,
                             keys.keys[0].accountKey,
                           )
                         ) {
                           alert("エラーが発生しました")
                           return
                         }
-                        const date = new Date().toISOString()
-                        await saveToDbAllowKeys(
+                        const db = await createTakosDB()
+                        const isRegioned = await db.get(
+                          "allowKeys",
                           await generateKeyHashHexJWK(
-                            keys.keys[0].accountKey,
+                            keys.masterKey,
                           ),
-                          video.requesterId,
-                          "recognition",
-                          date,
                         )
-                        const recognitionKey = JSON.stringify({
-                          userId: video.requesterId,
-                          keyHash: await generateKeyHashHexJWK(
-                            keys.keys[0].accountKey,
-                          ),
-                          type: "recognition",
-                          keys: date,
-                        })
-                        //const recognitionKeySign = await ide
+                        console.log(isRegioned)
+                        if (!isRegioned) {
+                          const date = new Date().toISOString()
+                          const recognitionKey = JSON.stringify({
+                            userId: video.requesterId,
+                            keyHash: await generateKeyHashHexJWK(
+                              keys.keys[0].accountKey,
+                            ),
+                            type: "recognition",
+                            timestamp: date,
+                          })
+                          const recognitionKeySign = await signData(
+                            latestIdentityAndAccountKeys.identityKey,
+                            recognitionKey,
+                          )
+                          const res = await fetch(
+                            "/takos/v2/client/keys/allowKey/recognition",
+                            {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                              },
+                              body: JSON.stringify({
+                                key: recognitionKey,
+                                sign: recognitionKeySign,
+                              }),
+                            },
+                          )
+                          const data = await res.json()
+                          if (data.status === false) {
+                            alert("エラーが発生しました")
+                            return
+                          }
+                          await saveToDbAllowKeys(
+                            await generateKeyHashHexJWK(
+                              keys.keys[0].accountKey,
+                            ),
+                            video.requesterId,
+                            "recognition",
+                            date,
+                          )
+                        }
                         const roomKey = await createRoomKey(
                           latestIdentityAndAccountKeys.identityKey,
                         )

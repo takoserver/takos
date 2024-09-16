@@ -60,7 +60,7 @@ export interface TakosDB extends DBSchema {
 }
 
 export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
-  return openDB<TakosDB>("takos-db", 5, {
+  return openDB<TakosDB>("takos-db", 6, {
     upgrade(db) {
       if (!db.objectStoreNames.contains("deviceKey")) {
         db.createObjectStore("deviceKey", {
@@ -163,5 +163,6 @@ export async function saveToDbAllowKeys(
     allowedUserId: allowedUserId,
     type: type,
     timestamp: timestamp,
+    key: keyHash,
   })
 }
