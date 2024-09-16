@@ -99,7 +99,7 @@ app.get("/:userId/friend", async (c: Context) => {
     return {
       messageid: message.messageid,
       userId: message.userId,
-      messages: message.messageObj,
+      message: message.messageObj,
       timestamp: message.timestamp,
       type: message.messageObj.type,
     }
@@ -152,7 +152,7 @@ app.get("/:userId/friend", async (c: Context) => {
     [key: string]: IdentityKeyPub[]
   } = {}
   for (const message of messageList) {
-    const identityKeyHashHex = message.messages.signature.hashedPublicKeyHex
+    const identityKeyHashHex = message.message.signature.hashedPublicKeyHex
     if (identityKeys[message.userId] === undefined) {
       identityKeys[message.userId] = []
       const identityKey = await Keys.findOne({

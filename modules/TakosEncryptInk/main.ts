@@ -1394,7 +1394,10 @@ export async function decryptDataRoomKey(
   return new TextDecoder().decode(decryptedData)
 }
 export type EncryptedMessage = {
-  value: EncryptedDataRoomKey
+  value: {
+    timestamp: string
+    data: EncryptedDataRoomKey
+  }
   signature: Sign
 }
 
@@ -1403,7 +1406,7 @@ export async function encryptMessage(
   identityKey: IdentityKey,
   message: Message,
 ): Promise<EncryptedMessage> {
-  const now = new Date(message.timestamp)
+  const now = new Date()
   const roomKeyExpiration = new Date(roomKey.keyExpiration)
   if (
     now > roomKeyExpiration ||
@@ -1431,10 +1434,16 @@ export async function encryptMessage(
   const encryptedData = await encryptDataRoomKey(roomKey, JSON.stringify(message))
   const signature = await signData(
     identityKey,
-    JSON.stringify(encryptedData),
+    JSON.stringify({
+      data: encryptedData,
+      timestamp: now.toISOString(),
+    }),
   )
   return {
-    value: encryptedData,
+    value: {
+      data: encryptedData,
+      timestamp: now.toISOString(),
+    },
     signature: signature,
   }
 }
@@ -1454,7 +1463,7 @@ export async function verifyAndDecryptMessage(
     console.log("Failed to verify message")
     return null
   }
-  const decryptedData = await decryptDataRoomKey(roomKey, encryptedMessage.value)
+  const decryptedData = await decryptDataRoomKey(roomKey, encryptedMessage.value.data)
   if (decryptedData !== null) {
     return JSON.parse(decryptedData)
   } else {

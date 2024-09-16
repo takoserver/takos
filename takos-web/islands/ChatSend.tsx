@@ -1,6 +1,6 @@
 import React from "preact/compat"
 import { AppStateType } from "../util/types.ts"
-import { createRoomKey, encryptMessage, Message } from "@takos/takos-encrypt-ink"
+import { encryptMessage, Message } from "@takos/takos-encrypt-ink"
 
 function ChatSend({ state }: { state: AppStateType }) {
   const sendHandler = async () => {
@@ -14,11 +14,29 @@ function ChatSend({ state }: { state: AppStateType }) {
         return
       }
       const msg = state.inputMessage.value
-      const roomKey = (state.roomKey.value.find(
-        (data) =>
-          data.hashHex ===
-            state.latestRoomKeyhashHex.value,
-      ))?.key
+      state.roomKey.value = state.roomKey.value.sort(
+        (
+          a: {
+            key: {
+              version: number
+            }
+          },
+          b: {
+            key: {
+              version: number
+            }
+          },
+        ) => {
+          if (a.key.version < b.key.version) {
+            return 1
+          }
+          if (a.key.version > b.key.version) {
+            return -1
+          }
+          return 0
+        },
+      )
+      const roomKey = state.roomKey.value[0].key
       const messageObj: Message = {
         timestamp: new Date().toISOString(),
         message: msg,

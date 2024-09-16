@@ -66,7 +66,6 @@ export interface AppStateType {
     value: any
   }
   userId: { value: string }
-  latestRoomKeyhashHex: { value: string }
 }
 export interface MessageTypes {
   type: string
@@ -106,4 +105,5 @@ export interface IdentityKeyAndAccountKeysState {
   accountKey: AccountKey
   hashHex: string
   keyExpiration: string
-}[]
+}
+;[]

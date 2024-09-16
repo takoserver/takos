@@ -143,7 +143,7 @@ app.post("/saved", async (c: Context) => {
   } catch (e) {
     return c.json({ status: false }, 400)
   }
-  const { key: keyString, isAll } = body
+  const { keyHashHex, isAll } = body
   if (isAll == true) {
     await AllowKey.updateMany({ userName: userInfo.userName }, {
       $push: {
@@ -152,10 +152,8 @@ app.post("/saved", async (c: Context) => {
     })
     return c.json({ status: true })
   }
-  const key = JSON.parse(keyString)
-  if (!key) return c.json({ status: false }, 400)
-  if (!key.userId || !key.keyHash || !key.type) return c.json({ status: false }, 400)
-  await AllowKey.updateOne({ userName: userInfo.userName, key: key }, {
+  if (!keyHashHex) return c.json({ status: false, message: "1" }, 400)
+  await AllowKey.updateOne({ userName: userInfo.userName, keyHashHex: keyHashHex }, {
     $push: {
       deliveryedSessionId: sessionid,
     },

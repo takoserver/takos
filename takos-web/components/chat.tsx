@@ -27,12 +27,11 @@ function createAppState(obj: {
   const friendid = signal(obj.friendid || "")
   const ChatUserInfo = signal({})
   const MasterKey = signal({})
-  const IdentityKey = signal<IdentityKeyAndAccountKeysState>([])
+  const IdentityKey = signal<IdentityKeyAndAccountKeysState[]>([])
   const KeyShareKey = signal({})
   const DeviceKey = signal({})
   const roomKey = signal([])
   const userId = signal("")
-  const latestRoomKeyhashHex = signal("")
   return {
     isChoiceUser: isChoiceUser,
     ws: ws,
@@ -54,7 +53,6 @@ function createAppState(obj: {
     roomKey: roomKey,
     IdentityKeyAndAccountKeys: IdentityKey,
     userId: userId,
-    latestRoomKeyhashHex: latestRoomKeyhashHex,
   }
 }
 function chat(props: { page: any }) {

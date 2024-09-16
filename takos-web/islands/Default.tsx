@@ -103,7 +103,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
         return console.error("No valid identity or account keys")
       }
 
-      setStateKeys(filteredKeys, masterKeyData, deviceKey, userInfoData.data.updates)
+      await setStateKeys(filteredKeys, masterKeyData, deviceKey, userInfoData.data.updates)
 
       const list = await fetchJson("/takos/v2/client/list")
       if (!list.status) {
@@ -164,7 +164,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
     return decryptedKeys.filter((key): key is any => key !== null)
   }
 
-  function setStateKeys(filteredKeys: any, masterKeyData: any, deviceKey: any, updates: any) {
+  async function setStateKeys(filteredKeys: any, masterKeyData: any, deviceKey: any, updates: any) {
     state.IdentityKeyAndAccountKeys.value = filteredKeys
     state.MasterKey.value = masterKeyData
     state.DeviceKey.value = deviceKey
@@ -179,15 +179,14 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
         if (!identityKey || !accountKey || !hashHex || !timestamp) {
           continue
         }
-        if(!isValidIdentityKeySign(masterKeyData, identityKey)) {
+        if (!isValidIdentityKeySign(masterKeyData, identityKey)) {
           continue
         }
-        if(!isValidAccountKey(identityKey, accountKey)) {
+        if (!isValidAccountKey(identityKey, accountKey)) {
           continue
         }
       }
     }
-
     if (updates.allowedKey.length !== 0) {
       for (const key of updates.allowedKey) {
         const signKeyhashHex = key.sign.hashedPublicKeyHex
@@ -197,7 +196,26 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
         if (!signKey) {
           continue
         }
-        if(!verifyData)
+        if (!await verifyData(signKey.identityKey.public, key.key, key.sign)) {
+          continue
+        }
+        const keyObject = JSON.parse(key.key)
+        await saveToDbAllowKeys(
+          keyObject.keyHash,
+          keyObject.userId,
+          keyObject.type,
+          keyObject.timestamp,
+        )
+        await fetch("/takos/v2/client/keys/allowKey/saved", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            isAll: false,
+            keyHashHex: keyObject.keyHash,
+          }),
+        })
       }
     }
   }

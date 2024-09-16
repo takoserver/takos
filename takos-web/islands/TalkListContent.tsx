@@ -8,9 +8,12 @@ import { useSignal } from "@preact/signals"
 import { useEffect } from "preact/hooks"
 import { createTakosDB } from "../util/idbSchama.ts"
 import {
+decryptDataRoomKey,
   decryptDataWithAccountKey,
   EncryptedDataAccountKey,
+  EncryptedDataRoomKey,
   generateKeyHashHexJWK,
+  Sign,
   type RoomKey,
 } from "@takos/takos-encrypt-ink"
 function TalkListContent({ state }: { state: AppStateType }) {
@@ -165,7 +168,6 @@ function TalkListContent({ state }: { state: AppStateType }) {
                   const talkData = await fetch(
                     "/takos/v2/client/talk/data/" + talk.userName + "/friend",
                   ).then((res) => res.json())
-                  console.log(talkData)
                   const roomKeys: RoomKey[] = (await Promise.all(
                     talkData.keys.map(async (key: EncryptedDataAccountKey) => {
                       const encryptedAccountKeyHash = key.encryptedKeyHashHex
@@ -191,31 +193,50 @@ function TalkListContent({ state }: { state: AppStateType }) {
                     }
                     return false
                   })
-                  roomKeys.forEach(async (key: RoomKey) => {
-                    if (await generateKeyHashHexJWK(key) === key.hashHex) {
-                      state.roomKey.value.push({
-                        key: key,
-                        hashHex: key.hashHex,
-                      })
-                      return
-                    }
-                  })
-                  if (!(state.roomKey.value instanceof Array)) {
-                    state.roomKey.value = []
-                  }
-                  if (roomKeys[0]) {
-                    state.latestRoomKeyhashHex.value = await generateKeyHashHexJWK(
-                      roomKeys[0],
-                    )
-                  }
-                  state.talkData.value = talkData.messages
+                  const resultRoomKeyArray: { key: RoomKey; hashHex: string }[] = await Promise.all(
+                    roomKeys.map(async (key: RoomKey) => {
+                      const hashHex = await generateKeyHashHexJWK(key);
+                      if (hashHex === key.hashHex) {
+                        return {
+                          key: key,
+                          hashHex: key.hashHex,
+                        };
+                      }
+                      return null;
+                    })
+                  ).then(results => results.filter(result => result !== null) as { key: RoomKey; hashHex: string }[]);
+                  state.roomKey.value = resultRoomKeyArray;
+                  console.log(talkData);
+                  state.talkData.value = await Promise.all(
+                    talkData.messages.map(async (message: {
+                      message: { value: EncryptedDataRoomKey, signature: Sign },
+                      messageid: string,
+                      timestamp: string,
+                      userId: string,
+                    }) => {
+                      const roomKey = resultRoomKeyArray.find((key) => {
+                        return String(message.message.value.encryptedKeyHashHex) === key.hashHex;
+                      })?.key;
+                      if (!roomKey) {
+                        console.log(resultRoomKeyArray);
+                        console.log(message.message.value.encryptedKeyHashHex);
+                        console.log("roomKey not found");
+                        return;
+                      }
+                      const decryptedMessage = await decryptDataRoomKey(
+                        roomKey,
+                        message.message.value,
+                      );
+                      console.log(decryptedMessage);
+                    })
+                  );
                   state.ws.value?.send(
                     JSON.stringify({
                       type: "joinFriend",
                       sessionid: state.sessionid.value,
                       friendid: talk.userName,
                     }),
-                  )
+                  );
                 }}
               />
             )

@@ -233,8 +233,7 @@ interface migrateDataSignKey {
 
 interface Message {
   message: string
-  type: "text" | "image" | "video" | "audio"
-  timestamp: string
+  type: "text" | "image" | "video" | "audio" | "file"
   version: number
 }
 

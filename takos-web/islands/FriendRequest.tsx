@@ -136,26 +136,8 @@ const VideoList = (
                           `/takos/v2/client/users/keys?userId=${video.requesterId}`,
                         ).then((res) => res.json())
                         const userMasterKey = keys.masterKey
-                        console.log(keys)
-                        if (
-                          !isValidIdentityKeySign(
-                            userMasterKey,
-                            keys.keys[0].identityKey,
-                          )
-                        ) {
-                          alert("エラーが発生しました")
-                          return
-                        }
-                        if (
-                          !isValidAccountKey(
-                            keys.keys[0].identityKey,
-                            keys.keys[0].accountKey,
-                          )
-                        ) {
-                          alert("エラーが発生しました")
-                          return
-                        }
                         const db = await createTakosDB()
+
                         const isRegioned = await db.get(
                           "allowKeys",
                           await generateKeyHashHexJWK(
@@ -203,6 +185,61 @@ const VideoList = (
                             "recognition",
                             date,
                           )
+                        }
+                        // 一つ次に新しいmasterKeyをidbから取得
+                        const allowedMasterKeys = await db.getAll(
+                          "allowKeys",
+                        )
+                        const userMasterKeys = allowedMasterKeys.filter(
+                          (data) => data.allowedUserId === video.requesterId,
+                        )
+                        const thisMasterKeyTimeString = (userMasterKeys.find(
+                          async (data) => data.keyHash ===
+                            await generateKeyHashHexJWK(userMasterKey)
+                        ))?.timestamp
+                        if (!thisMasterKeyTimeString) {
+                          alert("エラーが発生しました")
+                          return
+                        }
+                        const thisMasterKeyTime = new Date(
+                          thisMasterKeyTimeString,
+                        )
+                        //新しい順にuserMasterKeysを並び替え
+                        userMasterKeys.sort((a, b) => {
+                          return new Date(b.timestamp).getTime() -
+                            new Date(a.timestamp).getTime()
+                        })
+                        //thisMasterKeyTimeのインデックスを取得
+                        const thisMasterKeyIndex = userMasterKeys.findIndex(
+                          (data) => data.timestamp === thisMasterKeyTimeString,
+                        )
+                        //一つ次に新しいmasterKeyを取得
+                        const nextMasterKey = userMasterKeys[thisMasterKeyIndex - 1]
+                        if(nextMasterKey) {
+                          const nextMasterKeyTime = new Date(nextMasterKey.timestamp)
+                          const identityKeyTime = keys.keys[0].timestamp
+                          if (nextMasterKeyTime < identityKeyTime) {
+                            alert("エラーが発生しました")
+                            return
+                          }
+                        }
+                        if (
+                          !isValidIdentityKeySign(
+                            userMasterKey,
+                            keys.keys[0].identityKey,
+                          )
+                        ) {
+                          alert("エラーが発生しました")
+                          return
+                        }
+                        if (
+                          !isValidAccountKey(
+                            keys.keys[0].identityKey,
+                            keys.keys[0].accountKey,
+                          )
+                        ) {
+                          alert("エラーが発生しました")
+                          return
                         }
                         const roomKey = await createRoomKey(
                           latestIdentityAndAccountKeys.identityKey,
