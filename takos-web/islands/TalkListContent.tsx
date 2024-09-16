@@ -14,7 +14,9 @@ decryptDataRoomKey,
   EncryptedDataRoomKey,
   generateKeyHashHexJWK,
   Sign,
+  verifyData,
   type RoomKey,
+  type IdentityKeyPub,
 } from "@takos/takos-encrypt-ink"
 function TalkListContent({ state }: { state: AppStateType }) {
   if (state.page.value === 0) {
@@ -209,30 +211,53 @@ function TalkListContent({ state }: { state: AppStateType }) {
                   console.log(talkData);
                   state.talkData.value = await Promise.all(
                     talkData.messages.map(async (message: {
-                      message: { value: {
-                        data: EncryptedDataRoomKey,
-                        timestamp: string,
-                      }, signature: Sign },
+                      message: { value: EncryptedDataRoomKey, signature: Sign },
                       messageid: string,
                       timestamp: string,
                       userId: string,
                     }) => {
                       const roomKey = resultRoomKeyArray.find((key) => {
-                        return String(message.message.value.data.encryptedKeyHashHex) === key.hashHex;
+                        return String(message.message.value.encryptedKeyHashHex) === key.hashHex;
                       })?.key;
                       if (!roomKey) {
                         console.log(resultRoomKeyArray);
-                        console.log(message.message.value.data.encryptedKeyHashHex);
+                        console.log(message.message.value.encryptedKeyHashHex);
                         console.log("roomKey not found");
                         return;
                       }
                       const decryptedMessage = await decryptDataRoomKey(
                         roomKey,
-                        message.message.value.data,
+                        message.message.value,
                       );
-                      console.log(decryptedMessage);
+                      if (!decryptedMessage) {
+                        return;
+                      }
+                      const obj = JSON.parse(decryptedMessage);
+                      const userIdentityKey: IdentityKeyPub[] = talkData.identityKeys[message.userId];
+                      console.log(userIdentityKey);
+                      if (!userIdentityKey) {
+                        return;
+                      }
+                      const identityKey = userIdentityKey.find(async (key) => await generateKeyHashHexJWK(key) === obj.hashHex)
+                      if (!identityKey) {
+                        console.log("identityKey not found");
+                        return;
+                      }
+                      const verify = verifyData(
+                        identityKey,
+                        message.message.value,
+                        message.message.signature,
+                      );
+                      return {
+                        messageid: message.messageid,
+                        userName: message.userId,
+                        message: obj.message,
+                        timestamp: message.timestamp,
+                        type: obj.type,
+                      };
                     })
                   );
+                  console.log(state.talkData.value);
                   state.ws.value?.send(
                     JSON.stringify({
                       type: "joinFriend",

@@ -1431,10 +1431,7 @@ export async function encryptMessage(
   const encryptedData = await encryptDataRoomKey(roomKey, JSON.stringify(message))
   const signature = await signData(
     identityKey,
-    JSON.stringify({
-      data: encryptedData,
-      timestamp: now.toISOString(),
-    }),
+    JSON.stringify(encryptedData),
   )
   return {
     value: encryptedData,
