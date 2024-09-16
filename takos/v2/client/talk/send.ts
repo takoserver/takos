@@ -45,7 +45,7 @@ app.post("/friend", async (c: Context) => {
   const roomid = room.roomid
   const isRoomKey = !!await FriendKeys.findOne({
     roomid,
-    keyHashHex: message.value.encryptedKeyHashHex,
+    keyHashHex: message.value.data.encryptedKeyHashHex,
   })
   if (!isRoomKey) {
     return c.json({ status: false, message: "Invalid room key" }, 400)
@@ -63,7 +63,7 @@ app.post("/friend", async (c: Context) => {
     messageObj: message,
     read: false,
     messageid: uuid(),
-    roomKeyHashHex: message.value.encryptedKeyHashHex,
+    roomKeyHashHex: message.value.data.encryptedKeyHashHex,
   })
   return c.json({ status: true })
 })

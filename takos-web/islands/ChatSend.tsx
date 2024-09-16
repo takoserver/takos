@@ -38,7 +38,6 @@ function ChatSend({ state }: { state: AppStateType }) {
       )
       const roomKey = state.roomKey.value[0].key
       const messageObj: Message = {
-        timestamp: new Date().toISOString(),
         message: msg,
         type: "text",
         version: 1,
@@ -66,6 +65,7 @@ function ChatSend({ state }: { state: AppStateType }) {
       )
       res.then((res) => res.json()).then((res) => {
         if (res.status === false) {
+          console.log(res.message)
           alert(
             "メッセージの送信に失敗しました",
           )

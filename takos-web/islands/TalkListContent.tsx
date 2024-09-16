@@ -209,23 +209,26 @@ function TalkListContent({ state }: { state: AppStateType }) {
                   console.log(talkData);
                   state.talkData.value = await Promise.all(
                     talkData.messages.map(async (message: {
-                      message: { value: EncryptedDataRoomKey, signature: Sign },
+                      message: { value: {
+                        data: EncryptedDataRoomKey,
+                        timestamp: string,
+                      }, signature: Sign },
                       messageid: string,
                       timestamp: string,
                       userId: string,
                     }) => {
                       const roomKey = resultRoomKeyArray.find((key) => {
-                        return String(message.message.value.encryptedKeyHashHex) === key.hashHex;
+                        return String(message.message.value.data.encryptedKeyHashHex) === key.hashHex;
                       })?.key;
                       if (!roomKey) {
                         console.log(resultRoomKeyArray);
-                        console.log(message.message.value.encryptedKeyHashHex);
+                        console.log(message.message.value.data.encryptedKeyHashHex);
                         console.log("roomKey not found");
                         return;
                       }
                       const decryptedMessage = await decryptDataRoomKey(
                         roomKey,
-                        message.message.value,
+                        message.message.value.data,
                       );
                       console.log(decryptedMessage);
                     })
