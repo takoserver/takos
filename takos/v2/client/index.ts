@@ -23,9 +23,10 @@ import iconUser from "@/v2/client/users/icon.ts"
 import list from "@/v2/client/list.ts"
 import usersKey from "@/v2/client/users/keys.ts"
 import resetKey from "@/v2/client/profile/resetKey.ts"
-import talkData from "./talk/data.ts"
-import talkSend from "./talk/send.ts"
-import talkInfo from "./talk/info.ts"
+import talkData from "@/v2/client/talk/data.ts"
+import talkSend from "@/v2/client/talk/send.ts"
+import talkInfo from "@/v2/client/talk/info.ts"
+import AllowKey from "@/v2/client/users/allowKey.ts"
 const app = new Hono()
 app.route("/ping", ping)
 app.route("/bgimage", bgimage)
@@ -53,4 +54,5 @@ app.route("/profile/resetKey", resetKey)
 app.route("/talk/data", talkData)
 app.route("/talk/send", talkSend)
 app.route("/talk/info", talkInfo)
+app.route("/keys/allowKey", AllowKey)
 export default app

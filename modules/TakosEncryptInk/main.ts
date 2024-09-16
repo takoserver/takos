@@ -789,7 +789,7 @@ export async function isValidAccountKey(
 
 export async function signData(
   key: AccountKey | IdentityKey | MasterKey,
-  data: ArrayBuffer,
+  data: string,
 ): Promise<Sign> {
   const signature = await crypto.subtle.sign(
     {
@@ -797,7 +797,7 @@ export async function signData(
       saltLength: 32,
     },
     await importKey(key.private, "private"),
-    data,
+    new TextEncoder().encode(data),
   )
   const hashedPublicKeyHex = await generateKeyHashHexCryptoKey(
     await importKey(key.public, "public"),
@@ -1165,7 +1165,7 @@ export async function encryptAndSignDataWithKeyShareKey(
   )
   const encryptedDataSign = await signData(
     master_key,
-    new TextEncoder().encode(JSON.stringify(encryptedData)),
+    JSON.stringify(encryptedData),
   )
   return {
     encryptedData: encryptedData,
@@ -1431,7 +1431,7 @@ export async function encryptMessage(
   const encryptedData = await encryptDataRoomKey(roomKey, JSON.stringify(message))
   const signature = await signData(
     identityKey,
-    new TextEncoder().encode(JSON.stringify(encryptedData)),
+    JSON.stringify(encryptedData),
   )
   return {
     value: encryptedData,

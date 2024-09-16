@@ -28,41 +28,48 @@ app.get("/", async (c: Context) => {
       status: 200,
     })
   }
-  let allowKey: any[] = [];
+  let allowKey: any[] = []
   let Keys2: any[]
-  allowKey = await AllowKey.find({ userName: userInfo.userName,
-    $ne : {
-      deliveryedSessionId: sessionid
-    }
-   })
-  Keys2 = await Keys.find({ userName: userInfo.userName,
-    $ne : {
-      deliveryedSessionId: sessionid
-    }
-   })
-   if(!allowKey) {
+
+  // AllowKeyのクエリ修正
+  allowKey = await AllowKey.find({
+    userName: userInfo.userName,
+    deliveryedSessionId: { $ne: sessionid },
+  })
+
+  // Keysのクエリ修正
+  Keys2 = await Keys.find({
+    userName: userInfo.userName,
+    deliveryedSessionId: { $ne: sessionid },
+  })
+
+  if (!allowKey) {
     allowKey = []
-   } else {
-    allowKey.map((k) => {
+  } else {
+    allowKey = allowKey.map((k) => {
       return {
         timestamp: k.timestamp,
         key: k.key,
         sign: k.sign,
       }
     })
-   }
-    if(!Keys2) {
-      Keys2 = []
-    } else {
-      Keys2.map((k) => {
-        return {
-          timestamp: k.timestamp,
-          hashHex: k.hashHex,
-          encryptedIdentityKey: k.encryptedIdentityKey.find((i: { sessionid: string; }) => i.sessionid === sessionid),
-          encryptedAccountKey: k.encryptedAccountKey.find((i: { sessionid: string; }) => i.sessionid === sessionid),
-        }
-      }).filter((k) => k.encryptedIdentityKey !== undefined && k.encryptedAccountKey !== undefined)
-    }
+  }
+  if (!Keys2) {
+    Keys2 = []
+  } else {
+    Keys2 = Keys2.map((k) => {
+      return {
+        timestamp: k.timestamp,
+        hashHex: k.hashHex,
+        encryptedIdentityKey: k.encryptedIdentityKey.find((i: { sessionid: string }) =>
+          i.sessionid === sessionid
+        ),
+        encryptedAccountKey: k.encryptedAccountKey.find((i: { sessionid: string }) =>
+          i.sessionid === sessionid
+        ),
+      }
+    }).filter((k) => k.encryptedIdentityKey !== undefined && k.encryptedAccountKey !== undefined)
+  }
   return c.json({
     status: true,
     data: {
@@ -74,7 +81,7 @@ app.get("/", async (c: Context) => {
       devicekey: session.deviceKey,
       updates: {
         identityKeyAndAccountKey: Keys2,
-        trustedKey: allowKey,
+        allowedKey: allowKey,
       },
     },
   }, 200)

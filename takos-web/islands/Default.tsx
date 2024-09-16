@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks"
 import { AppStateType, IdentityKeyAndAccountKeysState } from "../util/types.ts"
 import fnv1a from "@sindresorhus/fnv1a"
 import {
+  saveToDbAllowKeys,
   saveToDbDeviceKey,
   saveToDbIdentityAndAccountKeys,
   saveToDbKeyShareKeys,
@@ -51,13 +52,13 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
   const requester = useSignal(false)
   async function setDefaultState() {
     const userInfoData = await fetch("/takos/v2/client/profile").then((res) => res.json())
+    console.log(userInfoData)
     if (!userInfoData.status) {
       window.location.href = "/"
     }
     state.userId.value = userInfoData.data.userId
     if (userInfoData.data.setup) {
       const db = await createTakosDB()
-      //get masterKey
       const masterKey = await db.get("masterKey", "masterKey")
       if (!masterKey) {
         setShareKey(true)
@@ -65,7 +66,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
       }
       const deviceKeyPub = await db.get("deviceKey", "deviceKey")
       if (!deviceKeyPub) {
-        console.log("deviceKeyPub is not found")
         return
       }
       const deviceKey: deviceKey = {
@@ -82,68 +82,64 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
         return new Date(b.keyExpiration).getTime() -
           new Date(a.keyExpiration).getTime()
       })
-      const newKeys = await fetch(
-        "/takos/v2/client/profile/keys?hashHex=" +
-          idbIdentityAndAccountKeys[0].hashHex,
-      ).then((res) => res.json())
-      if (!newKeys.status) {
-        alert("エラーが発生しました")
+      const masterKeyString = await decryptDataDeviceKey(
+        deviceKey,
+        masterKey.masterKey,
+      )
+      if (!masterKeyString) {
+        console.log("masterKeyString is decrypt error")
         return
       }
-      if (newKeys.data.identityKeyAndAndAccountKey.length === 0) {
-        const masterKeyString = await decryptDataDeviceKey(
-          deviceKey,
-          masterKey.masterKey,
-        )
-        if (!masterKeyString) {
-          console.log("masterKeyString is decrypt error")
-          return
+      const masterKeyData = JSON.parse(masterKeyString)
+      const decryptedIdentityAndAccountKeys = await Promise.all(
+        idbIdentityAndAccountKeys.map(async (key) => {
+          console.log(key)
+          const identityKey = await decryptDataDeviceKey(
+            deviceKey,
+            key.encryptedIdentityKey,
+          )
+          const accountKey = await decryptDataDeviceKey(
+            deviceKey,
+            key.encryptedAccountKey,
+          )
+          if (!identityKey || !accountKey) {
+            console.log("identityKey or accountKey is decrypt error")
+            return null
+          }
+          return {
+            identityKey: JSON.parse(identityKey),
+            accountKey: JSON.parse(accountKey),
+            hashHex: key.hashHex,
+            keyExpiration: key.keyExpiration,
+          }
+        }),
+      )
+      //新しい順
+      const filteredKeys = decryptedIdentityAndAccountKeys.filter(
+        (key): key is {
+          identityKey: IdentityKey
+          accountKey: AccountKey
+          hashHex: string
+          keyExpiration: string
+        } => key !== null,
+      )
+      // 新しい順
+      filteredKeys.sort((a, b) => {
+        return new Date(b.keyExpiration).getTime() -
+          new Date(a.keyExpiration).getTime()
+      })
+      if (!decryptedIdentityAndAccountKeys) {
+        return
+      } else {
+        console.log(filteredKeys)
+        state.IdentityKeyAndAccountKeys.value = filteredKeys
+        state.MasterKey.value = masterKeyData
+        state.DeviceKey.value = deviceKey
+        if (userInfoData.data.updates.identityKeyAndAccountKey.length !== 0) {
+          //
         }
-        const masterKeyData = JSON.parse(masterKeyString)
-        const decryptedIdentityAndAccountKeys = await Promise.all(
-          idbIdentityAndAccountKeys.map(async (key) => {
-            console.log(key)
-            const identityKey = await decryptDataDeviceKey(
-              deviceKey,
-              key.encryptedIdentityKey,
-            )
-            const accountKey = await decryptDataDeviceKey(
-              deviceKey,
-              key.encryptedAccountKey,
-            )
-            if (!identityKey || !accountKey) {
-              console.log("identityKey or accountKey is decrypt error")
-              return null
-            }
-            return {
-              identityKey: JSON.parse(identityKey),
-              accountKey: JSON.parse(accountKey),
-              hashHex: key.hashHex,
-              keyExpiration: key.keyExpiration,
-            }
-          }),
-        )
-        //新しい順
-        const filteredKeys = decryptedIdentityAndAccountKeys.filter(
-          (key): key is {
-            identityKey: IdentityKey
-            accountKey: AccountKey
-            hashHex: string
-            keyExpiration: string
-          } => key !== null,
-        )
-        // 新しい順
-        filteredKeys.sort((a, b) => {
-          return new Date(b.keyExpiration).getTime() -
-            new Date(a.keyExpiration).getTime()
-        })
-        if (!decryptedIdentityAndAccountKeys) {
-          return
-        } else {
-          console.log(filteredKeys)
-          state.IdentityKeyAndAccountKeys.value = filteredKeys
-          state.MasterKey.value = masterKeyData
-          state.DeviceKey.value = deviceKey
+        if (userInfoData.data.updates.allowedKey.length !== 0) {
+          //
         }
       }
     } else {
@@ -230,6 +226,13 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
           }
           const db = await createTakosDB()
           const migrateDataJson = JSON.parse(migrateData)
+          const allowedMasterKeyArray: {
+            key?: string
+            keyHash: string
+            allowedUserId: string
+            type: "allow" | "recognition"
+            timestamp: string
+          }[] = migrateDataJson.allowedMasterKeyData
           const masterKey = migrateDataJson.masterKeyData
           const identityAndAccountKeys = migrateDataJson.identityAndAccountKeysData
           const deviceKey = await createDeviceKey(masterKey)
@@ -289,6 +292,9 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
               )
             }),
           )
+          for (const key of allowedMasterKeyArray) {
+            await saveToDbAllowKeys(key.keyHash, key.allowedUserId, key.type, key.timestamp)
+          }
           await fetch("/takos/v2/client/sessions/key/updateSessionKeys", {
             method: "POST",
             headers: {
@@ -676,6 +682,19 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         console.log(await db.getAll("keyShareKeys"))
                         console.log(await db.get("masterKey", "masterKey"))
                         console.log(await db.get("deviceKey", "deviceKey"))
+                        const res = await fetch("/takos/v2/client/profile/keys/geted", {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            hashHex: hashHex,
+                            type: "identityKeyAndAccountKey",
+                          }),
+                        })
+                        if (!res.status) {
+                          console.log("identityKeyAndAccountKey is not found")
+                        }
                         setSetUp(false)
                         alert("設定が完了しました")
                       } else {
@@ -861,9 +880,11 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                   const identityAndAccountKeysData = JSON.stringify(
                     decryptedIdentityAndAccountKeys.filter((key) => key !== null),
                   )
+                  const allowedMasterKey = await db.getAll("allowKeys")
                   const resData = JSON.stringify({
                     masterKeyData,
                     identityAndAccountKeysData,
+                    allowedMasterKey,
                   })
                   if (!migrateKeyPublic.value || !migrateDataSignKey.value) {
                     return

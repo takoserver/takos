@@ -36,9 +36,6 @@ const userSchema = new mongoose.Schema({
     type: Number,
   },
   timestamp: { type: Date, default: Date.now },
-  masterKey: {
-    type: Object,
-  },
   keyShareKey: {
     type: [Object],
   },

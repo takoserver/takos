@@ -21,6 +21,7 @@ import type {
 } from "takosEncryptInk"
 import User from "@/models/users.ts"
 import Keys from "@/models/keys/keys.ts"
+import MasterKey from "@/models/masterKey.ts"
 const app = new Hono()
 
 app.post("/", async (c: Context) => {
@@ -143,10 +144,14 @@ app.post("/", async (c: Context) => {
     $set: {
       nickName,
       age,
-      masterKey: master_key,
       setup: true,
       keyShareKey,
     },
+  })
+  await MasterKey.create({
+    userName: session.userName,
+    masterKey: master_key,
+    hashHex: await generateKeyHashHexJWK(master_key),
   })
   await Keys.create({
     userName: session.userName,

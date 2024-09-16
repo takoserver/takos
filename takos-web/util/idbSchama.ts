@@ -46,7 +46,7 @@ export interface TakosDB extends DBSchema {
       keyExpiration: string
       key?: string
     }
-  },
+  }
   allowKeys: {
     key: string
     value: {
@@ -54,7 +54,7 @@ export interface TakosDB extends DBSchema {
       keyHash: string
       allowedUserId: string
       type: "allow" | "recognition"
-      timestamp: Date
+      timestamp: string
     }
   }
 }
@@ -155,12 +155,13 @@ export async function saveToDbAllowKeys(
   keyHash: string,
   allowedUserId: string,
   type: "allow" | "recognition",
+  timestamp: string,
 ): Promise<void> {
   const db = await createTakosDB()
   await db.put("allowKeys", {
     keyHash: keyHash,
     allowedUserId: allowedUserId,
     type: type,
-    timestamp: new Date(),
+    timestamp: timestamp,
   })
 }

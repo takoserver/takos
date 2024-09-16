@@ -16,6 +16,7 @@ import {
 } from "takosEncryptInk"
 import Keys from "@/models/keys/keys.ts"
 import allowFriendMasterKey from "@/models/allowFriendMasterKey.ts"
+import MasterKey from "@/models/masterKey.ts"
 const app = new Hono()
 
 app.post("/", async (c: Context) => {
@@ -80,10 +81,14 @@ app.post("/", async (c: Context) => {
   }
   await User.updateOne({ userName: session.userName }, {
     $set: {
-      masterKey: master_key,
       setup: true,
       keyShareKey,
     },
+  })
+  await MasterKey.create({
+    userName: session.userName,
+    masterKey: master_key,
+    hashHex: await generateKeyHashHexJWK(master_key),
   })
   await Keys.deleteMany({ userName: session.userName })
   await Sessionid.deleteMany({

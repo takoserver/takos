@@ -1,41 +1,36 @@
-import monngose from "mongoose"
+import mongoose from "mongoose"
 
-const allowKeySchema = new monngose.Schema({
+const allowKeySchema = new mongoose.Schema({
   userName: {
     type: String,
     required: true,
   },
   key: {
-    type: {
-      allowedUserId: {
-        type: String,
-        required: true,
-      },
-      keyHash: {
-        type: String,
-        required: true,
-      },
-      type: {
-        type: String,
-        required: true,
-        enum: ["allow", "recognition"],
-      },
-    },
+    type: String,
+    required: true,
+  },
+  keyHashHex: {
+    type: String,
     required: true,
   },
   sign: {
     type: Object,
     required: true,
   },
+  deliveryedSessionId: {
+    type: [String], // 配列の型を指定
+    required: true,
+    default: [],
+  },
   timestamp: {
     type: Date,
     default: Date.now,
   },
-  deliveryedSessionId: {
-    type: Array,
+  type: {
+    type: String,
     required: true,
-    default: [],
   },
 })
-const AllowKey = monngose.model("AllowKey", allowKeySchema)
+
+const AllowKey = mongoose.model("AllowKey", allowKeySchema)
 export default AllowKey

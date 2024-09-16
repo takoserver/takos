@@ -10,6 +10,7 @@ import { splitUserName } from "@/utils/utils.ts"
 import friends from "@/models/friends.ts"
 import Keys from "@/models/keys/keys.ts"
 import { IdentityKeyPub } from "takosEncryptInk"
+import AllowKey from "@/models/keys/allowKey.ts"
 const env = await load()
 
 const app = new Hono()
@@ -20,6 +21,10 @@ app.get("/:userId/friend", async (c: Context) => {
   const before = c.req.param("before") || ""
   const after = c.req.param("after") || ""
   const ignoreKeysString = c.req.param("ignoreKeys") || ""
+  const getKeysAllowedInfo = (() => {
+    const a = c.req.param("getKeysAllowedInfo") || false
+    return a === "true"
+  })()
   // around, before, afterはどれか一つだけ指定可能
   if ((before && after)) {
     return c.json({ status: false, message: "Invalid parameter" }, 400)
@@ -159,6 +164,28 @@ app.get("/:userId/friend", async (c: Context) => {
       }
     }
   }
-  return c.json({ status: true, messages: messageList, keys: keysArray, identityKeys })
+  let memberAllowedInfo
+  if (getKeysAllowedInfo) {
+    const roomMemberUserIds = room.users.filter((user) => {
+      return user !== userInfo.userName + "@" + env["DOMAIN"]
+    })
+    memberAllowedInfo = AllowKey.find({
+      userName: userInfo.userName,
+      key: {
+        //メンバー鍵の署名が有効なもの
+        $elemMatch: {
+          userId: { $in: roomMemberUserIds },
+          sign: { $ne: null },
+        },
+      },
+    })
+  }
+  return c.json({
+    status: true,
+    messages: messageList,
+    keys: keysArray,
+    identityKeys,
+    memberAllowedInfo,
+  })
 })
 export default app

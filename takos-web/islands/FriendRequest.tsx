@@ -4,7 +4,12 @@ import {
   createRoomKey,
   encryptDataDeviceKey,
   encryptWithAccountKey,
+  generateKeyHashHexJWK,
+  isValidAccountKey,
+  isValidIdentityKeySign,
 } from "@takos/takos-encrypt-ink"
+import { isFragment } from "https://esm.sh/v128/preact@10.19.6/compat/src/index.js"
+import { saveToDbAllowKeys } from "../util/idbSchama.ts"
 
 // Define the InputProps interface for type-checking
 interface InputProps {
@@ -129,6 +134,43 @@ const VideoList = (
                         const keys = await fetch(
                           `/takos/v2/client/users/keys?userName=${video.requesterId}`,
                         ).then((res) => res.json())
+                        const userMasterKey = keys.masterKey
+                        if (
+                          !isValidIdentityKeySign(
+                            userMasterKey,
+                            keys.keys[0].identityKey,
+                          )
+                        ) {
+                          alert("エラーが発生しました")
+                          return
+                        }
+                        if (
+                          !isValidAccountKey(
+                            keys.key[0].identityKey,
+                            keys.keys[0].accountKey,
+                          )
+                        ) {
+                          alert("エラーが発生しました")
+                          return
+                        }
+                        const date = new Date().toISOString()
+                        await saveToDbAllowKeys(
+                          await generateKeyHashHexJWK(
+                            keys.keys[0].accountKey,
+                          ),
+                          video.requesterId,
+                          "recognition",
+                          date,
+                        )
+                        const recognitionKey = JSON.stringify({
+                          userId: video.requesterId,
+                          keyHash: await generateKeyHashHexJWK(
+                            keys.keys[0].accountKey,
+                          ),
+                          type: "recognition",
+                          keys: date,
+                        })
+                        //const recognitionKeySign = await ide
                         const roomKey = await createRoomKey(
                           latestIdentityAndAccountKeys.identityKey,
                         )
