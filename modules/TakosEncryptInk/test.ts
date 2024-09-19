@@ -13,7 +13,6 @@ const masterKey = await createMasterKey()
 const { identityKey, accountKey } = await createIdentityKeyAndAccountKey(masterKey)
 const roomKey = await createRoomKey(identityKey)
 const message: Message = {
-  timestamp: new Date().toISOString(),
   message: "Hello, World!",
   type: "text",
   version: 1,

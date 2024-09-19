@@ -8,17 +8,142 @@ import { useSignal } from "@preact/signals"
 import { useEffect } from "preact/hooks"
 import { createTakosDB } from "../util/idbSchama.ts"
 import {
-decryptDataRoomKey,
+  decryptDataRoomKey,
   decryptDataWithAccountKey,
   EncryptedDataAccountKey,
   EncryptedDataRoomKey,
   generateKeyHashHexJWK,
+  type IdentityKeyPub,
+  type RoomKey,
   Sign,
   verifyData,
-  type RoomKey,
-  type IdentityKeyPub,
 } from "@takos/takos-encrypt-ink"
 function TalkListContent({ state }: { state: AppStateType }) {
+  async function handleFriendRoomSetup(
+    talk: { nickName: string; userName: string; roomID: string },
+  ) {
+    const { nickName, userName, roomID } = talk
+
+    // Update state
+    state.isChoiceUser.value = true
+    state.roomName.value = nickName
+    state.friendid.value = userName
+    setIschoiseUser(true, state.isChoiceUser)
+    state.roomType.value = "friend"
+
+    // Fetch talk data
+    const talkData = await fetch(`/takos/v2/client/talk/data/${userName}/friend`).then((res) =>
+      res.json()
+    )
+
+    // Process room keys
+    const roomKeys = await Promise.all(
+      talkData.keys.map(async (key: EncryptedDataAccountKey) => {
+        const accountKey = state.IdentityKeyAndAccountKeys.value.find(
+          (key2: { hashHex: string }) => {
+            return key2.hashHex === key.encryptedKeyHashHex
+          },
+        )
+        if (!accountKey) {
+          console.error("Account key not found")
+          return
+        }
+
+        const decryptedRoomKeyString = await decryptDataWithAccountKey(accountKey.accountKey, key)
+        if (!decryptedRoomKeyString) {
+          console.error("Failed to decrypt room key")
+          return
+        }
+        return {
+          userId: userName,
+          roomid: roomID,
+          roomKey: JSON.parse(decryptedRoomKeyString),
+        }
+      }),
+    ).then((keys) => keys.filter(Boolean)) // Filter out undefined results
+    // Generate room key hashes and filter valid ones
+    const resultRoomKeyArray = await Promise.all(
+      roomKeys.map(async (key) => {
+        const hashHex = await generateKeyHashHexJWK(key.roomKey)
+        return hashHex === key.roomKey.hashHex ? { key, hashHex } : null
+      }),
+    ).then((results) => results.filter(Boolean)) // Filter out null results
+
+    // Update friendKeyCache
+    state.friendKeyCache.roomKey.value = [
+      ...state.friendKeyCache.roomKey.value,
+      ...roomKeys,
+    ]
+    console.log(talkData)
+    // Process messages
+    state.talkData.value = await Promise.all(
+      talkData.messages.map(
+        async (
+          message: {
+            message: { value: EncryptedDataRoomKey; signature: Sign }
+            userId: string | number
+            messageid: any
+            timestamp: any
+          },
+        ) => {
+          const roomKey = resultRoomKeyArray.find(
+            (key) => key && String(message.message.value.encryptedKeyHashHex) === key.hashHex,
+          )?.key
+          if (!roomKey) {
+            console.error("Room key not found for message", message)
+            return
+          }
+
+          const decryptedMessage = await decryptDataRoomKey(roomKey.roomKey, message.message.value)
+          if (!decryptedMessage) return
+          const messageObj = JSON.parse(decryptedMessage)
+          const userIdentityKey = talkData.identityKeys[message.userId]
+
+          if (!userIdentityKey) return
+
+          const identityKey = await findIdentityKey(userIdentityKey, messageObj.hashHex)
+          if (!identityKey) {
+            console.error("Identity key not found")
+            return
+          }
+          //verify identity key
+
+          // Verify message
+          const verify = await verifyData(
+            identityKey,
+            JSON.stringify(message.message.value),
+            message.message.signature,
+          )
+          if (!verify) {
+            console.error("Failed to verify message")
+            return
+          }
+          return {
+            messageid: message.messageid,
+            userId: message.userId,
+            message: messageObj.message,
+            timestamp: message.timestamp,
+            type: messageObj.type,
+          }
+        },
+      ),
+    ).then((messages) => messages.filter(Boolean)) // Filter out null results
+
+    // Send WebSocket message to join friend
+    state.ws.value?.send(
+      JSON.stringify({
+        type: "joinFriend",
+        sessionid: state.sessionid.value,
+        friendid: userName,
+      }),
+    )
+  }
+
+  // Helper function to find identity key by hash
+  async function findIdentityKey(identityKeys: IdentityKeyPub[], hashHex: string) {
+    return identityKeys.find(async (key) => await generateKeyHashHexJWK(key) === hashHex)
+  }
+
   if (state.page.value === 0) {
     return (
       <>
@@ -162,109 +287,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
                 isNewMessage={talk.isNewMessage ? talk.isNewMessage : false}
                 isSelected={talk.isSelect}
                 onClick={async () => {
-                  state.isChoiceUser.value = true
-                  state.roomName.value = talk.nickName
-                  state.friendid.value = talk.userName
-                  setIschoiseUser(true, state.isChoiceUser)
-                  state.roomType.value = "friend"
-                  const talkData = await fetch(
-                    "/takos/v2/client/talk/data/" + talk.userName + "/friend",
-                  ).then((res) => res.json())
-                  const roomKeys: RoomKey[] = (await Promise.all(
-                    talkData.keys.map(async (key: EncryptedDataAccountKey) => {
-                      const encryptedAccountKeyHash = key.encryptedKeyHashHex
-                      const accountKey = state.IdentityKeyAndAccountKeys.value
-                        .find(
-                          (key2: { hashHex: string }) => key2.hashHex === encryptedAccountKeyHash,
-                        )
-                      if (!accountKey) {
-                        return
-                      }
-                      const decryptedRoomKeyString = await decryptDataWithAccountKey(
-                        accountKey.accountKey,
-                        key,
-                      )
-                      if (!decryptedRoomKeyString) {
-                        return
-                      }
-                      return JSON.parse(decryptedRoomKeyString)
-                    }),
-                  )).filter((key) => {
-                    if (key) {
-                      return true
-                    }
-                    return false
-                  })
-                  const resultRoomKeyArray: { key: RoomKey; hashHex: string }[] = await Promise.all(
-                    roomKeys.map(async (key: RoomKey) => {
-                      const hashHex = await generateKeyHashHexJWK(key);
-                      if (hashHex === key.hashHex) {
-                        return {
-                          key: key,
-                          hashHex: key.hashHex,
-                        };
-                      }
-                      return null;
-                    })
-                  ).then(results => results.filter(result => result !== null) as { key: RoomKey; hashHex: string }[]);
-                  state.roomKey.value = resultRoomKeyArray;
-                  console.log(talkData);
-                  state.talkData.value = await Promise.all(
-                    talkData.messages.map(async (message: {
-                      message: { value: EncryptedDataRoomKey, signature: Sign },
-                      messageid: string,
-                      timestamp: string,
-                      userId: string,
-                    }) => {
-                      const roomKey = resultRoomKeyArray.find((key) => {
-                        return String(message.message.value.encryptedKeyHashHex) === key.hashHex;
-                      })?.key;
-                      if (!roomKey) {
-                        console.log(resultRoomKeyArray);
-                        console.log(message.message.value.encryptedKeyHashHex);
-                        console.log("roomKey not found");
-                        return;
-                      }
-                      const decryptedMessage = await decryptDataRoomKey(
-                        roomKey,
-                        message.message.value,
-                      );
-                      if (!decryptedMessage) {
-                        return;
-                      }
-                      const obj = JSON.parse(decryptedMessage);
-                      const userIdentityKey: IdentityKeyPub[] = talkData.identityKeys[message.userId];
-                      console.log(userIdentityKey);
-                      if (!userIdentityKey) {
-                        return;
-                      }
-                      const identityKey = userIdentityKey.find(async (key) => await generateKeyHashHexJWK(key) === obj.hashHex)
-                      if (!identityKey) {
-                        console.log("identityKey not found");
-                        return;
-                      }
-                      const verify = verifyData(
-                        identityKey,
-                        message.message.value,
-                        message.message.signature,
-                      );
-                      return {
-                        messageid: message.messageid,
-                        userName: message.userId,
-                        message: obj.message,
-                        timestamp: message.timestamp,
-                        type: obj.type,
-                      };
-                    })
-                  );
-                  console.log(state.talkData.value);
-                  state.ws.value?.send(
-                    JSON.stringify({
-                      type: "joinFriend",
-                      sessionid: state.sessionid.value,
-                      friendid: talk.userName,
-                    }),
-                  );
+                  handleFriendRoomSetup(talk)
                 }}
               />
             )

@@ -194,8 +194,9 @@ const VideoList = (
                           (data) => data.allowedUserId === video.requesterId,
                         )
                         const thisMasterKeyTimeString = (userMasterKeys.find(
-                          async (data) => data.keyHash ===
-                            await generateKeyHashHexJWK(userMasterKey)
+                          async (data) =>
+                            data.keyHash ===
+                              await generateKeyHashHexJWK(userMasterKey),
                         ))?.timestamp
                         if (!thisMasterKeyTimeString) {
                           alert("エラーが発生しました")
@@ -215,7 +216,7 @@ const VideoList = (
                         )
                         //一つ次に新しいmasterKeyを取得
                         const nextMasterKey = userMasterKeys[thisMasterKeyIndex - 1]
-                        if(nextMasterKey) {
+                        if (nextMasterKey) {
                           const nextMasterKeyTime = new Date(nextMasterKey.timestamp)
                           const identityKeyTime = keys.keys[0].timestamp
                           if (nextMasterKeyTime < identityKeyTime) {

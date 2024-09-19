@@ -1,4 +1,4 @@
-import { Hono } from "hono"
+import { Context, Hono } from "hono"
 import tempUsers from "@/models/tempUser.ts"
 import User from "../../../../models/users.ts"
 import { checkEmail } from "@/utils/checkEmail.ts"
@@ -7,7 +7,7 @@ import { generateRandom16DigitNumber } from "@/utils/randomNumbers.ts"
 import { createSessionid } from "@/utils/createSessionid.ts"
 import { sendMail } from "@/utils/sendEmail.ts"
 const app = new Hono()
-app.post("/", async (c) => {
+app.post("/", async (c: Context) => {
   let body
   try {
     body = await c.req.json()

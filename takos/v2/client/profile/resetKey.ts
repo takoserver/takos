@@ -85,6 +85,7 @@ app.post("/", async (c: Context) => {
       keyShareKey,
     },
   })
+  await MasterKey.deleteMany({ userName: session.userName })
   await MasterKey.create({
     userName: session.userName,
     masterKey: master_key,

@@ -1,11 +1,11 @@
-import { Hono } from "hono"
+import { Context, Hono } from "hono"
 import { checkEmail } from "@/utils/checkEmail.ts"
 import { checkRecapcha } from "@/utils/checkRecapcha.ts"
 import tempUsers from "@/models/tempUser.ts"
 import { checkPassword, checkUserName } from "@/utils/checks.ts"
 import user from "../../../../models/users.ts"
 const app = new Hono()
-app.post("/", async (c) => {
+app.post("/", async (c: Context) => {
   let body
   try {
     body = await c.req.json()

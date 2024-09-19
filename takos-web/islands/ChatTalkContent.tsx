@@ -15,129 +15,63 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
   let SendPrimary = true
   let OtherPrimary = true
   let DateState: any
+  state.talkData.value.sort((a, b) => {
+    return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  })
   return (
     <>
-      {
-        /*
-      {state.talkData.value.map((data: any, index: number) => {
-        const date = new Date(data.timestamp);
-        const isEncodeDate = new Date(DateState).toLocaleDateString() !==
-          date.toLocaleDateString();
-        DateState = data.timestamp;
-
-        if (data.type === "text") {
-          console.log(
-            splitUserName(data.userName).domain,
-            window.location.host,
-          );
-          if (
-            state.userName === splitUserName(data.userName).userName &&
-            splitUserName(data.userName).domain === window.location.host
-          ) {
-            if (SendPrimary) {
-              SendPrimary = false;
-              OtherPrimary = true;
-              return (
-                <>
-                  {isEncodeDate && <ChatDate date={new Date(data.timestamp)} />}
-                  <ChatSendMessage
-                    isRead={data.isRead}
-                    time={data.timestamp}
-                    message={data.message}
-                    isPrimary={true}
-                    isSendPrimary={true}
-                  />
-                </>
-              );
-            }
-
-            // 前のメッセージから1時間以上経過のものはprimaryに
-            const prevDate = index > 0
-              ? new Date(state.talkData.value[index - 1].timestamp)
-              : null;
-            if (prevDate && (date.getTime() - prevDate.getTime() > 3600000)) {
-              return (
-                <>
-                  {isEncodeDate && <ChatDate date={new Date(data.timestamp)} />}
-                  <ChatSendMessage
-                    isRead={data.isRead}
-                    time={data.timestamp}
-                    message={data.message}
-                    isPrimary={true}
-                    isSendPrimary={false}
-                  />
-                </>
-              );
-            }
-
-            return (
-              <>
-                {isEncodeDate && <ChatDate date={new Date(data.timestamp)} />}
-                <ChatSendMessage
-                  isRead={data.isRead}
-                  time={data.timestamp}
-                  message={data.message}
-                  isPrimary={false}
-                  isSendPrimary={false}
-                />
-              </>
-            );
-          } else {
-            if (OtherPrimary) {
-              OtherPrimary = false;
-              SendPrimary = true;
-              return (
-                <>
-                  {isEncodeDate && <ChatDate date={new Date(data.timestamp)} />}
-                  <ChatOtherMessage
-                    time={data.timestamp}
-                    message={data.message}
-                    name={data.userName}
-                    nickName={data.nickName}
-                    isPrimary={true}
-                  />
-                </>
-              );
-            }
-
-            // 前のメッセージから1時間以上経過のものはprimaryに
-            const prevDate = index > 0
-              ? new Date(state.talkData.value[index - 1].timestamp)
-              : null;
-            if (prevDate && (date.getTime() - prevDate.getTime() > 3600000)) {
-              return (
-                <>
-                  {isEncodeDate && <ChatDate date={new Date(data.timestamp)} />}
-                  <ChatOtherMessage
-                    time={data.timestamp}
-                    message={data.message}
-                    name={data.userName}
-                    nickName={data.nickName}
-                    isPrimary={true}
-                  />
-                </>
-              );
-            }
-
-            return (
-              <>
-                {isEncodeDate && <ChatDate date={new Date(data.timestamp)} />}
-                <ChatOtherMessage
-                  time={data.timestamp}
-                  message={data.message}
-                  name={data.userName}
-                  nickName={data.nickName}
-                  isPrimary={false}
-                />
-              </>
-            );
-          }
-        } else {
-          return <ChatDate date={new Date(data.timestamp)} />;
+      <div class="pl-2">
+        {state.talkData.value.map((data, index) => {
+          /*
+        data: {
+          message: string
+          messageid: string
+          timestamp: string
+          type: string
+          userName: string
         }
-      })}
-      */
-      }
+        */
+          /*
+        5分以上の間隔がある場合または8回連続の場合は日付を表示
+        最初のメッセージは必ずisSendPrimary
+        */
+          if (data.userId === state.userId.value) {
+            let a = false
+            if (SendPrimary) {
+              SendPrimary = false
+              a = true
+            }
+            return (
+              <ChatSendMessage
+                key={index}
+                isRead={false}
+                isPrimary={false}
+                message={data.message}
+                isSendPrimary={a}
+                time={data.timestamp}
+              />
+            )
+          } else {
+            let a = false
+            if (OtherPrimary) {
+              OtherPrimary = false
+              a = true
+            }
+            return (
+              <ChatOtherMessage
+                key={index}
+                isRead={false}
+                isPrimary={true}
+                message={data.message}
+                isSendPrimary={true}
+                time={data.timestamp}
+                name={data.userId}
+                nickName={"tako"}
+              />
+            )
+          }
+        })}
+      </div>
     </>
   )
 }

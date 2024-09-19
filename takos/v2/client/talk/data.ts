@@ -9,8 +9,9 @@ import { load } from "@std/dotenv"
 import { splitUserName } from "@/utils/utils.ts"
 import friends from "@/models/friends.ts"
 import Keys from "@/models/keys/keys.ts"
-import { IdentityKeyPub } from "takosEncryptInk"
+import { generateKeyHashHexJWK, IdentityKeyPub } from "takosEncryptInk"
 import AllowKey from "@/models/keys/allowKey.ts"
+import MasterKey from "@/models/masterKey.ts";
 const env = await load()
 
 const app = new Hono()
@@ -64,7 +65,6 @@ app.get("/:userId/friend", async (c: Context) => {
     return c.json({ status: false, message: "Room not found" }, 404)
   }
   const roomid = room.roomid
-
   let messages
   if (before) {
     const beforeMessage = await FriendMessage.findOne({
@@ -164,28 +164,42 @@ app.get("/:userId/friend", async (c: Context) => {
       }
     }
   }
-  let memberAllowedInfo
-  if (getKeysAllowedInfo) {
-    const roomMemberUserIds = room.users.filter((user) => {
-      return user !== userInfo.userName + "@" + env["DOMAIN"]
-    })
-    memberAllowedInfo = AllowKey.find({
-      userName: userInfo.userName,
-      key: {
-        //メンバー鍵の署名が有効なもの
-        $elemMatch: {
-          userId: { $in: roomMemberUserIds },
-          sign: { $ne: null },
-        },
-      },
-    })
+  let masterKey
+  if (keysArray.length > 0) {
+    let masterKeys: any[] = []
+    for (const identityKey in identityKeys) {
+      const value = identityKeys[identityKey]
+      const objkey = identityKey
+      const userName = splitUserName(objkey).userName
+      const domain = splitUserName(objkey).domain
+      if (domain !== env.DOMAIN) {
+        return c.json({ status: false, message: "Invalid domain" }, 400)
+      }
+      const keysHashHex = value.map((key) => {
+        return key.sign.hashedPublicKeyHex
+      })
+      const keys = await MasterKey.find({
+        userName,
+        hashHex: { $in: keysHashHex },
+      })
+      if (!keys) {
+        return c.json({ status: false, message: "Key not found" }, 404)
+      }
+      masterKeys = masterKeys.concat(keys.map((key) => {
+        return {
+          masterKey: key.masterKey,
+          hashHex: key.hashHex,
+        }
+      }))
+    }
+    masterKey = masterKeys
   }
   return c.json({
     status: true,
     messages: messageList,
     keys: keysArray,
     identityKeys,
-    memberAllowedInfo,
+    masterKey,
   })
 })
 export default app

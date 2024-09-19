@@ -1,0 +1,25 @@
+前提条件
+
+masterKey: すべての鍵の署名に使われる鍵
+identityKey: メッセージやその他のデータの署名に使われる鍵 masterKeyによって署名される
+roomKey: ルームの鍵 accountKeyによって暗号化され、identityKeyによって署名される
+accountKey: アカウントの鍵 identityKeyによって署名される
+
+identityKeyとaccountKeyはペアであり、accountKeyはidentityKeyによって署名される。
+更新は1年未満を推奨する。
+
+# tailDataのルール
+
+roomKeyで暗号化してidentityKeyで署名する
+
+古いmasterKeyで署名されたidentityKeyで署名する場合は新しいmasterKeyが検知された時刻以降のtailDataのみ検証することができる。
+
+一度使われたidentityKeyは連続してのみ使用できる。
+
+リプレイ攻撃対策にtimestampを付与する。
+
+timestampは一意である必要がある。
+
+serverから伝えられたtimestampとメッセージに付属したtimestampが1分以上ずれている場合は拒否する。
+
+メッセージの表示順はサーバーのtimestampによって決定される。

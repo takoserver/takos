@@ -1,8 +1,5 @@
-import { AccountKey, RoomKey } from "@takos/takos-encrypt-ink"
-import {
-  EncryptedDataDeviceKey,
-  IdentityKey,
-} from "https://jsr.io/@takos/takos-encrypt-ink/1.0.0/types.ts"
+import { AccountKey, AccountKeyPub, IdentityKeyPub, RoomKey } from "@takos/takos-encrypt-ink"
+import { IdentityKey, MasterKeyPub } from "@takos/takos-encrypt-ink"
 
 export interface serverRequest {
   host: string
@@ -40,10 +37,17 @@ export interface AppStateType {
   ws: { value: WebSocket | null }
   roomid: { value: string }
   sessionid: { value: string }
-  talkData: { value: any[] }
+  talkData: {
+    value: {
+      message: string
+      messageid: string
+      timestamp: string
+      type: string
+      userId: string
+    }[]
+  }
   userName: { value: string }
   friendList: { value: Array<any> }
-  roomName: { value: string }
   page: { value: number }
   inputMessage: { value: string }
   isValidInput: { value: boolean }
@@ -52,7 +56,7 @@ export interface AppStateType {
   ChatUserInfo: {
     value: {
       [key: string]: {
-        userName: string
+        userId: string
         nickName: string
         readedMessage: string
       }
@@ -61,11 +65,38 @@ export interface AppStateType {
   MasterKey: any
   KeyShareKey: any
   DeviceKey: any
-  roomKey: { value: { key: RoomKey; hashHex: any }[] }
+  roomName: { value: string }
   IdentityKeyAndAccountKeys: {
     value: any
   }
   userId: { value: string }
+  friendKeyCache: {
+    masterKey: {
+      value: {
+        userId: string
+        masterKey: MasterKeyPub
+      }[]
+    }
+    identityKey: {
+      value: {
+        userId: string
+        identityKey: IdentityKeyPub
+      }[]
+    }
+    accountKey: {
+      value: {
+        userId: string
+        accountKey: AccountKeyPub
+      }[]
+    }
+    roomKey: {
+      value: {
+        userId?: string
+        roomid?: string
+        roomKey: RoomKey
+      }[]
+    }
+  }
 }
 export interface MessageTypes {
   type: string
