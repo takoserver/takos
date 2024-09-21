@@ -11,7 +11,7 @@ import friends from "@/models/friends.ts"
 import Keys from "@/models/keys/keys.ts"
 import { generateKeyHashHexJWK, IdentityKeyPub } from "takosEncryptInk"
 import AllowKey from "@/models/keys/allowKey.ts"
-import MasterKey from "@/models/masterKey.ts";
+import MasterKey from "@/models/masterKey.ts"
 const env = await load()
 
 const app = new Hono()

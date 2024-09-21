@@ -1,12 +1,4 @@
 import { Context, Hono } from "hono"
-import {
-  AccountKeyPub,
-  IdentityKey,
-  IdentityKeyPub,
-  MasterKeyPub,
-  OtherUserIdentityKeys,
-  signKeyExpiration,
-} from "takosEncryptInk"
 import User from "@/models/users.ts"
 import { getCookie } from "jsr:@hono/hono@^4.5.3/cookie"
 import Sessionid from "@/models/sessionid.ts"
@@ -62,7 +54,7 @@ app.get("/", async (c: Context) => {
             }
             return null
           }).filter((i: null) => i !== null)[0],
-          accountKeyPub: k.encryptedAccountKey.map((i) => {
+          accountKeyPub: k.encryptedAccountKey.map((i: { sessionid: string; key: any }) => {
             if (i.sessionid === sessionid) {
               return i.key
             }

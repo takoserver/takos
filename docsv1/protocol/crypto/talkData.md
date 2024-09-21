@@ -1,9 +1,9 @@
 前提条件
 
-masterKey: すべての鍵の署名に使われる鍵
-identityKey: メッセージやその他のデータの署名に使われる鍵 masterKeyによって署名される
-roomKey: ルームの鍵 accountKeyによって暗号化され、identityKeyによって署名される
-accountKey: アカウントの鍵 identityKeyによって署名される
+masterKey: すべての鍵の署名に使われる鍵 identityKey: メッセージやその他のデータの署名に使われる鍵
+masterKeyによって署名される roomKey: ルームの鍵
+accountKeyによって暗号化され、identityKeyによって署名される accountKey: アカウントの鍵
+identityKeyによって署名される
 
 identityKeyとaccountKeyはペアであり、accountKeyはidentityKeyによって署名される。
 更新は1年未満を推奨する。

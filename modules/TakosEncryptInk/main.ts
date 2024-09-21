@@ -509,20 +509,12 @@ export async function verifyKey(
     default:
       throw new Error(`Unsupported keyType: ${"keyToSign.keyType"}`)
   }
-  const importedKey = await importKey(key, keyType)
+  const importedKey = await importKey(signedKey, keyType)
   const keyBuffer = await crypto.subtle.exportKey(
     (keyType === "public") ? "spki" : "pkcs8",
     importedKey,
   )
-  return await crypto.subtle.verify(
-    {
-      name: "RSA-PSS",
-      saltLength: 32,
-    },
-    importedKey,
-    base64ToArrayBuffer(signedKey.sign.signature),
-    keyBuffer, // ensure the same data is used
-  )
+  return await verify(key, keyBuffer, signedKey.sign)
 }
 
 export async function signKey(
@@ -607,6 +599,24 @@ async function sign(
     type,
     version: 1,
   }
+}
+
+async function verify(
+  key: MasterKeyPub | IdentityKeyPub,
+  data: ArrayBuffer,
+  sign: Sign,
+) {
+  const importedKey = await importKey(key, "public")
+  const signatureBuffer = base64ToArrayBuffer(sign.signature)
+  return await crypto.subtle.verify(
+    {
+      name: "RSA-PSS",
+      saltLength: 32,
+    },
+    importedKey,
+    signatureBuffer,
+    data,
+  )
 }
 
 export async function signKeyExpiration(

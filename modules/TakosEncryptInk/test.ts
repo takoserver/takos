@@ -3,24 +3,20 @@ import {
   createMasterKey,
   createRoomKey,
   encryptMessage,
+  isValidAccountKey,
+  isValidIdentityKeySign,
   signData,
   verifyAndDecryptMessage,
   verifyData,
-} from "./main.ts"
-import { Message } from "./types.ts"
+} from "jsr:@takos/takos-encrypt-ink@^1.0.2"
 
 const masterKey = await createMasterKey()
 const { identityKey, accountKey } = await createIdentityKeyAndAccountKey(masterKey)
-const roomKey = await createRoomKey(identityKey)
-const message: Message = {
-  message: "Hello, World!",
-  type: "text",
-  version: 1,
-}
-const encryptedMessage = await encryptMessage(roomKey, identityKey, message)
-const decryptedMessage = await verifyAndDecryptMessage(
-  roomKey,
-  identityKey.public,
-  encryptedMessage,
-)
-console.log(decryptedMessage)
+
+const verify = await isValidIdentityKeySign(masterKey.public, identityKey.public)
+
+console.log(verify)
+
+const verify2 = await isValidAccountKey(identityKey.public, accountKey.public)
+
+console.log(verify2)

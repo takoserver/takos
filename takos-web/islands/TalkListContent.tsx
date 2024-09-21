@@ -14,10 +14,13 @@ import {
   EncryptedDataRoomKey,
   generateKeyHashHexJWK,
   type IdentityKeyPub,
+  isValidIdentityKeySign,
+  MasterKeyPub,
   type RoomKey,
   Sign,
   verifyData,
 } from "@takos/takos-encrypt-ink"
+import { saveToDbAllowKeys } from "../util/idbSchama.ts"
 function TalkListContent({ state }: { state: AppStateType }) {
   async function handleFriendRoomSetup(
     talk: { nickName: string; userName: string; roomID: string },
@@ -62,6 +65,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
       }),
     ).then((keys) => keys.filter(Boolean)) // Filter out undefined results
     // Generate room key hashes and filter valid ones
+
     const resultRoomKeyArray = await Promise.all(
       roomKeys.map(async (key) => {
         const hashHex = await generateKeyHashHexJWK(key.roomKey)
@@ -80,34 +84,67 @@ function TalkListContent({ state }: { state: AppStateType }) {
       talkData.messages.map(
         async (
           message: {
-            message: { value: EncryptedDataRoomKey; signature: Sign }
+            message: {
+              value: {
+                data: EncryptedDataRoomKey
+                timestamp: string
+              }
+              signature: Sign
+            }
             userId: string | number
             messageid: any
             timestamp: any
           },
         ) => {
           const roomKey = resultRoomKeyArray.find(
-            (key) => key && String(message.message.value.encryptedKeyHashHex) === key.hashHex,
+            (key) => key && String(message.message.value.data.encryptedKeyHashHex) === key.hashHex,
           )?.key
           if (!roomKey) {
             console.error("Room key not found for message", message)
             return
           }
 
-          const decryptedMessage = await decryptDataRoomKey(roomKey.roomKey, message.message.value)
+          const decryptedMessage = await decryptDataRoomKey(
+            roomKey.roomKey,
+            message.message.value.data,
+          )
           if (!decryptedMessage) return
           const messageObj = JSON.parse(decryptedMessage)
           const userIdentityKey = talkData.identityKeys[message.userId]
 
           if (!userIdentityKey) return
 
-          const identityKey = await findIdentityKey(userIdentityKey, messageObj.hashHex)
+          const identityKey = findIdentityKey(userIdentityKey, messageObj.hashHex)
           if (!identityKey) {
             console.error("Identity key not found")
             return
           }
           //verify identity key
-
+          // 0: not verified and not view.
+          // 1: not verified and view.
+          // 2: verified and view.
+          const verifyResult = await (async () => {
+            const db = await createTakosDB()
+            const allowKeys = await db.get("allowKeys", identityKey.sign.hashedPublicKeyHex)
+            if (allowKeys) {
+              const masterKey = await findMasterKey(
+                talkData.masterKey,
+                identityKey.sign.hashedPublicKeyHex,
+              )
+              if (masterKey) {
+                const verify = await isValidIdentityKeySign(masterKey.masterKey, identityKey)
+                console.log(verify)
+                console.log(await generateKeyHashHexJWK(masterKey.masterKey))
+                console.log(identityKey.sign.hashedPublicKeyHex)
+                if (verify) {
+                  return 2
+                } else {
+                  return 0
+                }
+              }
+            }
+          })()
+          console.log(verifyResult)
           // Verify message
           const verify = await verifyData(
             identityKey,
@@ -128,7 +165,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
         },
       ),
     ).then((messages) => messages.filter(Boolean)) // Filter out null results
-
+    console.log(state.talkData.value)
     // Send WebSocket message to join friend
     state.ws.value?.send(
       JSON.stringify({
@@ -140,10 +177,24 @@ function TalkListContent({ state }: { state: AppStateType }) {
   }
 
   // Helper function to find identity key by hash
-  async function findIdentityKey(identityKeys: IdentityKeyPub[], hashHex: string) {
+  function findIdentityKey(identityKeys: IdentityKeyPub[], hashHex: string) {
     return identityKeys.find(async (key) => await generateKeyHashHexJWK(key) === hashHex)
   }
-
+  async function findMasterKey(masterKeys: {
+    masterKey: MasterKeyPub
+    hashHex: string
+  }[], hashHex: string) {
+    const reuslt = masterKeys.find(
+      (key) => key.hashHex === hashHex,
+    )
+    if (!reuslt) {
+      return null
+    }
+    if (hashHex === await generateKeyHashHexJWK(reuslt.masterKey)) {
+      return reuslt
+    }
+    return null
+  }
   if (state.page.value === 0) {
     return (
       <>
