@@ -133,14 +133,13 @@ function TalkListContent({ state }: { state: AppStateType }) {
               )
               if (masterKey) {
                 const verify = await isValidIdentityKeySign(masterKey.masterKey, identityKey)
-                console.log(verify)
-                console.log(await generateKeyHashHexJWK(masterKey.masterKey))
-                console.log(identityKey.sign.hashedPublicKeyHex)
                 if (verify) {
                   return 2
                 } else {
                   return 0
                 }
+              } else {
+                return 0
               }
             }
           })()

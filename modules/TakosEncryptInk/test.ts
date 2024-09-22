@@ -5,18 +5,13 @@ import {
   encryptMessage,
   isValidAccountKey,
   isValidIdentityKeySign,
+  isValidMasterKeyTimeStamp,
   signData,
   verifyAndDecryptMessage,
   verifyData,
-} from "jsr:@takos/takos-encrypt-ink@^1.0.2"
+} from "./main.ts"
 
 const masterKey = await createMasterKey()
-const { identityKey, accountKey } = await createIdentityKeyAndAccountKey(masterKey)
-
-const verify = await isValidIdentityKeySign(masterKey.public, identityKey.public)
+const verify = await isValidMasterKeyTimeStamp(masterKey.public)
 
 console.log(verify)
-
-const verify2 = await isValidAccountKey(identityKey.public, accountKey.public)
-
-console.log(verify2)

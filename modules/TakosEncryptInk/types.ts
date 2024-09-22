@@ -66,6 +66,8 @@ type MasterKeyPub = {
   key: JsonWebKey
   keyType: "masterPub"
   version: number
+  timestamp: string
+  timestampSign: string
 }
 type MasterKeyPrivate = {
   key: JsonWebKey

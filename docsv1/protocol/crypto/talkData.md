@@ -12,7 +12,7 @@ identityKeyとaccountKeyはペアであり、accountKeyはidentityKeyによっ�
 
 roomKeyで暗号化してidentityKeyで署名する
 
-古いmasterKeyで署名されたidentityKeyで署名する場合は新しいmasterKeyが検知された時刻以降のtailDataのみ検証することができる。
+古いmasterKeyで署名されたidentityKeyで署名する場合は新しいmasterKeyのtimestampの時刻以降のtailDataのみ検証することができる。
 
 一度使われたidentityKeyは連続してのみ使用できる。
 

@@ -228,11 +228,22 @@ export async function createMasterKey(): Promise<MasterKey> {
     "masterPub",
     1,
   )
+  const timestamp = new Date(Date.now()).toISOString()
+  const sign = await crypto.subtle.sign(
+    {
+      name: "RSA-PSS",
+      saltLength: 32,
+    },
+    KeyPair.privateKey,
+    new TextEncoder().encode(timestamp),
+  )
   return {
     public: {
       key: await exportfromJWK(KeyPair.publicKey),
       keyType: "masterPub",
       version: 1,
+      timestamp,
+      timestampSign: arrayBufferToBase64(sign),
     },
     private: {
       key: await exportfromJWK(KeyPair.privateKey),
@@ -242,6 +253,23 @@ export async function createMasterKey(): Promise<MasterKey> {
     hashHex: MasterKeyPublickHex,
     version: 1,
   }
+}
+
+export async function isValidMasterKeyTimeStamp(
+  masterKey: MasterKeyPub,
+): Promise<boolean> {
+  const timestamp = masterKey.timestamp
+  const sign = base64ToArrayBuffer(masterKey.timestampSign)
+  const importedKey = await importKey(masterKey, "public")
+  return await crypto.subtle.verify(
+    {
+      name: "RSA-PSS",
+      saltLength: 32,
+    },
+    importedKey,
+    sign,
+    new TextEncoder().encode(timestamp),
+  )
 }
 
 export async function createIdentityKeyAndAccountKey(
