@@ -7,6 +7,8 @@ import {
   generateKeyHashHexJWK,
   isValidAccountKey,
   isValidIdentityKeySign,
+  isValidMasterKeyTimeStamp,
+  MasterKeyPub,
   signData,
 } from "@takos/takos-encrypt-ink"
 import { isFragment } from "https://esm.sh/v128/preact@10.19.6/compat/src/index.js"
@@ -135,22 +137,27 @@ const VideoList = (
                         const keys = await fetch(
                           `/takos/v2/client/users/keys?userId=${video.requesterId}`,
                         ).then((res) => res.json())
-                        const userMasterKey = keys.masterKey
+                        const userMasterKey: MasterKeyPub = keys.masterKey
                         const db = await createTakosDB()
-
                         const isRegioned = await db.get(
                           "allowKeys",
                           await generateKeyHashHexJWK(
                             keys.masterKey,
                           ),
                         )
-                        console.log(isRegioned)
                         if (!isRegioned) {
-                          const date = new Date().toISOString()
+                          const verifyMasterKeyValid = await isValidMasterKeyTimeStamp(
+                            userMasterKey,
+                          )
+                          if (!verifyMasterKeyValid) {
+                            alert("エラーが発生しました")
+                            return
+                          }
+                          const date = userMasterKey.timestamp
                           const recognitionKey = JSON.stringify({
                             userId: video.requesterId,
                             keyHash: await generateKeyHashHexJWK(
-                              keys.keys[0].accountKey,
+                              keys.masterKey,
                             ),
                             type: "recognition",
                             timestamp: date,
@@ -179,7 +186,7 @@ const VideoList = (
                           }
                           await saveToDbAllowKeys(
                             await generateKeyHashHexJWK(
-                              keys.keys[0].accountKey,
+                              keys.masterKey,
                             ),
                             video.requesterId,
                             "recognition",
@@ -202,9 +209,6 @@ const VideoList = (
                           alert("エラーが発生しました")
                           return
                         }
-                        const thisMasterKeyTime = new Date(
-                          thisMasterKeyTimeString,
-                        )
                         //新しい順にuserMasterKeysを並び替え
                         userMasterKeys.sort((a, b) => {
                           return new Date(b.timestamp).getTime() -

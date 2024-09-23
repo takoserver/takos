@@ -233,6 +233,44 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
             keyShareSessionId.value = data.keyShareSessionId
           }
           break
+        case "sessionid": {
+          const sessionid = data.sessionid
+          state.sessionid.value = sessionid
+        }
+          break
+        case "messageFriend": {
+          const messageid = data.message
+          const friendId = data.friendId
+          if(state.friendid.value === friendId) {
+            const talkData = await fetch(`/takos/v2/client/talk/data/friend`,{
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                userId: friendId,
+                messageid,
+                ignoreKeys: (() => {
+                  const roomKeys = state.friendKeyCache.roomKey.value
+                  const hashHexArray = roomKeys.map((key) => key.roomKey.hashHex)
+                  return hashHexArray
+                })(),
+                ignoreMasterKeys: (() => {
+                  const masterKeys = state.friendKeyCache.masterKey.value
+                  return masterKeys.map((key) => key.hashHex)
+                })(),
+                ignoreIdentityKeys: (() => {
+                  const identityKeys = state.friendKeyCache.identityKey.value
+                  const hashHexArray = identityKeys.map((key) => key.hashHex)
+                  return hashHexArray
+                })(),
+              }),
+            }).then((res) =>
+              res.json()
+            )
+            console.log(talkData)
+          }
+        } break
         case "keyShareAccept":
           {
             if (!requester.value) break

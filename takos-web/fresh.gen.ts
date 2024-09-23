@@ -2,33 +2,33 @@
 // This file SHOULD be checked into source version control.
 // This file is automatically updated during development when running `dev.ts`.
 
-import * as $_404 from "./routes/_404.tsx";
-import * as $_app from "./routes/_app.tsx";
-import * as $addFriend_friends_name_ from "./routes/addFriend/friends/[name].tsx";
-import * as $addFriend_index from "./routes/addFriend/index.tsx";
-import * as $home_friends_name_ from "./routes/home/friends/[name].tsx";
-import * as $home_index from "./routes/home/index.tsx";
-import * as $index from "./routes/index.tsx";
-import * as $setting_friends_name_ from "./routes/setting/friends/[name].tsx";
-import * as $setting_index from "./routes/setting/index.tsx";
-import * as $talk_friends_name_ from "./routes/talk/friends/[name].tsx";
-import * as $talk_index from "./routes/talk/index.tsx";
-import * as $ChatSend from "./islands/ChatSend.tsx";
-import * as $ChatTalkContent from "./islands/ChatTalkContent.tsx";
-import * as $ChatTalkTitle from "./islands/ChatTalkTitle.tsx";
-import * as $ChatTalkTitleContent from "./islands/ChatTalkTitleContent.tsx";
-import * as $Default from "./islands/Default.tsx";
-import * as $FriendRequest from "./islands/FriendRequest.tsx";
-import * as $Login from "./islands/Login.tsx";
-import * as $ReCapcha from "./islands/ReCapcha.tsx";
-import * as $Register from "./islands/Register.tsx";
-import * as $RequestFriendById from "./islands/RequestFriendById.tsx";
-import * as $TalkListContent from "./islands/TalkListContent.tsx";
-import * as $getAddFriendKey from "./islands/getAddFriendKey.tsx";
-import * as $headerButton from "./islands/headerButton.tsx";
-import * as $setup from "./islands/setup.tsx";
-import * as $talkListHeader from "./islands/talkListHeader.tsx";
-import { type Manifest } from "$fresh/server.ts";
+import * as $_404 from "./routes/_404.tsx"
+import * as $_app from "./routes/_app.tsx"
+import * as $addFriend_friends_name_ from "./routes/addFriend/friends/[name].tsx"
+import * as $addFriend_index from "./routes/addFriend/index.tsx"
+import * as $home_friends_name_ from "./routes/home/friends/[name].tsx"
+import * as $home_index from "./routes/home/index.tsx"
+import * as $index from "./routes/index.tsx"
+import * as $setting_friends_name_ from "./routes/setting/friends/[name].tsx"
+import * as $setting_index from "./routes/setting/index.tsx"
+import * as $talk_friends_name_ from "./routes/talk/friends/[name].tsx"
+import * as $talk_index from "./routes/talk/index.tsx"
+import * as $ChatSend from "./islands/ChatSend.tsx"
+import * as $ChatTalkContent from "./islands/ChatTalkContent.tsx"
+import * as $ChatTalkTitle from "./islands/ChatTalkTitle.tsx"
+import * as $ChatTalkTitleContent from "./islands/ChatTalkTitleContent.tsx"
+import * as $Default from "./islands/Default.tsx"
+import * as $FriendRequest from "./islands/FriendRequest.tsx"
+import * as $Login from "./islands/Login.tsx"
+import * as $ReCapcha from "./islands/ReCapcha.tsx"
+import * as $Register from "./islands/Register.tsx"
+import * as $RequestFriendById from "./islands/RequestFriendById.tsx"
+import * as $TalkListContent from "./islands/TalkListContent.tsx"
+import * as $getAddFriendKey from "./islands/getAddFriendKey.tsx"
+import * as $headerButton from "./islands/headerButton.tsx"
+import * as $setup from "./islands/setup.tsx"
+import * as $talkListHeader from "./islands/talkListHeader.tsx"
+import { type Manifest } from "$fresh/server.ts"
 
 const manifest = {
   routes: {
@@ -62,6 +62,6 @@ const manifest = {
     "./islands/talkListHeader.tsx": $talkListHeader,
   },
   baseUrl: import.meta.url,
-} satisfies Manifest;
+} satisfies Manifest
 
-export default manifest;
+export default manifest

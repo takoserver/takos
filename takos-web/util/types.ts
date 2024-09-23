@@ -73,13 +73,14 @@ export interface AppStateType {
   friendKeyCache: {
     masterKey: {
       value: {
-        userId: string
+        hashHex: string
         masterKey: MasterKeyPub
       }[]
     }
     identityKey: {
       value: {
         userId: string
+        hashHex: string
         identityKey: IdentityKeyPub
       }[]
     }

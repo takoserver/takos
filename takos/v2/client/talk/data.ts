@@ -9,25 +9,37 @@ import { load } from "@std/dotenv"
 import { splitUserName } from "@/utils/utils.ts"
 import friends from "@/models/friends.ts"
 import Keys from "@/models/keys/keys.ts"
-import { generateKeyHashHexJWK, IdentityKeyPub } from "takosEncryptInk"
+import { EncryptedDataAccountKey, generateKeyHashHexJWK, IdentityKeyPub } from "takosEncryptInk"
 import AllowKey from "@/models/keys/allowKey.ts"
 import MasterKey from "@/models/masterKey.ts"
+import roomkeys from "@/models/friend/roomkeys.ts"
 const env = await load()
 
 const app = new Hono()
 
-app.get("/:userId/friend", async (c: Context) => {
-  const userId = c.req.param("userId")
-  const limit = Number(c.req.param("limit")) || 50
-  const before = c.req.param("before") || ""
-  const after = c.req.param("after") || ""
-  const ignoreKeysString = c.req.param("ignoreKeys") || ""
-  const getKeysAllowedInfo = (() => {
-    const a = c.req.param("getKeysAllowedInfo") || false
-    return a === "true"
-  })()
-  // around, before, afterはどれか一つだけ指定可能
-  if ((before && after)) {
+app.post("/friend", async (c: Context) => {
+  let body
+  try {
+    body = await c.req.json()
+  } catch (e) {
+    return c.json({ status: false, message: "Invalid body" }, 400)
+  }
+  const userId = body.userId
+  const limit = Number(body.limit) || 50
+  const before = body.before || ""
+  const after = body.after || ""
+  const messageid = body.messageid || ""
+  const ignoreKeys = body.ignoreKeys || []
+  const ignoreMasterKeys = body.ignoreMasterKeys || []
+  const ignoreIdentityKeys = body.ignoreIdentityKeys || []
+  // beforeとafterとmessageidのいづれかがないとエラー複数もエラー
+  if (before && after) {
+    return c.json({ status: false, message: "Invalid parameter" }, 400)
+  }
+  if (before && messageid) {
+    return c.json({ status: false, message: "Invalid parameter" }, 400)
+  }
+  if (after && messageid) {
     return c.json({ status: false, message: "Invalid parameter" }, 400)
   }
   const sessionid = getCookie(c, "sessionid")
@@ -44,7 +56,6 @@ app.get("/:userId/friend", async (c: Context) => {
   if (!userInfo) {
     return c.json({ status: false, message: "Unauthorized" }, 401)
   }
-
   const { userName: targetUserName, domain: targetDomain } = splitUserName(
     userId,
   )
@@ -90,6 +101,12 @@ app.get("/:userId/friend", async (c: Context) => {
       roomid,
       messageid: { $gt: after },
     }).sort({ messageid: 1 }).limit(limit)
+  } else if(messageid) {
+    console.log(messageid)
+    messages = await FriendMessage.find({
+      roomid,
+      messageid: messageid,
+    }).sort({ messageid: 1 }).limit(1)
   } else {
     messages = await FriendMessage.find({
       roomid,
@@ -104,22 +121,24 @@ app.get("/:userId/friend", async (c: Context) => {
       type: message.messageObj.type,
     }
   })
-  const keysHashHex: string[] = messages.map((message) => {
+  let keysHashHex: string[] = messages.map((message) => {
     return message.roomKeyHashHex
   })
-  let ignoreKeys
-  try {
-    ignoreKeys = JSON.parse(ignoreKeysString)
-  } catch (error) {
-    ignoreKeys = []
-  }
-  keysHashHex.filter((key) => {
+  keysHashHex = keysHashHex.filter((key) => {
     return !ignoreKeys.includes(key)
   })
-  const keys = await FriendKeys.find({
+  const keysMessages = await FriendKeys.find({
     roomid,
     keyHashHex: { $in: keysHashHex },
   })
+  const latestKeys = await FriendKeys.findOne({
+    roomid,
+    keyHashHex: { $in: keysHashHex },
+  }).sort({ timestamp: -1 }) || []
+  const keysTemp = ([keysMessages, latestKeys].flat())
+  const keys = Array.from(new Set(keysTemp.map(key => key.keyHashHex)))
+  .map(keyHashHex => keysTemp.find(key => key.keyHashHex === keyHashHex)).filter(key => key !== undefined)
+  //重複削除
   const keysArray = keys.map((keys) => {
     const key = keys.key.find((key: { userId: string }) => {
       return key.userId === userInfo.userName + "@" + env["DOMAIN"]
@@ -133,7 +152,7 @@ app.get("/:userId/friend", async (c: Context) => {
   }).sort((a, b) => {
     return a.timestamp - b.timestamp
   })
-  if (keysArray.length === 0) {
+  if (keysArray.length === 0 && messageList.length === 0) {
     const latestKey = await FriendKeys.findOne({
       roomid,
     }).sort({ timestamp: -1 })
@@ -151,18 +170,24 @@ app.get("/:userId/friend", async (c: Context) => {
   const identityKeys: {
     [key: string]: IdentityKeyPub[]
   } = {}
+  const alerdyPushed: string[] = []
   for (const message of messageList) {
     const identityKeyHashHex = message.message.signature.hashedPublicKeyHex
-    if (identityKeys[message.userId] === undefined) {
-      identityKeys[message.userId] = []
-      const identityKey = await Keys.findOne({
-        userName: splitUserName(message.userId).userName,
-        hashHex: identityKeyHashHex,
-      })
-      if (identityKey) {
-        identityKeys[message.userId].push(identityKey.identityKeyPub)
-      }
+    if (alerdyPushed.includes(identityKeyHashHex)) {
+      continue
     }
+    const identityKey = await Keys.findOne({
+      userName: splitUserName(message.userId).userName,
+      hashHex: identityKeyHashHex,
+    })
+    if (!identityKey) {
+      continue
+    }
+    if (!identityKeys[message.userId]) {
+      identityKeys[message.userId] = []
+    }
+    identityKeys[message.userId].push(identityKey.identityKeyPub)
+    alerdyPushed.push(identityKeyHashHex)
   }
   let masterKey
   if (keysArray.length > 0) {
@@ -194,6 +219,18 @@ app.get("/:userId/friend", async (c: Context) => {
     }
     masterKey = masterKeys
   }
+  masterKey = masterKey?.filter((key) => {
+    return !ignoreMasterKeys.includes(key.hashHex)
+  })
+  for (const key in identityKeys) {
+    const filteredKeys = []
+    for (const identityKey of identityKeys[key]) {
+      if (!ignoreIdentityKeys.includes(await generateKeyHashHexJWK(identityKey))) {
+        filteredKeys.push(identityKey)
+      }
+    }
+    identityKeys[key] = filteredKeys
+  }
   return c.json({
     status: true,
     messages: messageList,
@@ -201,5 +238,84 @@ app.get("/:userId/friend", async (c: Context) => {
     identityKeys,
     masterKey,
   })
+})
+app.get("/friend/updateRoomKey", async (c: Context) => {
+  return c.json({ status: false, message: "Method not allowed" }, 405)
+})
+
+app.post("/friend/updateRoomKey", async (c: Context) => {
+  const sessionid = getCookie(c, "sessionid")
+  if (!sessionid) {
+    return c.json({ status: false, message: "Unauthorized" }, 401)
+  }
+  const session = await Sessionid.findOne({ sessionid })
+  if (!session) {
+    return c.json({ status: false, message: "Unauthorized" }, 401)
+  }
+  const userInfo = await User.findOne({
+    userName: session.userName,
+  })
+  if (!userInfo) {
+    return c.json({ status: false, message: "Unauthorized" }, 401)
+  }
+  let body
+  try {
+    body = await c.req.json()
+  } catch (e) {
+    return c.json({ status: false }, 400)
+  }
+  const { friendId, roomKeys, keyHashHex }: {
+    friendId: string
+    roomKeys: {
+      key: EncryptedDataAccountKey
+      userId: string
+    }[]
+    keyHashHex: string
+  } = body
+  if(!keyHashHex) {
+    return c.json({ status: false, message: "Invalid parameter" }, 400)
+  }
+  const { userName: targetUserName, domain: targetDomain } = splitUserName(
+    friendId,
+  )
+  if (targetDomain !== env["DOMAIN"]) {
+    return c.json({ status: false, message: "Invalid domain" }, 400)
+  }
+  const friendRoom = await FriendRoom.findOne({
+    users: { $all: [userInfo.userName + "@" + env["DOMAIN"], friendId] },
+  })
+  if (!friendRoom) {
+    return c.json({ status: false, message: "Room not found" }, 404)
+  }
+  const roomKeyJson = roomKeys
+  if (!Array.isArray(roomKeyJson)) {
+    return c.json({ status: false, error: "invide format" }, 400)
+  }
+  for (const key of roomKeyJson) {
+    if (typeof key.userId !== "string" || typeof key.key !== "object") {
+      return c.json({ status: false, error: "invide typeof" }, 400)
+    }
+  }
+  if (
+    (() => {
+      for (const key of roomKeyJson) {
+        if (
+          key.userId === friendId ||
+          key.userId === userInfo.userName + "@" + env["DOMAIN"]
+        ) {
+          return false
+        }
+      }
+      return true
+    })()
+  ) {
+    return c.json({ status: false }, 400)
+  }
+  await roomkeys.create({
+    roomid: friendRoom.roomid,
+    key: roomKeyJson,
+    keyHashHex,
+  })
+  return c.json({ status: true }, 200)
 })
 export default app

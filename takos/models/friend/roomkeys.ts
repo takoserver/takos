@@ -22,10 +22,7 @@ const roomKeySchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  timestamp: {
-    type: Date,
-    default: new Date(),
-  },
+  timestamp: { type: Date, default: Date.now },
 })
 
 export default mongoose.model("friendRoomKey", roomKeySchema)

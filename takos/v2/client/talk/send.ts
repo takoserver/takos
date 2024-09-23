@@ -9,6 +9,8 @@ import { type EncryptedMessage } from "@takos/takos-encrypt-ink"
 import Keys from "@/models/keys/keys.ts"
 import { load } from "@std/dotenv"
 import uuid from "ui7"
+import publish from "@/utils/pubClient.ts"
+import { splitUserName } from "@/utils/utils.ts";
 const env = await load()
 
 const app = new Hono()
@@ -57,14 +59,32 @@ app.post("/friend", async (c: Context) => {
   if (!isTrueIdentityKey) {
     return c.json({ status: false, message: "Invalid identity key" }, 400)
   }
+  const messageid = uuid()
   await FriendMessage.create({
     roomid,
     userId: session.userName + "@" + env["DOMAIN"],
     messageObj: message,
     read: false,
-    messageid: uuid(),
+    messageid,
     roomKeyHashHex: message.value.data.encryptedKeyHashHex,
   })
+  const usersId = room.users.filter((i) => {
+    const domain = splitUserName(i).domain
+    return domain === env["DOMAIN"]
+  })
+  const users = []
+  for (const i of usersId) {
+    const userName = splitUserName(i).userName
+    users.push(userName)
+  }
+  publish(JSON.stringify({
+    type: "messageFriend",
+    data: {
+      messageid,
+      friendId: friendId,
+      users,
+    }
+  }))
   return c.json({ status: true })
 })
 

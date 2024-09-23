@@ -10,7 +10,7 @@ identityKeyとaccountKeyはペアであり、accountKeyはidentityKeyによっ�
 
 # tailDataのルール
 
-roomKeyで暗号化してidentityKeyで署名する
+roomKeyで暗号化してidentityKeyで署名する //ok
 
 古いmasterKeyで署名されたidentityKeyで署名する場合は新しいmasterKeyのtimestampの時刻以降のtailDataのみ検証することができる。
 
@@ -22,4 +22,4 @@ timestampは一意である必要がある。
 
 serverから伝えられたtimestampとメッセージに付属したtimestampが1分以上ずれている場合は拒否する。
 
-メッセージの表示順はサーバーのtimestampによって決定される。
+メッセージの表示順はサーバーのtimestampによって決定される。 //ok

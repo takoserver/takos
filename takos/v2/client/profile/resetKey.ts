@@ -17,6 +17,7 @@ import {
 import Keys from "@/models/keys/keys.ts"
 import allowFriendMasterKey from "@/models/allowFriendMasterKey.ts"
 import MasterKey from "@/models/masterKey.ts"
+import AllowKey from "@/models/keys/allowKey.ts";
 const app = new Hono()
 
 app.post("/", async (c: Context) => {
@@ -85,17 +86,16 @@ app.post("/", async (c: Context) => {
       keyShareKey,
     },
   })
-  await MasterKey.deleteMany({ userName: session.userName })
   await MasterKey.create({
     userName: session.userName,
     masterKey: master_key,
     hashHex: await generateKeyHashHexJWK(master_key),
   })
-  await Keys.deleteMany({ userName: session.userName })
   await Sessionid.deleteMany({
     userName: session.userName,
     sessionid: { $ne: session.sessionid },
   })
+  await AllowKey.deleteMany({ userName: session.userName })
   await Keys.create({
     userName: session.userName,
     identityKeyPub: identity_key,
