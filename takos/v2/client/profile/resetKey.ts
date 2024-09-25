@@ -17,7 +17,7 @@ import {
 import Keys from "@/models/keys/keys.ts"
 import allowFriendMasterKey from "@/models/allowFriendMasterKey.ts"
 import MasterKey from "@/models/masterKey.ts"
-import AllowKey from "@/models/keys/allowKey.ts";
+import AllowKey from "@/models/keys/allowKey.ts"
 const app = new Hono()
 
 app.post("/", async (c: Context) => {

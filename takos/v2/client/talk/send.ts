@@ -10,7 +10,7 @@ import Keys from "@/models/keys/keys.ts"
 import { load } from "@std/dotenv"
 import uuid from "ui7"
 import publish from "@/utils/pubClient.ts"
-import { splitUserName } from "@/utils/utils.ts";
+import { splitUserName } from "@/utils/utils.ts"
 const env = await load()
 
 const app = new Hono()
@@ -83,7 +83,7 @@ app.post("/friend", async (c: Context) => {
       messageid,
       friendId: friendId,
       users,
-    }
+    },
   }))
   return c.json({ status: true })
 })

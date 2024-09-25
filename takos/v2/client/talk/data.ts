@@ -101,7 +101,7 @@ app.post("/friend", async (c: Context) => {
       roomid,
       messageid: { $gt: after },
     }).sort({ messageid: 1 }).limit(limit)
-  } else if(messageid) {
+  } else if (messageid) {
     console.log(messageid)
     messages = await FriendMessage.find({
       roomid,
@@ -135,9 +135,11 @@ app.post("/friend", async (c: Context) => {
     roomid,
     keyHashHex: { $in: keysHashHex },
   }).sort({ timestamp: -1 }) || []
-  const keysTemp = ([keysMessages, latestKeys].flat())
-  const keys = Array.from(new Set(keysTemp.map(key => key.keyHashHex)))
-  .map(keyHashHex => keysTemp.find(key => key.keyHashHex === keyHashHex)).filter(key => key !== undefined)
+  const keysTemp = [keysMessages, latestKeys].flat()
+  const keys = Array.from(new Set(keysTemp.map((key) => key.keyHashHex)))
+    .map((keyHashHex) => keysTemp.find((key) => key.keyHashHex === keyHashHex)).filter((key) =>
+      key !== undefined
+    )
   //重複削除
   const keysArray = keys.map((keys) => {
     const key = keys.key.find((key: { userId: string }) => {
@@ -272,7 +274,7 @@ app.post("/friend/updateRoomKey", async (c: Context) => {
     }[]
     keyHashHex: string
   } = body
-  if(!keyHashHex) {
+  if (!keyHashHex) {
     return c.json({ status: false, message: "Invalid parameter" }, 400)
   }
   const { userName: targetUserName, domain: targetDomain } = splitUserName(

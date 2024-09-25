@@ -82,29 +82,29 @@ app.get(
         ws.send(JSON.stringify({ type: "sessionid", sessionid: wsSessionid }))
       },
       onMessage: async (event: MessageEvent, ws: WSContext<WebSocket>) => {
-          const data = JSON.parse(event.data)
-          console.log(data)
-          if (data.type === "ping") {
-            ws.send(JSON.stringify({ type: "pong" }))
+        const data = JSON.parse(event.data)
+        console.log(data)
+        if (data.type === "ping") {
+          ws.send(JSON.stringify({ type: "pong" }))
+        }
+        if (data.type === "joinFriend") {
+          const sessionid = data.sessionid
+          const friendId = data.friendid
+          const session = sessions.get(sessionid)
+          if (!session) {
+            return
           }
-          if(data.type === "joinFriend") {
-            const sessionid = data.sessionid
-            const friendId = data.friendid
-            const session = sessions.get(sessionid)
-            if (!session) {
-              return
-            }
-            const userId = session.userName
-            const room = await FriendRoom.findOne({
-              users: { $all: [userId + "@" + env["DOMAIN"], friendId] },
-            })
-            if (!room) return
-            sessions.set(sessionid, {
-              ...session,
-              roomid: room.roomid,
-              roomType: "friend",
-            })
-          }
+          const userId = session.userName
+          const room = await FriendRoom.findOne({
+            users: { $all: [userId + "@" + env["DOMAIN"], friendId] },
+          })
+          if (!room) return
+          sessions.set(sessionid, {
+            ...session,
+            roomid: room.roomid,
+            roomType: "friend",
+          })
+        }
       },
     }
   }),

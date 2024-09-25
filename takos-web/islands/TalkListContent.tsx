@@ -8,7 +8,7 @@ import { useSignal } from "@preact/signals"
 import { useEffect } from "preact/hooks"
 import { createTakosDB } from "../util/idbSchama.ts"
 import {
-createRoomKey,
+  createRoomKey,
   decryptDataRoomKey,
   decryptDataWithAccountKey,
   EncryptedDataAccountKey,
@@ -41,7 +41,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
     state.roomType.value = "friend"
 
     // Fetch talk data
-    const talkData = await fetch(`/takos/v2/client/talk/data/friend`,{
+    const talkData = await fetch(`/takos/v2/client/talk/data/friend`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -49,9 +49,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
       body: JSON.stringify({
         userId: userName,
       }),
-    }).then((res) =>
-      res.json()
-    )
+    }).then((res) => res.json())
     console.log(talkData)
     // Process room keys
     const roomKeys = await Promise.all(
@@ -76,11 +74,11 @@ function TalkListContent({ state }: { state: AppStateType }) {
         }
       }),
     ).then((keys) => keys.filter(Boolean)) // Filter out undefined results
+    console.log(roomKeys)
     // Generate room key hashes and filter valid ones
-    if(roomKeys.length === 0) {
+    if (roomKeys.length === 0) {
       console.log("roomKeys is empty")
-      const latestIdentityAndAccountKeys =
-      state.IdentityKeyAndAccountKeys.value[0]
+      const latestIdentityAndAccountKeys = state.IdentityKeyAndAccountKeys.value[0]
       const keys = await fetch(
         `/takos/v2/client/users/keys?userId=${userName}`,
       ).then((res) => res.json())
@@ -268,12 +266,12 @@ function TalkListContent({ state }: { state: AppStateType }) {
       const messageObj = JSON.parse(decryptedMessage)
       const userIdentityKey = talkData.identityKeys[message.userId]
       if (!userIdentityKey) continue
-     let identityKey
-     for(const key of userIdentityKey) {
-        if(await generateKeyHashHexJWK(key) === message.message.signature.hashedPublicKeyHex) {
+      let identityKey
+      for (const key of userIdentityKey) {
+        if (await generateKeyHashHexJWK(key) === message.message.signature.hashedPublicKeyHex) {
           identityKey = key
         }
-     }
+      }
       if (!identityKey) {
         console.error("Identity key not found")
         continue
@@ -336,14 +334,16 @@ function TalkListContent({ state }: { state: AppStateType }) {
             return 0
           }
         }
-      })();
+      })()
       if (verifyResult === 0) {
         continue
       }
-      if(new Date(message.timestamp) < new Date(messageObj.timestamp)) {
+      if (new Date(message.timestamp) < new Date(messageObj.timestamp)) {
         continue
       }
-      if(new Date(message.timestamp).getTime() - new Date(messageObj.timestamp).getTime() > 1000 * 60) {
+      if (
+        new Date(message.timestamp).getTime() - new Date(messageObj.timestamp).getTime() > 1000 * 60
+      ) {
         continue
       }
       messages.push({
@@ -358,7 +358,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
         masterKeyHashHex: await generateKeyHashHexJWK(masterKey.masterKey),
       })
     }
-     //古いmasterKeyで署名されたidentityKeyで署名する場合は新しいmasterKeyのtimestampの時刻以降のtailDataのみ検証することができる。
+    //古いmasterKeyで署名されたidentityKeyで署名する場合は新しいmasterKeyのtimestampの時刻以降のtailDataのみ検証することができる。
     //一度使われたidentityKeyは連続してのみ使用できる。
     //timestampとtimestampOriginalは一意である。
     const messageMasterKeyTimestamp: {
@@ -366,8 +366,8 @@ function TalkListContent({ state }: { state: AppStateType }) {
       timestamp: string
       userId: string
     }[] = []
-    for(const [_index,message] of messages.entries()) {
-      if(messageMasterKeyTimestamp.find((key) => key.hashHex === message.masterKeyHashHex)) {
+    for (const [_index, message] of messages.entries()) {
+      if (messageMasterKeyTimestamp.find((key) => key.hashHex === message.masterKeyHashHex)) {
         continue
       }
       messageMasterKeyTimestamp.push({
@@ -376,27 +376,30 @@ function TalkListContent({ state }: { state: AppStateType }) {
         userId: message.userId,
       })
     }
-    messageMasterKeyTimestamp.sort((a,b) => {
+    messageMasterKeyTimestamp.sort((a, b) => {
       return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     })
-    for(const message of messages) {
+    for (const message of messages) {
       const hashHex = message.masterKeyHashHex
       const timestamp = message.timestamp
-      const index = messageMasterKeyTimestamp.findIndex((key) => key.hashHex === hashHex);
-      const masterKeyInfo = messageMasterKeyTimestamp[index];
-      if(!masterKeyInfo) {
+      const index = messageMasterKeyTimestamp.findIndex((key) => key.hashHex === hashHex)
+      const masterKeyInfo = messageMasterKeyTimestamp[index]
+      if (!masterKeyInfo) {
         return
       }
-      if(index === 0) {
+      if (index === 0) {
         continue
       }
       //userIdが同じ場合でindexよりも新しいtimestampを取得
-      const newTimestamp = messageMasterKeyTimestamp.find((key) => key.userId === message.userId && new Date(key.timestamp).getTime() > new Date(timestamp).getTime())
-      if(newTimestamp) {
+      const newTimestamp = messageMasterKeyTimestamp.find((key) =>
+        key.userId === message.userId &&
+        new Date(key.timestamp).getTime() > new Date(timestamp).getTime()
+      )
+      if (newTimestamp) {
         continue
       }
       //timestampが新しいmasterKeyよりも新しいtimestampのmessageは無効
-      if(new Date(masterKeyInfo.timestamp).getTime() > new Date(timestamp).getTime()) {
+      if (new Date(masterKeyInfo.timestamp).getTime() > new Date(timestamp).getTime()) {
         return
       }
     }
@@ -404,7 +407,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
     const roomKeyCache = [...state.friendKeyCache.roomKey.value]
     //console.log(roomKeys)
     for (const key of roomKeys) {
-      if(roomKeyCache.find((data) => data.roomKey.hashHex === key.roomKey.hashHex)) {
+      if (roomKeyCache.find((data) => data.roomKey.hashHex === key.roomKey.hashHex)) {
         continue
       }
       roomKeyCache.push(key)
@@ -412,9 +415,9 @@ function TalkListContent({ state }: { state: AppStateType }) {
 
     state.friendKeyCache.roomKey.value = roomKeyCache
     const friendMasterKeyCache = [...state.friendKeyCache.masterKey.value]
-    for(const key of talkData.masterKey) {
+    for (const key of talkData.masterKey) {
       const hashHex = await generateKeyHashHexJWK(key.masterKey)
-      if(friendMasterKeyCache.find((data) => data.hashHex === hashHex)) {
+      if (friendMasterKeyCache.find((data) => data.hashHex === hashHex)) {
         continue
       }
       friendMasterKeyCache.push({
@@ -424,10 +427,10 @@ function TalkListContent({ state }: { state: AppStateType }) {
     }
     state.friendKeyCache.masterKey.value = friendMasterKeyCache
     const friendIdentityKeyCache = [...state.friendKeyCache.identityKey.value]
-    for(const key in talkData.identityKeys) {
-      for(const identityKey of talkData.identityKeys[key]) {
+    for (const key in talkData.identityKeys) {
+      for (const identityKey of talkData.identityKeys[key]) {
         const hashHex = await generateKeyHashHexJWK(identityKey)
-        if(friendIdentityKeyCache.find((data) => data.hashHex === hashHex)) {
+        if (friendIdentityKeyCache.find((data) => data.hashHex === hashHex)) {
           continue
         }
         friendIdentityKeyCache.push({
@@ -437,6 +440,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
         })
       }
     }
+    console.log(state.talkData.value)
     state.friendKeyCache.identityKey.value = friendIdentityKeyCache
     state.ws.value?.send(
       JSON.stringify({
