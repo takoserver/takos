@@ -440,7 +440,6 @@ function TalkListContent({ state }: { state: AppStateType }) {
         })
       }
     }
-    console.log(state.talkData.value)
     state.friendKeyCache.identityKey.value = friendIdentityKeyCache
     state.ws.value?.send(
       JSON.stringify({

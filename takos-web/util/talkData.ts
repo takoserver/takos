@@ -117,6 +117,33 @@ async function addMessages(
       return
     }
   }
+  const friendMasterKeyCache = [...friendKeyCache.masterKey.value]
+  for (const key of masterKeys) {
+    const hashHex = await generateKeyHashHexJWK(key.masterKey)
+    if (friendMasterKeyCache.find((data) => data.hashHex === hashHex)) {
+      continue
+    }
+    friendMasterKeyCache.push({
+      hashHex,
+      masterKey: key.masterKey,
+    })
+  }
+  friendKeyCache.masterKey.value = friendMasterKeyCache
+  const friendIdentityKeyCache = [...friendKeyCache.identityKey.value]
+  for (const key in identityKeys) {
+    for (const identityKey of identityKeys[key]) {
+      const hashHex = await generateKeyHashHexJWK(identityKey)
+      if (friendIdentityKeyCache.find((data) => data.hashHex === hashHex)) {
+        continue
+      }
+      friendIdentityKeyCache.push({
+        userId: key,
+        hashHex,
+        identityKey,
+      })
+    }
+  }
+  friendKeyCache.identityKey.value = friendIdentityKeyCache
   //roomKeyの復号化
   const RoomKeys = []
   for (const EncryptedRoomKey of EncryptedRoomKeys) {
