@@ -36,6 +36,7 @@ import type {
   migrateKeyPub,
 } from "@takos/takos-encrypt-ink"
 import { createTakosDB } from "../util/idbSchama.ts"
+import { addMessage } from "../util/talkData.ts"
 export default function setDefaultState({ state }: { state: AppStateType }) {
   const [setUp, setSetUp] = useState(false)
   const [shareKey, setShareKey] = useState(false)
@@ -268,7 +269,12 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                 }),
               }).then((res) => res.json())
               console.log(talkData)
-              const message = talkData.messages[0]
+              addMessage(state, talkData, {
+                friendid: friendId,
+                roomType: "friend",
+                roomid: "",
+                myUserId: state.userId.value,
+              })
             }
           }
           break

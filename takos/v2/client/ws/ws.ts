@@ -41,6 +41,7 @@ async function subscribeMessage(channel: string | string[]) {
         for (const [sessionId, obj] of sessions.entries()) {
           console.log(obj)
           if (data.data.users.includes(obj.userName)) {
+            if (obj.ws.readyState !== 1) return
             obj.ws.send(JSON.stringify({
               type: "messageFriend",
               message: data.data.messageid,
