@@ -3,6 +3,7 @@ import {
   decryptDataRoomKey,
   decryptDataWithAccountKey,
   EncryptedDataRoomKey,
+  EncryptedMessage,
   encryptWithAccountKey,
   generateKeyHashHexJWK,
   isValidAccountKey,
@@ -23,7 +24,8 @@ import {
 } from "@takos/takos-encrypt-ink"
 import { createTakosDB, saveToDbAllowKeys } from "./idbSchama.ts"
 import { Signal, signal } from "@preact/signals"
-
+import { AppStateType } from "./types.ts"
+/*
 interface message {
   messageid: string
   userId: string
@@ -80,264 +82,290 @@ type identityKeyAndAccountKeys = Signal<{
   identityKey: IdentityKey
   keyExpiration: string
 }[]>
+*/
 
-async function addMessages(
-  messages: messages,
-  identityKeyAndAccountKeys: identityKeyAndAccountKeys,
-  friendKeyCache: friendKeyCache,
-  EncryptedRoomKeys: EncryptedRoomKeys,
-  masterKeys: masterKey[],
-  identityKeys: identityKeys,
-  EncryptedMessages: {
-    messageid: string
-    userId: string
-    message: {
-      signature: Sign
-      value: {
-        data: EncryptedDataRoomKey
-        timestamp: string
-      }
+async function addMessage(
+  state: AppStateType,
+  talkData: {
+    status: boolean
+    keys: EncryptedDataAccountKey[]
+    identityKeys: {
+      [key: string]: IdentityKeyPub[]
     }
-    timestamp: string
-  }[],
+    masterKey: {
+      masterKey: MasterKeyPub
+      hashHex: string
+    }[]
+    messages: {
+      messageid: string
+      userId: string
+      message: EncryptedMessage
+      timestamp: string
+    }[]
+  },
   metaData: {
     roomType: "friend" | "group"
-    userId?: string
+    friendid?: string
     roomid?: string
     myUserId: string
   },
-) {
-  if (metaData.roomType === "group") {
-    if (!metaData.roomid) {
-      return
-    }
+  //@ts-ignore
+): Promise<{
+  messageid: string
+  userId: string
+  message: string
+  timestamp: string
+  timestampOriginal: string
+  type: string
+  verify: number
+  identityKeyHashHex: string
+  masterKeyHashHex: string
+} | null> {
+  const talkDataTemp = [...state.talkData.value]
+  const { myUserId, roomid, friendid, roomType } = metaData
+  if (talkData.status === false) {
+    throw new Error("talkData.status is false")
   }
-  if (metaData.roomType === "friend") {
-    if (!metaData.userId) {
-      return
-    }
+  if (roomType === "friend" && friendid === undefined) {
+    throw new Error("friendid is undefined")
   }
-  const friendMasterKeyCache = [...friendKeyCache.masterKey.value]
-  for (const key of masterKeys) {
-    const hashHex = await generateKeyHashHexJWK(key.masterKey)
-    if (friendMasterKeyCache.find((data) => data.hashHex === hashHex)) {
-      continue
-    }
-    friendMasterKeyCache.push({
-      hashHex,
-      masterKey: key.masterKey,
-    })
+  if (roomType === "group" && roomid === undefined) {
+    throw new Error("roomid is undefined")
   }
-  friendKeyCache.masterKey.value = friendMasterKeyCache
-  const friendIdentityKeyCache = [...friendKeyCache.identityKey.value]
-  for (const key in identityKeys) {
-    for (const identityKey of identityKeys[key]) {
-      const hashHex = await generateKeyHashHexJWK(identityKey)
-      if (friendIdentityKeyCache.find((data) => data.hashHex === hashHex)) {
-        continue
-      }
-      friendIdentityKeyCache.push({
-        userId: key,
-        hashHex,
-        identityKey,
-      })
-    }
-  }
-  friendKeyCache.identityKey.value = friendIdentityKeyCache
-  //roomKeyの復号化
-  const RoomKeys = []
-  for (const EncryptedRoomKey of EncryptedRoomKeys) {
-    const accountKey = identityKeyAndAccountKeys.value.find((key) =>
-      key.hashHex === EncryptedRoomKey.encryptedKeyHashHex
-    )
-    if (!accountKey) {
-      continue
-    }
-    const decryptedRommKeyString = await decryptDataWithAccountKey(
-      accountKey.accountKey,
-      EncryptedRoomKey,
-    )
-    if (!decryptedRommKeyString) {
-      continue
-    }
-    RoomKeys.push({
-      roomKey: JSON.parse(decryptedRommKeyString),
-      userId: metaData.userId,
-      roomid: metaData.roomid,
-    })
-  }
-  const roomKeyCache = [...friendKeyCache.roomKey.value]
-  for (const key of RoomKeys) {
-    if (roomKeyCache.find((data) => data.roomKey.hashHex === key.roomKey.hashHex)) {
-      continue
-    }
-    roomKeyCache.push(key)
-  }
-  friendKeyCache.roomKey.value = roomKeyCache
-  if (roomKeyCache.length === 0) {
-    updateRoomKey(identityKeyAndAccountKeys, metaData, friendKeyCache)
-  }
-  const resultRoomKeyArray = await Promise.all(
-    RoomKeys.map(async (key) => {
-      const hashHex = await generateKeyHashHexJWK(key.roomKey)
-      return hashHex === key.roomKey.hashHex ? { key, hashHex } : null
-    }),
-  ).then((results) => results.filter(Boolean)) // Filter out null results
-  //messageの復号化
-  const messagesObj = []
-  for (const message of EncryptedMessages) {
-    const roomKey = resultRoomKeyArray.find(
-      (key) => key && String(message.message.value.data.encryptedKeyHashHex) === key.hashHex,
-    )?.key
-    if (!roomKey) {
-      continue
-    }
-    const decryptedMessage = await decryptDataRoomKey(
-      roomKey.roomKey,
-      message.message.value.data,
-    )
-    if (!decryptedMessage) continue
-    const messageObj = JSON.parse(decryptedMessage)
-    const userIdentityKey = identityKeys[message.userId]
-    if (!userIdentityKey) continue
-    let identityKey
-    for (const key of userIdentityKey) {
-      if (await generateKeyHashHexJWK(key) === message.message.signature.hashedPublicKeyHex) {
-        identityKey = key
-      }
-    }
-    if (!identityKey) {
-      console.error("Identity key not found")
-      continue
-    }
-    const masterKey = await findMasterKey(
-      masterKeys,
-      identityKey.sign.hashedPublicKeyHex,
-    )
-    if (!masterKey) {
-      console.error("Master key not found")
-      continue
-    }
-    // Verify identity key
-    // 0: not verified and not view.
-    // 1: not verified and view.
-    // 2: verified and view.
-    // 3: verified and view and safe.
-    const verifyResult = await (async () => {
-      const db = await createTakosDB()
-      const allowKeys = await db.get("allowKeys", identityKey.sign.hashedPublicKeyHex)
-      if (allowKeys) {
-        if (masterKey) {
-          const verify = await isValidIdentityKeySign(masterKey.masterKey, identityKey)
-          const verifyMessage = await verifyData(
-            identityKey,
-            JSON.stringify(message.message.value),
-            message.message.signature,
-          )
-          if (verify && verifyMessage) {
-            if (allowKeys.type === "allow") return 3
-            return 2
-          } else {
-            return 0
-          }
-        } else {
-          console.log("verifyMessage")
-          return 0
-        }
-      } else {
-        const verifyMasterKeyValid = await isValidMasterKeyTimeStamp(masterKey.masterKey)
-        const verifyIdentityKeyValid = await isValidIdentityKeySign(
-          masterKey.masterKey,
-          identityKey,
+  if (roomType === "friend") {
+    const roomKeys = await Promise.all(
+      talkData.keys.map(async (key: EncryptedDataAccountKey) => {
+        const accountKey = state.IdentityKeyAndAccountKeys.value.find(
+          (key2: { hashHex: string }) => {
+            return key2.hashHex === key.encryptedKeyHashHex
+          },
         )
-        if (verifyMasterKeyValid && verifyIdentityKeyValid) {
-          const verifyMessage = await verifyData(
-            identityKey,
-            JSON.stringify(message.message.value),
-            message.message.signature,
+        if (!accountKey) {
+          return
+        }
+        const decryptedRoomKeyString = await decryptDataWithAccountKey(accountKey.accountKey, key)
+        if (!decryptedRoomKeyString) {
+          console.error("Failed to decrypt room key")
+          return
+        }
+        return {
+          userId: metaData.friendid,
+          roomid: metaData.roomid,
+          roomKey: JSON.parse(decryptedRoomKeyString),
+        }
+      }),
+    ).then((keys) => keys.filter((key) => !!key))
+    console.log(roomKeys)
+    const resultRoomKeyArray = await Promise.all(
+      roomKeys.map(async (key) => {
+        const hashHex = await generateKeyHashHexJWK(key.roomKey)
+        return hashHex === key.roomKey.hashHex ? { key, hashHex } : null
+      }),
+    ).then((results) => results.filter(Boolean)) // Filter out null results
+    state.friendKeyCache.roomKey.value = [
+      ...state.friendKeyCache.roomKey.value,
+      ...roomKeys,
+    ]
+    const db = await createTakosDB()
+    const allowKeys = await db.getAll("allowKeys")
+    const masterKeyRsult: {
+      hashHex: string
+      masterKey: MasterKeyPub
+    }[] = []
+    const identityKeyResult = []
+    for (const key in talkData.identityKeys) {
+      const identityKeys = talkData.identityKeys[key]
+      const userId = key
+      for (const identityKey of identityKeys) {
+        const hashHex = await generateKeyHashHexJWK(identityKey)
+        let masterKey = masterKeyRsult.find(
+          (data) => data.hashHex === identityKey.sign.hashedPublicKeyHex,
+        )
+        if (!masterKey) {
+          const findMasterKeyResult = await findMasterKey(
+            talkData.masterKey,
+            hashHex,
           )
-          if (!verifyMessage) return 0
+          if (!findMasterKeyResult) {
+            continue
+          }
+          masterKey = findMasterKeyResult
+        }
+        if (!masterKey) {
+          continue
+        }
+        if (!isValidIdentityKeySign(masterKey.masterKey, identityKey)) {
+          continue
+        }
+        let allowKey
+        for (const key of allowKeys) {
+          if(key.keyHash === await generateKeyHashHexJWK(masterKey.masterKey)) {
+            allowKey = key
+          }
+        }
+        if (!allowKey) {
           await saveToDbAllowKeys(
             await generateKeyHashHexJWK(masterKey.masterKey),
-            message.userId,
+            userId,
             "recognition",
             masterKey.masterKey.timestamp,
           )
-          return 2
-        } else {
-          return 0
+        }
+        identityKeyResult.push({
+          userId,
+          hashHex,
+          identityKey,
+        })
+        masterKeyRsult.push(masterKey)
+      }
+    }
+    state.friendKeyCache.identityKey.value = [
+      ...state.friendKeyCache.identityKey.value,
+      ...identityKeyResult,
+    ]
+    state.friendKeyCache.masterKey.value = [
+      ...state.friendKeyCache.masterKey.value,
+      ...masterKeyRsult,
+    ]
+    for (const message of talkData.messages) {
+      const roomKey = resultRoomKeyArray.find(
+        (key) => key && String(message.message.value.data.encryptedKeyHashHex) === key.hashHex,
+      )?.key
+      if (!roomKey) {
+        continue
+      }
+      const decryptedMessage = await decryptDataRoomKey(
+        roomKey.roomKey,
+        message.message.value.data,
+      )
+      if (!decryptedMessage) continue
+      const messageObj = JSON.parse(decryptedMessage)
+      let identityKey
+      for (const key of state.friendKeyCache.identityKey.value) {
+        if (await generateKeyHashHexJWK(key.identityKey) === message.message.signature.hashedPublicKeyHex) {
+          identityKey = key
         }
       }
-    })()
-    if (verifyResult === 0) {
-      continue
+      if (!identityKey) {
+        console.error("Identity key not found")
+        continue
+      }
+      // Verify identity key
+      // 0: not verified and not view.
+      // 1: not verified and view.
+      // 2: verified and view.
+      // 3: no encrypted.
+      const masterKey = await findMasterKey(talkData.masterKey, identityKey.identityKey.sign.hashedPublicKeyHex)
+      if (!masterKey) {
+        return null
+      }
+      const verifyResult = await (async () => {
+        let messageAlowKeyInfo
+        for (const key of allowKeys) {
+          if (key.keyHash === await generateKeyHashHexJWK(identityKey.identityKey)) {
+            messageAlowKeyInfo = key
+          }
+        }
+        if (!messageAlowKeyInfo) {
+          return 0
+        }
+        // get identity key
+        let messageIdentityKey
+        for (const key of state.friendKeyCache.identityKey.value) {
+          if (key.hashHex === message.message.signature.hashedPublicKeyHex && key.userId === message.userId) {
+            messageIdentityKey = key
+          }
+        }
+        if (!messageIdentityKey) {
+          return 0
+        }
+        // verify identity key
+        if (!await verifyData(messageIdentityKey.identityKey, JSON.stringify(message.message.value), message.message.signature)) {
+          return 0
+        }
+        const masterKeyHashHex = await generateKeyHashHexJWK(masterKey.masterKey)
+        const allowKey = allowKeys.find((key) => key.keyHash === masterKeyHashHex)
+        if (!allowKey) {
+          return 0
+        }
+        if (allowKey.allowedUserId !== message.userId) {
+          return 0
+        }
+        if(allowKey.type !== "recognition") {
+          return 1
+        }
+        return 2
+      })()
+      if (verifyResult === 0) {
+        continue
+      }
+      if (new Date(message.timestamp) < new Date(messageObj.timestamp)) {
+        continue
+      }
+      if (
+        new Date(message.timestamp).getTime() - new Date(messageObj.timestamp).getTime() > 1000 * 60
+      ) {
+        continue
+      }
+      talkDataTemp.push({
+        messageid: message.messageid,
+        userId: message.userId,
+        message: messageObj.message,
+        timestamp: message.timestamp,
+        timestampOriginal: messageObj.timestamp,
+        type: messageObj.type,
+        verify: verifyResult,
+        identityKeyHashHex: await generateKeyHashHexJWK(identityKey.identityKey),
+        masterKeyHashHex: await generateKeyHashHexJWK(masterKey.masterKey),
+      })
     }
-    if (new Date(message.timestamp) < new Date(messageObj.timestamp)) {
-      continue
-    }
-    if (
-      new Date(message.timestamp).getTime() - new Date(messageObj.timestamp).getTime() > 1000 * 60
-    ) {
-      continue
-    }
-    messagesObj.push({
-      messageid: message.messageid,
-      userId: message.userId,
-      message: messageObj.message,
-      timestamp: message.timestamp,
-      timestampOriginal: messageObj.timestamp,
-      type: messageObj.type,
-      verify: verifyResult,
-      identityKeyHashHex: await generateKeyHashHexJWK(identityKey),
-      masterKeyHashHex: await generateKeyHashHexJWK(masterKey.masterKey),
-    })
+    //message整合性チェック
+    const messageMasterKeyTimestamp: {
+        hashHex: string
+        timestamp: string
+        userId: string
+      }[] = []
+      for (const [_index, message] of talkDataTemp.entries()) {
+        if (messageMasterKeyTimestamp.find((key) => key.hashHex === message.masterKeyHashHex)) {
+          continue
+        }
+        messageMasterKeyTimestamp.push({
+          hashHex: message.masterKeyHashHex,
+          timestamp: message.timestamp,
+          userId: message.userId,
+        })
+      }
+      messageMasterKeyTimestamp.sort((a, b) => {
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      })
+      for (const message of talkDataTemp) {
+        const hashHex = message.masterKeyHashHex
+        const timestamp = message.timestamp
+        const index = messageMasterKeyTimestamp.findIndex((key) => key.hashHex === hashHex)
+        const masterKeyInfo = messageMasterKeyTimestamp[index]
+        if (!masterKeyInfo) {
+          return null
+        }
+        if (index === 0) {
+          continue
+        }
+        //userIdが同じ場合でindexよりも新しいtimestampを取得
+        const newTimestamp = messageMasterKeyTimestamp.find((key) =>
+          key.userId === message.userId &&
+          new Date(key.timestamp).getTime() > new Date(timestamp).getTime()
+        )
+        if (newTimestamp) {
+          continue
+        }
+        //timestampが新しいmasterKeyよりも新しいtimestampのmessageは無効
+        if (new Date(masterKeyInfo.timestamp).getTime() > new Date(timestamp).getTime()) {
+          return null
+        }
+      }
+        state.talkData.value = talkDataTemp.sort((a, b) => {
+            return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        })
   }
-  //messageの整合性チェック
-  const messageMasterKeyTimestamp: {
-    hashHex: string
-    timestamp: string
-    userId: string
-  }[] = []
-  for (const [_index, message] of messagesObj.entries()) {
-    if (messageMasterKeyTimestamp.find((key) => key.hashHex === message.masterKeyHashHex)) {
-      continue
-    }
-    messageMasterKeyTimestamp.push({
-      hashHex: message.masterKeyHashHex,
-      timestamp: message.timestamp,
-      userId: message.userId,
-    })
-  }
-  messageMasterKeyTimestamp.sort((a, b) => {
-    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  })
-  for (const message of messagesObj) {
-    const hashHex = message.masterKeyHashHex
-    const timestamp = message.timestamp
-    const index = messageMasterKeyTimestamp.findIndex((key) => key.hashHex === hashHex)
-    const masterKeyInfo = messageMasterKeyTimestamp[index]
-    if (!masterKeyInfo) {
-      return
-    }
-    if (index === 0) {
-      continue
-    }
-    //userIdが同じ場合でindexよりも新しいtimestampを取得
-    const newTimestamp = messageMasterKeyTimestamp.find((key) =>
-      key.userId === message.userId &&
-      new Date(key.timestamp).getTime() > new Date(timestamp).getTime()
-    )
-    if (newTimestamp) {
-      continue
-    }
-    //timestampが新しいmasterKeyよりも新しいtimestampのmessageは無効
-    if (new Date(masterKeyInfo.timestamp).getTime() > new Date(timestamp).getTime()) {
-      return
-    }
-  }
-  messages = [...messages, ...messagesObj].sort((a, b) => {
-    return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  })
 }
 function findIdentityKey(identityKeys: IdentityKeyPub[], hashHex: string) {
   return identityKeys.find(async (key) => await generateKeyHashHexJWK(key) === hashHex)
@@ -345,7 +373,12 @@ function findIdentityKey(identityKeys: IdentityKeyPub[], hashHex: string) {
 async function findMasterKey(masterKeys: {
   masterKey: MasterKeyPub
   hashHex: string
-}[], hashHex: string) {
+}[], hashHex: string): Promise<
+  {
+    masterKey: MasterKeyPub
+    hashHex: string
+  } | null
+> {
   const reuslt = masterKeys.find(
     (key) => key.hashHex === hashHex,
   )
@@ -357,173 +390,176 @@ async function findMasterKey(masterKeys: {
   }
   return null
 }
-
-
 async function updateRoomKey(
-    identityKeyAndAccountKeys: identityKeyAndAccountKeys,
-    metaData: {
-        roomType: "friend" | "group"
-        userId?: string
-        myUserId: string
-    },
-    friendKeyCache: friendKeyCache,
+  state: AppStateType,
+  metaData: {
+    roomType: "friend" | "group"
+    friendid?: string
+    roomid?: string
+    myUserId: string
+  },
 ) {
-    if (metaData.roomType === "friend") {
-        const latestIdentityAndAccountKeys = identityKeyAndAccountKeys.value[0]
-        const keys = await fetch(
-          `/takos/v2/client/users/keys?userId=${metaData.userId}`,
-        ).then((res) => res.json())
-        const userMasterKey: MasterKeyPub = keys.masterKey
-        const db = await createTakosDB()
-        const isRegioned = await db.get(
-          "allowKeys",
-          await generateKeyHashHexJWK(
-            keys.masterKey,
-          ),
-        )
-        if (!isRegioned) {
-          const verifyMasterKeyValid = await isValidMasterKeyTimeStamp(
-            userMasterKey,
-          )
-          if (!verifyMasterKeyValid) {
-            alert("エラーが発生しました")
-            return
-          }
-          const date = userMasterKey.timestamp
-          const recognitionKey = JSON.stringify({
-            userId: metaData.userId,
-            keyHash: await generateKeyHashHexJWK(
-              keys.masterKey,
-            ),
-            type: "recognition",
-            timestamp: date,
-          })
-          const recognitionKeySign = await signData(
-            latestIdentityAndAccountKeys.identityKey,
-            recognitionKey,
-          )
-          const res = await fetch(
-            "/takos/v2/client/keys/allowKey/recognition",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                key: recognitionKey,
-                sign: recognitionKeySign,
-              }),
-            },
-          )
-          const data = await res.json()
-          if (data.status === false) {
-            alert("エラーが発生しました")
-            return
-          }
-          await saveToDbAllowKeys(
-            await generateKeyHashHexJWK(
-              keys.masterKey,
-            ),
-            metaData.userId!,
-            "recognition",
-            date,
-          )
-        }
-        // 一つ次に新しいmasterKeyをidbから取得
-        const allowedMasterKeys = await db.getAll(
-          "allowKeys",
-        )
-        const userMasterKeys = allowedMasterKeys.filter(
-          (data) => data.allowedUserId === metaData.userId,
-        )
-        const thisMasterKeyTimeString = (userMasterKeys.find(
-          async (data) =>
-            data.keyHash ===
-              await generateKeyHashHexJWK(userMasterKey),
-        ))?.timestamp
-        if (!thisMasterKeyTimeString) {
-          alert("エラーが発生しました")
-          return
-        }
-        //新しい順にuserMasterKeysを並び替え
-        userMasterKeys.sort((a, b) => {
-          return new Date(b.timestamp).getTime() -
-            new Date(a.timestamp).getTime()
-        })
-        //thisMasterKeyTimeのインデックスを取得
-        const thisMasterKeyIndex = userMasterKeys.findIndex(
-          (data) => data.timestamp === thisMasterKeyTimeString,
-        )
-        //一つ次に新しいmasterKeyを取得
-        const nextMasterKey = userMasterKeys[thisMasterKeyIndex - 1]
-        if (nextMasterKey) {
-          const nextMasterKeyTime = new Date(nextMasterKey.timestamp)
-          const identityKeyTime = keys.keys[0].timestamp
-          if (nextMasterKeyTime < identityKeyTime) {
-            alert("エラーが発生しました")
-            return
-          }
-        }
-        if (
-          !isValidIdentityKeySign(
-            userMasterKey,
-            keys.keys[0].identityKey,
-          )
-        ) {
-          alert("エラーが発生しました")
-          return
-        }
-        if (
-          !isValidAccountKey(
-            keys.keys[0].identityKey,
-            keys.keys[0].accountKey,
-          )
-        ) {
-          alert("エラーが発生しました")
-          return
-        }
-        const roomKey = await createRoomKey(
-          latestIdentityAndAccountKeys.identityKey,
-        )
-        const encryptedRoomKey = await encryptWithAccountKey(
-          keys.keys[0].accountKey,
-          JSON.stringify(roomKey),
-        )
-        const encryptedRoomKeyForMe = await encryptWithAccountKey(
-          identityKeyAndAccountKeys.value[0].accountKey
-            .public,
-          JSON.stringify(roomKey),
-        )
-        const res = await fetch(
-          "/takos/v2/client/talk/data/friend/updateRoomKey",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              friendId: metaData.userId,
-              roomKeys: [{
-                userId: metaData.userId,
-                key: encryptedRoomKey,
-              }, {
-                userId: metaData.myUserId,
-                key: encryptedRoomKeyForMe,
-              }],
-              keyHashHex: roomKey.hashHex,
-            }),
-          },
-        )
-        const data = await res.json()
-        if (data.status === false) {
-          alert("エラーが発生しました")
-        }
-        friendKeyCache.roomKey.value.push(
-          {
-            userId: metaData.userId,
-            roomKey,
-          },
-        )
+  if (metaData.roomType === "friend") {
+    if (!metaData.friendid) {
+      throw new Error("friendid is undefined")
+    }
+    console.log("roomKeys is empty")
+    const latestIdentityAndAccountKeys = state.IdentityKeyAndAccountKeys.value[0]
+    const keys = await fetch(
+      `/takos/v2/client/users/keys?userId=${metaData.friendid}`,
+    ).then((res) => res.json())
+    const userMasterKey: MasterKeyPub = keys.masterKey
+    const db = await createTakosDB()
+    const isRegioned = await db.get(
+      "allowKeys",
+      await generateKeyHashHexJWK(
+        keys.masterKey,
+      ),
+    )
+    if (!isRegioned) {
+      const verifyMasterKeyValid = await isValidMasterKeyTimeStamp(
+        userMasterKey,
+      )
+      if (!verifyMasterKeyValid) {
+        alert("エラーが発生しました")
         return
       }
+      const date = userMasterKey.timestamp
+      const recognitionKey = JSON.stringify({
+        userId: metaData.friendid,
+        keyHash: await generateKeyHashHexJWK(
+          keys.masterKey,
+        ),
+        type: "recognition",
+        timestamp: date,
+      })
+      const recognitionKeySign = await signData(
+        latestIdentityAndAccountKeys.identityKey,
+        recognitionKey,
+      )
+      const res = await fetch(
+        "/takos/v2/client/keys/allowKey/recognition",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            key: recognitionKey,
+            sign: recognitionKeySign,
+          }),
+        },
+      )
+      const data = await res.json()
+      if (data.status === false) {
+        alert("エラーが発生しました")
+        return
+      }
+      await saveToDbAllowKeys(
+        await generateKeyHashHexJWK(
+          keys.masterKey,
+        ),
+        metaData.friendid,
+        "recognition",
+        date,
+      )
+    }
+    // 一つ次に新しいmasterKeyをidbから取得
+    const allowedMasterKeys = await db.getAll(
+      "allowKeys",
+    )
+    const userMasterKeys = allowedMasterKeys.filter(
+      (data) => data.allowedUserId === metaData.friendid,
+    )
+    const thisMasterKeyTimeString = (userMasterKeys.find(
+      async (data) =>
+        data.keyHash ===
+          await generateKeyHashHexJWK(userMasterKey),
+    ))?.timestamp
+    if (!thisMasterKeyTimeString) {
+      alert("エラーが発生しました")
+      return
+    }
+    //新しい順にuserMasterKeysを並び替え
+    userMasterKeys.sort((a, b) => {
+      return new Date(b.timestamp).getTime() -
+        new Date(a.timestamp).getTime()
+    })
+    //thisMasterKeyTimeのインデックスを取得
+    const thisMasterKeyIndex = userMasterKeys.findIndex(
+      (data) => data.timestamp === thisMasterKeyTimeString,
+    )
+    //一つ次に新しいmasterKeyを取得
+    const nextMasterKey = userMasterKeys[thisMasterKeyIndex - 1]
+    if (nextMasterKey) {
+      const nextMasterKeyTime = new Date(nextMasterKey.timestamp)
+      const identityKeyTime = keys.keys[0].timestamp
+      if (nextMasterKeyTime < identityKeyTime) {
+        alert("エラーが発生しました")
+        return
+      }
+    }
+    if (
+      !isValidIdentityKeySign(
+        userMasterKey,
+        keys.keys[0].identityKey,
+      )
+    ) {
+      alert("エラーが発生しました")
+      return
+    }
+    if (
+      !isValidAccountKey(
+        keys.keys[0].identityKey,
+        keys.keys[0].accountKey,
+      )
+    ) {
+      alert("エラーが発生しました")
+      return
+    }
+    const roomKey = await createRoomKey(
+      latestIdentityAndAccountKeys.identityKey,
+    )
+    const encryptedRoomKey = await encryptWithAccountKey(
+      keys.keys[0].accountKey,
+      JSON.stringify(roomKey),
+    )
+    const encryptedRoomKeyForMe = await encryptWithAccountKey(
+      state.IdentityKeyAndAccountKeys.value[0].accountKey
+        .public,
+      JSON.stringify(roomKey),
+    )
+    const res = await fetch(
+      "/takos/v2/client/talk/data/friend/updateRoomKey",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          friendId: metaData.friendid,
+          roomKeys: [{
+            userId: metaData.friendid,
+            key: encryptedRoomKey,
+          }, {
+            userId: state.userId.value,
+            key: encryptedRoomKeyForMe,
+          }],
+          keyHashHex: roomKey.hashHex,
+        }),
+      },
+    )
+    const data = await res.json()
+    if (data.status === false) {
+      alert("エラーが発生しました")
+    }
+    state.friendKeyCache.roomKey.value.push(
+      {
+        userId: metaData.friendid,
+        roomid: metaData.roomid,
+        roomKey,
+      },
+    )
+    return
+  }
 }

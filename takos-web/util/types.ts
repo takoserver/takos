@@ -38,13 +38,7 @@ export interface AppStateType {
   roomid: { value: string }
   sessionid: { value: string }
   talkData: {
-    value: {
-      message: string
-      messageid: string
-      timestamp: string
-      type: string
-      userId: string
-    }[]
+    value: any[]
   }
   userName: { value: string }
   friendList: { value: Array<any> }

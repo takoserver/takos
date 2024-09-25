@@ -55,6 +55,7 @@ export interface TakosDB extends DBSchema {
       allowedUserId: string
       type: "allow" | "recognition"
       timestamp: string
+      userId?: string
     }
   }
 }

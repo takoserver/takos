@@ -30,8 +30,6 @@ import {
   verifyDataWithMigrateDataSignKey,
 } from "@takos/takos-encrypt-ink"
 import type {
-  AccountKey,
-  IdentityKey,
   migrateDataSignKey,
   migrateDataSignKeyPub,
   migrateKey,
@@ -341,6 +339,7 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
             allowedUserId: string
             type: "allow" | "recognition"
             timestamp: string
+            userId: string
           }[] = migrateDataJson.allowedMasterKey
           const masterKey = migrateDataJson.masterKeyData
           const identityAndAccountKeys = migrateDataJson.identityAndAccountKeysData
