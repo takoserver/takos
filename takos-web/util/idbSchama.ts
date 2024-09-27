@@ -45,6 +45,7 @@ export interface TakosDB extends DBSchema {
       hashHex: string
       keyExpiration: string
       key?: string
+      sended: boolean
     }
   }
   allowKeys: {
@@ -55,12 +56,22 @@ export interface TakosDB extends DBSchema {
       allowedUserId: string
       type: "allow" | "recognition"
       timestamp: string
+      sended: boolean
+    }
+  }
+  allowServers: {
+    key: string
+    value: {
+      key?: string
+      domain: string
+      timestamp: string
+      sended: boolean
     }
   }
 }
 
 export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
-  return openDB<TakosDB>("takos-db", 6, {
+  return openDB<TakosDB>("takos-db", 7, {
     upgrade(db) {
       if (!db.objectStoreNames.contains("deviceKey")) {
         db.createObjectStore("deviceKey", {
@@ -92,6 +103,10 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
           keyPath: "key",
         })
       }
+      if (!db.objectStoreNames.contains("allowServers")) {
+        db.createObjectStore("allowServers", {
+          keyPath: "key",
+      })}
     },
   })
 }
@@ -149,6 +164,7 @@ export async function saveToDbIdentityAndAccountKeys(
     hashHex: hashHex,
     keyExpiration: keyExpiration,
     key: hashHex,
+    sended: false,
   })
 }
 export async function saveToDbAllowKeys(
@@ -164,5 +180,19 @@ export async function saveToDbAllowKeys(
     type: type,
     timestamp: timestamp,
     key: keyHash,
+    sended: false,
+  })
+}
+
+export async function saveToDbAllowServers(
+  domain: string,
+  timestamp: string,
+): Promise<void> {
+  const db = await createTakosDB()
+  await db.put("allowServers", {
+    domain: domain,
+    timestamp: timestamp,
+    key: domain,
+    sended: false,
   })
 }

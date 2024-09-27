@@ -152,4 +152,6 @@ app.post("/geted", async (c: Context) => {
   }
 })
 
+app.post("/updateKeyShareKey", async (c: Context) => {})
+
 export default app

@@ -4,7 +4,7 @@ import RequestFriendById from "./RequestFriendById.tsx"
 import GetAddFriendKey from "./getAddFriendKey.tsx"
 import FriendRequest from "./FriendRequest.tsx"
 import { AppStateType } from "../util/types.ts"
-import { useSignal } from "@preact/signals"
+import { Signal, useSignal } from "@preact/signals"
 import { useEffect } from "preact/hooks"
 import { createTakosDB } from "../util/idbSchama.ts"
 import {
@@ -28,6 +28,7 @@ import {
 import { saveToDbAllowKeys } from "../util/idbSchama.ts"
 import { generate } from "$fresh/src/dev/manifest.ts"
 import { addMessage } from "../util/talkData.ts"
+import { ifTopEventListener, mostButtom } from "../util/messageDOM.ts"
 function TalkListContent({ state }: { state: AppStateType }) {
   async function handleFriendRoomSetup(
     talk: { nickName: string; userName: string; roomID: string },
@@ -58,6 +59,44 @@ function TalkListContent({ state }: { state: AppStateType }) {
       roomid: roomID,
       myUserId: state.userName.value,
     })
+    setTimeout(() => {
+      mostButtom()
+    }, 100)
+    ifTopEventListener(
+      async () => {
+        const oldestMessage = state.talkData.value[0]
+        const talkData = await fetch(`/takos/v2/client/talk/data/friend`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: userName,
+            before: oldestMessage.messageid,
+            ignoreKeys: (() => {
+              const roomKeys = state.friendKeyCache.roomKey.value
+              const hashHexArray = roomKeys.map((key) => key.roomKey.hashHex)
+              return hashHexArray
+            })(),
+            ignoreMasterKeys: (() => {
+              const masterKeys = state.friendKeyCache.masterKey.value
+              return masterKeys.map((key) => key.hashHex)
+            })(),
+            ignoreIdentityKeys: (() => {
+              const identityKeys = state.friendKeyCache.identityKey.value
+              const hashHexArray = identityKeys.map((key) => key.hashHex)
+              return hashHexArray
+            })(),
+          }),
+        }).then((res) => res.json())
+        await addMessage(state, talkData, {
+          roomType: "friend",
+          friendid: userName,
+          roomid: roomID,
+          myUserId: state.userName.value,
+        })
+      },
+    )
     state.ws.value?.send(
       JSON.stringify({
         type: "joinFriend",
@@ -457,6 +496,367 @@ function TalkListContent({ state }: { state: AppStateType }) {
         )}
       </>
     )
+  } else if (state.page.value === 4) {
+    const db = createTakosDB()
+    const verifyedKeyListState = useSignal(true)
+    const verifyedKeyList: Signal<{
+      keyHash: string
+      type: "allow" | "recognition"
+      timestamp: string
+      userId: string
+    }[]> = useSignal([])
+    const noVerifyedKeyListState = useSignal(true)
+    const noVerifyedKeyList: Signal<{
+      keyHash: string
+      type: "allow" | "recognition"
+      timestamp: string
+      userId: string
+    }[]> = useSignal([])
+    useEffect(() => {
+      async function run() {
+        const db = await createTakosDB()
+        const res = await db.getAll("allowKeys")
+        const KeysVerifyInfo: {
+          [key: string]: {
+            keyHash: string
+            type: "allow" | "recognition"
+            timestamp: string
+          }[]
+        } = {}
+        for (const key of res) {
+          const { allowedUserId: userId, keyHash, type, timestamp } = key
+          if (!KeysVerifyInfo[userId]) {
+            KeysVerifyInfo[userId] = []
+          }
+          KeysVerifyInfo[userId].push({ keyHash, type, timestamp })
+        }
+        // update user MasterKey
+        const requestBody: {
+          userId: string
+          hashHex: string
+        }[] = []
+        for (const key in KeysVerifyInfo) {
+          const value = KeysVerifyInfo[key]
+          value.sort((a, b) => {
+            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          })
+          const latestKey = value[0]
+          requestBody.push({
+            userId: key,
+            hashHex: latestKey.keyHash,
+          })
+        }
+        const res2 = await fetch("/takos/v2/client/users/keys/masterKeys", {
+          method: "POST",
+          body: JSON.stringify(requestBody),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+        const json = await res2.json()
+        const res2Result: {
+          [key: string]: {
+            masterKey: MasterKeyPub
+            hashHex: string
+          }[]
+        } = json.masterKeys
+        for (const key in KeysVerifyInfo) {
+          const value = KeysVerifyInfo[key]
+          const masterKeys = res2Result[key]
+          if (!masterKeys) {
+            continue
+          }
+          if (masterKeys.length === 0) {
+            continue
+          }
+          for (const masterKey of masterKeys) {
+            if (!isValidMasterKeyTimeStamp(masterKey.masterKey)) {
+              continue
+            }
+            await saveToDbAllowKeys(
+              await generateKeyHashHexJWK(masterKey.masterKey),
+              key,
+              "recognition",
+              masterKey.masterKey.timestamp,
+            )
+          }
+        }
+        const allowKeys = await db.getAll("allowKeys")
+        const tempKeyList: {
+          [key: string]: {
+            keyHash: string
+            type: "allow" | "recognition"
+            timestamp: string
+            userId: string
+          }[]
+        } = {}
+        const verifyedKeyList2: {
+          keyHash: string
+          type: "allow" | "recognition"
+          timestamp: string
+          userId: string
+        }[] = []
+        const noVerifyedKeyList2: {
+          keyHash: string
+          type: "allow" | "recognition"
+          timestamp: string
+          userId: string
+        }[] = []
+        for (const key of allowKeys) {
+          const { allowedUserId: userId, keyHash, type, timestamp } = key
+          if (!tempKeyList[userId]) {
+            tempKeyList[userId] = []
+          }
+          tempKeyList[userId].push({ keyHash, type, timestamp, userId })
+        }
+        for (const key in tempKeyList) {
+          const value = tempKeyList[key]
+          value.sort((a, b) => {
+            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          })
+          const latestKey = value[0]
+          if (latestKey.type === "allow") {
+            verifyedKeyList2.push(latestKey)
+          } else {
+            noVerifyedKeyList2.push(latestKey)
+          }
+        }
+        verifyedKeyList.value = verifyedKeyList2
+        noVerifyedKeyList.value = noVerifyedKeyList2
+        console.log(verifyedKeyList2)
+        console.log(noVerifyedKeyList2)
+      }
+      run()
+    }, [])
+    const isVaildFriendMasterKeyInfo: Signal<
+      {
+        userId: string
+        latestHashHex: string
+        type: "checkHash"
+      } | null
+    > = useSignal(null)
+    const isShowCheckForm: Signal<boolean> = useSignal(false)
+    const isShowCheckCreditServerForm: Signal<boolean> = useSignal(false)
+    const isShowCheckCreditMasterKeyForm: Signal<boolean> = useSignal(false)
+    return (
+      <>
+        <div class="p-talk-list-search">
+          <form name="talk-search">
+            <label>
+              <input
+                type="text"
+                placeholder="検索"
+              />
+            </label>
+          </form>
+        </div>
+        <div class="flex">
+          {noVerifyedKeyListState.value && (
+            <svg
+              version="1.1"
+              id="_x32_"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlnsXlink="http://www.w3.org/1999/xlink"
+              x="0px"
+              y="0px"
+              viewBox="0 0 512 512"
+              xml:space="preserve"
+              class={"w-6 h-6"}
+              onClick={() => {
+                noVerifyedKeyListState.value = !noVerifyedKeyListState.value
+              }}
+            >
+              <style jsx>
+                {`
+        .st0 { fill: #fffff; }
+            `}
+              </style>
+              <g>
+                <polygon
+                  class="st0"
+                  points="440.189,92.085 256.019,276.255 71.83,92.085 0,163.915 256.019,419.915 512,163.915 	"
+                  style="fill: rgb(255,255,255);"
+                >
+                </polygon>
+              </g>
+            </svg>
+          )}
+          {!noVerifyedKeyListState.value && (
+            <svg
+              version="1.1"
+              id="_x32_"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlnsXlink="http://www.w3.org/1999/xlink"
+              x="0px"
+              y="0px"
+              viewBox="0 0 512 512"
+              xml:space="preserve"
+              class={"w-6 h-6"}
+              onClick={() => {
+                noVerifyedKeyListState.value = !noVerifyedKeyListState.value
+              }}
+            >
+              <style jsx>
+                {`
+              .st0 { fill: #ffffff; }
+            `}
+              </style>
+              <g>
+                <polygon
+                  class="st0"
+                  points="163.916,0 92.084,71.822 276.258,255.996 92.084,440.178 163.916,512 419.916,255.996 	"
+                  style="fill: rgb(255,255,255);"
+                >
+                </polygon>
+              </g>
+            </svg>
+          )}
+          <p>未検証のユーザー</p>
+        </div>
+        {noVerifyedKeyListState.value && (
+          <>
+            {noVerifyedKeyList.value.map((key) => {
+              return (
+                <NoVerifyUser
+                  icon="/people.png"
+                  userName={key.userId}
+                  acceptOnClick={async () => {
+                    isVaildFriendMasterKeyInfo.value = {
+                      userId: key.userId,
+                      latestHashHex: key.keyHash,
+                      type: "checkHash",
+                    }
+                    isShowCheckForm.value = true
+                  }}
+                />
+              )
+            })}
+          </>
+        )}
+        {isShowCheckForm.value && (
+          <>
+            <div class="fixed z-50 w-full h-full overflow-hidden bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-5">
+              <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 max-w-md max-h-[350px] w-full h-full rounded-xl shadow-lg relative p-5">
+                <div class="absolute right-0 top-0 p-4">
+                  <span
+                    class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
+                    onClick={() => {
+                      isShowCheckForm.value = false
+                    }}
+                  >
+                    ×
+                  </span>
+                </div>
+                <form
+                  class="h-full px-2 lg:px-3 flex flex-col"
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                  }}
+                >
+                  <h1 class="text-black dark:text-white font-bold text-3xl mt-4 mb-5">鍵の検証</h1>
+                  <div class="w-full h-4/5">
+                    <div class="flex h-1/2 w-full">
+                    <div class="m-auto bg-blue-500 p-2 rounded-lg text-white w-3/4 text-center"
+                    onClick={() => {isShowCheckCreditServerForm.value = true; isShowCheckForm.value = false;}}
+                    >サーバーを信頼</div>
+                    </div>
+                    <div class="flex h-1/2 w-full">
+                    <div class="m-auto bg-blue-500 p-2 rounded-lg text-white w-3/4 text-center"
+                    onClick={() => {isShowCheckCreditMasterKeyForm.value = true; isShowCheckForm.value = false;}}
+                    >ハッシュ値の確認</div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+            {isShowCheckCreditServerForm.value && (
+              <></>
+            )}
+            {isShowCheckCreditMasterKeyForm.value && (
+              <></>
+            )}
+          </>
+        )}
+        <div class="flex">
+          {verifyedKeyListState.value && (
+            <svg
+              version="1.1"
+              id="_x32_"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlnsXlink="http://www.w3.org/1999/xlink"
+              x="0px"
+              y="0px"
+              viewBox="0 0 512 512"
+              xml:space="preserve"
+              class={"w-6 h-6"}
+              onClick={() => {
+                verifyedKeyListState.value = !verifyedKeyListState.value
+              }}
+            >
+              <style jsx>
+                {`
+        .st0 { fill: #fffff; }
+            `}
+              </style>
+              <g>
+                <polygon
+                  class="st0"
+                  points="440.189,92.085 256.019,276.255 71.83,92.085 0,163.915 256.019,419.915 512,163.915 	"
+                  style="fill: rgb(255,255,255);"
+                >
+                </polygon>
+              </g>
+            </svg>
+          )}
+          {!verifyedKeyListState.value && (
+            <svg
+              version="1.1"
+              id="_x32_"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlnsXlink="http://www.w3.org/1999/xlink"
+              x="0px"
+              y="0px"
+              viewBox="0 0 512 512"
+              xml:space="preserve"
+              class={"w-6 h-6"}
+              onClick={() => {
+                verifyedKeyListState.value = !verifyedKeyListState.value
+              }}
+            >
+              <style jsx>
+                {`
+              .st0 { fill: #ffffff; }
+            `}
+              </style>
+              <g>
+                <polygon
+                  class="st0"
+                  points="163.916,0 92.084,71.822 276.258,255.996 92.084,440.178 163.916,512 419.916,255.996 	"
+                  style="fill: rgb(255,255,255);"
+                >
+                </polygon>
+              </g>
+            </svg>
+          )}
+          <p>検証済みのユーザー</p>
+        </div>
+        {verifyedKeyListState.value && (
+          <>
+            {verifyedKeyList.value.map((key) => {
+              if (state.userId.value === key.userId) {
+                return <></>
+              }
+              return (
+                <VerifyUser
+                  icon="/people.png"
+                  userName={key.userId}
+                />
+              )
+            })}
+          </>
+        )}
+      </>
+    )
   }
   return <></>
 }
@@ -570,3 +970,65 @@ function OtherSettingPage({ settingPage }: { settingPage: any }) {
   )
 }
 export default TalkListContent
+
+function NoVerifyUser(
+  { icon, userName, acceptOnClick }: {
+    icon: string
+    userName: string
+    acceptOnClick?: () => void
+  },
+) {
+  return (
+    <>
+      <li class="h-16 mb-3 w-full flex justify-between bg-white px-2.5 py-2 dark:bg-[#181818]">
+        <a class="flex">
+          <div class="c-talk-rooms-icon">
+            <img src={icon} />
+          </div>
+          <div class="c-talk-rooms-box">
+            <div class="c-talk-rooms-name">
+              <p>{userName}</p>
+            </div>
+            <div class="c-talk-rooms-msg">
+            </div>
+          </div>
+        </a>
+        <div class="flex gap-1 items-center">
+          <button
+            class="
+          bg-blue-500 p-2 rounded-md text-white
+          "
+            onClick={acceptOnClick}
+          >
+            検証
+          </button>
+        </div>
+      </li>
+    </>
+  )
+}
+function VerifyUser(
+  { icon, userName }: {
+    icon: string
+    userName: string
+  },
+) {
+  return (
+    <>
+      <li class="h-16 mb-3 w-full flex justify-between bg-white px-2.5 py-2 dark:bg-[#181818]">
+        <a class="flex">
+          <div class="c-talk-rooms-icon">
+            <img src={icon} />
+          </div>
+          <div class="c-talk-rooms-box">
+            <div class="c-talk-rooms-name">
+              <p>{userName}</p>
+            </div>
+            <div class="c-talk-rooms-msg">
+            </div>
+          </div>
+        </a>
+      </li>
+    </>
+  )
+}

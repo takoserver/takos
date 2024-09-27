@@ -17,6 +17,11 @@ export default function talkListHeader({ state }: { state: AppStateType }) {
           <Three />
         </>
       )}
+      {state.page.value == 4 && (
+        <>
+          <Four />
+        </>
+      )}
     </>
   )
 }
@@ -46,4 +51,7 @@ function Two() {
 }
 function Three() {
   return <h1 class="p-talk-list-title">設定</h1>
+}
+function Four() {
+  return <h1 class="p-talk-list-title">連絡先の鍵</h1>
 }

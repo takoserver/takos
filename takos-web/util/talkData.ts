@@ -25,7 +25,6 @@ import {
 import { createTakosDB, saveToDbAllowKeys } from "./idbSchama.ts"
 import { Signal, signal } from "@preact/signals"
 import { AppStateType } from "./types.ts"
-
 export async function addMessage(
   state: AppStateType,
   talkData: {
@@ -52,6 +51,10 @@ export async function addMessage(
     myUserId: string
   },
 ): Promise<true | false | undefined> {
+  if (!talkData.masterKey) {
+    talkData.masterKey = []
+  }
+  console.log(talkData)
   const talkDataTemp = [...state.talkData.value]
   const { myUserId, roomid, friendid, roomType } = metaData
   if (talkData.status === false) {
@@ -96,15 +99,15 @@ export async function addMessage(
         return hashHex === key.roomKey.hashHex ? { key, hashHex } : null
       }),
     ).then((results) => results.filter(Boolean)) // Filter out null results
-    if(resultRoomKeyArray.length === 0) {
-        updateRoomKey(state, metaData)
+    if (resultRoomKeyArray.length === 0) {
+      updateRoomKey(state, metaData)
     }
     state.friendKeyCache.roomKey.value = [
       ...state.friendKeyCache.roomKey.value,
       ...roomKeys,
     ]
     const db = await createTakosDB()
-    const allowKeys = await db.getAll("allowKeys")
+    let allowKeys = await db.getAll("allowKeys")
     const masterKeyRsult: {
       hashHex: string
       masterKey: MasterKeyPub
@@ -120,11 +123,12 @@ export async function addMessage(
         )
         if (!masterKey) {
           const findMasterKeyResult = await findMasterKey(
-            talkData.masterKey,
+            [...talkData.masterKey, ...state.friendKeyCache.masterKey.value],
             identityKey.sign.hashedPublicKeyHex,
           )
           if (!findMasterKeyResult) {
-            console.log("Master key not found")
+            console.log([...talkData.masterKey, ...state.friendKeyCache.masterKey.value])
+            console.log(identityKey.sign.hashedPublicKeyHex)
             continue
           }
           masterKey = findMasterKeyResult
@@ -142,12 +146,34 @@ export async function addMessage(
           }
         }
         if (!allowKey) {
-          await saveToDbAllowKeys(
-            await generateKeyHashHexJWK(masterKey.masterKey),
-            userId,
-            "recognition",
-            masterKey.masterKey.timestamp,
-          )
+          if (userId === state.userId.value) {
+            const myMasterKey = state.MasterKey.value
+            const hashHexMyMasterKey = await generateKeyHashHexJWK(myMasterKey.public)
+            const hashHexThisMasterKey = await generateKeyHashHexJWK(masterKey.masterKey)
+            if (hashHexMyMasterKey === hashHexThisMasterKey) {
+              await saveToDbAllowKeys(
+                hashHexThisMasterKey,
+                userId,
+                "allow",
+                masterKey.masterKey.timestamp,
+              )
+            } else {
+              await saveToDbAllowKeys(
+                hashHexThisMasterKey,
+                userId,
+                "recognition",
+                masterKey.masterKey.timestamp,
+              )
+            }
+          } else {
+            await saveToDbAllowKeys(
+              await generateKeyHashHexJWK(masterKey.masterKey),
+              userId,
+              "recognition",
+              masterKey.masterKey.timestamp,
+            )
+          }
+          allowKeys = await db.getAll("allowKeys")
         }
         identityKeyResult.push({
           userId,
@@ -237,7 +263,6 @@ export async function addMessage(
           return 0
         }
         if (messageAlowKeyInfo.allowedUserId !== message.userId) {
-          console.log(messageAlowKeyInfo)
           return 0
         }
         if (messageAlowKeyInfo.type === "recognition") {

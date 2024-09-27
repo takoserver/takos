@@ -75,6 +75,7 @@ app.post("/friend", async (c: Context) => {
   const users = []
   for (const i of usersId) {
     const userName = splitUserName(i).userName
+    if (splitUserName(i).domain !== env["DOMAIN"]) continue
     users.push(userName)
   }
   publish(JSON.stringify({
@@ -83,6 +84,7 @@ app.post("/friend", async (c: Context) => {
       messageid,
       friendId: friendId,
       users,
+      usersId,
     },
   }))
   return c.json({ status: true })

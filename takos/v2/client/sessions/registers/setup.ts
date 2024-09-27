@@ -145,7 +145,6 @@ app.post("/", async (c: Context) => {
       nickName,
       age,
       setup: true,
-      keyShareKey,
     },
   })
   await MasterKey.create({

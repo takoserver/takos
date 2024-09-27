@@ -3,6 +3,7 @@ import ChatSendMessage from "../components/SendMessage.tsx"
 import ChatOtherMessage from "../components/OtherMessage.tsx"
 import { AppStateType } from "../util/types.ts"
 import { splitUserName } from "../util/takosClient.ts"
+import { editScrollAddLatestMessage } from "../util/messageDOM.ts"
 interface Messages {
   messageid: string
   userName: string
@@ -14,10 +15,12 @@ interface Messages {
 function ChatTalkMain({ state }: { state: AppStateType }) {
   let SendPrimary = true
   let OtherPrimary = true
-  let DateState: any
   state.talkData.value.sort((a, b) => {
     return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   })
+  setTimeout(() => {
+    editScrollAddLatestMessage()
+  }, 100)
   return (
     <>
       <div class="pl-2">

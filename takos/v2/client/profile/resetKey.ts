@@ -83,7 +83,6 @@ app.post("/", async (c: Context) => {
   await User.updateOne({ userName: session.userName }, {
     $set: {
       setup: true,
-      keyShareKey,
     },
   })
   await MasterKey.create({

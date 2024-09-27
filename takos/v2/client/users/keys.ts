@@ -5,6 +5,7 @@ import { cors } from "hono/cors"
 import { splitUserName } from "@/utils/utils.ts"
 import MasterKey from "@/models/masterKey.ts"
 import { load } from "@std/dotenv"
+import { MasterKeyPub } from "takosEncryptInk"
 const env = await load()
 
 const app = new Hono()
@@ -77,6 +78,58 @@ app.get("/masterKey", async (c: Context) => {
     return c.json({ status: false, message: "MasterKey not found" }, 404)
   }
   return c.json({ status: true, masterKey: masterKey.masterKey })
+})
+app.post("/masterKeys", async (c: Context) => {
+  console.log("masterKeys")
+  let body: {
+    userId: string
+    hashHex: string
+  }[]
+  try {
+    body = await c.req.json()
+  } catch (e) {
+    return c.json({ status: false }, 400)
+  }
+  if (!body) {
+    return c.json({ status: false }, 400)
+  }
+  const masterKeys = await Promise.all(body.map(async (key) => {
+    if (!key.userId || !key.hashHex) {
+      return null
+    }
+    if (splitUserName(key.userId).domain !== env["DOMAIN"]) {
+      return null
+    }
+    const afterMasterKey = await MasterKey.findOne(
+      { userName: splitUserName(key.userId).userName, hashHex: key.hashHex },
+    )
+    if (!afterMasterKey) {
+      return null
+    }
+    return await MasterKey.find(
+      {
+        userName: splitUserName(key.userId).userName,
+        timestamp: { $gt: afterMasterKey.timestamp },
+      },
+    )
+  }))
+  const result: {
+    [key: string]: {
+      masterKey: MasterKeyPub
+      hashHex: string
+    }[]
+  } = {}
+  masterKeys.forEach((keys, index) => {
+    if (keys) {
+      result[body[index].userId] = keys.map((key) => {
+        return {
+          masterKey: key.masterKey,
+          hashHex: key.hashHex,
+        }
+      })
+    }
+  })
+  return c.json({ status: true, masterKeys: result })
 })
 
 app.get("/accountKey", async (c: Context) => {

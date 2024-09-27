@@ -37,6 +37,7 @@ import type {
 } from "@takos/takos-encrypt-ink"
 import { createTakosDB } from "../util/idbSchama.ts"
 import { addMessage } from "../util/talkData.ts"
+import { editScrollAddLatestMessage } from "../util/messageDOM.ts"
 export default function setDefaultState({ state }: { state: AppStateType }) {
   const [setUp, setSetUp] = useState(false)
   const [shareKey, setShareKey] = useState(false)

@@ -36,9 +36,6 @@ const userSchema = new mongoose.Schema({
     type: Number,
   },
   timestamp: { type: Date, default: Date.now },
-  keyShareKey: {
-    type: [Object],
-  },
 })
 const User = mongoose.model("user", userSchema)
 export default User

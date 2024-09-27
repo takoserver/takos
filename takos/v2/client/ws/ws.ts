@@ -37,15 +37,20 @@ async function subscribeMessage(channel: string | string[]) {
         keyShareData(sessions, data.userName, data.keyShareSessionId)
         break
       case "messageFriend":
-        console.log(data.data)
         for (const [sessionId, obj] of sessions.entries()) {
-          console.log(obj)
           if (data.data.users.includes(obj.userName)) {
-            if (obj.ws.readyState !== 1) return
+            if (obj.ws.readyState !== 1) {
+              sessions.delete(sessionId)
+              continue
+            }
+            console.log(data.data)
+            const friendId = data.data.usersId.filter((u: string) =>
+              u !== obj.userName + "@" + env["DOMAIN"]
+            )[0]
             obj.ws.send(JSON.stringify({
               type: "messageFriend",
               message: data.data.messageid,
-              friendId: data.data.friendId,
+              friendId: friendId,
             }))
           }
         }
