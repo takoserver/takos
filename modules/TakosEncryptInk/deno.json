@@ -4,7 +4,7 @@
   },
 
   "name": "@takos/takos-encrypt-ink",
-  "version": "1.3.9",
+  "version": "2.0.0",
   "exports": "./main.ts",
   "fmt": {
     "lineWidth": 100,
@@ -12,10 +12,7 @@
   },
   "imports": {
     "@noble/post-quantum": "npm:@noble/post-quantum@^0.2.0",
-    "base64-arraybuffer": "npm:base64-arraybuffer@^1.0.2",
-    "crystals-kyber": "npm:crystals-kyber@^5.1.0",
-    "dilithium-crystals": "npm:dilithium-crystals@^1.0.6",
-    "mlkem": "jsr:@dajiaji/mlkem@^2.1.0"
+    "base64-arraybuffer": "npm:base64-arraybuffer@^1.0.2"
   },
   "license": "AGPL-3.0"
 }

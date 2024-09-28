@@ -28,7 +28,7 @@ createDeviceKey,
   verifyAndDecryptMessage,
   signData,
   verifyData,
-} from "./main2.ts"
+} from "./main.ts"
 import type { Message } from "./types.ts"
 
 const masterKey = await createMasterKey()
