@@ -2,12 +2,38 @@
   "version": "3",
   "packages": {
     "specifiers": {
+      "jsr:@dajiaji/mlkem@^2.1.0": "jsr:@dajiaji/mlkem@2.1.0",
+      "npm:@noble/hashes@^1.5.0": "npm:@noble/hashes@1.5.0",
+      "npm:@noble/post-quantum": "npm:@noble/post-quantum@0.2.0",
+      "npm:@noble/post-quantum@^0.2.0": "npm:@noble/post-quantum@0.2.0",
       "npm:base64-arraybuffer": "npm:base64-arraybuffer@1.0.2",
       "npm:base64-arraybuffer@^1.0.2": "npm:base64-arraybuffer@1.0.2",
       "npm:crystals-kyber@^5.1.0": "npm:crystals-kyber@5.1.0",
       "npm:dilithium-crystals@^1.0.6": "npm:dilithium-crystals@1.0.6"
     },
+    "jsr": {
+      "@dajiaji/mlkem@2.1.0": {
+        "integrity": "f62dd446ad99dc10c8b8123f431206c559e9a3496b742ccbdca4877e0282a3ad",
+        "dependencies": [
+          "npm:@noble/hashes@^1.5.0"
+        ]
+      }
+    },
     "npm": {
+      "@noble/hashes@1.4.0": {
+        "integrity": "sha512-V1JJ1WTRUqHHrOSh597hURcMqVKVGL/ea3kv0gSnEdsEZ0/+VyPghM1lMNGc00z7CIQorSvbKpuJkxvuHbvdbg==",
+        "dependencies": {}
+      },
+      "@noble/hashes@1.5.0": {
+        "integrity": "sha512-1j6kQFb7QRru7eKN3ZDvRcP13rugwdxZqCjbiAVZfIJwgj2A65UmT4TgARXGlXgnRkORLTDTrO19ZErt7+QXgA==",
+        "dependencies": {}
+      },
+      "@noble/post-quantum@0.2.0": {
+        "integrity": "sha512-6dXxLXv9qCdj22zTBIRN1J8RrF+OUWQD1vJHNcqCu4JAlSo7KnaRVc+ikDPqvgky43Rn7NGQoWqeo4wv8TAJ/g==",
+        "dependencies": {
+          "@noble/hashes": "@noble/hashes@1.4.0"
+        }
+      },
       "base64-arraybuffer@1.0.2": {
         "integrity": "sha512-I3yl4r9QB5ZRY3XuJVEPfc2XhZO6YweFPI+UovAzn+8/hb3oJ6lnysaFcjVpkCPfVWFUDvoZ8kmVDP7WyRtYtQ==",
         "dependencies": {}
@@ -48,6 +74,8 @@
   "remote": {},
   "workspace": {
     "dependencies": [
+      "jsr:@dajiaji/mlkem@^2.1.0",
+      "npm:@noble/post-quantum@^0.2.0",
       "npm:base64-arraybuffer@^1.0.2",
       "npm:crystals-kyber@^5.1.0",
       "npm:dilithium-crystals@^1.0.6"

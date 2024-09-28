@@ -13,6 +13,7 @@ import * as $setting_friends_name_ from "./routes/setting/friends/[name].tsx";
 import * as $setting_index from "./routes/setting/index.tsx";
 import * as $talk_friends_name_ from "./routes/talk/friends/[name].tsx";
 import * as $talk_index from "./routes/talk/index.tsx";
+import * as $test from "./routes/test.tsx";
 import * as $ChatSend from "./islands/ChatSend.tsx";
 import * as $ChatTalkContent from "./islands/ChatTalkContent.tsx";
 import * as $ChatTalkTitle from "./islands/ChatTalkTitle.tsx";
@@ -28,6 +29,7 @@ import * as $getAddFriendKey from "./islands/getAddFriendKey.tsx";
 import * as $headerButton from "./islands/headerButton.tsx";
 import * as $setup from "./islands/setup.tsx";
 import * as $talkListHeader from "./islands/talkListHeader.tsx";
+import * as $test_1 from "./islands/test.tsx";
 import { type Manifest } from "$fresh/server.ts";
 
 const manifest = {
@@ -43,6 +45,7 @@ const manifest = {
     "./routes/setting/index.tsx": $setting_index,
     "./routes/talk/friends/[name].tsx": $talk_friends_name_,
     "./routes/talk/index.tsx": $talk_index,
+    "./routes/test.tsx": $test,
   },
   islands: {
     "./islands/ChatSend.tsx": $ChatSend,
@@ -60,6 +63,7 @@ const manifest = {
     "./islands/headerButton.tsx": $headerButton,
     "./islands/setup.tsx": $setup,
     "./islands/talkListHeader.tsx": $talkListHeader,
+    "./islands/test.tsx": $test_1,
   },
   baseUrl: import.meta.url,
 } satisfies Manifest;

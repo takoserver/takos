@@ -8,25 +8,24 @@ type Sign = {
 
 // Identity Keyの公開鍵情報を格納する型
 type IdentityKeyPub = {
-  key: JsonWebKey // 公開鍵
+  key: string // 公開鍵
   sign: Sign // 署名情報
   timestamp: string // 鍵の作成日時
-  keyExpiration: string // 鍵の有効期限
-  timeAndExpirationSign: Sign // 鍵の作成日時と有効期限に対する署名
+  timestampSign: string // 鍵の作成日時に対する署名
   keyType: "identityPub" // 鍵の種類
   version: number // 鍵のバージョン
 }
 
 // Identity Keyの秘密鍵情報を格納する型
 type IdentityKeyPrivate = {
-  key: JsonWebKey // 秘密鍵
+  key: string // 秘密鍵
   keyType: "identityPrivate" // 鍵の種類
   version: number // 鍵のバージョン
 }
 
 // Account Keyの公開鍵情報を格納する型
 type AccountKeyPub = {
-  key: JsonWebKey // 公開鍵
+  key: string // 公開鍵
   sign: Sign // 署名情報
   keyType: "accountPub" // 鍵の種類
   version: number // 鍵のバージョン
@@ -34,7 +33,7 @@ type AccountKeyPub = {
 
 // Account Keyの秘密鍵情報を格納する型
 type AccountKeyPrivate = {
-  key: JsonWebKey // 秘密鍵
+  key: string // 秘密鍵
   keyType: "accountPrivate" // 鍵の種類
   version: number // 鍵のバージョン
 }
@@ -63,34 +62,34 @@ type MasterKey = {
 }
 
 type MasterKeyPub = {
-  key: JsonWebKey
+  key: string
   keyType: "masterPub"
   version: number
   timestamp: string
   timestampSign: string
 }
 type MasterKeyPrivate = {
-  key: JsonWebKey
+  key: string
   keyType: "masterPrivate"
   version: number
 }
 
 // 他のユーザーのMaster Key情報を格納する型
 type OtherUserMasterKeys = {
-  key: JsonWebKey // 公開鍵
+  key: string // Master Key
   hashHex: string // 鍵のハッシュ
   version: number // 鍵のバージョン
 }[]
 
 type deviceKeyPub = {
-  key: JsonWebKey
+  key: string
   sign: Sign
   keyType: "devicePub"
   version: number
 }
 
 type deviceKeyPrivate = {
-  key: JsonWebKey
+  key: string
   sign: Sign
   keyType: "devicePrivate"
   version: number
@@ -104,7 +103,7 @@ type deviceKey = {
 }
 
 interface RoomKey {
-  key: JsonWebKey
+  key: string
   sign: Sign
   keyType: "roomKey"
   timestamp: string // 鍵の作成日時
@@ -115,23 +114,23 @@ interface RoomKey {
 }
 
 interface EncryptedData {
-  encryptedData: string[]
+  encryptedData: string
   keyType: "accountKey" // 使用された鍵の種類
   encryptedDataSign: Sign // 暗号化されたデータをJSON.stringifyしたものに対する署名
   //暗号化した鍵のハッシュ値
   encryptedKeyHashHex: string
-  iv?: string // 初期化ベクトル (Initialization Vector)
+  cipherText: string //共有秘密を生み出すための暗号文
   //署名した鍵のハッシュ値
   signKeyHashHex: string
   version: number
 }
 
 interface EncryptedDataAccountKey {
-  encryptedData: string[]
+  encryptedData: string
   keyType: "accountKey" // 使用された鍵の種類
   //暗号化した鍵のハッシュ値
+  cipherText: string //共有秘密を生み出すための暗号文
   encryptedKeyHashHex: string
-  iv?: string // 初期化ベクトル (Initialization Vector)
   version: number
 }
 
@@ -144,11 +143,11 @@ interface EncryptedDataRoomKey {
 }
 
 interface EncryptedDataDeviceKey {
-  encryptedData: string[] // 暗号化されたデータの値
+  encryptedData: string // 暗号化されたデータの値
   keyType: "DeviceKey" // 使用された鍵の種類
-  iv?: string // 初期化ベクトル (Initialization Vector)
   encryptedKeyHashHex: string //暗号化した鍵のハッシュ値
   version: number
+  cipherText: string //共有秘密を生み出すための暗号文
 }
 
 interface HashChainElement {
@@ -166,7 +165,7 @@ interface OtherUserIdentityKeys {
 ;[]
 
 interface KeyShareKeyPub {
-  key: JsonWebKey // 公開鍵
+  key: string
   sign: Sign // 署名情報
   keyType: "keySharePub" // 鍵の種類
   timestamp: string // 鍵の作成日時
@@ -175,7 +174,7 @@ interface KeyShareKeyPub {
   version: number // 鍵のバージョン
 }
 interface KeyShareKeyPrivate {
-  key: JsonWebKey // 秘密鍵
+  key: string
   keyType: "keySharePrivate" // 鍵の種類
 }
 interface KeyShareKey {
@@ -186,23 +185,23 @@ interface KeyShareKey {
 }
 
 interface EncryptedDataKeyShareKey {
-  encryptedData: string[] // 暗号化されたデータの値
+  encryptedData: string // 暗号化されたデータの値
   keyType: "keyShareKey" // 使用された鍵の種類
   encryptedDataSign: Sign //暗号化されたデータに対する署名
   encryptedKeyHashHex: string //暗号化した鍵のハッシュ値
   signKeyHashHex: string //署名した鍵のハッシュ値
-  iv?: string // 初期化ベクトル (Initialization Vector)
   version: number
+  cipherText: string //共有秘密を生み出すための暗号文
 }
 
 interface migrateKeyPub {
-  key: JsonWebKey
+  key: string
   keyType: "migratePub"
   version: number
 }
 
 interface migrateKeyPrivate {
-  key: JsonWebKey
+  key: string
   keyType: "migratePrivate"
   version: number
 }
@@ -215,13 +214,13 @@ interface migrateKey {
 }
 
 interface migrateDataSignKeyPub {
-  key: JsonWebKey
+  key: string
   keyType: "migrateDataSignPub"
   version: number
 }
 
 interface migrateDataSignKeyPrivate {
-  key: JsonWebKey
+  key: string
   keyType: "migrateDataSignPrivate"
   version: number
 }

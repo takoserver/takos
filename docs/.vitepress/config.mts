@@ -31,6 +31,7 @@ export default defineConfig({
             link: "/protocol/crypto",
             collapsed: false,
             items: [
+              { text: "masterKey", link: "/protocol/crypto/masterkey" },
               { text: "account_key", link: "/protocol/crypto/account_key" },
               { text: "room_key", link: "/protocol/crypto/room_key" },
               { text: "device_key", link: "/protocol/crypto/device_key" },

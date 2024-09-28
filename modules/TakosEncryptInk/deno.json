@@ -11,9 +11,11 @@
     "semiColons": false
   },
   "imports": {
+    "@noble/post-quantum": "npm:@noble/post-quantum@^0.2.0",
     "base64-arraybuffer": "npm:base64-arraybuffer@^1.0.2",
     "crystals-kyber": "npm:crystals-kyber@^5.1.0",
-    "dilithium-crystals": "npm:dilithium-crystals@^1.0.6"
+    "dilithium-crystals": "npm:dilithium-crystals@^1.0.6",
+    "mlkem": "jsr:@dajiaji/mlkem@^2.1.0"
   },
   "license": "AGPL-3.0"
 }

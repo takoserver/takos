@@ -1,3 +1,5 @@
+// deno-lint-ignore ban-ts-comment
+//@ts-nocheck
 import type {
   AccountKey,
   AccountKeyPrivate,
@@ -67,10 +69,6 @@ export type {
   Sign,
 }
 import { decode, encode } from "base64-arraybuffer"
-
-import { dilithium } from "dilithium-crystals"
-
-import kyber from "crystals-kyber"
 
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return encode(buffer)
@@ -992,7 +990,6 @@ export async function encryptWithAccountKey(
   return {
     encryptedData: encryptedData,
     keyType: "accountKey",
-    iv: arrayBufferToBase64(iv),
     encryptedKeyHashHex: accountKey.sign.hashedPublicKeyHex,
     version: 1,
   }
@@ -1454,20 +1451,9 @@ export async function encryptMessage(
     throw new Error("Room key expired")
   }
   if (
-    now > new Date(identityKey.public.keyExpiration)
-  ) {
-    throw new Error("identity key expired1")
-  }
-  if (
     now < new Date(identityKey.public.timestamp)
   ) {
     throw new Error("identity key expired2")
-  }
-  if (
-    new Date(identityKey.public.keyExpiration).getTime() -
-        new Date(identityKey.public.timestamp).getTime() > 370 * 24 * 60 * 60 * 1000
-  ) {
-    throw new Error("identity key expired3")
   }
   const encryptedData = await encryptDataRoomKey(roomKey, JSON.stringify(message))
   const signature = await signData(
