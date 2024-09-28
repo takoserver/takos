@@ -106,7 +106,7 @@ export async function createMasterKey(): Promise<MasterKey> {
 
 export function isValidMasterKeyTimeStamp(
   masterKey: MasterKeyPub,
-) {
+): boolean {
   return verifyTimestamp(
     masterKey.timestamp,
     masterKey.timestampSign,
@@ -142,7 +142,7 @@ export function verify(
 export function signTimestamp(
   time: string,
   key: Uint8Array,
-) {
+): string {
   const sign = ml_dsa65.sign(key, new TextEncoder().encode(time))
   return arrayBufferToBase64(sign)
 }
@@ -151,7 +151,7 @@ export function verifyTimestamp(
   time: string,
   sign: string,
   key: Uint8Array,
-) {
+): boolean {
   const isValid = ml_dsa65.verify(
     key,
     new TextEncoder().encode(time),
