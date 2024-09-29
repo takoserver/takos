@@ -206,6 +206,8 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
           keyObject.userId,
           keyObject.type,
           keyObject.timestamp,
+          state,
+          false,
         )
         await fetch("/takos/v2/client/keys/allowKey/saved", {
           method: "POST",
@@ -403,12 +405,18 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                 key.encryptedIdentityKey,
                 key.encryptedAccountKey,
                 key.hashHex,
-                key.keyExpiration,
               )
             }),
           )
           for (const key of allowedMasterKeyArray) {
-            await saveToDbAllowKeys(key.keyHash, key.allowedUserId, key.type, key.timestamp)
+            await saveToDbAllowKeys(
+              key.keyHash,
+              key.allowedUserId,
+              key.type,
+              key.timestamp,
+              state,
+              false,
+            )
           }
           await fetch("/takos/v2/client/keys/allowKey/saved", {
             method: "POST",
@@ -536,12 +544,12 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         JSON.stringify(masterKey),
                       )
                       const encryptedIdentityKey = await encryptAndSignDataWithKeyShareKey(
-                        keyShareKey.public,
+                        keyShareKey,
                         JSON.stringify(identityKey),
                         masterKey,
                       )
                       const encryptedAccountKey = await encryptAndSignDataWithKeyShareKey(
-                        keyShareKey.public,
+                        keyShareKey,
                         JSON.stringify(accountKey),
                         masterKey,
                       )
@@ -590,7 +598,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                           encryptedIdentityKeyWithDeviceKey,
                           encryptedAccountKeyWithDeviceKey,
                           hashHex,
-                          identityKey.public.keyExpiration,
                         )
                         const db = await createTakosDB()
                         console.log(await db.getAll("identityAndAccountKeys"))
@@ -742,12 +749,12 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         JSON.stringify(masterKey),
                       )
                       const encryptedIdentityKey = await encryptAndSignDataWithKeyShareKey(
-                        keyShareKey.public,
+                        keyShareKey,
                         JSON.stringify(identityKey),
                         masterKey,
                       )
                       const encryptedAccountKey = await encryptAndSignDataWithKeyShareKey(
-                        keyShareKey.public,
+                        keyShareKey,
                         JSON.stringify(accountKey),
                         masterKey,
                       )
@@ -799,7 +806,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                           encryptedIdentityKeyWithDeviceKey,
                           encryptedAccountKeyWithDeviceKey,
                           hashHex,
-                          identityKey.public.keyExpiration,
                         )
                         const db = await createTakosDB()
                         console.log(await db.getAll("identityAndAccountKeys"))
@@ -996,7 +1002,6 @@ export default function setDefaultState({ state }: { state: AppStateType }) {
                         identityKey: JSON.parse(identityKey),
                         accountKey: JSON.parse(accountKey),
                         hashHex: key.hashHex,
-                        keyExpiration: key.keyExpiration,
                       }
                     }),
                   )

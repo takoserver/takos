@@ -11,6 +11,7 @@ import {
   isValidMasterKeyTimeStamp,
   Sign,
   signData,
+  verify,
   verifyData,
 } from "@takos/takos-encrypt-ink"
 import {
@@ -156,6 +157,8 @@ export async function addMessage(
                 userId,
                 "allow",
                 masterKey.masterKey.timestamp,
+                state,
+                true,
               )
             } else {
               await saveToDbAllowKeys(
@@ -163,6 +166,8 @@ export async function addMessage(
                 userId,
                 "recognition",
                 masterKey.masterKey.timestamp,
+                state,
+                true,
               )
             }
           } else {
@@ -171,6 +176,8 @@ export async function addMessage(
               userId,
               "recognition",
               masterKey.masterKey.timestamp,
+              state,
+              true,
             )
           }
           allowKeys = await db.getAll("allowKeys")
@@ -254,9 +261,9 @@ export async function addMessage(
         }
         // verify identity key
         if (
-          !await verifyData(
+          !verify(
             messageIdentityKey.identityKey,
-            JSON.stringify(message.message.value),
+            new TextEncoder().encode(message.message.value.data.encryptedData),
             message.message.signature,
           )
         ) {
@@ -381,7 +388,7 @@ async function updateRoomKey(
     console.log("roomKeys is empty")
     const latestIdentityAndAccountKeys = state.IdentityKeyAndAccountKeys.value[0]
     const keys = await fetch(
-      `/takos/v2/client/users/keys?userId=${metaData.friendid}`,
+      `/takos/v2/client/users/keys?userId=${metaData.friendid}&latest=true`,
     ).then((res) => res.json())
     const userMasterKey: MasterKeyPub = keys.masterKey
     const db = await createTakosDB()
@@ -392,11 +399,11 @@ async function updateRoomKey(
       ),
     )
     if (!isRegioned) {
-      const verifyMasterKeyValid = await isValidMasterKeyTimeStamp(
+      const verifyMasterKeyValid = isValidMasterKeyTimeStamp(
         userMasterKey,
       )
       if (!verifyMasterKeyValid) {
-        alert("エラーが発生しました")
+        alert("エラーが発生しました1")
         return
       }
       const date = userMasterKey.timestamp
@@ -408,7 +415,7 @@ async function updateRoomKey(
         type: "recognition",
         timestamp: date,
       })
-      const recognitionKeySign = await signData(
+      const recognitionKeySign = signData(
         latestIdentityAndAccountKeys.identityKey,
         recognitionKey,
       )
@@ -427,7 +434,7 @@ async function updateRoomKey(
       )
       const data = await res.json()
       if (data.status === false) {
-        alert("エラーが発生しました")
+        alert("エラーが発生しました2")
         return
       }
       await saveToDbAllowKeys(
@@ -437,6 +444,8 @@ async function updateRoomKey(
         metaData.friendid,
         "recognition",
         date,
+        state,
+        true,
       )
     }
     // 一つ次に新しいmasterKeyをidbから取得
@@ -452,7 +461,7 @@ async function updateRoomKey(
           await generateKeyHashHexJWK(userMasterKey),
     ))?.timestamp
     if (!thisMasterKeyTimeString) {
-      alert("エラーが発生しました")
+      alert("エラーが発生しました3")
       return
     }
     //新しい順にuserMasterKeysを並び替え
@@ -468,35 +477,39 @@ async function updateRoomKey(
     const nextMasterKey = userMasterKeys[thisMasterKeyIndex - 1]
     if (nextMasterKey) {
       const nextMasterKeyTime = new Date(nextMasterKey.timestamp)
-      const identityKeyTime = keys.keys[0].timestamp
+      const identityKeyTime = keys.keys.timestamp
       if (nextMasterKeyTime < identityKeyTime) {
-        alert("エラーが発生しました")
+        alert("エラーが発生しました4")
         return
       }
     }
     if (
       !isValidIdentityKeySign(
         userMasterKey,
-        keys.keys[0].identityKey,
+        keys.keys.identityKey,
       )
     ) {
-      alert("エラーが発生しました")
+      console.log(isValidIdentityKeySign(
+        userMasterKey,
+        keys.keys.identityKey,
+      ))
+      alert("エラーが発生しました5")
       return
     }
     if (
       !isValidAccountKey(
-        keys.keys[0].identityKey,
-        keys.keys[0].accountKey,
+        keys.keys.identityKey,
+        keys.keys.accountKey,
       )
     ) {
-      alert("エラーが発生しました")
+      alert("エラーが発生しました6")
       return
     }
     const roomKey = await createRoomKey(
       latestIdentityAndAccountKeys.identityKey,
     )
     const encryptedRoomKey = await encryptWithAccountKey(
-      keys.keys[0].accountKey,
+      keys.keys.accountKey,
       JSON.stringify(roomKey),
     )
     const encryptedRoomKeyForMe = await encryptWithAccountKey(
@@ -526,7 +539,7 @@ async function updateRoomKey(
     )
     const data = await res.json()
     if (data.status === false) {
-      alert("エラーが発生しました")
+      alert("エラーが発生しました7")
     }
     state.friendKeyCache.roomKey.value.push(
       {

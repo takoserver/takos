@@ -1,33 +1,33 @@
 import {
-createDeviceKey,
+  createDeviceKey,
   createIdentityKeyAndAccountKey,
   createKeyShareKey,
   createMasterKey,
   createRoomKey,
+  decryptAndVerifyDataWithKeyShareKey,
   decryptDataDeviceKey,
+  decryptDataRoomKey,
   decryptDataWithAccountKey,
+  decryptDataWithMigrateKey,
+  encryptAndSignDataWithKeyShareKey,
   encryptDataDeviceKey,
+  encryptDataRoomKey,
+  encryptDataWithMigrateKey,
+  encryptMessage,
   encryptWithAccountKey,
+  generateMigrateDataSignKey,
+  generateMigrateKey,
   isValidAccountKey,
   isValidDeviceKey,
   isValidIdentityKeySign,
   isValidKeyShareKey,
   isValidMasterKeyTimeStamp,
   isValidRoomKey,
-  encryptAndSignDataWithKeyShareKey,
-  decryptAndVerifyDataWithKeyShareKey,
-  encryptDataWithMigrateKey,
-  generateMigrateDataSignKey,
-  signDataWithMigrateDataSignKey,
-  verifyDataWithMigrateDataSignKey,
-  decryptDataWithMigrateKey,
-  generateMigrateKey,
-  encryptDataRoomKey,
-  decryptDataRoomKey,
-  encryptMessage,
-  verifyAndDecryptMessage,
   signData,
+  signDataWithMigrateDataSignKey,
+  verifyAndDecryptMessage,
   verifyData,
+  verifyDataWithMigrateDataSignKey,
 } from "./main.ts"
 import type { Message } from "./types.ts"
 
@@ -100,7 +100,13 @@ const encryptedDataKeyShareKeyTest = await encryptAndSignDataWithKeyShareKey(
   masterKey,
 )
 
-console.log(await decryptAndVerifyDataWithKeyShareKey(keyShareKey, encryptedDataKeyShareKeyTest, masterKey.public))
+console.log(
+  await decryptAndVerifyDataWithKeyShareKey(
+    keyShareKey,
+    encryptedDataKeyShareKeyTest,
+    masterKey.public,
+  ),
+)
 
 const migrateKey = await generateMigrateKey()
 const migrateSignKey = await generateMigrateDataSignKey()
@@ -115,7 +121,13 @@ const encryptedDataMigrateKeyTestSign = signDataWithMigrateDataSignKey(
   encryptedDataMigrateKeyTest,
 )
 
-console.log(verifyDataWithMigrateDataSignKey(migrateSignKey.public, encryptedDataMigrateKeyTest, encryptedDataMigrateKeyTestSign))
+console.log(
+  verifyDataWithMigrateDataSignKey(
+    migrateSignKey.public,
+    encryptedDataMigrateKeyTest,
+    encryptedDataMigrateKeyTestSign,
+  ),
+)
 
 const decryptedDataMigrateKeyTest = await decryptDataWithMigrateKey(
   migrateKey,
@@ -129,15 +141,18 @@ const encryptedDataRoomKey = await encryptDataRoomKey(
   SeacretText,
 )
 
-console.log(SeacretText === await decryptDataRoomKey(
-  roomKey,
-  encryptedDataRoomKey,
-))
+console.log(
+  SeacretText === await decryptDataRoomKey(
+    roomKey,
+    encryptedDataRoomKey,
+  ),
+)
 
 const message: Message = {
   message: "Hello, World!",
   type: "text",
   version: 1,
+  timestamp: new Date().toISOString(),
 }
 
 const encryptedMessage = await encryptMessage(
@@ -146,11 +161,13 @@ const encryptedMessage = await encryptMessage(
   message,
 )
 
-console.log(await verifyAndDecryptMessage(
-  roomKey,
-  identityKeyAndAccountKey.identityKey.public,
-  encryptedMessage,
-))
+console.log(
+  await verifyAndDecryptMessage(
+    roomKey,
+    identityKeyAndAccountKey.identityKey.public,
+    encryptedMessage,
+  ),
+)
 
 const signedData = signData(
   identityKeyAndAccountKey.identityKey,
@@ -164,4 +181,3 @@ const verifySignedData = verifyData(
 )
 
 console.log(verifySignedData)
-

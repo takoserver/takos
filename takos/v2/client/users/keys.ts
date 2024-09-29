@@ -20,6 +20,7 @@ app.use(
 
 app.get("/", async (c: Context) => {
   const userId = c.req.query("userId")
+  const latest = c.req.query("latest") === "true" ? true : false
   if (!userId) {
     return c.json({ status: false, message: "userName is required" }, 400)
   }
@@ -32,6 +33,30 @@ app.get("/", async (c: Context) => {
   const keys = await Keys.find(
     { userName: splitUserName(userId).userName },
   )
+  if (latest) {
+    const latestKey = keys.sort((a, b) => {
+      return Number(b.timestamp) - Number(a.timestamp)
+    })[0]
+    if (!latestKey) {
+      return c.json({ status: false, message: "Keys not found" }, 404)
+    }
+    const latestKeyResult = {
+      identityKey: latestKey.identityKeyPub,
+      accountKey: latestKey.accountKeyPub,
+      timestamp: latestKey.timestamp,
+      hashHex: latestKey.hashHex,
+    }
+    const masterKey = await MasterKey.findOne(
+      {
+        userName: splitUserName(userId).userName,
+        hashHex: latestKey.identityKeyPub.sign.hashedPublicKeyHex,
+      },
+    )
+    if (!masterKey) {
+      return c.json({ status: false, message: "MasterKey not found" }, 404)
+    }
+    return c.json({ status: true, keys: latestKeyResult, masterKey: masterKey.masterKey })
+  }
   const identityAndAccountKeys = keys.map((key) => {
     return {
       identityKey: key.identityKeyPub,
@@ -39,13 +64,17 @@ app.get("/", async (c: Context) => {
       timestamp: key.timestamp,
       hashHex: key.hashHex,
     }
-  }).sort((a, b) => {
-    return Number(new Date(a.timestamp)) - Number(new Date(b.timestamp))
   })
-  const masterKey = await MasterKey.findOne(
+  const masterKey = await MasterKey.find(
     { userName: splitUserName(userId).userName },
   )
-  return c.json({ status: true, keys: identityAndAccountKeys, masterKey: masterKey?.masterKey })
+  return c.json({
+    status: true,
+    keys: identityAndAccountKeys,
+    masterKey: masterKey.map((key) => {
+      key.masterKey
+    }),
+  })
 })
 
 app.get("/masterKey", async (c: Context) => {

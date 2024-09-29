@@ -59,7 +59,7 @@ app.get("/", async (c: Context) => {
               return i.key
             }
             return null
-          }).filter((i) => i !== null)[0],
+          }).filter((i: null) => i !== null)[0],
 
           hashHex: k.hashHex,
         }

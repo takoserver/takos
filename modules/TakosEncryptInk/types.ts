@@ -113,17 +113,7 @@ interface RoomKey {
   version: number
 }
 
-interface EncryptedData {
-  encryptedData: string
-  keyType: "accountKey" // 使用された鍵の種類
-  encryptedDataSign: Sign // 暗号化されたデータをJSON.stringifyしたものに対する署名
-  //暗号化した鍵のハッシュ値
-  encryptedKeyHashHex: string
-  cipherText: string //共有秘密を生み出すための暗号文
-  //署名した鍵のハッシュ値
-  signKeyHashHex: string
-  version: number
-}
+
 
 interface EncryptedDataAccountKey {
   encryptedData: string
@@ -235,18 +225,25 @@ interface migrateDataSignKey {
 interface Message {
   message: string
   type: "text" | "image" | "video" | "audio" | "file"
-  version: number
+  version: number,
+  timestamp: string
 }
-
+type EncryptedMessage = {
+  value: {
+    data: EncryptedDataRoomKey
+    timestamp: string
+  }
+  signature: Sign
+}
 // 型定義のエクスポート
 export type {
+  EncryptedMessage,
   AccountKey,
   AccountKeyPrivate,
   AccountKeyPub,
   deviceKey,
   deviceKeyPrivate,
   deviceKeyPub,
-  EncryptedData,
   EncryptedDataAccountKey,
   EncryptedDataDeviceKey,
   EncryptedDataKeyShareKey,

@@ -38,6 +38,7 @@ function ChatSend({ state }: { state: AppStateType }) {
         message: msg,
         type: "text",
         version: 1,
+        timestamp: new Date().toISOString(),
       }
       if (!roomKey) {
         return

@@ -7,6 +7,7 @@ import { AppStateType } from "../util/types.ts"
 import { Signal, useSignal } from "@preact/signals"
 import { useEffect } from "preact/hooks"
 import { createTakosDB } from "../util/idbSchama.ts"
+import fnv1a from "@sindresorhus/fnv1a"
 import {
   createRoomKey,
   decryptDataRoomKey,
@@ -19,6 +20,7 @@ import {
   isValidAccountKey,
   isValidIdentityKeySign,
   isValidMasterKeyTimeStamp,
+  MasterKey,
   MasterKeyPub,
   type RoomKey,
   Sign,
@@ -53,6 +55,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
       }),
     }).then((res) => res.json())
     console.log(talkData)
+    state.talkData.value = []
     await addMessage(state, talkData, {
       roomType: "friend",
       friendid: userName,
@@ -512,10 +515,13 @@ function TalkListContent({ state }: { state: AppStateType }) {
       timestamp: string
       userId: string
     }[]> = useSignal([])
+    const isAllowedMyServer = useSignal(false)
+    const myServerDomain = state.userId.value.split("@")[1]
     useEffect(() => {
       async function run() {
         const db = await createTakosDB()
         const res = await db.getAll("allowKeys")
+        isAllowedMyServer.value = !!db.get("allowServers", myServerDomain)
         const KeysVerifyInfo: {
           [key: string]: {
             keyHash: string
@@ -578,6 +584,8 @@ function TalkListContent({ state }: { state: AppStateType }) {
               key,
               "recognition",
               masterKey.masterKey.timestamp,
+              state,
+              true,
             )
           }
         }
@@ -633,6 +641,7 @@ function TalkListContent({ state }: { state: AppStateType }) {
         userId: string
         latestHashHex: string
         type: "checkHash"
+        myMasterKeyHashHex: string
       } | null
     > = useSignal(null)
     const isShowCheckForm: Signal<boolean> = useSignal(false)
@@ -721,9 +730,12 @@ function TalkListContent({ state }: { state: AppStateType }) {
                   icon="/people.png"
                   userName={key.userId}
                   acceptOnClick={async () => {
+                    const myMasterKey: MasterKey = state.MasterKey.value
+                    const myMasterKeyHashHex = await generateKeyHashHexJWK(myMasterKey.public)
                     isVaildFriendMasterKeyInfo.value = {
                       userId: key.userId,
                       latestHashHex: key.keyHash,
+                      myMasterKeyHashHex,
                       type: "checkHash",
                     }
                     isShowCheckForm.value = true
@@ -756,25 +768,171 @@ function TalkListContent({ state }: { state: AppStateType }) {
                   <h1 class="text-black dark:text-white font-bold text-3xl mt-4 mb-5">鍵の検証</h1>
                   <div class="w-full h-4/5">
                     <div class="flex h-1/2 w-full">
-                    <div class="m-auto bg-blue-500 p-2 rounded-lg text-white w-3/4 text-center"
-                    onClick={() => {isShowCheckCreditServerForm.value = true; isShowCheckForm.value = false;}}
-                    >サーバーを信頼</div>
+                      <div
+                        class="m-auto bg-blue-500 p-2 rounded-lg text-white w-3/4 text-center"
+                        onClick={() => {
+                          isShowCheckCreditServerForm.value = true
+                          isShowCheckForm.value = false
+                        }}
+                      >
+                        サーバーを信頼
+                      </div>
                     </div>
                     <div class="flex h-1/2 w-full">
-                    <div class="m-auto bg-blue-500 p-2 rounded-lg text-white w-3/4 text-center"
-                    onClick={() => {isShowCheckCreditMasterKeyForm.value = true; isShowCheckForm.value = false;}}
-                    >ハッシュ値の確認</div>
+                      <div
+                        class="m-auto bg-blue-500 p-2 rounded-lg text-white w-3/4 text-center"
+                        onClick={() => {
+                          isShowCheckCreditMasterKeyForm.value = true
+                          isShowCheckForm.value = false
+                        }}
+                      >
+                        ハッシュ値の確認
+                      </div>
                     </div>
                   </div>
                 </form>
               </div>
             </div>
-            {isShowCheckCreditServerForm.value && (
-              <></>
-            )}
-            {isShowCheckCreditMasterKeyForm.value && (
-              <></>
-            )}
+          </>
+        )}
+        {isShowCheckCreditServerForm.value && (
+          <>
+            <div class="fixed z-50 w-full h-full overflow-hidden bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-5">
+              <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 max-w-md max-h-[350px] w-full h-full rounded-xl shadow-lg relative p-5">
+                <div class="absolute right-0 top-0 p-4">
+                  <span
+                    class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
+                    onClick={() => {
+                      isShowCheckCreditServerForm.value = false
+                    }}
+                  >
+                    ×
+                  </span>
+                </div>
+                <form
+                  class="h-full px-2 lg:px-3 flex flex-col"
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                  }}
+                >
+                  <h1 class="text-black dark:text-white font-bold text-3xl mt-4 mb-5">
+                    サーバーを信頼
+                  </h1>
+                  <div class="flex h-1/2 w-full">
+                    <div
+                      class="m-auto bg-blue-500 p-2 rounded-lg text-white w-3/4 text-center"
+                      onClick={async () => {
+                        if (!isAllowedMyServer.value || !isVaildFriendMasterKeyInfo.value) {
+                          return
+                        }
+                        await saveToDbAllowKeys(
+                          isVaildFriendMasterKeyInfo.value.latestHashHex,
+                          isVaildFriendMasterKeyInfo.value.userId,
+                          "allow",
+                          new Date().toISOString(),
+                          state,
+                          true,
+                        )
+                        isShowCheckCreditServerForm.value = false
+                        isShowCheckForm.value = false
+                      }}
+                    >
+                      このユーザーのみ
+                    </div>
+                  </div>
+                  <div>
+                    <h1 class="text-xl">信頼するサーバー</h1>
+                    {(() => {
+                      const result = []
+                      if (!isAllowedMyServer.value) {
+                        result.push(myServerDomain)
+                      }
+                      result.push(isVaildFriendMasterKeyInfo.value?.userId.split("@")[1])
+                      return result.map((server) => {
+                        return <p>{server}</p>
+                      })
+                    })()}
+                  </div>
+                </form>
+              </div>
+            </div>
+          </>
+        )}
+        {isShowCheckCreditMasterKeyForm.value && (
+          <>
+            <div class="fixed z-50 w-full h-full overflow-hidden bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-5">
+              <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 max-w-md max-h-[400px] w-full h-full rounded-xl shadow-lg relative p-5">
+                <div class="absolute right-0 top-0 p-4">
+                  <span
+                    class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
+                    onClick={() => {
+                      isShowCheckCreditMasterKeyForm.value = false
+                    }}
+                  >
+                    ×
+                  </span>
+                </div>
+                <form
+                  class="h-full px-2 lg:px-3 flex flex-col"
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                  }}
+                >
+                  <h1 class="text-black dark:text-white font-bold text-3xl mt-4 mb-5">
+                    鍵の検証
+                  </h1>
+                  <h2>相手のユーザーとこの値を見比べてください</h2>
+                  {(() => {
+                    if (!isVaildFriendMasterKeyInfo.value) {
+                      return
+                    }
+                    const hashHexs = [
+                      {
+                        hashHex: isVaildFriendMasterKeyInfo.value.latestHashHex,
+                        userId: isVaildFriendMasterKeyInfo.value.userId,
+                      },
+                      {
+                        hashHex: isVaildFriendMasterKeyInfo.value.myMasterKeyHashHex,
+                        userId: state.userId.value,
+                      },
+                    ]
+                    return hashHexs.map((hash) => {
+                      return (
+                        <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg shadow-md mb-4">
+                          <p class="text-gray-700 dark:text-gray-300 font-semibold">
+                            {hash.userId}
+                          </p>
+                          <p class="text-gray-500 dark:text-gray-400">
+                            {fnv1a(hash.hashHex, { size: 32 })}
+                          </p>
+                        </div>
+                      )
+                    })
+                  })()}
+                  <div
+                    class="m-auto bg-blue-500 p-2 rounded-lg text-white w-3/4 text-center"
+                    onClick={async () => {
+                      if (!isAllowedMyServer.value || !isVaildFriendMasterKeyInfo.value) {
+                        return
+                      }
+                      await saveToDbAllowKeys(
+                        isVaildFriendMasterKeyInfo.value.latestHashHex,
+                        isVaildFriendMasterKeyInfo.value.userId,
+                        "allow",
+                        new Date().toISOString(),
+                        state,
+                        true,
+                      )
+                      isShowCheckCreditMasterKeyForm.value = false
+                      isShowCheckForm.value = false
+                      alert("信頼しました")
+                    }}
+                  >
+                    信頼する
+                  </div>
+                </form>
+              </div>
+            </div>
           </>
         )}
         <div class="flex">

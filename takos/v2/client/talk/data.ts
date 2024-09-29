@@ -191,8 +191,8 @@ app.post("/friend", async (c: Context) => {
     identityKeys[message.userId].push(identityKey.identityKeyPub)
     alerdyPushed.push(identityKeyHashHex)
   }
-  let masterKey
-  if (keysArray.length > 0) {
+  let masterKey: any[] = []
+  if (keysArray.length > 0 || Object.keys(identityKeys).length > 0) {
     let masterKeys: any[] = []
     for (const identityKey in identityKeys) {
       const value = identityKeys[identityKey]
@@ -240,9 +240,6 @@ app.post("/friend", async (c: Context) => {
     identityKeys,
     masterKey,
   })
-})
-app.get("/friend/updateRoomKey", async (c: Context) => {
-  return c.json({ status: false, message: "Method not allowed" }, 405)
 })
 
 app.post("/friend/updateRoomKey", async (c: Context) => {

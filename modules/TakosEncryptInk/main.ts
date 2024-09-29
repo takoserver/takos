@@ -7,7 +7,6 @@ import type {
   deviceKey,
   deviceKeyPrivate,
   deviceKeyPub,
-  EncryptedData,
   EncryptedDataAccountKey,
   EncryptedDataDeviceKey,
   EncryptedDataKeyShareKey,
@@ -33,6 +32,7 @@ import type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
+  EncryptedMessage
 } from "./types.ts"
 export type {
   AccountKey,
@@ -41,7 +41,6 @@ export type {
   deviceKey,
   deviceKeyPrivate,
   deviceKeyPub,
-  EncryptedData,
   EncryptedDataAccountKey,
   EncryptedDataDeviceKey,
   EncryptedDataKeyShareKey,
@@ -67,6 +66,7 @@ export type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
+  EncryptedMessage
 }
 import { decode, encode } from "base64-arraybuffer"
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -744,14 +744,6 @@ export async function decryptDataRoomKey(
   return new TextDecoder().decode(decryptedData)
 }
 
-export type EncryptedMessage = {
-  value: {
-    data: EncryptedDataRoomKey
-    timestamp: string
-  }
-  signature: Sign
-}
-
 export async function encryptMessage(
   roomKey: RoomKey,
   identityKey: IdentityKey,
@@ -773,7 +765,11 @@ export async function encryptMessage(
   }
   const data = JSON.stringify(message)
   const encryptedData = await encryptDataRoomKey(roomKey, data)
-  const signature = sign(identityKey, new TextEncoder().encode(encryptedData.encryptedData), "identity")
+  const signature = sign(
+    identityKey,
+    new TextEncoder().encode(encryptedData.encryptedData),
+    "identity",
+  )
   return {
     value: {
       data: encryptedData,
@@ -819,7 +815,7 @@ export async function verifyAndDecryptMessage(
 }
 
 export async function generateKeyHashHex(
-    key:
+  key:
     | MasterKeyPub
     | IdentityKeyPub
     | AccountKeyPub
@@ -834,7 +830,7 @@ export async function generateKeyHashHex(
 }
 
 export async function generateKeyHashHexJWK(
-    key:
+  key:
     | MasterKeyPub
     | IdentityKeyPub
     | AccountKeyPub
@@ -848,16 +844,16 @@ export async function generateKeyHashHexJWK(
 }
 
 export function signData(
-    key: IdentityKey | MasterKey,
-    data: string,
+  key: IdentityKey | MasterKey,
+  data: string,
 ): Sign {
   return sign(key, new TextEncoder().encode(data), "master")
 }
 
 export function verifyData(
-    key: IdentityKeyPub | MasterKeyPub,
-    data: string,
-    sign: Sign,
+  key: IdentityKeyPub | MasterKeyPub,
+  data: string,
+  sign: Sign,
 ): boolean {
   return verify(key, new TextEncoder().encode(data), sign)
 }

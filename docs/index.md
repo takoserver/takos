@@ -4,10 +4,10 @@ layout: home
 
 hero:
   name: "takos api document"
-  text: Your Chat, Your Server, Your Rules
-  tagline: 「シンプル、民主的、国産」を売りにしてるチャットアプリです。
+  text: 次世代のLINE
+  tagline: Trustworthy Alternative Knowledge-sharing Open-source System
   image:
-    src: /logo.png
+    src: /logo-mine.jpg
     alt: log
   actions:
     - theme: brand
@@ -18,10 +18,10 @@ hero:
       link: https://takos.jp
 
 features:
-  - title: 高速なUI
-    details: islandsアーキテクチャを採用したFreshを使用しているため、高速なUIを実現しています。
+  - title: シンプルなUI
+    details: 使いやすいUIで、誰でも簡単に使えます。
   - title: 非中央集権
     details: あなたのデータはあなたのサーバーに保存されるため、プライバシーとセキュリティが保護されます。 また、災害時のリスク分散にも役立ちます。
-  - title: 優れたcommunity機能
-    details: さまざまな人とかかわることができます
+  - title: 耐量子暗号によるE2EE暗号
+    details: 量子コンピューターによる暗号解読を防ぐために、耐量子暗号を採用しています。
 ---

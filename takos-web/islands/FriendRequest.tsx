@@ -135,7 +135,7 @@ const VideoList = (
                         const latestIdentityAndAccountKeys =
                           state.IdentityKeyAndAccountKeys.value[0]
                         const keys = await fetch(
-                          `/takos/v2/client/users/keys?userId=${video.requesterId}`,
+                          `/takos/v2/client/users/keys?userId=${video.requesterId}?latest=true`,
                         ).then((res) => res.json())
                         const userMasterKey: MasterKeyPub = keys.masterKey
                         const db = await createTakosDB()
@@ -146,44 +146,15 @@ const VideoList = (
                           ),
                         )
                         if (!isRegioned) {
-                          const verifyMasterKeyValid = await isValidMasterKeyTimeStamp(
+                          const verifyMasterKeyValid = isValidMasterKeyTimeStamp(
                             userMasterKey,
                           )
                           if (!verifyMasterKeyValid) {
-                            alert("エラーが発生しました")
+                            alert("エラーが発生しました2")
                             return
                           }
                           const date = userMasterKey.timestamp
-                          const recognitionKey = JSON.stringify({
-                            userId: video.requesterId,
-                            keyHash: await generateKeyHashHexJWK(
-                              keys.masterKey,
-                            ),
-                            type: "recognition",
-                            timestamp: date,
-                          })
-                          const recognitionKeySign = await signData(
-                            latestIdentityAndAccountKeys.identityKey,
-                            recognitionKey,
-                          )
-                          const res = await fetch(
-                            "/takos/v2/client/keys/allowKey/recognition",
-                            {
-                              method: "POST",
-                              headers: {
-                                "Content-Type": "application/json",
-                              },
-                              body: JSON.stringify({
-                                key: recognitionKey,
-                                sign: recognitionKeySign,
-                              }),
-                            },
-                          )
-                          const data = await res.json()
-                          if (data.status === false) {
-                            alert("エラーが発生しました")
-                            return
-                          }
+
                           await saveToDbAllowKeys(
                             await generateKeyHashHexJWK(
                               keys.masterKey,
@@ -191,6 +162,8 @@ const VideoList = (
                             video.requesterId,
                             "recognition",
                             date,
+                            state,
+                            true,
                           )
                         }
                         // 一つ次に新しいmasterKeyをidbから取得
@@ -206,7 +179,7 @@ const VideoList = (
                               await generateKeyHashHexJWK(userMasterKey),
                         ))?.timestamp
                         if (!thisMasterKeyTimeString) {
-                          alert("エラーが発生しました")
+                          alert("エラーが発生しました2")
                           return
                         }
                         //新しい順にuserMasterKeysを並び替え
@@ -222,35 +195,35 @@ const VideoList = (
                         const nextMasterKey = userMasterKeys[thisMasterKeyIndex - 1]
                         if (nextMasterKey) {
                           const nextMasterKeyTime = new Date(nextMasterKey.timestamp)
-                          const identityKeyTime = keys.keys[0].timestamp
+                          const identityKeyTime = keys.keys.timestamp
                           if (nextMasterKeyTime < identityKeyTime) {
-                            alert("エラーが発生しました")
+                            alert("エラーが発生しました3")
                             return
                           }
                         }
                         if (
                           !isValidIdentityKeySign(
                             userMasterKey,
-                            keys.keys[0].identityKey,
+                            keys.keys.identityKey,
                           )
                         ) {
-                          alert("エラーが発生しました")
+                          alert("エラーが発生しました4")
                           return
                         }
                         if (
                           !isValidAccountKey(
-                            keys.keys[0].identityKey,
-                            keys.keys[0].accountKey,
+                            keys.keys.identityKey,
+                            keys.keys.accountKey,
                           )
                         ) {
-                          alert("エラーが発生しました")
+                          alert("エラーが発生しました5")
                           return
                         }
                         const roomKey = await createRoomKey(
                           latestIdentityAndAccountKeys.identityKey,
                         )
                         const encryptedRoomKey = await encryptWithAccountKey(
-                          keys.keys[0].accountKey,
+                          keys.keys.accountKey,
                           JSON.stringify(roomKey),
                         )
                         const encryptedRoomKeyForMe = await encryptWithAccountKey(
@@ -280,7 +253,7 @@ const VideoList = (
                         )
                         const data = await res.json()
                         if (data.status === false) {
-                          alert("エラーが発生しました")
+                          alert("エラーが発生しました6")
                         } else {
                           alert("リクエストを承認しました")
                         }

@@ -3,6 +3,7 @@ import { getCookie } from "hono/cookie"
 import Sessionid from "@/models/sessionid.ts"
 import User from "@/models/users.ts"
 import AllowKey from "@/models/keys/allowKey.ts"
+import { base64ToArrayBuffer } from "@takos/takos-encrypt-ink"
 
 const app = new Hono()
 
@@ -41,7 +42,7 @@ app.post("/recognition", async (c: Context) => {
     return c.json({ status: false, message: "type is not recogntion" }, 400)
   }
   //if keyHash is not sha256 hash, return 400
-  if (key.keyHash.length !== 64) {
+  if (base64ToArrayBuffer(key.keyHash).byteLength !== 32) {
     return c.json({ status: false, message: "hash is not sha256" }, 400)
   }
   const existingKey = await AllowKey.findOne({
@@ -89,23 +90,19 @@ app.post("/allow", async (c: Context) => {
   const { key: keyString, sign } = body
   const key = JSON.parse(keyString)
   if (!key.userId || !key.keyHash || !key.type || !key.timestamp || !sign) {
-    return c.json({ status: false }, 400)
+    return c.json({ status: false, error: "huga" }, 400)
   }
-  if (key.type === "recognition") return c.json({ status: false }, 400)
+  if (key.type === "recognition") return c.json({ status: false, error: "hoge" }, 400)
   //if keyHash is not sha256 hash, return 400
-  if (key.keyHash.length !== 64) return c.json({ status: false }, 400)
+  if (base64ToArrayBuffer(key.keyHash).byteLength !== 32) {
+    return c.json({ status: false, error: "nyo" }, 400)
+  }
   const existingKey = await AllowKey.findOne({
     userName: userInfo.userName,
     keyHashHex: key.keyHash,
     type: "allow",
   })
-  const existingKey2 = await AllowKey.findOne({
-    userName: userInfo.userName,
-    keyHashHex: key.keyHash,
-    type: "recognition",
-  })
-  if (!existingKey2) return c.json({ status: false }, 400)
-  if (existingKey) return c.json({ status: false }, 400)
+  if (existingKey) return c.json({ status: false, error: "nya" }, 400)
   await AllowKey.create({
     userName: userInfo.userName,
     key: keyString,

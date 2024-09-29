@@ -8,7 +8,16 @@ takosとは「シンプル、民主的、国産」を売りにしてるチャッ
 
 ※apiは作成中です試したい場合は次のコマンドを実行し.env.exampleを参考にしながら.envを記述してください
 
-```
+```bash
 git clone https://github.com/takoserver/takos
+```
+takos起動
+```bash
+cd takos
+deno task dev
+```
+takeos-web起動
+```bash
+cd takos-web
 deno task start
 ```

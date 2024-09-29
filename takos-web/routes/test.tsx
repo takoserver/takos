@@ -1,5 +1,5 @@
-import Test from "../islands/test.tsx";
+import Test from "../islands/test.tsx"
 
 export default function TestPage() {
-    return <Test />;
+  return <Test />
 }
