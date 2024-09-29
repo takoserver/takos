@@ -1,6 +1,7 @@
 # tailDataのルール
 
 以下の秩序を守り会話を行う。
+
 - roomKeyで暗号化してidentityKeyで署名する
 - 一度使われたidentityKeyは連続してのみ使用できる。
 - リプレイ攻撃対策にtimestampを付与する。
@@ -16,7 +17,7 @@ type EncryptedMessage = {
     data: EncryptedDataRoomKey
     timestamp: string
   }
-  signature: Sign,
+  signature: Sign
   channel: string
 }
 ```
@@ -27,7 +28,7 @@ type EncryptedMessage = {
 interface Message {
   message: string
   type: "text" | "image" | "video" | "audio" | "file"
-  version: number,
+  version: number
   channel: string
 }
 ```

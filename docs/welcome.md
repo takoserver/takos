@@ -11,12 +11,16 @@ takosとは「シンプル、民主的、国産」を売りにしてるチャッ
 ```bash
 git clone https://github.com/takoserver/takos
 ```
+
 takos起動
+
 ```bash
 cd takos
 deno task dev
 ```
+
 takeos-web起動
+
 ```bash
 cd takos-web
 deno task start

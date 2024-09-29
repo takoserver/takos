@@ -33,16 +33,16 @@ accountKeyによって暗号化されたデータの型
 
 ```typescript
 interface EncryptedDataAccountKey {
-  encryptedData: string　//base64エンコードされた暗号
+  encryptedData: string //base64エンコードされた暗号
   keyType: "accountKey" // 使用された鍵の種類
   cipherText: string //共有秘密を生み出すための暗号文をbase64エンコードしたもの
-  encryptedKeyHashHex: string   //暗号化した鍵のハッシュ値
+  encryptedKeyHashHex: string //暗号化した鍵のハッシュ値
   version: number
 }
 ```
 
-共有秘密をAESの鍵として利用し暗号します。
-ソースコード
+共有秘密をAESの鍵として利用し暗号します。 ソースコード
+
 ```typescript
 export async function encryptWithAccountKey(
   accountKey: AccountKeyPub,

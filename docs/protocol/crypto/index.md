@@ -6,7 +6,8 @@
 
 ## E2EE暗号化とは
 
-E2EE暗号化（End-to-End Encryption）は、通信の送信者と受信者の間でのみ復号化できる暗号化方式です。中間者攻撃に対して強力なセキュリティを提供します。
+E2EE暗号化（End-to-End
+Encryption）は、通信の送信者と受信者の間でのみ復号化できる暗号化方式です。中間者攻撃に対して強力なセキュリティを提供します。
 
 ## tako'sのE2EE暗号化の基本的な仕組み
 
@@ -27,6 +28,7 @@ masterKeyを含め後程詳しく説明します。
 基本的なデータ型
 
 - Sign
+
 ```typescript
 type Sign = {
   signature: string // 署名をbase64エンコードしたもの

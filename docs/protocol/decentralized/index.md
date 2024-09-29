@@ -16,8 +16,8 @@ tako'sはmisskeyやmastdonのような形態のチャットアプリケーショ
 
 ```typescript
 type Request = {
-  type: string,
-  data: any,
+  type: string
+  data: any
   sign?: string
 }
 ```

@@ -113,8 +113,6 @@ interface RoomKey {
   version: number
 }
 
-
-
 interface EncryptedDataAccountKey {
   encryptedData: string
   keyType: "accountKey" // 使用された鍵の種類
@@ -225,7 +223,7 @@ interface migrateDataSignKey {
 interface Message {
   message: string
   type: "text" | "image" | "video" | "audio" | "file"
-  version: number,
+  version: number
   timestamp: string
 }
 type EncryptedMessage = {
@@ -237,7 +235,6 @@ type EncryptedMessage = {
 }
 // 型定義のエクスポート
 export type {
-  EncryptedMessage,
   AccountKey,
   AccountKeyPrivate,
   AccountKeyPub,
@@ -248,6 +245,7 @@ export type {
   EncryptedDataDeviceKey,
   EncryptedDataKeyShareKey,
   EncryptedDataRoomKey,
+  EncryptedMessage,
   HashChainElement,
   IdentityKey,
   IdentityKeyPrivate,

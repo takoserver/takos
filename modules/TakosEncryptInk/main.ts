@@ -11,6 +11,7 @@ import type {
   EncryptedDataDeviceKey,
   EncryptedDataKeyShareKey,
   EncryptedDataRoomKey,
+  EncryptedMessage,
   HashChainElement,
   IdentityKey,
   IdentityKeyPrivate,
@@ -32,7 +33,6 @@ import type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-  EncryptedMessage
 } from "./types.ts"
 export type {
   AccountKey,
@@ -45,6 +45,7 @@ export type {
   EncryptedDataDeviceKey,
   EncryptedDataKeyShareKey,
   EncryptedDataRoomKey,
+  EncryptedMessage,
   HashChainElement,
   IdentityKey,
   IdentityKeyPrivate,
@@ -66,7 +67,6 @@ export type {
   OtherUserMasterKeys,
   RoomKey,
   Sign,
-  EncryptedMessage
 }
 import { decode, encode } from "base64-arraybuffer"
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
