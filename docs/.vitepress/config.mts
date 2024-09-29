@@ -119,15 +119,15 @@ export default defineConfig({
             ]
           },
           {
-            text: "group",
-            link: "/web/group",
+            text: "community",
+            link: "/web/community",
             collapsed: false,
             items: [
-              { text: "create", link: "/web/group/create" },
-              { text: "delete", link: "/web/group/delete" },
-              { text: "join", link: "/web/group/join" },
-              { text: "leave", link: "/web/group/leave" },
-              { text: "list", link: "/web/group/list" },
+              { text: "create", link: "/web/community/create" },
+              { text: "delete", link: "/web/community/delete" },
+              { text: "join", link: "/web/community/join" },
+              { text: "leave", link: "/web/community/leave" },
+              { text: "list", link: "/web/community/list" },
             ]
           }
         ],
