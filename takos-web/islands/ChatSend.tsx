@@ -6,7 +6,7 @@ function ChatSend({ state }: { state: AppStateType }) {
   const sendHandler = async () => {
     if (state.inputMessage.value) {
       if (
-        state.inputMessage.value.length > 100
+        state.inputMessage.value.length > 10000
       ) {
         alert(
           "100文字以内で入力してください",
