@@ -5,6 +5,14 @@ function ReCapcha(
   const [sitekeyv3, setsitekeyv3] = useState("")
   useEffect(() => {
     ;(async function loadRecapcha() {
+      const userInfoData = await fetch("/takos/v2/client/profile").then((res) => res.json())
+      if (userInfoData.status === true) {
+        window.location.replace("/talk")
+      }
+    })()
+  }, [])
+  useEffect(() => {
+    ;(async function loadRecapcha() {
       const sitekeyv3 = await fetch("/takos/v2/client/recaptcha").then((res) => res.json()).then((
         res,
       ) => res.v3)
