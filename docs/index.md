@@ -7,7 +7,7 @@ hero:
   text: 次世代のLINE
   tagline: Trustworthy Alternative Knowledge-sharing Open-source System
   image:
-    src: /logo-mine.jpg
+    src: /logo.png
     alt: log
   actions:
     - theme: brand

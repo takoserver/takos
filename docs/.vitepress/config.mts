@@ -139,7 +139,6 @@ export default defineConfig({
   },
   base: "/",
   head: [
-    ["link", { rel: "icon", href: "/favicon.jpg" }],
+    ["link", { rel: "icon", href: "/logo.png" }],
   ],
 })
-//
