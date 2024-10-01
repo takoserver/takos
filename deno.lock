@@ -3,6 +3,7 @@
   "packages": {
     "specifiers": {
       "npm:@types/node": "npm:@types/node@18.16.19",
+      "npm:create-vite-extra@latest": "npm:create-vite-extra@2.2.0",
       "npm:express": "npm:express@4.21.0",
       "npm:hono": "npm:hono@4.5.8",
       "npm:http": "npm:http@0.0.1-security",
@@ -84,6 +85,14 @@
       "cookie@0.6.0": {
         "integrity": "sha512-U71cyTamuh1CRNCfpGY6to28lxvNwPG4Guz/EVjgf3Jmzv0vlDp1atT9eS5dDjMYHucpHbWns6Lwf3BKz6svdw==",
         "dependencies": {}
+      },
+      "create-vite-extra@2.2.0": {
+        "integrity": "sha512-3cSDbKijmPFhthAmKV6DK/ecSfM0HIoxF3u4xsDwXy6LiUUGeRXnxprFCN2htouZDNs3JBK/K6pXXDoWx4dD9Q==",
+        "dependencies": {
+          "kolorist": "kolorist@1.8.0",
+          "minimist": "minimist@1.2.8",
+          "prompts": "prompts@2.4.2"
+        }
       },
       "debug@2.6.9": {
         "integrity": "sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==",
@@ -322,6 +331,14 @@
         "integrity": "sha512-VRSzKkbMm5jMDoKLbltAkFQ5Qr7VDiTFGXxYFXXowVj387GeGNOCsOH6Msy00SGZ3Fp84b1Naa1psqgcCIEP5Q==",
         "dependencies": {}
       },
+      "kleur@3.0.3": {
+        "integrity": "sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==",
+        "dependencies": {}
+      },
+      "kolorist@1.8.0": {
+        "integrity": "sha512-Y+60/zizpJ3HRH8DCss+q95yr6145JXZo46OTpFvDZWLfRCE4qChOyk1b26nMaNpfHHgxagk9dXT5OP0Tfe+dQ==",
+        "dependencies": {}
+      },
       "media-typer@0.3.0": {
         "integrity": "sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==",
         "dependencies": {}
@@ -353,6 +370,10 @@
       },
       "mime@1.6.0": {
         "integrity": "sha512-x0Vn8spI+wuJ1O6S7gnbaQg8Pxh4NNHb7KSINmEWKiPE4RKOplvijn+NkmYmmRgP68mc70j2EbeTFRsrswaQeg==",
+        "dependencies": {}
+      },
+      "minimist@1.2.8": {
+        "integrity": "sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==",
         "dependencies": {}
       },
       "ms@2.0.0": {
@@ -388,6 +409,13 @@
       "picomatch@2.3.1": {
         "integrity": "sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==",
         "dependencies": {}
+      },
+      "prompts@2.4.2": {
+        "integrity": "sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==",
+        "dependencies": {
+          "kleur": "kleur@3.0.3",
+          "sisteransi": "sisteransi@1.0.5"
+        }
       },
       "proxy-addr@2.0.7": {
         "integrity": "sha512-llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg==",
@@ -477,6 +505,10 @@
           "get-intrinsic": "get-intrinsic@1.2.4",
           "object-inspect": "object-inspect@1.13.2"
         }
+      },
+      "sisteransi@1.0.5": {
+        "integrity": "sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==",
+        "dependencies": {}
       },
       "statuses@2.0.1": {
         "integrity": "sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ==",
