@@ -3,6 +3,7 @@
   "packages": {
     "specifiers": {
       "npm:@types/node": "npm:@types/node@18.16.19",
+      "npm:create-vite": "npm:create-vite@5.5.2",
       "npm:create-vite-extra@latest": "npm:create-vite-extra@2.2.0",
       "npm:express": "npm:express@4.21.0",
       "npm:hono": "npm:hono@4.5.8",
@@ -93,6 +94,10 @@
           "minimist": "minimist@1.2.8",
           "prompts": "prompts@2.4.2"
         }
+      },
+      "create-vite@5.5.2": {
+        "integrity": "sha512-glwkD5XS2NzNldnYfdyMHZjG15D0LkUvpzbPvwyLtNxiWjpfMvbS430saoBl7B1J3ldJpbtov7dkQVJN0jkn9Q==",
+        "dependencies": {}
       },
       "debug@2.6.9": {
         "integrity": "sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==",
