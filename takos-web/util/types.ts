@@ -34,8 +34,8 @@ export interface FriendListType {
 }
 export interface AppStateType {
   isChoiceUser: { value: boolean | null }
-  ws: { value: WebSocket | null }
   roomid: { value: string }
+  ws: { value: WebSocket | null }
   sessionid: { value: string }
   talkData: {
     value: any[]
