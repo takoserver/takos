@@ -25,13 +25,3 @@ features:
   - title: 耐量子暗号によるE2EE暗号
     details: 量子コンピューターによる暗号解読を防ぐために、耐量子暗号を採用しています。
 ---
-const startTime = performance.now();
-
-await fetch('https://www.hitachi-solutions-create.co.jp/column/img/image-generation-ai.jpg', { cache: 'reload' })
-  .then(data => {
-    const endTime = performance.now();
-    console.log('Fetch time:', endTime - startTime, 'milliseconds');
-  })
-  .catch(error => {
-    console.error('Fetch error:', error);
-  });

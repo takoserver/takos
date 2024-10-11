@@ -1,3 +1,4 @@
+import { hash } from "../../../../../AppData/Local/deno/npm/registry.npmjs.org/@noble/hashes/1.4.0/_assert.d.ts"
 import {
   createDeviceKey,
   createIdentityKeyAndAccountKey,
@@ -31,6 +32,36 @@ import {
 } from "./main.ts"
 import type { Message } from "./types.ts"
 
+const masterKey = await createMasterKey()
+const identityKeyAndAccountKey = await createIdentityKeyAndAccountKey(masterKey)
+const roomKey = await createRoomKey(identityKeyAndAccountKey.identityKey)
+
+const aeskey = await crypto.subtle.generateKey(
+  {
+    name: "AES-GCM",
+    length: 256,
+  },
+  true,
+  ["encrypt", "decrypt"],
+)
+const raw = await crypto.subtle.exportKey("raw", aeskey)
+const encryptedRoomKey = await encryptWithAccountKey(
+  identityKeyAndAccountKey.accountKey.public,
+  JSON.stringify(roomKey),
+)
+console.log(new Uint8Array(raw).length)
+
+const nosignRoomKey = {
+  roomKey: roomKey.key,
+  timestamp: roomKey.timestamp,
+  keyExpiration: roomKey.keyExpiration,
+  hashHex: roomKey.hashHex,
+  version: roomKey.version,
+  keyType: roomKey.keyType,
+}
+console.log((new TextEncoder()).encode(JSON.stringify(nosignRoomKey)).length / 1000 + "KB")
+console.log((new TextEncoder()).encode(JSON.stringify(encryptedRoomKey)).length / 1000 + "KB")
+/*
 const masterKey = await createMasterKey()
 const verifyTimestamp = isValidMasterKeyTimeStamp(masterKey.public)
 
@@ -181,3 +212,4 @@ const verifySignedData = verifyData(
 )
 
 console.log(verifySignedData)
+*/

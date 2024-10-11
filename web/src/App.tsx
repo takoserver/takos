@@ -1,35 +1,42 @@
-import { createSignal } from "solid-js";
-import solidLogo from "./assets/solid.svg";
-import viteLogo from "/vite.svg";
+import { createContext, createSignal,createEffect, useContext } from "solid-js";
 import "./App.css";
+import { AppState, createAppState } from "./utils/type";
 
-function App() {
-  const [count, setCount] = createSignal(0);
+const AppStateValue: AppState = createAppState();
+export const AppContext = createContext(
+  AppStateValue
+);
 
+function AppProvide() {
+  createEffect(() => {
+    setTimeout(() => {
+      AppStateValue.load.setter("loaded");
+    }, 3000);
+  })
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} class="logo" alt="Vite logo" />
-        </a>
-        <a href="https://solidjs.com" target="_blank">
-          <img src={solidLogo} class="logo solid" alt="Solid logo" />
-        </a>
-      </div>
-      <h1>Vite + Solid</h1>
-      <div class="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count()}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p class="read-the-docs">
-        Click on the Vite and Solid logos to learn more
-      </p>
+      <AppContext.Provider value={AppStateValue}>
+        <App />
+      </AppContext.Provider>
     </>
   );
 }
 
-export default App;
+function App() {
+  const AppState = useContext(AppContext);
+  console.log(AppState);
+  return (
+    <>
+    {AppState.load.accessor() === "loading" && (<>
+      <div class="w-full h-screen flex fixed z-[999999999999999999] bg-white">
+        <p class="m-auto">loading......</p>
+      </div>
+    </>)}
+      <div class="w-full h-screen flex">
+        <p class="m-auto">ようこそ</p>
+      </div>
+    </>
+  )
+}
+
+export default AppProvide;
