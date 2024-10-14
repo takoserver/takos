@@ -21,7 +21,4 @@ import { arrayBufferToBase64, sign } from "./main.ts"
   const aliceKeys = ml_dsa44.keygen(seed)
   const msg = new Uint8Array(1)
   const sig = ml_dsa44.sign(aliceKeys.secretKey, msg)
-  const base = arrayBufferToBase64(sig)
-  console.log(sig.length / 1024 / 1024 * 1000 + "MB")
-  console.log(new TextEncoder().encode(base).length / 1024 / 1024 * 1000 + "MB")
 }
