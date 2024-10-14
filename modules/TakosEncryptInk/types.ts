@@ -2,58 +2,8 @@
 type Sign = {
   signature: string // ArrayBufferをbase64に変換したもの
   hashedPublicKeyHex: string // 公開鍵をハッシュ化し、16進数文字列に変換したもの
-  type: "master" | "identity" //
   version: number // 署名のバージョン
 }
-
-// Identity Keyの公開鍵情報を格納する型
-type IdentityKeyPub = {
-  key: string // 公開鍵
-  sign: Sign // 署名情報
-  timestamp: string // 鍵の作成日時
-  timestampSign: string // 鍵の作成日時に対する署名
-  keyType: "identityPub" // 鍵の種類
-  version: number // 鍵のバージョン
-}
-
-// Identity Keyの秘密鍵情報を格納する型
-type IdentityKeyPrivate = {
-  key: string // 秘密鍵
-  keyType: "identityPrivate" // 鍵の種類
-  version: number // 鍵のバージョン
-}
-
-// Account Keyの公開鍵情報を格納する型
-type AccountKeyPub = {
-  key: string // 公開鍵
-  sign: Sign // 署名情報
-  keyType: "accountPub" // 鍵の種類
-  version: number // 鍵のバージョン
-}
-
-// Account Keyの秘密鍵情報を格納する型
-type AccountKeyPrivate = {
-  key: string // 秘密鍵
-  keyType: "accountPrivate" // 鍵の種類
-  version: number // 鍵のバージョン
-}
-
-// Account Keyのペア情報を格納する型
-type AccountKey = {
-  public: AccountKeyPub // 公開鍵情報
-  private: AccountKeyPrivate // 秘密鍵情報
-  hashHex: string // 鍵のハッシュ
-  version: number // 鍵のバージョン
-}
-
-// Identity Keyのペア情報を格納する型
-type IdentityKey = {
-  public: IdentityKeyPub // 公開鍵情報
-  private: IdentityKeyPrivate // 秘密鍵情報
-  hashHex: string // 鍵のハッシュ
-  version: number // 鍵のバージョン
-}
-
 type MasterKey = {
   public: MasterKeyPub
   private: MasterKeyPrivate
@@ -65,40 +15,59 @@ type MasterKeyPub = {
   key: string
   keyType: "masterPub"
   version: number
-  timestamp: string
-  timestampSign: string
 }
+
 type MasterKeyPrivate = {
   key: string
   keyType: "masterPrivate"
   version: number
 }
 
-// 他のユーザーのMaster Key情報を格納する型
-type OtherUserMasterKeys = {
-  key: string // Master Key
-  hashHex: string // 鍵のハッシュ
-  version: number // 鍵のバージョン
-}[]
-
-type deviceKeyPub = {
-  key: string
-  sign: Sign
-  keyType: "devicePub"
+type IdentityKey = {
+  public: IdentityKeyPub
+  private: IdentityKeyPrivate
+  hashHex: string
   version: number
 }
 
-type deviceKeyPrivate = {
+type IdentityKeyPub = {
   key: string
   sign: Sign
-  keyType: "devicePrivate"
+  timestamp: string
+  keyType: "identityPub"
+  version: number
+}
+
+// Identity Keyの秘密鍵情報を格納する型
+type IdentityKeyPrivate = {
+  key: string // 秘密鍵
+  keyType: "identityPrivate" // 鍵の種類
+  version: number // 鍵のバージョン
+}
+
+type AccountKeyPub = {
+  key: string
+  sign: Sign
+  keyType: "accountPub"
+  version: number
+}
+
+type AccountKeyPrivate = {
+  key: string
+  keyType: "accountPrivate"
+  version: number
+}
+
+type AccountKey = {
+  public: AccountKeyPub
+  private: AccountKeyPrivate
+  hashHex: string
   version: number
 }
 
 type deviceKey = {
-  public: deviceKeyPub
-  private: deviceKeyPrivate
-  hashHex: string
+  key: string
+  keyType: "deviceKey"
   version: number
 }
 
@@ -107,11 +76,29 @@ interface RoomKey {
   sign: Sign
   keyType: "roomKey"
   timestamp: string // 鍵の作成日時
-  keyExpiration: string // 鍵の有効期限
-  timeAndExpirationSign: Sign // 鍵の作成日時と有効期限に対する署名
   hashHex: string
   version: number
 }
+
+interface KeyShareKeyPub {
+  key: string
+  sign: Sign // 署名情報
+  keyType: "keySharePub" // 鍵の種類
+  timestamp: string // 鍵の作成日時
+  version: number // 鍵のバージョン
+}
+interface KeyShareKeyPrivate {
+  key: string
+  keyType: "keySharePrivate" // 鍵の種類
+}
+interface KeyShareKey {
+  public: KeyShareKeyPub // 公開鍵情報
+  private: KeyShareKeyPrivate // 秘密鍵情報
+  hashHex: string // 鍵のハッシュ
+  version: number // 鍵のバージョン
+}
+
+//37度軍事境界線
 
 interface EncryptedDataAccountKey {
   encryptedData: string
@@ -136,40 +123,6 @@ interface EncryptedDataDeviceKey {
   encryptedKeyHashHex: string //暗号化した鍵のハッシュ値
   version: number
   cipherText: string //共有秘密を生み出すための暗号文
-}
-
-interface HashChainElement {
-  hash: string
-  sign: Sign
-  version: number
-}
-
-interface OtherUserIdentityKeys {
-  identityKey: IdentityKeyPub
-  hashHex: string
-  hashChain: HashChainElement
-  version: number
-}
-;[]
-
-interface KeyShareKeyPub {
-  key: string
-  sign: Sign // 署名情報
-  keyType: "keySharePub" // 鍵の種類
-  timestamp: string // 鍵の作成日時
-  keyExpiration: string // 鍵の有効期限
-  timeAndExpirationSign: Sign // 鍵の作成日時と有効期限に対する署名
-  version: number // 鍵のバージョン
-}
-interface KeyShareKeyPrivate {
-  key: string
-  keyType: "keySharePrivate" // 鍵の種類
-}
-interface KeyShareKey {
-  public: KeyShareKeyPub // 公開鍵情報
-  private: KeyShareKeyPrivate // 秘密鍵情報
-  hashHex: string // 鍵のハッシュ
-  version: number // 鍵のバージョン
 }
 
 interface EncryptedDataKeyShareKey {
@@ -239,14 +192,11 @@ export type {
   AccountKeyPrivate,
   AccountKeyPub,
   deviceKey,
-  deviceKeyPrivate,
-  deviceKeyPub,
   EncryptedDataAccountKey,
   EncryptedDataDeviceKey,
   EncryptedDataKeyShareKey,
   EncryptedDataRoomKey,
   EncryptedMessage,
-  HashChainElement,
   IdentityKey,
   IdentityKeyPrivate,
   IdentityKeyPub,
@@ -263,8 +213,6 @@ export type {
   migrateKey,
   migrateKeyPrivate,
   migrateKeyPub,
-  OtherUserIdentityKeys,
-  OtherUserMasterKeys,
   RoomKey,
   Sign,
 }

@@ -18,7 +18,7 @@ masterKeyのほかに以下の鍵が利用されます。
 - identityKey
 - accountKey
 - roomKey
-- serverKey
+- deviceKey
 - keyShareKey
 - keyShareSignKey
 - migrateKey
@@ -50,7 +50,7 @@ masterKeyの承認する場合はハッシュ値に加え、soltを追加した�
   各チャットルーム内のメッセージを暗号化するための共通鍵。メッセージ送信時には、全参加者のaccountKeyで暗号化して配布する。  
   自ら作成した鍵は自らのメッセージのみを暗号化するために使用し、他のユーザーは原則利用しない。
 
-- **serverKey**  
+- **deviceKey**  
   デバイスに保存されるデータを暗号化するための鍵。サーバーとクライアント双方で利用される共通鍵。
 
 - **keyShareKey**  
@@ -276,32 +276,23 @@ interface KeyShareSignKeyPrivate {
   timestamp: string
 }
 
+interface KeyShareSignKey {
+  public: KeyShareSignKeyPub
+  private: KeyShareSignKeyPrivate
+  hashHex: string
+  version: number
+}
+
 ```
 
-### serverKey
+### deviceKey
 
-サーバーに保存するデバイスの鍵やデータを暗号化するための鍵。
-
+デバイスに保存されるデータを暗号化するための鍵。
 ```ts
 
-type serverKeyPub = {
+type deviceKey = {
   key: string
-  sign: Sign
-  keyType: "devicePub"
-  version: number
-}
-
-type serverKeyPrivate = {
-  key: string
-  sign: Sign
-  keyType: "devicePrivate"
-  version: number
-}
-
-type serverKey = {
-  public: serverKeyPub
-  private: serverKeyPrivate
-  hashHex: string
+  keyType: "deviceKey"
   version: number
 }
 
@@ -396,7 +387,7 @@ interface EncryptedDataDeviceKey {
   keyType: "DeviceKey" // 使用された鍵の種類
   encryptedKeyHashHex: string //暗号化した鍵のハッシュ値
   version: number
-  cipherText: string //共有秘密を生み出すための暗号文
+  vi: string
 }
 
 interface EncryptedAndSignDataKeyShareKey {
@@ -428,13 +419,23 @@ type EncryptedMessage = {
   value: EncryptedDataRoomKey
   timestamp: string
   signature: Sign
-  channel: string
   bigMessage?: boolean
+}
+// 暗号化されたメッセージの型
+
+type EncryptedMessageValue = {
+    message: string
+    type: "text" | "image" | "video" | "audio" | "file" | "samnail"
+    version: number
+    channel: string
+    replyTo?: string
+    origin?: string
 }
 
 type ServerMessage = {
   timestamp: string
   messageid: string
+  channel: string
   message: Message | EncryptedMessage
 }
 ```
