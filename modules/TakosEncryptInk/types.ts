@@ -78,6 +78,8 @@ interface RoomKey {
   timestamp: string // 鍵の作成日時
   hashHex: string
   version: number
+  masterKeysHashHex: string[]
+  roomid: string
 }
 
 interface KeyShareKeyPub {
@@ -98,41 +100,26 @@ interface KeyShareKey {
   version: number // 鍵のバージョン
 }
 
-//37度軍事境界線
-
-interface EncryptedDataAccountKey {
-  encryptedData: string
-  keyType: "accountKey" // 使用された鍵の種類
-  //暗号化した鍵のハッシュ値
-  cipherText: string //共有秘密を生み出すための暗号文
-  encryptedKeyHashHex: string
-  version: number
+interface KeyShareSignKeyPub {
+  key: string
+  timestamp: string
+  sign: Sign
+  keyType: "keyShareSignPub" // 鍵の種類
+  version: number // 鍵のバージョン
 }
 
-interface EncryptedDataRoomKey {
-  encryptedData: string
-  keyType: "roomKey"
-  iv: string
-  encryptedKeyHashHex: string
-  version: number
+interface KeyShareSignKeyPrivate {
+  key: string
+  keyType: "keyShareSignPrivate" // 鍵の種類
+  version: number // 鍵のバージョン
+  timestamp: string
 }
 
-interface EncryptedDataDeviceKey {
-  encryptedData: string // 暗号化されたデータの値
-  keyType: "DeviceKey" // 使用された鍵の種類
-  encryptedKeyHashHex: string //暗号化した鍵のハッシュ値
+interface KeyShareSignKey {
+  public: KeyShareSignKeyPub
+  private: KeyShareSignKeyPrivate
+  hashHex: string
   version: number
-  cipherText: string //共有秘密を生み出すための暗号文
-}
-
-interface EncryptedDataKeyShareKey {
-  encryptedData: string // 暗号化されたデータの値
-  keyType: "keyShareKey" // 使用された鍵の種類
-  encryptedDataSign: Sign //暗号化されたデータに対する署名
-  encryptedKeyHashHex: string //暗号化した鍵のハッシュ値
-  signKeyHashHex: string //署名した鍵のハッシュ値
-  version: number
-  cipherText: string //共有秘密を生み出すための暗号文
 }
 
 interface migrateKeyPub {
@@ -173,19 +160,83 @@ interface migrateDataSignKey {
   version: number
 }
 
-interface Message {
-  message: string
-  type: "text" | "image" | "video" | "audio" | "file"
+interface EncryptedDataAccountKey {
+  encryptedData: string
+  keyType: "accountKey" // 使用された鍵の種類
+  //暗号化した鍵のハッシュ値
+  cipherText: string //共有秘密を生み出すための暗号文
+  encryptedKeyHashHex: string
   version: number
-  timestamp: string
 }
-type EncryptedMessage = {
+
+interface EncryptedDataRoomKey {
+  encryptedData: string
+  keyType: "roomKey"
+  iv: string
+  encryptedKeyHashHex: string
+  version: number
+}
+
+interface EncryptedDataDeviceKey {
+  encryptedData: string // 暗号化されたデータの値
+  keyType: "DeviceKey" // 使用された鍵の種類
+  encryptedKeyHashHex: string //暗号化した鍵のハッシュ値
+  version: number
+  vi: string
+}
+
+interface EncryptedAndSignDataKeyShareKey {
+  encryptedData: string // 暗号化されたデータの値
+  keyType: "keyShareKey" // 使用された鍵の種類
+  encryptedDataSign: Sign //暗号化されたデータに対する署名
+  encryptedKeyHashHex: string //暗号化した鍵のハッシュ値
+  signKeyHashHex: string //署名した鍵のハッシュ値
+  version: number
+  cipherText: string //共有秘密を生み出すための暗号文
+}
+
+interface Message {
+  encrypted: false
   value: {
-    data: EncryptedDataRoomKey
-    timestamp: string
+    message: string
+    type: "text" | "image" | "video" | "audio" | "file" | "samnail"
+    version: number
+    channel: string
+    replyTo?: string
+    origin?: string
   }
   signature: Sign
+  timestamp: string
+  bigMessage?: boolean
 }
+type EncryptedMessage = {
+  encrypted: true
+  value: EncryptedDataRoomKey
+  timestamp: string
+  signature: Sign
+  bigMessage?: boolean
+}
+// 暗号化されたメッセージの型
+
+type EncryptedMessageValue = {
+    message: string
+    type: "text" | "image" | "video" | "audio" | "file" | "samnail"
+    version: number
+    channel: string
+    replyTo?: string
+    origin?: string
+}
+
+type ServerMessage = {
+  timestamp: string
+  messageid: string
+  channel: string
+  message: Message | EncryptedMessage
+}
+
+
+
+//37度軍事境界線
 // 型定義のエクスポート
 export type {
   AccountKey,
@@ -194,7 +245,7 @@ export type {
   deviceKey,
   EncryptedDataAccountKey,
   EncryptedDataDeviceKey,
-  EncryptedDataKeyShareKey,
+  EncryptedAndSignDataKeyShareKey,
   EncryptedDataRoomKey,
   EncryptedMessage,
   IdentityKey,
@@ -215,4 +266,9 @@ export type {
   migrateKeyPub,
   RoomKey,
   Sign,
+  KeyShareSignKey,
+  KeyShareSignKeyPrivate,
+  KeyShareSignKeyPub,
+  EncryptedMessageValue,
+  ServerMessage
 }
