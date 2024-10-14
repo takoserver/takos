@@ -98,6 +98,7 @@ roomKeyは定期的に更新される。(頻度はユーザーが設定可能)
 自分用のroomKeyは署名も送信する。
 roomKeyに暗号化に利用したaccountKeyのmasterKeyのハッシュ値を含める。(自らのaccountKeyで暗号化するもののみ)
 認証している鍵は認証で利用したsoltとそのハッシュも含める。
+roomKeyにroomidを含める。
 
 masterKeyを認証した後、古いroomKeyでも認証されたものと同じmasterKeyで署名されたaccountKeyで暗号化して送信したroomKeyの場合継続して利用できる。
 
@@ -109,13 +110,18 @@ KeyShareKeyで暗号化してKeyShareSignKeyで署名された鍵を他のデバ
 
 roomKeyで暗号化してidentityKeyで署名する。
 
+**リプレイ攻撃対策**
+
+timestampは同じユーザーで一意である必要がある。
+serverから伝えられたtimestampとメッセージに付属したtimestampが1分以上ずれている場合は拒否する。
+roomKeyのroomidと一致している必要がある。
+
+攻撃の標的はできるのはリプレイ攻撃元のグループと攻撃先のグループのどちらも入っている場合のみである。
+
 **トーク履歴のルール**
 
 identityKeyは連続してのみ使用できる。
-timestampは同じユーザーで一意である必要がある。
-serverから伝えられたtimestampとメッセージに付属したtimestampが1分以上ずれている場合は拒否する。
 サーバーのtimestampによってメッセージの表示順が決定される。
-
 
 ## 鍵の定義
 
