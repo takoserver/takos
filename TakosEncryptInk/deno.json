@@ -1,0 +1,18 @@
+{
+  "tasks": {
+    "dev": "deno run --watch main.ts"
+  },
+
+  "name": "@takos/takos-encrypt-ink",
+  "version": "2.0.2",
+  "exports": "./main.ts",
+  "fmt": {
+    "lineWidth": 100,
+    "semiColons": false
+  },
+  "imports": {
+    "@noble/post-quantum": "npm:@noble/post-quantum@^0.2.0",
+    "base64-arraybuffer": "npm:base64-arraybuffer@^1.0.2"
+  },
+  "license": "AGPL-3.0"
+}

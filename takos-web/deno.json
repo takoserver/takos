@@ -1,0 +1,36 @@
+{
+  "lock": false,
+  "tasks": {
+    "check": "deno fmt --check && deno lint && deno check **/*.ts && deno check **/*.tsx",
+    "cli": "echo \"import '\\$fresh/src/dev/cli.ts'\" | deno run --unstable -A -",
+    "manifest": "deno task cli manifest $(pwd)",
+    "start": "deno run -A --watch=static/,routes/ dev.ts",
+    "build": "deno run -A dev.ts build",
+    "preview": "deno run -A main.ts",
+    "update": "deno run -A -r https://fresh.deno.dev/update ."
+  },
+  "lint": { "rules": { "tags": ["fresh", "recommended"] } },
+  "exclude": ["**/_fresh/*"],
+  "imports": {
+    "$fresh/": "https://deno.land/x/fresh@1.6.8/",
+    "$std/": "https://deno.land/std@0.216.0/",
+    "@preact/signals": "https://esm.sh/*@preact/signals@1.2.2",
+    "@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.5.1",
+    "@sindresorhus/fnv1a": "npm:@sindresorhus/fnv1a@^3.1.0",
+    "@takos/takos-encrypt-ink": "jsr:@takos/takos-encrypt-ink@^2.0.2",
+    "assert": "npm:assert@^2.1.0",
+    "fnv1a": "npm:fnv1a@^1.1.1",
+    "idb": "npm:idb@^8.0.0",
+    "imagescript": "npm:imagescript@^1.3.0",
+    "postscribe": "npm:postscribe@^2.0.8",
+    "preact": "https://esm.sh/preact@10.19.6",
+    "preact/": "https://esm.sh/preact@10.19.6/",
+    "tailwindcss": "npm:tailwindcss@3.4.1",
+    "tailwindcss/": "npm:/tailwindcss@3.4.1/",
+    "tailwindcss/plugin": "npm:/tailwindcss@3.4.1/plugin.js",
+    "react": "https://esm.sh/preact@10.16.0/compat",
+    "react/": "https://esm.sh/preact@10.16.0/compat/"
+  },
+  "compilerOptions": { "jsx": "react-jsx", "jsxImportSource": "preact" },
+  "nodeModulesDir": true
+}
