@@ -225,7 +225,9 @@ interface RoomKey {
   timestamp: string; // 鍵の作成日時
   hashHex: string;
   version: number;
-  masterKeysHashHex?: string[];
+  masterKeysHashHex?: {
+    [key: string]: string;
+  };
 }
 ```
 

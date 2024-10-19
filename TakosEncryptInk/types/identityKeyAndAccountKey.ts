@@ -33,6 +33,5 @@ export type AccountKeyPrivate = {
 export type AccountKey = {
   public: AccountKeyPub
   private: AccountKeyPrivate
-  hashHex: string
   version: number
 }

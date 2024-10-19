@@ -7,6 +7,7 @@ export interface KeyShareKeyPub {
 export interface KeyShareKeyPrivate {
   key: string
   keyType: "keySharePrivate" // 鍵の種類
+  version: number // 鍵のバージョン
 }
 export interface KeyShareKey {
   public: KeyShareKeyPub // 公開鍵情報
@@ -26,7 +27,6 @@ export interface KeyShareSignKeyPrivate {
   key: string
   keyType: "keyShareSignPrivate" // 鍵の種類
   version: number // 鍵のバージョン
-  timestamp: string
 }
 
 export interface KeyShareSignKey {
