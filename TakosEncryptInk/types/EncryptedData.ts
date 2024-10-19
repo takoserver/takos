@@ -18,7 +18,7 @@ export interface EncryptedDataRoomKey {
 
 export interface EncryptedDataDeviceKey {
   encryptedData: string
-  keyType: "DeviceKey"
+  keyType: "deviceKey"
   encryptedKeyHashHex: string
   version: number
   vi?: string

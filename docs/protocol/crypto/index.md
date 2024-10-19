@@ -225,7 +225,7 @@ interface RoomKey {
   timestamp: string; // 鍵の作成日時
   hashHex: string;
   version: number;
-  masterKeysHashHex?: {
+  masterKeysHashHex: {
     [key: string]: string;
   };
 }
@@ -397,14 +397,7 @@ interface EncryptedAndSignDataKeyShareKey {
 
 interface Message {
   encrypted: false;
-  value: {
-    message: string;
-    type: "text" | "image" | "video" | "audio" | "file" | "samnail";
-    version: number;
-    channel: string;
-    replyTo?: string;
-    origin?: string;
-  };
+  value: MessaeValue;
   signature: Sign;
   timestamp: string;
   bigMessage?: boolean;

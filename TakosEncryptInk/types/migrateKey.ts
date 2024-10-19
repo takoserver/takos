@@ -18,20 +18,20 @@ export interface migrateKey {
 }
 
 export interface migrateDataSignKeyPub {
-  key: string;
-  keyType: "migrateDataSignPub";
-  version: number;
+  key: string
+  keyType: "migrateDataSignPub"
+  version: number
 }
 
 export interface migrateDataSignKeyPrivate {
-  key: string;
-  keyType: "migrateDataSignPrivate";
-  version: number;
+  key: string
+  keyType: "migrateDataSignPrivate"
+  version: number
 }
 
 export interface migrateDataSignKey {
-  public: migrateDataSignKeyPub;
-  private: migrateDataSignKeyPrivate;
-  hashHex: string;
-  version: number;
+  public: migrateDataSignKeyPub
+  private: migrateDataSignKeyPrivate
+  hashHex: string
+  version: number
 }

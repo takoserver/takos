@@ -8,12 +8,12 @@ export interface NotEncryptedMessage {
     type: "text" | "image" | "video" | "audio" | "file" | "thumbnail"
     version: number
     replyTo?: string
-    origin?: string
   }
+  origin?: string
   signature: Sign
   channel: string
   timestamp: string // ISO 8601形式の文字列を想定
-  isLarge?: boolean
+  isLarge: boolean
 }
 
 export type EncryptedMessage = {
@@ -22,12 +22,12 @@ export type EncryptedMessage = {
   value: EncryptedDataRoomKey
   timestamp: string
   signature: Sign
-  isLarge?: boolean
+  isLarge: boolean
 }
 
 export type Message = NotEncryptedMessage | EncryptedMessage
 
-export type EncryptedMessageValue = {
+export type MessageValue = {
   message: string
   type: "text" | "image" | "video" | "audio" | "file" | "thumbnail"
   version: number
@@ -39,4 +39,18 @@ export type ServerMessage = {
   timestamp: string
   messageId: string
   message: Message
+}
+
+export type processedMessage = {
+  message: string
+  type: "text" | "image" | "video" | "audio" | "file" | "thumbnail"
+  replyTo?: string
+  origin?: string
+  timestamp: string
+  messageId: string
+  channel: string
+  verifyed: boolean
+  sharedUser?: {
+    [key: string]: string
+  }
 }
