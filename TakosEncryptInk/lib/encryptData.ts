@@ -14,8 +14,6 @@ import { ml_kem768 } from "@noble/post-quantum/ml-kem"
 import { arrayBufferToBase64, base64ToArrayBuffer } from "../utils/buffers.ts"
 import { hashHexKey } from "../utils/hashHexKey.ts"
 import type { migrateDataSignKey } from "../types/masterKey.ts"
-// deno-lint-ignore ban-ts-comment
-//@ts-ignore
 import type { Sign } from "../types/sign.ts"
 import { sign, verify } from "../utils/sign.ts"
 import type { migrateDataSignKeyPub, migrateKey, migrateKeyPub } from "../types/migrateKey.ts"

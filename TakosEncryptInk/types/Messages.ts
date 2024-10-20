@@ -1,5 +1,7 @@
 import type { EncryptedDataRoomKey } from "./EncryptedData.ts"
-import type { Sign } from "./Sign.ts"
+// deno-lint-ignore ban-ts-comment
+//@ts-ignore
+import type { Sign } from "./sign.ts"
 
 export interface NotEncryptedMessage {
   encrypted: false
