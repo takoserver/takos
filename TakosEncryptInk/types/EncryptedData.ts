@@ -33,4 +33,3 @@ export interface EncryptedDataKeyShareKey {
   cipherText: string
   vi?: string
 }
-

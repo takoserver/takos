@@ -9,25 +9,23 @@ const singlend = new Singlend();
 import env from "../../utils/env.ts";
 
 //
-singlend.mount(registers)
+singlend.mount(registers);
 
 singlend.on(
   "getRecapchaV2",
-  z.object({
-  }),
+  z.object({}),
   (_query, ok, error) => {
-    return ok(env["RECAPCHA_V2_SITE_KEY"])
+    return ok(env["RECAPCHA_V2_SITE_KEY"]);
   },
-)
+);
 
 singlend.on(
   "getRecapchaV3",
-  z.object({
-  }),
+  z.object({}),
   (_query, ok, error) => {
-    return ok(env["RECAPCHA_V3_SITE_KEY"],)
+    return ok(env["RECAPCHA_V3_SITE_KEY"]);
   },
-)
+);
 
 app.post("/", singlend.handler());
 

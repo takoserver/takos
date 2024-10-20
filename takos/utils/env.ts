@@ -1,5 +1,5 @@
-import { load } from "@std/dotenv"
+import { load } from "@std/dotenv";
 
-const env = await load()
+const env = await load();
 
-export default env
+export default env;

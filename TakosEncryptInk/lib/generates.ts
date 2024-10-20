@@ -17,10 +17,7 @@ import type {
 
 import type { RoomKey } from "../types/roomKey.ts"
 
-import type {
-  KeyShareKey,
-  KeyShareSignKey,
-} from "../types/keyShareKey.ts"
+import type { KeyShareKey, KeyShareSignKey } from "../types/keyShareKey.ts"
 
 import type { deviceKey } from "../types/deviceKey.ts"
 

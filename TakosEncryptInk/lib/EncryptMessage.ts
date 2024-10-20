@@ -50,7 +50,7 @@ export async function decryptMessage(
   serverData: {
     messageId: string
     timestamp: string
-  }
+  },
 ): Promise<processedMessage | null> {
   if (!encryptedMessage.encrypted) {
     return null

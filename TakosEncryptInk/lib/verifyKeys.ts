@@ -4,6 +4,7 @@ import type { KeyShareKeyPub, KeyShareSignKeyPub } from "../types/keyShareKey.ts
 import type { MasterKeyPub, migrateDataSignKeyPub } from "../types/masterKey.ts"
 import type { migrateKeyPub } from "../types/migrateKey.ts"
 import type { RoomKey } from "../types/roomKey.ts"
+//
 import type { Sign } from "../types/sign.ts"
 import { base64ToArrayBuffer } from "../utils/buffers.ts"
 import { concatenateUint8Arrays } from "../utils/connectBinary.ts"
@@ -51,7 +52,7 @@ export default function verifyKeys(
     }
     return false
   }
-  if(signedKey.keyType === "roomKey") {
+  if (signedKey.keyType === "roomKey") {
     const key = signedKey.key
     const timestamp = signedKey.timestamp
     const hashHexs = signedKey.masterKeysHashHex

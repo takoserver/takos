@@ -1,5 +1,5 @@
 import type { EncryptedDataRoomKey } from "./EncryptedData.ts"
-import type { Sign } from "./sign.ts"
+import type { Sign } from "./Sign.ts"
 
 export interface NotEncryptedMessage {
   encrypted: false
