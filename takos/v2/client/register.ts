@@ -4,6 +4,8 @@ import { checkRecapcha } from "../../utils/checkRecapcha.ts";
 import { sendMail } from "../../utils/sendEmail.ts";
 import tempUsers from "../../models/tempUsers.ts";
 import { concatenateUint8Arrays } from "../../utils/connectBinary.ts";
+import users from "../../models/users.ts";
+import { checkUserName, checkNickName, checkPassword } from "../../utils/checks.ts";
 const singlend = new Singlend();
 singlend.group(
   z.object({
@@ -71,6 +73,9 @@ singlend.group(
           return ok("error");
         }
         if (user.checked) {
+          if(checkUserName(query.userName) && checkPassword(query.password)) {
+            return error("error", 400);
+          }
           const salt = generateRandomSalt();
           const password = new TextEncoder().encode(query.password);
           const passwordHash = await crypto.subtle.digest(
@@ -78,7 +83,15 @@ singlend.group(
             concatenateUint8Arrays([salt, password]),
           );
           const passwordHashHex = arrayBufferToHex(passwordHash);
+          await users.create({
+            email: user.email,
+            password: passwordHashHex,
+            salt: arrayBufferToHex(salt),
+            userName: query.userName,
+          });
+          return ok("ok");
         }
+        return error("error", 403);
       },
     ),
 );

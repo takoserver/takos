@@ -39,7 +39,7 @@ const ChatOtherMessage = (
 function convertLineBreak(message: string | null | undefined) {
   if (message === null || message === undefined) return;
   return message.split("\n").map((line, index) => (
-    <span key={index}>
+    <span>
       {line}
       <br />
     </span>

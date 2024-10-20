@@ -10,6 +10,7 @@ import type {
 import type { RoomKey } from "../types/roomKey.ts"
 import { base64ToArrayBuffer } from "../utils/buffers.ts"
 import { concatenateUint8Arrays } from "../utils/connectBinary.ts"
+import { hashHexKey } from "../utils/hashHexKey.ts"
 import { sign, verify } from "../utils/sign.ts"
 import { decryptDataAESGCMs, encryptDataAESGCMs } from "./encryptData.ts"
 
@@ -50,6 +51,7 @@ export async function decryptMessage(
   serverData: {
     messageId: string
     timestamp: string
+    read : boolean
   },
 ): Promise<processedMessage | null> {
   if (!encryptedMessage.encrypted) {
@@ -87,27 +89,36 @@ export async function decryptMessage(
     type: message.type,
     replyTo: message.replyTo,
     origin: message.origin,
+    read: serverData.read,
     timestamp: serverData.timestamp,
+    timestampOriginal: timestamp,
     messageId: serverData.messageId,
     channel: channel,
     verifyed: true,
     sharedUser: roomKey.masterKeysHashHex,
+    roomKeyHashHex: await hashHexKey(roomKey),
   }
 }
 
 export function processedNotEncryptMessage(
   messageValue: MessageValue,
   channel: string,
-  timestamp: string,
+  serverData: {
+    messageId: string
+    read: boolean,
+    timestamp: string,
+  },
 ): processedMessage {
   return {
     message: messageValue.message,
     type: messageValue.type,
     replyTo: messageValue.replyTo,
     origin: messageValue.origin,
-    timestamp: timestamp,
+    timestamp: serverData.timestamp,
     messageId: "",
     channel: channel,
     verifyed: false,
+    roomKeyHashHex: "",
+    read: serverData.read,
   }
 }

@@ -17,25 +17,28 @@ type Signal<T> = {
 };
 
 export type AppState = {
+  login: Signal<boolean>;
   load: Signal<"loading" | "loaded" | "error">;
   websocket: Signal<WebSocket | null>;
   roomsData: Signal<[string, {
     roomType: string;
     roomName: string;
-    roomid?: string;
-    userId: string;
+    roomid: string;
     talkData: {
-      messageid: string;
       message: string;
-      userId: string;
+      type: "text" | "image" | "video" | "audio" | "file" | "thumbnail";
+      replyTo?: string;
+      origin?: string;
       timestamp: string;
-      timestampOriginal: string;
+      timestampOriginal?: string;
       read: boolean;
-      type: string;
-      verify: number;
-      identityKeyHashHex: string;
-      masterKeyHashHex: string;
+      messageId: string;
+      channel: string;
+      verifyed: boolean;
       roomKeyHashHex: string;
+      sharedUser?: {
+        [key: string]: string;
+      };
     }[];
   }][]>;
   selectedRoom: Signal<string | null>;
@@ -92,6 +95,7 @@ export type MessageTypes = {
 };
 
 export type AppStateConfig = {
+  login: boolean;
   page: number;
   userId: string;
   websocket: WebSocket | null;
@@ -99,20 +103,22 @@ export type AppStateConfig = {
   roomsData?: [string, {
     roomType: string;
     roomName: string;
-    roomid?: string;
-    userId: string;
+    roomid: string;
     talkData: {
-      messageid: string;
       message: string;
-      userId: string;
+      type: "text" | "image" | "video" | "audio" | "file" | "thumbnail";
+      replyTo?: string;
+      origin?: string;
       timestamp: string;
-      timestampOriginal: string;
+      timestampOriginal?: string;
       read: boolean;
-      type: string;
-      verify: number;
-      identityKeyHashHex: string;
-      masterKeyHashHex: string;
+      messageId: string;
+      channel: string;
+      verifyed: boolean;
       roomKeyHashHex: string;
+      sharedUser?: {
+        [key: string]: string;
+      };
     }[];
   }];
   friendList: {
@@ -156,49 +162,31 @@ const createTypedSignal = <T>(initialValue: T): Signal<T> => {
   const [accessor, setter] = createSignal(initialValue);
   return { accessor, setter };
 };
-/*
-export const createAppState = (config: AppStateConfig): AppState => {
+
+export const createAppState = (): AppState => {
   return {
-    load: createTypedSignal<"loading" | "loaded" | "error">("loaded"),
-    websocket: createTypedSignal<WebSocket | null>(config.websocket),
-    roomsData: createTypedSignal(config.roomsData === undefined ? [] : [config.roomsData]),
-    selectedRoom: createTypedSignal<string | null>(config.selectedRoom),
-    page: createTypedSignal<string>(config.page.toString()),
-    inputMessage: createTypedSignal<string>(""),
-    MasterKey: createTypedSignal<MasterKey>(config.MasterKey),
-    IdentityKeyAndAccountKeys: createTypedSignal(config.IdentityKeyAndAccountKeys),
-    deviceKey: createTypedSignal<deviceKey>(config.deviceKey),
-    KeyShareKey: createTypedSignal<KeyShareKey>(config.KeyShareKey),
-    friendKeyCache: {
-      masterKey: createTypedSignal(config.friendKeyCache?.masterKey ?? []),
-      identityKey: createTypedSignal(config.friendKeyCache?.identityKey ?? []),
-      accountKey: createTypedSignal(config.friendKeyCache?.accountKey ?? []),
-      roomKey: createTypedSignal(config.friendKeyCache?.roomKey ?? [])
-    },
-    friendList: createTypedSignal(config.friendList)
-  };
-};*/
-export const createAppState = () => {
-  return {
+    login: createTypedSignal<boolean>(false),
     load: createTypedSignal<"loading" | "loaded" | "error">("loading"),
     websocket: createTypedSignal<WebSocket | null>(null),
     roomsData: createTypedSignal<[string, {
       roomType: string;
       roomName: string;
-      roomid?: string;
-      userId: string;
+      roomid: string;
       talkData: {
-        messageid: string;
         message: string;
-        userId: string;
+        type: "text" | "image" | "video" | "audio" | "file" | "thumbnail";
+        replyTo?: string;
+        origin?: string;
         timestamp: string;
-        timestampOriginal: string;
+        timestampOriginal?: string;
         read: boolean;
-        type: string;
-        verify: number;
-        identityKeyHashHex: string;
-        masterKeyHashHex: string;
+        messageId: string;
+        channel: string;
+        verifyed: boolean;
         roomKeyHashHex: string;
+        sharedUser?: {
+          [key: string]: string;
+        };
       }[];
     }][]>([]),
     selectedRoom: createTypedSignal<string | null>(null),
@@ -243,6 +231,7 @@ export const createAppState = () => {
 };
 
 export const setUpAppState = (appState: AppState, config: AppStateConfig) => {
+  appState.login.setter(config.login);
   appState.load.setter("loaded");
   appState.websocket.setter(config.websocket);
   appState.roomsData.setter(

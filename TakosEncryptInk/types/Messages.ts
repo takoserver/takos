@@ -49,9 +49,12 @@ export type processedMessage = {
   replyTo?: string
   origin?: string
   timestamp: string
+  timestampOriginal?: string;
+  read: boolean;
   messageId: string
   channel: string
   verifyed: boolean
+  roomKeyHashHex: string
   sharedUser?: {
     [key: string]: string
   }

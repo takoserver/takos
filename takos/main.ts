@@ -5,6 +5,7 @@ import { hc } from "hono/client";
 import { cors } from "hono/cors";
 import mongoose from "mongoose";
 import env from "./utils/env.ts";
+import serverList from "./models/serverList.ts";
 const app = new Hono();
 app.route("/takos/v2", v2).use(
   "/*",
@@ -36,5 +37,12 @@ app.use(
 
 mongoose.connect(env["MONGO_URI"]).then(() => {
   console.log("Connected to MongoDB");
+  serverList.findOne(
+    { serverDomain: env["DOMAIN"] },
+  ).then((result) => {
+    if (!result) {
+      serverList.create({ serverDomain: env["DOMAIN"] });
+    }
+  });
   Deno.serve(app.fetch);
 });

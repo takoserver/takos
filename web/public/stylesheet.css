@@ -3,7 +3,7 @@
 @tailwind utilities;
 html, body {
   position: relative;
-  background-image: url("/takos/v2/client/bgimage");
+  background-color: #181818;
   background-size: cover;
   background-attachment: fixed;
 }
