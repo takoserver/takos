@@ -22,7 +22,7 @@ export type AccountKeyPub = {
   key: string
   keyType: "accountPub"
   version: number
-  identityKeyHashHex: string
+  hashHex: string
 }
 
 export type AccountKeyPrivate = {

@@ -101,12 +101,13 @@ export async function createIdentityKeyAndAccountKey(
     IdentityKey,
     concatenateUint8Arrays([accountKey.publicKey]),
   )
+  const accountHash = await crypto.subtle.digest("SHA-256", accountKey.publicKey)
   const AccountKey: AccountKey = {
     public: {
       key: accountPublicKeyString,
       keyType: "accountPub",
       version: 1,
-      identityKeyHashHex: idenHashHex,
+      hashHex: arrayBufferToHex(accountHash),
     },
     private: {
       key: accountPrivateKeyString,
