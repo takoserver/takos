@@ -75,8 +75,16 @@ singlend.on(
   z.object({
     limit: z.number().optional(),
   }),
-  async (_query, ok, _error) => {
-    const res = await serverList.find({})
+
+  async (query, ok, _error) => {
+    if (!query.limit) {
+      query.limit = 10;
+    }
+    if(query.limit > 11) {
+      query.limit = 10;
+    } 
+    const res = await serverList.find({}).limit(query.limit)
+    return ok(res.map((v) => v.serverDomain));
   },
 );
 
