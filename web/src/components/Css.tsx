@@ -7,7 +7,9 @@ export function Css() {
   return (
     <>
       <MetaProvider>
-      {login() ? <Link href="/App.css" rel="stylesheet" /> : <Link href="/stylesheet.css" rel="stylesheet" />}
+        {login()
+          ? <Link href="/App.css" rel="stylesheet" />
+          : <Link href="/stylesheet.css" rel="stylesheet" />}
       </MetaProvider>
     </>
   );

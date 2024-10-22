@@ -7,6 +7,17 @@ const singlend = new Singlend();
 import env from "../../utils/env.ts";
 import { arrayBufferToBase64 } from "../../utils/buffers.ts";
 import serverList from "../../models/serverList.ts";
+import { cors } from "hono/cors";
+
+app.use(
+  "*",
+  cors(
+    {
+      origin: "*",
+      allowMethods: ["GET", "POST", "PUT", "DELETE"],
+    },
+  ),
+);
 
 singlend.mount(registers);
 
@@ -27,7 +38,7 @@ singlend.on(
 );
 
 singlend.on(
-  "getBackgroundImage",
+  "getServerBackgroundImage",
   z.object({}),
   async (_query, ok, error) => {
     try {
@@ -46,7 +57,7 @@ singlend.on(
 );
 
 singlend.on(
-  "getIconImage",
+  "getServerIconImage",
   z.object({}),
   async (_query, ok, error) => {
     try {
@@ -64,27 +75,8 @@ singlend.on(
   z.object({}),
   (_query, ok, _error) => {
     return ok({
-      serverName: env["serverName"],
       serverDescription: env["explain"],
     });
-  },
-);
-
-singlend.on(
-  "getServerList",
-  z.object({
-    limit: z.number().optional(),
-  }),
-
-  async (query, ok, _error) => {
-    if (!query.limit) {
-      query.limit = 10;
-    }
-    if(query.limit > 11) {
-      query.limit = 10;
-    } 
-    const res = await serverList.find({}).limit(query.limit)
-    return ok(res.map((v) => v.serverDomain));
   },
 );
 
