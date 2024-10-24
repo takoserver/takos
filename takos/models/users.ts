@@ -37,6 +37,13 @@ const userSchema = new mongoose.Schema({
         type: Date,
     },
     timestamp: { type: Date, default: Date.now },
+    setUped: {
+        type: Boolean,
+        default: false,
+    },
+    masterKey: {
+        type: String,
+    }
   });
   const User = mongoose.model("users", userSchema);
   export default User;

@@ -10,7 +10,7 @@ const ChatOtherMessage = (
         {isPrimary && (
           <div class="c-talk-chat-icon">
             <img
-              src={`/takos/v2/client/users/icon/friend?userName=${name}`}
+              src=""
               alt=""
               class="rounded-full text-white dark:text-black"
             />

@@ -36,65 +36,78 @@ singlend.group(
         );
         const sessionid = crypto.getRandomValues(new Uint32Array(1))[0]
           .toString(16);
-        await tempUsers.create({
+        const alerdyUser = await tempUsers.findOne({ email: query.email });
+        if (alerdyUser) {
+          await tempUsers.deleteOne({
+            email: query.email,
+          });
+        }
+        const res = await tempUsers.create({
           email: query.email,
           checkCode: code,
           token: sessionid,
         });
+        console.log("alerdyUser");
+        console.log(res);
         return ok({ sessionid: sessionid });
       },
-    ).on(
-      "checkCode",
-      z.object({
-        sessionid: z.string(),
-        code: z.string(),
-      }),
-      async (query, _value, ok, error) => {
-        const user = await tempUsers.findOne({ token: query.sessionid });
-        if (!user) {
-          return ok("error");
-        }
-        if (user.checkCode === Number(query.code) && !user.checked) {
-          tempUsers.updateOne({ token: query.sessionid }, { checked: true });
-          return ok("ok");
-        }
-        return error("error", 400);
-      },
-    ).on(
-      "register",
-      z.object({
-        sessionid: z.string(),
-        password: z.string(),
-        userName: z.string(),
-      }),
-      async (query, _value, ok, error) => {
-        const user = await tempUsers.findOne({ token: query.sessionid });
-        if (!user) {
-          return ok("error");
-        }
-        if (user.checked) {
-          if(checkUserName(query.userName) && checkPassword(query.password)) {
-            return error("error", 400);
-          }
-          const salt = generateRandomSalt();
-          const password = new TextEncoder().encode(query.password);
-          const passwordHash = await crypto.subtle.digest(
-            "SHA-256",
-            concatenateUint8Arrays([salt, password]),
-          );
-          const passwordHashHex = arrayBufferToHex(passwordHash);
-          await users.create({
-            email: user.email,
-            password: passwordHashHex,
-            salt: arrayBufferToHex(salt),
-            userName: query.userName,
-          });
-          return ok("ok");
-        }
-        return error("error", 403);
-      },
-    ),
+    )
 );
+
+singlend.on(
+  "checkCode",
+  z.object({
+    sessionid: z.string(),
+    code: z.string(),
+  }),
+  async (query, ok, error) => {
+    const user = await tempUsers.findOne({ token: query.sessionid });
+    if (!user) {
+      return error("error", 400);
+    }
+    if (user.checkCode === Number(query.code) && !user.checked) {
+      await tempUsers.updateOne({ token: query.sessionid }, { checked: true });
+      console.log("ok");
+      return ok("ok");
+    }
+    await tempUsers.updateOne({ token: query.sessionid }, { missCheck: user.missCheck + 1 });
+    return error("error", 400);
+  },
+).on(
+  "register",
+  z.object({
+    sessionid: z.string(),
+    password: z.string(),
+    userName: z.string(),
+  }),
+  async (query, ok, error) => {
+    const user = await tempUsers.findOne({ token: query.sessionid });
+    if (!user) {
+      return ok("error");
+    }
+    if (user.checked) {
+      if(!checkUserName(query.userName) && !checkPassword(query.password)) {
+        console.log("ok");
+        return error("error", 400);
+      }
+      const salt = generateRandomSalt();
+      const password = new TextEncoder().encode(query.password);
+      const passwordHash = await crypto.subtle.digest(
+        "SHA-256",
+        concatenateUint8Arrays([salt, password]),
+      );
+      const passwordHashHex = arrayBufferToHex(passwordHash);
+      await users.create({
+        email: user.email,
+        password: passwordHashHex,
+        salt: arrayBufferToHex(salt),
+        userName: query.userName,
+      });
+      return ok("ok");
+    }
+    return error("error", 403);
+  },
+)
 
 export default singlend;
 function generateRandomSalt() {

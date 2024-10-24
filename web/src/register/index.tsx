@@ -9,6 +9,7 @@ import { useAtom } from "solid-jotai";
 import { Loading } from "../components/load.tsx";
 import { Register as RegisterComponent } from "./Register.tsx";
 import { Login as LoginComponent } from "./Login.tsx";
+import { requester } from "../utils/requester.ts";
 const sampleChatData = {
   roomName: "たこたこチャット",
   talkData: [
@@ -51,6 +52,8 @@ const sampleChatData = {
 };
 
 export function Register() {
+  createEffect(() => {
+  });
   const [defaultServer, setDefaultServer] = useAtom(defaultServerState);
   const [exproleServer, setExproleServer] = useAtom(exproleServerState);
   const [SetedDefaultServer] = useAtom(setDefaultServerState);
@@ -60,6 +63,18 @@ export function Register() {
     </>
   );
 }
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (callback: () => void) => void;
+      execute: (
+        siteKey: string,
+        options: { action: string },
+      ) => Promise<string>;
+      render: (element: string, options: { sitekey: string }) => void;
+    };
+  }
+}
 
 function SelectedServer() {
   const [defaultServer, setDefaultServer] = useAtom(defaultServerState);
@@ -68,44 +83,20 @@ function SelectedServer() {
   const [serverExplain, setServerExplain] = createSignal("");
   const [load, setLoad] = createSignal(false);
   const [icon, setIcon] = createSignal("");
+  const [recapchav3key, setRecapchav3key] = createSignal("");
+  const [recapchav2key, setRecapchav2key] = createSignal("");
+  const [recapchav3Token, setRecapchav3Token] = createSignal("");
+  const [v3isLoaded, setV3isLoaded] = createSignal(false);
+  const [v3excuted, setV3excuted] = createSignal(false);
   createEffect(() => {
     async function fetchData() {
-      const icon2 = await fetch(`https://${defaultServer()}/takos/v2/client`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "getServerIconImage",
-          query: {},
-        }),
-      });
-      const backgroundImage = await fetch(
-        `https://${defaultServer()}/takos/v2/client`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            type: "getServerBackgroundImage",
-            query: {},
-          }),
-        },
+      const icon2 = await requester(defaultServer(), "getServerIconImage", {});
+      const backgroundImage = await requester(
+        defaultServer(),
+        "getServerBackgroundImage",
+        {},
       );
-      const serverInfo = await fetch(
-        `https://${defaultServer()}/takos/v2/client`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            type: "getServerInfo",
-            query: {},
-          }),
-        },
-      );
+      const serverInfo = await requester(defaultServer(), "getServerInfo", {});
       setLoad(true);
       console.log("load");
       //htmlタグのelementを取得して、background-imageを変更する
@@ -120,8 +111,49 @@ function SelectedServer() {
       setIcon(iconResult2);
       const serverInfoResult = await serverInfo.json();
       setServerExplain(serverInfoResult.serverDescription);
+
+      const recapchav3 = await requester(defaultServer(), "getRecapchaV3", {});
+      const recapchav2 = await requester(defaultServer(), "getRecapchaV2", {});
+
+      const recapchav3keyRes = (await recapchav3.json()).siteKey;
+      const recapchav2keyRes = (await recapchav2.json()).siteKey;
+
+      setRecapchav3key(recapchav3keyRes);
+      setRecapchav2key(recapchav2keyRes);
+      const alerdyScript = document.getElementById("recapcha");
+      if (alerdyScript) {
+        alerdyScript.remove();
+      }
+      const script = document.createElement("script");
+      script.id = "recapcha";
+      script.src = "https://www.google.com/recaptcha/api.js?render=" +
+        recapchav3keyRes;
+      script.async = true;
+      console.log(recapchav2keyRes);
+      script.onload = () => {
+        setV3isLoaded(true);
+      };
+      document.body.appendChild(script);
     }
     fetchData();
+  });
+  createEffect(() => {
+    const sitekeyv3 = recapchav3key();
+    if (v3isLoaded() && !v3excuted()) {
+      try {
+        window.grecaptcha.ready(() => {
+          window.grecaptcha.execute(sitekeyv3, { action: "homepage" }).then(
+            (token) => {
+              setRecapchav3Token(token);
+              setV3isLoaded(true);
+              setV3excuted(true);
+            },
+          );
+        });
+      } catch (_e) {
+        //
+      }
+    }
   });
   return (
     <>
@@ -149,7 +181,11 @@ function SelectedServer() {
                       </div>
                     </div>
                   </div>
-                  <RegisterComponent domain={defaultServer()} />
+                  <RegisterComponent
+                    domain={defaultServer()}
+                    recapchav2siteKey={recapchav2key}
+                    recapchav3={recapchav3Token}
+                  />
                   <LoginComponent domain={defaultServer()} />
                   <button
                     onClick={() => {
