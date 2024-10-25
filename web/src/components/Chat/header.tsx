@@ -1,5 +1,5 @@
-import HeaderButton from "../islands/headerButton.tsx";
-export default function ChatHeader(props: { state: any }) {
+import HeaderButton from "./headerButton.tsx";
+export default function ChatHeader() {
   return (
     <>
       <header
@@ -17,8 +17,7 @@ export default function ChatHeader(props: { state: any }) {
         </div>
         <ul class="l-header__ul">
           <HeaderButton
-            page={0}
-            state={props.state}
+            page={"home"}
           >
             <a>
               <svg
@@ -41,8 +40,7 @@ export default function ChatHeader(props: { state: any }) {
             </a>
           </HeaderButton>
           <HeaderButton
-            page={1}
-            state={props.state}
+            page={"talk"}
           >
             <a>
               <svg
@@ -64,8 +62,7 @@ export default function ChatHeader(props: { state: any }) {
             </a>
           </HeaderButton>
           <HeaderButton
-            page={2}
-            state={props.state}
+            page={"friend"}
           >
             <a>
               <svg
@@ -88,35 +85,7 @@ export default function ChatHeader(props: { state: any }) {
             </a>
           </HeaderButton>
           <HeaderButton
-            page={4}
-            state={props.state}
-          >
-            <a>
-              <svg
-                role="img"
-                xmlns="http://www.w3.org/2000/svg"
-                width="100%"
-                height="100%"
-                viewBox="0 0 24 24"
-                aria-labelledby="settingsIconTitle"
-                stroke="#ffffff"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                fill="none"
-              >
-                <circle cx="9" cy="8" r="3"></circle>
-                <circle cx="15" cy="8" r="3"></circle>
-                <circle cx="12" cy="16" r="3"></circle>
-                <path d="M9 11c-2.67 0-8 1.34-8 4v2h5"></path>
-                <path d="M15 11c2.67 0 8 1.34 8 4v2h-5"></path>
-                <path d="M12 19v-2.5a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5V19"></path>
-              </svg>
-            </a>
-          </HeaderButton>
-          <HeaderButton
-            page={3}
-            state={props.state}
+            page={"setting"}
           >
             <a>
               <svg

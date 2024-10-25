@@ -1,12 +1,15 @@
 import { useAtom } from "solid-jotai";
 import {
   defaultServerState,
+  EncryptedSessionState,
   exproleServerState,
   loadState,
   loginState,
   setDefaultServerState,
+  setUpState,
 } from "../utils/state";
 import setting from "../setting.json";
+import { requester } from "../utils/requester";
 export function Loading() {
   return (
     <>
@@ -44,10 +47,38 @@ export function Loading() {
 export function Load() {
   const [_load, setLoad] = useAtom(loadState);
   const [_login, setLogin] = useAtom(loginState);
+  const [setUp, setSetUp] = useAtom(setUpState);
+  const [EncryptedSession, setEncryptedSession] = useAtom(
+    EncryptedSessionState,
+  );
   const sessionid = localStorage.getItem("sessionid");
-  const serverDomain = localStorage.getItem("serverDomain");
+  const serverDomain = localStorage.getItem("server");
   if (sessionid && serverDomain) {
-    // 後で書く
+    async function LoadFetch() {
+      if (!serverDomain) {
+        setLogin(false);
+        setLoad(true);
+        console.log("load");
+        return <></>;
+      }
+      const sessionInfo = await requester(serverDomain, "getSessionInfo", {
+        sessionid,
+      });
+      if (sessionInfo.status === 200) {
+        const response = await sessionInfo.json();
+        setSetUp(response.setuped);
+        setEncryptedSession(response.sessionEncrypted);
+        for (const id of response.sharedDataIds) {
+          // todo: fetch shared data
+        }
+        setLogin(true);
+        setLoad(true);
+        console.log("load");
+        return <></>;
+      }
+      setLogin(false);
+    }
+    LoadFetch();
     return <></>;
   }
   setLogin(false);

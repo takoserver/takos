@@ -9,26 +9,13 @@ import { useEffect } from "preact/hooks";
 import { createTakosDB } from "../util/idbSchama.ts";
 import fnv1a from "@sindresorhus/fnv1a";
 import {
-  createRoomKey,
-  decryptDataRoomKey,
-  decryptDataWithAccountKey,
-  EncryptedDataAccountKey,
-  EncryptedDataRoomKey,
-  encryptWithAccountKey,
   generateKeyHashHexJWK,
   type IdentityKeyPub,
-  isValidAccountKey,
-  isValidIdentityKeySign,
   isValidMasterKeyTimeStamp,
   MasterKey,
   MasterKeyPub,
-  type RoomKey,
-  Sign,
-  signData,
-  verifyData,
 } from "@takos/takos-encrypt-ink";
 import { saveToDbAllowKeys } from "../util/idbSchama.ts";
-import { generate } from "$fresh/src/dev/manifest.ts";
 import { addMessage } from "../util/talkData.ts";
 import { ifTopEventListener, mostButtom } from "../util/messageDOM.ts";
 function TalkListContent({ state }: { state: AppStateType }) {

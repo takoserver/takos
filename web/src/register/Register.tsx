@@ -7,7 +7,7 @@ import {
 import { Accessor, createSignal } from "solid-js";
 import { checkEmail } from "../../../takos/utils/checkEmail";
 import { requester } from "../utils/requester";
-import { checkUserName, checkPassword } from "../../../takos/utils/checks";
+import { checkPassword, checkUserName } from "../../../takos/utils/checks";
 export function Register(
   { domain, recapchav3, recapchav2siteKey }: {
     domain: string;
@@ -130,7 +130,7 @@ export function Register(
                 if (res.status !== 200) {
                   alert("エラーが発生しました");
                   return;
-                }else {
+                } else {
                   setPage(2);
                 }
               }}
@@ -157,13 +157,13 @@ export function Register(
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                if(!checkUserName(userName())){
-                    alert("ユーザー名は半角英数字で入力してください");
-                    return;
+                if (!checkUserName(userName())) {
+                  alert("ユーザー名は半角英数字で入力してください");
+                  return;
                 }
-                if(!checkPassword(password())){
-                    alert("パスワードは半角英数字で入力してください");
-                    return;
+                if (!checkPassword(password())) {
+                  alert("パスワードは半角英数字で入力してください");
+                  return;
                 }
                 const res = await requester(domain, "register", {
                   sessionid: sessionid(),

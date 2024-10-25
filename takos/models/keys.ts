@@ -9,16 +9,5 @@ const keySchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    idenSing: {
-        type: String,
-        required: true,
-    },
-    accountKey: {
-        type: String,
-        required: true,
-    },
-    hashhex: {
-        type: String,
-        required: true,
-    },
+    account
 });

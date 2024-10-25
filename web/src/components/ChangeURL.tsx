@@ -7,10 +7,11 @@ export function ChangeURL() {
 
   createEffect(() => {
     const url = window.location.pathname;
+
     if (login()) {
       if (page() === "home" && url !== "/home") {
         window.history.pushState(null, "", "/home");
-      } else if (page() === "talk" && url !== "/talk" && page() === "/") {
+      } else if (page() === "talk" && url !== "/talk" || url === "/") {
         window.history.pushState(null, "", "/talk");
       } else if (page() === "friend" && url !== "/friend") {
         window.history.pushState(null, "", "/friend");

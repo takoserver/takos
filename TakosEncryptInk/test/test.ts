@@ -64,6 +64,7 @@ const decryptedMessage = await EncryptMessage.decryptMessage(
   {
     messageId: "test",
     timestamp: encryptedMessage.timestamp,
+    read: false,
   },
 )
 console.log(decryptedMessage)

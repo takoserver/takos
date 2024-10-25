@@ -2,15 +2,14 @@ import { Hono } from "hono";
 import { array, z } from "zod";
 import { Singlend } from "@evex/singlend";
 import registers from "./register.ts";
+import login from "./login.ts";
+import sessionsFunction from "./sessionFunction.ts";
 const app = new Hono();
 const singlend = new Singlend();
 import env from "../../utils/env.ts";
 import { arrayBufferToBase64 } from "../../utils/buffers.ts";
-import serverList from "../../models/serverList.ts";
 import { cors } from "hono/cors";
-import User from "../../models/users.ts";
-import Session from "../../models/sessions.ts";
-import { concatenateUint8Arrays } from "../../utils/connectBinary.ts";
+
 
 app.use(
   "*",
@@ -84,60 +83,8 @@ singlend.on(
     });
   },
 );
-
-singlend.on(
-  "login",
-  z.object({
-    email: z.string(),
-    userName: z.string(),
-    password: z.string(),
-  }),
-  async (query, ok, error) => {
-    if(!query.email && !query.userName) {
-      return error({ error: "email or userName is required" });
-    }
-    if(!query.password) {
-      return error({ error: "password is required" });
-    }
-    if(query.email) {
-      const user = await User.findOne({ email: query.email });
-      if(!user) {
-        return error({ error: "user not found" });
-      }
-      const password = new TextEncoder().encode(query.password);
-      const salt = new TextEncoder().encode(user.salt);
-      const passwordHash = await crypto.subtle.digest(
-        "SHA-256",
-        concatenateUint8Arrays([salt, password]),
-      );
-      if(user.password === new TextDecoder().decode(new Uint8Array(passwordHash))) {
-        const sessionid = crypto.getRandomValues(new Uint8Array(16));
-        const hex = Array.from(sessionid).map((b) => b.toString(16).padStart(2, "0")).join("");
-        await Session.create({ sessionid: hex, userName: user.userName });
-        return ok({ sessionid: hex });
-      }
-      return error({ error: "password is incorrect" });
-    } else {
-      const user = await User.findOne({ userName: query.userName });
-      if(!user) {
-        return error({ error: "user not found" });
-      }
-      const password = new TextEncoder().encode(query.password);
-      const salt = new TextEncoder().encode(user.salt);
-      const passwordHash = await crypto.subtle.digest(
-        "SHA-256",
-        concatenateUint8Arrays([salt, password]),
-      );
-      if(user.password === new TextDecoder().decode(new Uint8Array(passwordHash))) {
-        const sessionid = crypto.getRandomValues(new Uint8Array(16));
-        const hex = Array.from(sessionid).map((b) => b.toString(16).padStart(2, "0")).join("");
-        await Session.create({ sessionid: hex, userName: user.userName });
-        return ok({ sessionid: hex });
-      }
-      return error({ error: "password is incorrect" });
-    }
-  },
-);
+singlend.mount(login);
+singlend.mount(sessionsFunction);
 
 app.post("/", singlend.handler());
 

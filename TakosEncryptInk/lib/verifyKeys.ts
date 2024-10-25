@@ -4,7 +4,7 @@ import type { KeyShareKeyPub, KeyShareSignKeyPub } from "../types/keyShareKey.ts
 import type { MasterKeyPub, migrateDataSignKeyPub } from "../types/masterKey.ts"
 import type { migrateKeyPub } from "../types/migrateKey.ts"
 import type { RoomKey } from "../types/roomKey.ts"
-//
+//@ts-ignore
 import type { Sign } from "../types/sign.ts"
 import { base64ToArrayBuffer } from "../utils/buffers.ts"
 import { concatenateUint8Arrays } from "../utils/connectBinary.ts"

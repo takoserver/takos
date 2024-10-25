@@ -18,6 +18,22 @@ const routes = [
     path: "/test",
     component: () => <div>Test</div>,
   },
+  {
+    path: "/home",
+    component: () => <App page="home" />,
+  },
+  {
+    path: "/talk",
+    component: () => <App page="talk" />,
+  },
+  {
+    path: "/friend",
+    component: () => <App page="friend" />,
+  },
+  {
+    path: "/setting",
+    component: () => <App page="setting" />,
+  },
 ];
 
 render(() => <Router>{routes}</Router>, root!);

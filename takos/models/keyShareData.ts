@@ -18,6 +18,11 @@ const keyShareDataSchema = new mongoose.Schema({
         required: true,
     },
     timestamp: { type: Date, default: Date.now, expires: 60 * 60 * 24 },
+    id: {
+        type: String,
+        required: true,
+        unique: true,
+    },
 });
 
 const KeyShareData = mongoose.model("keyShareData", keyShareDataSchema);

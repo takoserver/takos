@@ -15,7 +15,7 @@ export const serverState = atom<string | null>();
 export const webSocketState = atom<WebSocket | null>();
 export const selectedRoomState = atom<string | null>();
 export const pageState = atom<string>();
-export const inputMessageState = atom<[string, string][]>();
+export const inputMessageState = atom<string>("");
 export const MasterKeyState = atom<MasterKey | null>();
 
 export const setDefaultServerState = atom<boolean>(setting.setDefaultServer);
@@ -51,3 +51,7 @@ export const roomKeyState = atom<{
   roomKey: string;
   userId: string;
 }[]>();
+
+export const setUpState = atom<boolean>(false);
+export const EncryptedSessionState = atom<boolean>(false);
+export const isValidInputState = atom<boolean>(false);
