@@ -50,7 +50,7 @@ singlend.group(
         keyShareSignKey: z.string(),
       }),
       async (query, value, ok) => {
-
+        return ok("ok");
       }
     )
 )

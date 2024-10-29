@@ -1,39 +1,32 @@
 import { ml_dsa65 } from "@noble/post-quantum/ml-dsa"
-import type { IdentityKey, IdentityKeyPub } from "../types/identityKeyAndAccountKey.ts"
-import type {
-  MasterKey,
-  MasterKeyPub,
-  migrateDataSignKey,
-  migrateDataSignKeyPub,
-} from "../types/masterKey.ts"
-import type { Sign } from "../types/sign.ts"
+import { SingObject } from "../types/keys.ts"
 import { arrayBufferToBase64, base64ToArrayBuffer } from "./buffers.ts"
-import type { KeyShareSignKey, KeyShareSignKeyPub } from "../types/keyShareKey.ts"
+import { keyHash } from "./keyHash.ts"
 
-export function sign(
-  key: MasterKey | IdentityKey | KeyShareSignKey | migrateDataSignKey,
-  data: ArrayBuffer,
-): Sign {
-  const keySeacretKey = new Uint8Array(base64ToArrayBuffer(key.private.key))
-  const sign = ml_dsa65.sign(keySeacretKey, new Uint8Array(data))
+export async function sign(
+  key: {
+    public: string
+    private: string
+  },
+  data: string,
+): Promise<SingObject> {
+  const keyPrivate = new Uint8Array(base64ToArrayBuffer(key.private))
+
+  const signature = ml_dsa65.sign(keyPrivate, new Uint8Array(new TextEncoder().encode(data)))
+  const signString = arrayBufferToBase64(signature)
+  const hash = await keyHash(key.public)
   return {
-    signature: arrayBufferToBase64(sign),
-    hashedPublicKeyHex: key.hashHex,
-    version: 1,
+    signature: signString,
+    signedKeyHash: hash,
   }
 }
 
 export function verify(
-  key:
-    | IdentityKeyPub
-    | MasterKeyPub
-    | KeyShareSignKeyPub
-    | migrateDataSignKeyPub,
-  data: ArrayBuffer,
-  sign: Sign,
+  key: string,
+  data: string,
+  sign: SingObject,
 ): boolean {
-  const keyPublic = new Uint8Array(base64ToArrayBuffer(key.key))
+  const keyPublic = new Uint8Array(base64ToArrayBuffer(key))
   const signature = new Uint8Array(base64ToArrayBuffer(sign.signature))
-  const isValid = ml_dsa65.verify(keyPublic, new Uint8Array(data), signature)
-  return isValid
+  return ml_dsa65.verify(keyPublic, new Uint8Array(new TextEncoder().encode(data)), signature)
 }

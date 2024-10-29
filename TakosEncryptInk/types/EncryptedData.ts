@@ -1,35 +1,28 @@
-export interface EncryptedDataAccountKey {
+export interface EncryptedDataObject<T> {
   encryptedData: string
-  keyType: "accountKey" // 使用された鍵の種類
-  //暗号化した鍵のハッシュ値
-  cipherText: string //共有秘密を生み出すための暗号文
-  encryptedKeyHashHex: string
-  version: number
-  vi?: string
-}
-
-export interface EncryptedDataRoomKey {
-  encryptedData: string
-  keyType: "roomKey"
-  encryptedKeyHashHex: string
-  version: number
-  vi?: string
-}
-
-export interface EncryptedDataDeviceKey {
-  encryptedData: string
-  keyType: "deviceKey"
-  encryptedKeyHashHex: string
-  version: number
-  vi?: string
-}
-
-export interface EncryptedDataKeyShareKey {
-  encryptedData: string
-  keyType: "keyShareKey"
-  encryptedKeyHashHex: string
-  signKeyHashHex: string
-  version: number
   cipherText: string
-  vi?: string
+  vi: string
+  encryptedKeyHash: string
+  type: T
+  version: number
+}
+
+export type EncryptedDataAccountKeyObject = EncryptedDataObject<"accountKey">
+export type EncryptedDataKeyShareKeyObject = EncryptedDataObject<"KeyShareKey">
+export type EncryptedDataMigrateKeyObject = EncryptedDataObject<"MigrateKey">
+
+export interface EncryptedDataDeviceKeyObject {
+    encryptedData: string
+    vi: string
+    encryptedKeyHash: string
+    type: "deviceKey"
+    version: number
+}
+
+export interface EncryptedDataRoomKeyObject {
+    encryptedData: string
+    vi: string
+    encryptedKeyHash: string
+    type: "roomKey"
+    version: number
 }
