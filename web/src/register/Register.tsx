@@ -81,7 +81,6 @@ export function Register(
                   setSessionid(json.sessionid);
                 }
                 setPage(1);
-                console.log("aaa");
               }}
             >
               <PopUpLabel htmlFor="text">email</PopUpLabel>

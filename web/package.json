@@ -11,10 +11,11 @@
   "dependencies": {
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^0.14.7",
-    "@takos/takos-encrypt-ink": "npm:@jsr/takos__takos-encrypt-ink@^2.0.2",
+    "@takos/takos-encrypt-ink": "npm:@jsr/takos__takos-encrypt-ink@^4.0.0",
     "jotai": "^2.10.1",
     "solid-jotai": "^0.3.0",
-    "solid-js": "^1.9.1"
+    "solid-js": "^1.9.1",
+    "ui7": "^0.2.3"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",

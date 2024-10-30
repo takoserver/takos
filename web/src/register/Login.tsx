@@ -6,6 +6,8 @@ import {
 } from "../components/popUpFrame";
 import { createSignal } from "solid-js";
 import { requester } from "../utils/requester";
+import uuidv7 from "ui7"
+import {  } from "@takos/takos-encrypt-ink"
 export function Login({ domain }: { domain: string }) {
   const [open, setOpen] = createSignal(false);
   const [userName, setUserName] = createSignal("");
@@ -42,15 +44,20 @@ export function Login({ domain }: { domain: string }) {
               class="bg-[#192320] text-white rounded-3xl py-2 px-4 hover:bg-[#192320] border w-full lg:mt-2 mt-3"
               onClick={async () => {
                 console.log(userName(), password());
+                const uuid = uuidv7();
+                const deviceKey = 
                 const res = await requester(domain, "login", {
                   userName: userName(),
                   password: password(),
+                  deviceKey: "",
+                  sessionUUID: uuid,
                 });
                 if (res.status === 200) {
                   const response = await res.json();
                   localStorage.setItem("sessionid", response.sessionid);
                   localStorage.setItem("userName", userName());
                   localStorage.setItem("server", domain);
+                  localStorage.setItem("sessionUUID", response.sessionUUID);
                   window.location.reload();
                 } else {
                   alert("ログインに失敗しました");

@@ -87,4 +87,20 @@ const message = {
   Encrypt: EncryptMessage,
 }
 
-export { encrypt, isValid, message, sign }
+import { generateDeviceKey } from "./lib/generate/deviceKey.ts"
+import { generateMasterKey } from "./lib/generate/masterKey.ts"
+import { generateIdentityKeyAndAccountKey } from "./lib/generate/IdentityKeyAndAccountKey.ts"
+import { generateKeyShareKeys } from "./lib/generate/keyShareKey.ts"
+import { generateMigrateKey } from "./lib/generate/migrateKey.ts"
+import { generateRoomKey } from "./lib/generate/roomKey.ts"
+
+const generate = {
+  DeviceKey: generateDeviceKey,
+  MasterKey: generateMasterKey,
+  IdentityKeyAndAccountKey: generateIdentityKeyAndAccountKey,
+  KeyShareKeys: generateKeyShareKeys,
+  MigrateKey: generateMigrateKey,
+  RoomKey: generateRoomKey,
+}
+
+export { encrypt, isValid, message, sign, generate }

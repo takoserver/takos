@@ -53,7 +53,8 @@ export function Load() {
   );
   const sessionid = localStorage.getItem("sessionid");
   const serverDomain = localStorage.getItem("server");
-  if (sessionid && serverDomain) {
+  const sessionUUID = localStorage.getItem("sessionUUID");
+  if (sessionid && serverDomain && sessionUUID) {
     async function LoadFetch() {
       if (!serverDomain) {
         setLogin(false);
@@ -83,6 +84,5 @@ export function Load() {
   }
   setLogin(false);
   setLoad(true);
-  console.log("load");
   return <></>;
 }

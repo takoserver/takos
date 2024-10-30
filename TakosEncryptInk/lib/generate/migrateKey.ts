@@ -46,12 +46,12 @@ export function migrateKeyObject(): {
     },
   }
 }
-export function migrateKey(): { public: string; private: string } {
+export function generateMigrateKey(): { public: string; private: string } {
   const keys = migrateKeyObject()
   return { public: JSON.stringify(keys.public), private: JSON.stringify(keys.private) }
 }
 
-export function migrateSignKey(): { public: string; private: string } {
+export function generateMigrateSignKey(): { public: string; private: string } {
   const keys = migrateSignKeyObject()
   return { public: JSON.stringify(keys.public), private: JSON.stringify(keys.private) }
 }
