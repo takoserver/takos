@@ -1,7 +1,7 @@
 import type { MasterKeyPrivateObject, MasterKeyPublicObject } from "../../types/keys.ts"
 import { base64ToArrayBuffer } from "../../utils/buffers.ts"
 
-export function isValidMasterKeyPub(key: string) {
+export function isValidMasterKeyPub(key: string): boolean {
   try {
     const keyObject: MasterKeyPublicObject = JSON.parse(key)
 
@@ -15,7 +15,7 @@ export function isValidMasterKeyPub(key: string) {
   }
 }
 
-export function isValidMasterKeyPriv(key: string) {
+export function isValidMasterKeyPriv(key: string): boolean {
   try {
     const keyObject: MasterKeyPrivateObject = JSON.parse(key)
     if (keyObject.type !== "MasterKeyPrivate") return false

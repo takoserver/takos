@@ -1,7 +1,7 @@
 import type { SingObject } from "../../types/keys.ts"
 import { base64ToArrayBuffer } from "../../utils/buffers.ts"
 
-export function isValidSign(sign: string) {
+export function isValidSign(sign: string): boolean {
   const signObject: SingObject = JSON.parse(sign)
 
   const signature = new Uint8Array(base64ToArrayBuffer(signObject.signature))

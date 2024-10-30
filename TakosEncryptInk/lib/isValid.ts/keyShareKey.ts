@@ -6,7 +6,7 @@ import type {
 } from "../../types/keys.ts"
 import { base64ToArrayBuffer } from "../../utils/buffers.ts"
 
-export function isValidkeyShareSignKeyPublic(key: string) {
+export function isValidkeyShareSignKeyPublic(key: string): boolean {
   try {
     const keyObject: keyShareSignKeyPublicObject = JSON.parse(key)
 
@@ -21,13 +21,14 @@ export function isValidkeyShareSignKeyPublic(key: string) {
   }
 }
 
-export function isValidkeyShareSignKeyPrivate(key: string) {
+export function isValidkeyShareSignKeyPrivate(key: string): boolean {
   try {
     const keyObject: keyShareSignKeyPrivateObject = JSON.parse(key)
     if (keyObject.type !== "keyShareSignKeyPrivate") return false
     const keyRaw = new Uint8Array(base64ToArrayBuffer(keyObject.key))
     if (keyRaw.length !== 4032) return false
     if (isValidUUIDv7(keyObject.uuidv7)) return false
+    return true
     // deno-lint-ignore no-unused-vars
   } catch (error) {
     return false

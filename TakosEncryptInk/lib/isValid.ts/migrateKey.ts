@@ -6,7 +6,7 @@ import type {
 } from "../../types/keys.ts"
 import { base64ToArrayBuffer } from "../../utils/buffers.ts"
 
-export function isValidmigrateSignKeyyPublic(key: string) {
+export function isValidmigrateSignKeyyPublic(key: string): boolean {
   try {
     const keyObject: migrateSignKeyPublicObject = JSON.parse(key)
 
@@ -20,12 +20,13 @@ export function isValidmigrateSignKeyyPublic(key: string) {
   }
 }
 
-export function isValidmigrateSignKeyPrivate(key: string) {
+export function isValidmigrateSignKeyPrivate(key: string): boolean {
   try {
     const keyObject: migrateSignKeyPrivateObject = JSON.parse(key)
     if (keyObject.type !== "migrateSignKeyPrivate") return false
     const keyRaw = new Uint8Array(base64ToArrayBuffer(keyObject.key))
     if (keyRaw.length !== 4032) return false
+    return true
     // deno-lint-ignore no-unused-vars
   } catch (error) {
     return false
