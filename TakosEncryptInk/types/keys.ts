@@ -43,7 +43,6 @@ export interface AccountKeyPrivateObject {
 
 export interface deviceKeyObject {
   key: string
-  timestamp: string
   type: "deviceKey"
   version: number
 }

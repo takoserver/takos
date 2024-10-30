@@ -1,4 +1,4 @@
-import type { keyShareSignKeyPublicObject,keyShareSignKeyPrivateObject } from "../../types/keys.ts"
+import type { keyShareSignKeyPrivateObject, keyShareSignKeyPublicObject } from "../../types/keys.ts"
 import { sign, verify } from "../../utils/sign.ts"
 import { isValidkeyShareSignKeyPrivate, isValidkeyShareSignKeyPublic } from "../isValid.ts/keyShareKey.ts"
 import { isValidSign } from "../isValid.ts/sign.ts"

@@ -1,9 +1,13 @@
-import type { keyShareSignKeyPublicObject, migrateSignKeyPrivateObject,migrateSignKeyPublicObject } from "../../types/keys.ts"
+import type {
+  keyShareSignKeyPublicObject,
+  migrateSignKeyPrivateObject,
+  migrateSignKeyPublicObject,
+} from "../../types/keys.ts"
 import { sign, verify } from "../../utils/sign.ts"
-import { isValidmigrateSignKeyPrivate,isValidmigrateSignKeyyPublic } from "../isValid.ts/migrateKey.ts"
+import { isValidmigrateSignKeyPrivate, isValidmigrateSignKeyyPublic } from "../isValid.ts/migrateKey.ts"
 import { isValidSign } from "../isValid.ts/sign.ts"
 
-export function signDataKeyShareKey(data: string, key: {
+export function signDataMigrateSignKey(data: string, key: {
   public: string
   private: string
 }) {
@@ -21,7 +25,7 @@ export function signDataKeyShareKey(data: string, key: {
   }, data)
 }
 
-export function verifyDataKeyShareKey(data: string, key: string, sign: string) {
+export function verifyDataMigrateSignKey(data: string, key: string, sign: string) {
   const masterKeyPublic: keyShareSignKeyPublicObject = JSON.parse(key)
   if (!isValidmigrateSignKeyyPublic(key)) throw new Error("Invalid Master Key")
   if (!isValidSign(sign)) throw new Error("Invalid Sign")

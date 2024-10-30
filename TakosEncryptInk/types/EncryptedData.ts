@@ -12,17 +12,17 @@ export type EncryptedDataKeyShareKeyObject = EncryptedDataObject<"KeyShareKey">
 export type EncryptedDataMigrateKeyObject = EncryptedDataObject<"MigrateKey">
 
 export interface EncryptedDataDeviceKeyObject {
-    encryptedData: string
-    vi: string
-    encryptedKeyHash: string
-    type: "deviceKey"
-    version: number
+  encryptedData: string
+  vi: string
+  encryptedKeyHash: string
+  type: "deviceKey"
+  version: number
 }
 
 export interface EncryptedDataRoomKeyObject {
-    encryptedData: string
-    vi: string
-    encryptedKeyHash: string
-    type: "roomKey"
-    version: number
+  encryptedData: string
+  vi: string
+  encryptedKeyHash: string
+  type: "roomKey"
+  version: number
 }

@@ -1,6 +1,5 @@
-
-import type { EncryptedDataKeyShareKeyObject, } from "../../types/EncryptedData.ts"
-import type { KeyShareKeyPublicObject,KeyShareKeyPrivateObject} from "../../types/keys.ts"
+import type { EncryptedDataKeyShareKeyObject } from "../../types/EncryptedData.ts"
+import type { KeyShareKeyPrivateObject, KeyShareKeyPublicObject } from "../../types/keys.ts"
 import { decrypt, encrypt } from "../../utils/encrypt.ts"
 import { keyHash } from "../../utils/keyHash.ts"
 

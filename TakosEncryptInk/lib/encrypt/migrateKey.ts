@@ -1,5 +1,5 @@
 import type { EncryptedDataMigrateKeyObject } from "../../types/EncryptedData.ts"
-import type { migrateKeyPrivateObject,migrateKeyPublicObject} from "../../types/keys.ts"
+import type { migrateKeyPrivateObject, migrateKeyPublicObject } from "../../types/keys.ts"
 import { decrypt, encrypt } from "../../utils/encrypt.ts"
 import { keyHash } from "../../utils/keyHash.ts"
 
@@ -31,7 +31,7 @@ export async function DecryptDataMigrateKey(
   encryptedData: string,
   accountKey: string,
 ): Promise<string> {
-  const accountKeyPrivate: migrateKeyPrivateObject= JSON.parse(accountKey)
+  const accountKeyPrivate: migrateKeyPrivateObject = JSON.parse(accountKey)
   const encryptedDataObject: EncryptedDataMigrateKeyObject = JSON.parse(encryptedData)
   if (encryptedDataObject.type !== "MigrateKey") throw new Error("Invalid type")
   if (encryptedDataObject.version !== 1) throw new Error("Invalid version")
