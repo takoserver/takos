@@ -6,8 +6,9 @@ import {
 } from "../components/popUpFrame";
 import { createSignal } from "solid-js";
 import { requester } from "../utils/requester";
-import uuidv7 from "ui7"
-import { generate, encrypt } from "@takos/takos-encrypt-ink";
+import { uuidv7 } from "uuidv7";
+import { generate } from "@takos/takos-encrypt-ink"
+
 export function Login({ domain }: { domain: string }) {
   const [open, setOpen] = createSignal(false);
   const [userName, setUserName] = createSignal("");
