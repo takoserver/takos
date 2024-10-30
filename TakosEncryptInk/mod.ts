@@ -16,91 +16,58 @@ import {
   isValidkeyShareSignKeyPrivate,
   isValidkeyShareSignKeyPublic,
 } from "./lib/isValid.ts/keyShareKey.ts"
-
-const isValid = {
-  AccountPrivateKey: isValidAccountPrivateKey,
-  AccountPublicKey: isValidAccountPublicKey,
-  migrateSignKeyPrivate: isValidmigrateSignKeyPrivate,
-  migrateSignKeyPublic: isValidmigrateSignKeyyPublic,
-  migrateKeyPrivate: isValidmigrateKeyPrivate,
-  migrateKeyPublic: isValidmigrateKeyPublic,
-  MasterKeyPrivate: isValidMasterKeyPriv,
-  MasterKeyPublic: isValidMasterKeyPub,
-  Sign: isValidSign,
-  RoomKey: isValidRoomKey,
-  IdentityPrivateKey: isValidIdentityPrivateKey,
-  IdentityPublicKey: isValidIdentityPublicKey,
-  DeviceKey: isValidDeviceKey,
-  KeyShareKeyPrivate: isValidKeyShareKeyPrivate,
-  KeyShareKeyPublic: isValidKeyShareKeyPublic,
-  keyShareSignKeyPrivate: isValidkeyShareSignKeyPrivate,
-  keyShareSignKeyPublic: isValidkeyShareSignKeyPublic,
-}
-
 import { decryptDataRoomKey, encryptDataRoomKey } from "./lib/encrypt/roomKey.ts"
 import { DecryptDataAccountKey, EncryptDataAccountKey } from "./lib/encrypt/accountKey.ts"
 import { decryptDataDeviceKey, encryptDataDeviceKey } from "./lib/encrypt/deviceKey.ts"
-
-const encrypt = {
-  RoomKey: {
-    encryptData: encryptDataRoomKey,
-    decryptData: decryptDataRoomKey,
-  },
-  AccountKey: {
-    encryptData: EncryptDataAccountKey,
-    decryptData: DecryptDataAccountKey,
-  },
-  DeviceKey: {
-    encryptData: encryptDataDeviceKey,
-    decryptData: decryptDataDeviceKey,
-  },
-}
-
 import { signDataMasterKey, verifyDataMasterKey } from "./lib/sign/signDataMasterKey.ts"
 import { signDataIdentityKey, verifyDataIdentityKey } from "./lib/sign/signDataIdentityKey.ts"
 import { signDataKeyShareKey, verifyDataKeyShareKey } from "./lib/sign/signDataKeyShareSignKey.ts"
 import { signDataMigrateSignKey, verifyDataMigrateSignKey } from "./lib/sign/signDataMigrateSignKey.ts"
-
-const sign = {
-  MasterKey: {
-    signData: signDataMasterKey,
-    verifyData: verifyDataMasterKey,
-  },
-  IdentityKey: {
-    signData: signDataIdentityKey,
-    verifyData: verifyDataIdentityKey,
-  },
-  KeyShareKey: {
-    signData: signDataKeyShareKey,
-    verifyData: verifyDataKeyShareKey,
-  },
-  migrateSignKey: {
-    signData: signDataMigrateSignKey,
-    verifyData: verifyDataMigrateSignKey,
-  },
-}
-
 import { DecryptMessage, EncryptMessage } from "./lib/message.ts"
-
-const message = {
-  Decrypt: DecryptMessage,
-  Encrypt: EncryptMessage,
-}
-
 import { generateDeviceKey } from "./lib/generate/deviceKey.ts"
 import { generateMasterKey } from "./lib/generate/masterKey.ts"
 import { generateIdentityKeyAndAccountKey } from "./lib/generate/IdentityKeyAndAccountKey.ts"
 import { generateKeyShareKeys } from "./lib/generate/keyShareKey.ts"
 import { generateMigrateKey } from "./lib/generate/migrateKey.ts"
 import { generateRoomKey } from "./lib/generate/roomKey.ts"
-
-const generate = {
-  DeviceKey: generateDeviceKey,
-  MasterKey: generateMasterKey,
-  IdentityKeyAndAccountKey: generateIdentityKeyAndAccountKey,
-  KeyShareKeys: generateKeyShareKeys,
-  MigrateKey: generateMigrateKey,
-  RoomKey: generateRoomKey,
+export {
+  generateDeviceKey,
+  generateMasterKey,
+  generateIdentityKeyAndAccountKey,
+  generateKeyShareKeys,
+  generateMigrateKey,
+  generateRoomKey,
+  EncryptMessage,
+  DecryptMessage,
+  signDataMasterKey,
+  verifyDataMasterKey,
+  signDataIdentityKey,
+  verifyDataIdentityKey,
+  signDataKeyShareKey,
+  verifyDataKeyShareKey,
+  signDataMigrateSignKey,
+  verifyDataMigrateSignKey,
+  EncryptDataAccountKey,
+  DecryptDataAccountKey,
+  encryptDataDeviceKey,
+  decryptDataDeviceKey,
+  encryptDataRoomKey,
+  decryptDataRoomKey,
+  isValidAccountPrivateKey,
+  isValidAccountPublicKey,
+  isValidmigrateKeyPrivate,
+  isValidmigrateKeyPublic,
+  isValidmigrateSignKeyPrivate,
+  isValidmigrateSignKeyyPublic,
+  isValidMasterKeyPriv,
+  isValidMasterKeyPub,
+  isValidSign,
+  isValidRoomKey,
+  isValidIdentityPrivateKey,
+  isValidIdentityPublicKey,
+  isValidDeviceKey,
+  isValidKeyShareKeyPrivate,
+  isValidKeyShareKeyPublic,
+  isValidkeyShareSignKeyPrivate,
+  isValidkeyShareSignKeyPublic,
 }
-
-export { encrypt, isValid, message, sign, generate }

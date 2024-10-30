@@ -7,7 +7,7 @@ import {
 import { createSignal } from "solid-js";
 import { requester } from "../utils/requester";
 import uuidv7 from "ui7"
-import {  } from "@takos/takos-encrypt-ink"
+import { generate, encrypt } from "@takos/takos-encrypt-ink";
 export function Login({ domain }: { domain: string }) {
   const [open, setOpen] = createSignal(false);
   const [userName, setUserName] = createSignal("");
@@ -45,7 +45,6 @@ export function Login({ domain }: { domain: string }) {
               onClick={async () => {
                 console.log(userName(), password());
                 const uuid = uuidv7();
-                const deviceKey = 
                 const res = await requester(domain, "login", {
                   userName: userName(),
                   password: password(),
