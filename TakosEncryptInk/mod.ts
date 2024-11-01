@@ -30,6 +30,7 @@ import { generateIdentityKeyAndAccountKey } from "./lib/generate/IdentityKeyAndA
 import { generateKeyShareKeys } from "./lib/generate/keyShareKey.ts"
 import { generateMigrateKey } from "./lib/generate/migrateKey.ts"
 import { generateRoomKey } from "./lib/generate/roomKey.ts"
+import { keyHash } from "./utils/keyHash.ts"
 export {
   generateDeviceKey,
   generateMasterKey,
@@ -70,4 +71,5 @@ export {
   isValidKeyShareKeyPublic,
   isValidkeyShareSignKeyPrivate,
   isValidkeyShareSignKeyPublic,
+  keyHash,
 }

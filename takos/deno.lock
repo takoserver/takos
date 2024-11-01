@@ -7,7 +7,7 @@
     "jsr:@std/assert@1": "1.0.6",
     "jsr:@std/dotenv@~0.225.2": "0.225.2",
     "jsr:@std/internal@^1.0.4": "1.0.4",
-    "jsr:@takos/takos-encrypt-ink@^4.0.2": "4.0.2",
+    "jsr:@takos/takos-encrypt-ink@^4.0.3": "4.0.3",
     "npm:@noble/post-quantum@0.2": "0.2.0",
     "npm:@types/node@*": "22.5.4",
     "npm:base64-arraybuffer@^1.0.2": "1.0.2",
@@ -16,6 +16,7 @@
     "npm:nodemailer@^6.9.15": "6.9.15",
     "npm:redis@^4.7.0": "4.7.0_@redis+client@1.6.0",
     "npm:ui7@~0.2.3": "0.2.3",
+    "npm:uuidv7@^1.0.2": "1.0.2",
     "npm:zod@^3.23.8": "3.23.8"
   },
   "jsr": {
@@ -41,12 +42,13 @@
     "@std/internal@1.0.4": {
       "integrity": "62e8e4911527e5e4f307741a795c0b0a9e6958d0b3790716ae71ce085f755422"
     },
-    "@takos/takos-encrypt-ink@4.0.2": {
-      "integrity": "6d00394b46dd56f8961dc108c6fe204244810d47ae1e01489be8496ad68b2e6c",
+    "@takos/takos-encrypt-ink@4.0.3": {
+      "integrity": "a679ff8df8569567e584aabcdab8e59701e2555e29e5ab1e55631901f514011b",
       "dependencies": [
         "npm:@noble/post-quantum",
         "npm:base64-arraybuffer",
-        "npm:ui7"
+        "npm:ui7",
+        "npm:uuidv7"
       ]
     }
   },
@@ -223,6 +225,9 @@
     "undici-types@6.19.8": {
       "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw=="
     },
+    "uuidv7@1.0.2": {
+      "integrity": "sha512-8JQkH4ooXnm1JCIhqTMbtmdnYEn6oKukBxHn1Ic9878jMkL7daTI7anTExfY18VRCX7tcdn5quzvCb6EWrR8PA=="
+    },
     "webidl-conversions@7.0.0": {
       "integrity": "sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g=="
     },
@@ -246,7 +251,7 @@
       "jsr:@hono/hono@^4.6.5",
       "jsr:@std/assert@1",
       "jsr:@std/dotenv@~0.225.2",
-      "jsr:@takos/takos-encrypt-ink@^4.0.2",
+      "jsr:@takos/takos-encrypt-ink@^4.0.3",
       "npm:base64-arraybuffer@^1.0.2",
       "npm:imagescript@^1.3.0",
       "npm:mongoose@^8.7.2",

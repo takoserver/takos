@@ -13,7 +13,7 @@
   "imports": {
     "@noble/post-quantum": "npm:@noble/post-quantum@^0.2.0",
     "base64-arraybuffer": "npm:base64-arraybuffer@^1.0.2",
-    "ui7": "npm:ui7@^0.2.3",
+    "ui7": "npm:ui7@^0.2.4",
     "uuidv7": "npm:uuidv7@^1.0.2"
   },
   "license": "AGPL-3.0"

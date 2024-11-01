@@ -1,11 +1,12 @@
-import { setUpState, domainState, sessionidState } from "../../utils/state";
+import { setUpState, domainState, sessionidState, deviceKeyState } from "../../utils/state";
 import { useAtom } from "solid-jotai";
 import { PopUpFrame } from "./setupPopup/popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import { arrayBufferToBase64 } from "../../utils/buffers";
-import { generateIdentityKeyAndAccountKey, generateKeyShareKeys, generateMasterKey } from "@takos/takos-encrypt-ink";
+import { encryptDataDeviceKey, generateIdentityKeyAndAccountKey, generateKeyShareKeys, generateMasterKey } from "@takos/takos-encrypt-ink";
 import { uuidv7 } from "uuidv7";
 import { requester } from "../../utils/requester";
+import { createTakosDB, localStorageEditor } from "../../utils/idb";
 
 export function SetUp() {
   const [setUp, setSetUp] = useAtom(setUpState);
@@ -17,7 +18,7 @@ export function SetUp() {
   const [icon, setIcon] = createSignal<File | null>(null);
   const [domain] = useAtom(domainState);
   const [sessionid] = useAtom(sessionidState);
-
+  const [deviceKey] = useAtom(deviceKeyState);
   createEffect(() => {
     if (!setUp() && !setted()) {
       setIsOpen(true);
@@ -37,7 +38,8 @@ export function SetUp() {
                   e.preventDefault();
                   const serverDomain = domain();
                   const sessionidS = sessionid();
-                  if(!serverDomain || !sessionidS) return;
+                  const deviceKeyS = deviceKey();
+                  if(!serverDomain || !sessionidS || !deviceKeyS) return;
                   if (nickname() && birthday() && icon()) {
                     // FileをarrayBufferに変換
                     const file = icon();
@@ -66,8 +68,21 @@ export function SetUp() {
                         keyShareSignKeySign: keyShareSignKey.sign,
                         sessionUUID: sessionUUID,
                         sessionid: sessionidS,
-                      })
-                      console.log(await response.json())
+                      });
+                      if(response.status === 200) {
+                        const db = await createTakosDB();
+                        //db is npm package idb module IDBPDatabase<TakosDB>
+                        const encryptedMasterKey = await encryptDataDeviceKey(JSON.stringify(masterKey), deviceKeyS);
+                        const encryptedIdentityKey = await encryptDataDeviceKey(JSON.stringify((await identityKey).identityKey), deviceKeyS);
+                        const encryptedAccountKey = await encryptDataDeviceKey(JSON.stringify((await identityKey).accountKey), deviceKeyS);
+                        const encryptedKeyShareKey = await encryptDataDeviceKey(JSON.stringify(keyShareKey), deviceKeyS);
+                        const encryptedKeyShareSignKey = await encryptDataDeviceKey(JSON.stringify(keyShareSignKey), deviceKeyS);
+                        localStorageEditor.set("masterKey", encryptedMasterKey);
+                        await db.put("identityAndAccountKeys", {
+                          encryptedIdentityKey: encryptedIdentityKey,
+                          encryptedAccountKey: encryptedAccountKey,
+                        })
+                      }
                     };
                     reader.readAsArrayBuffer(file!);
                   }
