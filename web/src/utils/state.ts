@@ -1,10 +1,4 @@
 import { atom } from "solid-jotai";
-import type {
-  AccountKey,
-  deviceKey,
-  IdentityKey,
-  MasterKey,
-} from "@takos/takos-encrypt-ink";
 
 import setting from "../setting.json";
 
@@ -16,7 +10,7 @@ export const webSocketState = atom<WebSocket | null>();
 export const selectedRoomState = atom<string | null>();
 export const pageState = atom<string>();
 export const inputMessageState = atom<string>("");
-export const MasterKeyState = atom<MasterKey | null>();
+export const MasterKeyState = atom<string | null>();
 
 export const setDefaultServerState = atom<boolean>(setting.setDefaultServer);
 export const defaultServerState = atom<string>(setting.domain);
@@ -26,11 +20,11 @@ export const exproleServerState = atom<{
 
 export const IdentityKeyAndMasterKeyState = atom<
   [string, {
-    identityKey: IdentityKey;
-    accountKey: AccountKey;
+    identityKey: string
+    accountKey: string
   }[]] | null
 >();
-export const deviceKeyState = atom<deviceKey | null>();
+export const deviceKeyState = atom<string | null>();
 export const roomListState = atom<{
   roomId: string;
   type: "group" | "direct";
@@ -39,12 +33,12 @@ export const roomListState = atom<{
 }[]>();
 export const friendMasterKeysState = atom<{
   userId: string;
-  masterKey: MasterKey;
+  masterKey: string;
 }[]>();
 export const friendIdentityKeyAndAccountKeyState = atom<{
   userId: string;
-  identityKey: IdentityKey;
-  accountKey?: AccountKey;
+  identityKey: string;
+  accountKey?: string;
 }[]>();
 export const roomKeyState = atom<{
   roomId: string;
@@ -55,3 +49,7 @@ export const roomKeyState = atom<{
 export const setUpState = atom<boolean>(false);
 export const EncryptedSessionState = atom<boolean>(false);
 export const isValidInputState = atom<boolean>(false);
+
+
+export const domainState = atom<string | null>();
+export const sessionidState = atom<string | null>();

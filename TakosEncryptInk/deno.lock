@@ -5,7 +5,8 @@
     "npm:@noble/post-quantum@0.2": "0.2.0",
     "npm:base64-arraybuffer@*": "1.0.2",
     "npm:base64-arraybuffer@^1.0.2": "1.0.2",
-    "npm:ui7@~0.2.3": "0.2.3"
+    "npm:ui7@~0.2.3": "0.2.3",
+    "npm:uuidv7@^1.0.2": "1.0.2"
   },
   "npm": {
     "@noble/hashes@1.4.0": {
@@ -22,13 +23,17 @@
     },
     "ui7@0.2.3": {
       "integrity": "sha512-WeCFU1VYtnvHy+QghHEfv8UezR/8ip600E0TQnIZ1dE/bkz4p5KW+Ysgrc3OmwDWawH5KBz2bjWiq0HoOlgzxA=="
+    },
+    "uuidv7@1.0.2": {
+      "integrity": "sha512-8JQkH4ooXnm1JCIhqTMbtmdnYEn6oKukBxHn1Ic9878jMkL7daTI7anTExfY18VRCX7tcdn5quzvCb6EWrR8PA=="
     }
   },
   "workspace": {
     "dependencies": [
       "npm:@noble/post-quantum@0.2",
       "npm:base64-arraybuffer@^1.0.2",
-      "npm:ui7@~0.2.3"
+      "npm:ui7@~0.2.3",
+      "npm:uuidv7@^1.0.2"
     ]
   }
 }

@@ -17,6 +17,9 @@ const userSchema = new mongoose.Schema({
       type: String,
       required: true,
     },
+    icon: {
+      type: String,
+    },
     email: {
       type: String,
       required: true,
@@ -37,10 +40,6 @@ const userSchema = new mongoose.Schema({
         type: Date,
     },
     timestamp: { type: Date, default: Date.now },
-    setUped: {
-        type: Boolean,
-        default: false,
-    },
     masterKey: {
         type: String,
     }

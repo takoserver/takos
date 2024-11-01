@@ -7,9 +7,13 @@ import {
   loginState,
   setDefaultServerState,
   setUpState,
+  deviceKeyState,
+  domainState,
+  sessionidState
 } from "../utils/state";
 import setting from "../setting.json";
 import { requester } from "../utils/requester";
+import { localStorageEditor } from "../utils/idb";
 export function Loading() {
   return (
     <>
@@ -48,26 +52,30 @@ export function Load() {
   const [_load, setLoad] = useAtom(loadState);
   const [_login, setLogin] = useAtom(loginState);
   const [setUp, setSetUp] = useAtom(setUpState);
+  const [deviceKey, setDeviceKey] = useAtom(deviceKeyState);
   const [EncryptedSession, setEncryptedSession] = useAtom(
     EncryptedSessionState,
   );
-  const sessionid = localStorage.getItem("sessionid");
-  const serverDomain = localStorage.getItem("server");
-  const sessionUUID = localStorage.getItem("sessionUUID");
-  if (sessionid && serverDomain && sessionUUID) {
+  const [domain, setDomain] = useAtom(domainState);
+  const [sessionId, setSessionid] = useAtom(sessionidState);
+  const sessionid = localStorageEditor.get("sessionid");
+  const serverDomain = localStorageEditor.get("server");
+  setDomain(serverDomain);
+  setSessionid(sessionid);
+  if (sessionid && serverDomain) {
     async function LoadFetch() {
       if (!serverDomain) {
         setLogin(false);
-        setLoad(true);
-        console.log("load");
         return <></>;
       }
       const sessionInfo = await requester(serverDomain, "getSessionInfo", {
         sessionid,
       });
+      console.log(sessionInfo,"sessionInfo");
       if (sessionInfo.status === 200) {
         const response = await sessionInfo.json();
         setSetUp(response.setuped);
+        setDeviceKey(response.deviceKey);
         setEncryptedSession(response.sessionEncrypted);
         for (const id of response.sharedDataIds) {
           // todo: fetch shared data
@@ -78,6 +86,7 @@ export function Load() {
         return <></>;
       }
       setLogin(false);
+      setLoad(true);
     }
     LoadFetch();
     return <></>;

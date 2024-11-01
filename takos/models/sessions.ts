@@ -25,12 +25,12 @@ const sessionSchema = new mongoose.Schema({
     keyShareSignSing: {
         type: String,
     },
-    timestamp: { type: Date, default: Date.now, expires: 60 * 60 * 24 },
+    timestamp: { type: Date, default: Date.now,},
     encrypted: {
         type: Boolean,
         default: false,
     },
-    sessionHash: {
+    sessionUUID: {
         type: String,
         required: true,
     },

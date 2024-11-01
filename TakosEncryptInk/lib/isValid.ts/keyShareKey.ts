@@ -1,3 +1,4 @@
+import { uuidv7 } from "uuidv7"
 import type {
   KeyShareKeyPrivateObject,
   KeyShareKeyPublicObject,
@@ -13,7 +14,7 @@ export function isValidkeyShareSignKeyPublic(key: string): boolean {
     if (keyObject.type !== "keyShareSignKeyPublic") return false
     const keyRaw = new Uint8Array(base64ToArrayBuffer(keyObject.key))
     if (keyRaw.length !== 1952) return false
-    if (isValidUUIDv7(keyObject.uuidv7)) return false
+    if (!isValidUUIDv7(keyObject.uuidv7)) return false
     return true
     // deno-lint-ignore no-unused-vars
   } catch (error) {
@@ -27,7 +28,7 @@ export function isValidkeyShareSignKeyPrivate(key: string): boolean {
     if (keyObject.type !== "keyShareSignKeyPrivate") return false
     const keyRaw = new Uint8Array(base64ToArrayBuffer(keyObject.key))
     if (keyRaw.length !== 4032) return false
-    if (isValidUUIDv7(keyObject.uuidv7)) return false
+    if (!isValidUUIDv7(keyObject.uuidv7)) return false
     return true
     // deno-lint-ignore no-unused-vars
   } catch (error) {
@@ -48,7 +49,7 @@ export function isValidKeyShareKeyPublic(
   if (keyObject.type !== "KeyShareKeyPublic") return false
   const keyRaw = new Uint8Array(base64ToArrayBuffer(keyObject.key))
   if (keyRaw.length !== 1184) return false
-  if (isValidUUIDv7(keyObject.uuidv7)) return false
+  if (!isValidUUIDv7(keyObject.uuidv7)) return false
   return true
 }
 
@@ -59,6 +60,6 @@ export function isValidKeyShareKeyPrivate(
   if (keyObject.type !== "KeyShareKeyPrivate") return false
   const keyRaw = new Uint8Array(base64ToArrayBuffer(keyObject.key))
   if (keyRaw.length !== 4032) return false
-  if (isValidUUIDv7(keyObject.uuidv7)) return false
+  if (!isValidUUIDv7(keyObject.uuidv7)) return false
   return true
 }

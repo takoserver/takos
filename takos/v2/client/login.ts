@@ -5,6 +5,7 @@ import registers from "./register.ts";
 import { concatenateUint8Arrays } from "../../utils/connectBinary.ts";
 import Session from "../../models/sessions.ts";
 import User from "../../models/users.ts";
+import { generateDeviceKey } from "@takos/takos-encrypt-ink"
 const singlend = new Singlend();
 function arrayBufferToHex(buffer: ArrayBuffer): string {
     // ArrayBufferをUint8Arrayに変換
@@ -52,8 +53,6 @@ function arrayBufferToHex(buffer: ArrayBuffer): string {
           "SHA-256",
           concatenateUint8Arrays([salt, password]),
         );
-        console.log(user.password)
-        console.log(arrayBufferToHex(new Uint8Array(passwordHash)))
         if(user.password === arrayBufferToHex(new Uint8Array(passwordHash))) {
   
           const sessionid = crypto.getRandomValues(new Uint8Array(16));
@@ -77,9 +76,8 @@ function arrayBufferToHex(buffer: ArrayBuffer): string {
         if(user.password === passwordHashHex) {
           const sessionid = crypto.getRandomValues(new Uint8Array(16));
           const hex = arrayBufferToHex(sessionid);
-          const sessionHash = await crypto.subtle.digest("SHA-256", sessionid);
-          const sessionHashHex = arrayBufferToHex(sessionHash);
-          await Session.create({ sessionid: hex, userName: user.userName, sessionHash: sessionHashHex });
+          const deviceKey = await generateDeviceKey();
+          await Session.create({ sessionid: hex, userName: user.userName, deviceKey });
           return ok({ sessionid: hex });
         }
         return error({ error: "password is incorrect",});
