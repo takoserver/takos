@@ -8,7 +8,6 @@ import type { IdentityKeyPrivateObject } from "../types/keys.ts"
 import { base64ToArrayBuffer } from "../utils/buffers.ts"
 import { generateKeyShareKeys } from "../lib/generate/keyShareKey.ts"
 import { isValidKeyShareKeyPublic, isValidkeyShareSignKeyPublic } from "../lib/isValid.ts/keyShareKey.ts"
-import { uuidv7 } from "uuidv7"
 
 async function createUserKeys() {
   const masterkeys = generateMasterKey()
@@ -61,10 +60,3 @@ const roomKey = await generateRoomKey(
 )
 
 //console.log(roomKey)
-
-const keyShareKey = await generateKeyShareKeys(bobKeys.masterkeys, uuidv7())
-
-console.log(
-  isValidKeyShareKeyPublic(keyShareKey.keyShareKey.public),
-  isValidkeyShareSignKeyPublic(keyShareKey.keyShareSignKey.public),
-)

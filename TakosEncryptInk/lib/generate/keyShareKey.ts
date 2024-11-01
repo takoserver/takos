@@ -1,6 +1,5 @@
 import { ml_dsa65 } from "@noble/post-quantum/ml-dsa"
 import { ml_kem768 } from "@noble/post-quantum/ml-kem"
-import { timestamp } from "ui7"
 import {
   KeyShareKeyPrivateObject,
   KeyShareKeyPublicObject,

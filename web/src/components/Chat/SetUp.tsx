@@ -3,7 +3,7 @@ import { useAtom } from "solid-jotai";
 import { PopUpFrame } from "./setupPopup/popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import { arrayBufferToBase64 } from "../../utils/buffers";
-import { encryptDataDeviceKey, generateIdentityKeyAndAccountKey, generateKeyShareKeys, generateMasterKey } from "@takos/takos-encrypt-ink";
+import { encryptDataDeviceKey, generateIdentityKeyAndAccountKey, generateKeyShareKeys, generateMasterKey, keyHash } from "@takos/takos-encrypt-ink";
 import { uuidv7 } from "uuidv7";
 import { requester } from "../../utils/requester";
 import { createTakosDB, localStorageEditor } from "../../utils/idb";
@@ -69,6 +69,7 @@ export function SetUp() {
                         sessionUUID: sessionUUID,
                         sessionid: sessionidS,
                       });
+                      const idenKeyHash = await keyHash((await identityKey).identityKey.public)
                       if(response.status === 200) {
                         const db = await createTakosDB();
                         //db is npm package idb module IDBPDatabase<TakosDB>

@@ -1,4 +1,3 @@
-import { uuidv7 } from "uuidv7"
 import type {
   KeyShareKeyPrivateObject,
   KeyShareKeyPublicObject,
