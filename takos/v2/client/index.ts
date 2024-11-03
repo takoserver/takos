@@ -9,17 +9,7 @@ const singlend = new Singlend();
 import env from "../../utils/env.ts";
 import { arrayBufferToBase64 } from "../../utils/buffers.ts";
 import { cors } from "hono/cors";
-
-
-app.use(
-  "*",
-  cors(
-    {
-      origin: "*",
-      allowMethods: ["GET", "POST", "PUT", "DELETE"],
-    },
-  ),
-);
+import ws from "./websocket/ws.ts";
 
 singlend.mount(registers);
 
@@ -28,7 +18,7 @@ singlend.on(
   z.object({}),
   (_query, ok, _error) => {
     return ok({
-      siteKey: env["RECAPCHA_V2_SITE_KEY"]
+      siteKey: env["RECAPCHA_V2_SITE_KEY"],
     });
   },
 );
@@ -37,7 +27,7 @@ singlend.on(
   "getRecapchaV3",
   z.object({}),
   (_query, ok, _error) => {
-    return ok({siteKey: env["RECAPCHA_V3_SITE_KEY"]});
+    return ok({ siteKey: env["RECAPCHA_V3_SITE_KEY"] });
   },
 );
 
@@ -85,8 +75,17 @@ singlend.on(
 );
 singlend.mount(login);
 singlend.mount(sessionsFunction);
-
+app.use(
+  "/",
+  cors(
+    {
+      origin: "*",
+      allowMethods: ["GET", "POST", "PUT", "DELETE"],
+    },
+  ),
+);
 app.post("/", singlend.handler());
+app.route("/ws", ws);
 
 export default app;
 
@@ -106,7 +105,7 @@ async function readRandomImageFromDir(dir: string) {
     ) {
       files.push(dirEntry.name);
     }
-}
+  }
   if (files.length === 0) {
     throw new Error("ディレクトリに画像ファイルがありません。");
   }

@@ -2,11 +2,13 @@ import ChatHeader from "./Chat/header.tsx";
 import TalkListHeader from "./Chat/talkListHeader";
 import { SideBer } from "./Chat/SideBar.tsx";
 import { SetUp } from "./Chat/SetUp.tsx";
+import { EncryptSession } from "./Chat/EncryptSession.tsx";
 export function Chat() {
   return (
     <>
       <ChatHeader />
-      <SetUp></SetUp>
+      <SetUp />
+      <EncryptSession />
       <div class="wrapper w-full">
         <main
           class="p-talk"

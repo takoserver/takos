@@ -25,16 +25,6 @@ app.route("/takos/v2", v2).use(
     },
   }),
 );
-app.use(
-  "*",
-  cors(
-    {
-      origin: "*",
-      allowMethods: ["GET", "POST", "PUT", "DELETE"],
-    },
-  ),
-);
-
 mongoose.connect(env["MONGO_URI"]).then(() => {
   console.log("Connected to MongoDB");
   serverList.findOne(

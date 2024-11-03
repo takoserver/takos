@@ -4,7 +4,10 @@ export interface TakosDB extends DBSchema {
     key: string;
     value: {
       keyShareKey: string;
+      keyShareSignKey: string;
       timestamp: string;
+      key?: string;
+      keyHash: string;
     };
   };
   identityAndAccountKeys: {
@@ -15,6 +18,7 @@ export interface TakosDB extends DBSchema {
       hashHex: string;
       key?: string;
       sended: boolean;
+      timestamp: string;
     };
   };
   allowKeys: {
@@ -51,7 +55,12 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
   });
 }
 
-type LocalStorageKey = "sessionid" | "userName" | "server" | "masterKey";
+type LocalStorageKey =
+  | "sessionid"
+  | "userName"
+  | "server"
+  | "masterKey"
+  | "sessionuuid";
 
 export const localStorageEditor = {
   set: (key: LocalStorageKey, value: string) => {
@@ -60,4 +69,4 @@ export const localStorageEditor = {
   get: (key: LocalStorageKey) => {
     return localStorage.getItem(key);
   },
-}
+};

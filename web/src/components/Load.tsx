@@ -1,19 +1,23 @@
-import { useAtom } from "solid-jotai";
+import { useAtom, useSetAtom } from "solid-jotai";
 import {
-  defaultServerState,
-  EncryptedSessionState,
-  exproleServerState,
-  loadState,
-  loginState,
-  setDefaultServerState,
-  setUpState,
   deviceKeyState,
   domainState,
-  sessionidState
+  EncryptedSessionState,
+  IdentityKeyAndAccountKeyState,
+  loadState,
+  loginState,
+  MasterKeyState,
+  sessionidState,
+  setUpState,
+  webSocketState,
 } from "../utils/state";
-import setting from "../setting.json";
+import {
+  showMigrateRequest,
+  migrateSessionid,
+} from "../utils/migrateState";
 import { requester } from "../utils/requester";
-import { localStorageEditor } from "../utils/idb";
+import { createTakosDB, localStorageEditor } from "../utils/idb";
+import { decryptDataDeviceKey } from "@takos/takos-encrypt-ink";
 export function Loading() {
   return (
     <>
@@ -53,45 +57,139 @@ export function Load() {
   const [_login, setLogin] = useAtom(loginState);
   const [setUp, setSetUp] = useAtom(setUpState);
   const [deviceKey, setDeviceKey] = useAtom(deviceKeyState);
+  const setWebSocket = useSetAtom(webSocketState);
+  const setMasterKey = useSetAtom(MasterKeyState);
+  const setIdentityKeyAndAccountKey = useSetAtom(IdentityKeyAndAccountKeyState);
   const [EncryptedSession, setEncryptedSession] = useAtom(
     EncryptedSessionState,
   );
   const [domain, setDomain] = useAtom(domainState);
   const [sessionId, setSessionid] = useAtom(sessionidState);
-  const sessionid = localStorageEditor.get("sessionid");
-  const serverDomain = localStorageEditor.get("server");
-  setDomain(serverDomain);
-  setSessionid(sessionid);
-  if (sessionid && serverDomain) {
-    async function LoadFetch() {
-      if (!serverDomain) {
-        setLogin(false);
-        return <></>;
+
+  const handleSessionFailure = () => {
+    setLogin(false);
+    setLoad(true);
+  };
+
+  const decryptKeyShareKeys = async (
+    keyShareKeysIdb: any[],
+    deviceKey: string,
+  ) => {
+    return Promise.all(keyShareKeysIdb.map(async (key) => {
+      const keyShareKey = JSON.parse(
+        await decryptDataDeviceKey(key.keyShareKey, deviceKey),
+      );
+      const keyShareSignKey = JSON.parse(
+        await decryptDataDeviceKey(key.keyShareSignKey, deviceKey),
+      );
+      return [key.key, key.timestamp, keyShareKey, keyShareSignKey];
+    }));
+  };
+
+  const decryptIdentityAndAccountKeys = async (
+    keys: any[],
+    deviceKey: string,
+  ): Promise<
+    [string, string, { identityKey: string; accountKey: string }][]
+  > => {
+    return Promise.all(keys.map(async (key) => {
+      const identityKey = JSON.parse(
+        await decryptDataDeviceKey(key.encryptedIdentityKey, deviceKey),
+      );
+      const accountKey = JSON.parse(
+        await decryptDataDeviceKey(key.encryptedAccountKey, deviceKey),
+      );
+      return [key.hashHex, key.timestamp, { identityKey, accountKey }];
+    }));
+  };
+
+  const processSessionInfo = async (response: any) => {
+    const db = await createTakosDB();
+    if (response.sharedDataIds.length !== 0) {
+      const keyShareKeysIdb = await db.getAll("keyShareKeys");
+      const keyShareKeys = await decryptKeyShareKeys(
+        keyShareKeysIdb,
+        response.deviceKey,
+      );
+      for (const sharedDataIds of response.sharedDataIds) {
+        // TODO: Process shared data with keyShareKeys
       }
+    }
+
+    const encryptedMasterKey = localStorageEditor.get("masterKey");
+    if (!encryptedMasterKey) return;
+    const masterKey = JSON.parse(
+      await decryptDataDeviceKey(encryptedMasterKey, response.deviceKey),
+    );
+    setMasterKey(masterKey);
+
+    const identityAndAccountKeys = await db.getAll("identityAndAccountKeys");
+    const decryptedKeys = await decryptIdentityAndAccountKeys(
+      identityAndAccountKeys,
+      response.deviceKey,
+    );
+    setIdentityKeyAndAccountKey(decryptedKeys);
+    setSetUp(response.setuped);
+    setEncryptedSession(response.sessionEncrypted);
+    setLogin(true);
+  };
+
+  const loadSession = async () => {
+    const sessionid = localStorageEditor.get("sessionid");
+    const serverDomain = localStorageEditor.get("server");
+    if (!serverDomain || !sessionid) {
+      handleSessionFailure();
+      return;
+    }
+
+    setDomain(serverDomain);
+    setSessionid(sessionid);
+
+    try {
       const sessionInfo = await requester(serverDomain, "getSessionInfo", {
         sessionid,
       });
-      console.log(sessionInfo,"sessionInfo");
       if (sessionInfo.status === 200) {
         const response = await sessionInfo.json();
-        setSetUp(response.setuped);
         setDeviceKey(response.deviceKey);
-        setEncryptedSession(response.sessionEncrypted);
-        for (const id of response.sharedDataIds) {
-          // todo: fetch shared data
+        if (response.sessionEncrypted) {
+          processSessionInfo(response);
+        } else {
+          setSetUp(response.setuped);
+          setLogin(true);
+          setLoad(true);
+          setEncryptedSession(false);
         }
-        setLogin(true);
-        setLoad(true);
-        console.log("load");
-        return <></>;
+        const websocket = new WebSocket(`wss://${domain()}/takos/v2/client/ws?sessionid=${sessionId()}`);
+        websocket.onopen = () => {
+          setWebSocket(websocket);
+          setLoad(true);
+        }
+        websocket.onclose = () => {
+          setLoad(false)
+        }
+        const setShowMigrate = useSetAtom(showMigrateRequest);
+        const setMigrateSessionid = useSetAtom(migrateSessionid);
+        websocket.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          switch(data.type) {
+            case "requestMigrateSignKey": {
+              console.log("requestMigrateSignKey");
+              setShowMigrate(true);
+              setMigrateSessionid(data.sessionid);
+              break;
+            }
+          }
+        }
+        
+      } else {
+        handleSessionFailure();
       }
-      setLogin(false);
-      setLoad(true);
+    } catch (error) {
+      console.error("Session loading failed:", error);
+      handleSessionFailure();
     }
-    LoadFetch();
-    return <></>;
-  }
-  setLogin(false);
-  setLoad(true);
+  };
+  loadSession();
   return <></>;
 }

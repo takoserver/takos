@@ -7,8 +7,8 @@ import {
 import { createSignal } from "solid-js";
 import { requester } from "../utils/requester";
 import { uuidv7 } from "uuidv7";
-import { generateDeviceKey } from "@takos/takos-encrypt-ink"
-import { localStorageEditor } from "../utils/idb";
+import { generateDeviceKey } from "@takos/takos-encrypt-ink";
+import { createTakosDB, localStorageEditor } from "../utils/idb";
 
 export function Login({ domain }: { domain: string }) {
   const [open, setOpen] = createSignal(false);
@@ -54,6 +54,10 @@ export function Login({ domain }: { domain: string }) {
                   localStorageEditor.set("sessionid", response.sessionid);
                   localStorageEditor.set("userName", userName());
                   localStorageEditor.set("server", domain);
+                  const db = await createTakosDB();
+                  db.clear("allowKeys");
+                  db.clear("identityAndAccountKeys");
+                  db.clear("keyShareKeys");
                   window.location.reload();
                 } else {
                   alert("ログインに失敗しました");

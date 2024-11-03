@@ -3,17 +3,20 @@ import {
   migrateKeyPublicObject,
   migrateSignKeyPrivateObject,
   migrateSignKeyPublicObject,
-} from "../../types/keys.ts"
-import { ml_dsa65 } from "@noble/post-quantum/ml-dsa"
-import { arrayBufferToBase64, base64ToArrayBuffer } from "../../utils/buffers.ts"
-import { ml_kem768 } from "@noble/post-quantum/ml-kem"
+} from "../../types/keys.ts";
+import { ml_dsa65 } from "@noble/post-quantum/ml-dsa";
+import {
+  arrayBufferToBase64,
+  base64ToArrayBuffer,
+} from "../../utils/buffers.ts";
+import { ml_kem768 } from "@noble/post-quantum/ml-kem";
 
 export function migrateSignKeyObject(): {
-  public: migrateSignKeyPublicObject
-  private: migrateSignKeyPrivateObject
+  public: migrateSignKeyPublicObject;
+  private: migrateSignKeyPrivateObject;
 } {
-  const seed = crypto.getRandomValues(new Uint8Array(32))
-  const key = ml_dsa65.keygen(seed)
+  const seed = crypto.getRandomValues(new Uint8Array(32));
+  const key = ml_dsa65.keygen(seed);
   return {
     public: {
       key: arrayBufferToBase64(key.publicKey),
@@ -25,14 +28,14 @@ export function migrateSignKeyObject(): {
       type: "migrateSignKeyPrivate",
       version: 1,
     },
-  }
+  };
 }
 
 export function migrateKeyObject(): {
-  public: migrateKeyPublicObject
-  private: migrateKeyPrivateObject
+  public: migrateKeyPublicObject;
+  private: migrateKeyPrivateObject;
 } {
-  const key = ml_kem768.keygen()
+  const key = ml_kem768.keygen();
   return {
     public: {
       key: arrayBufferToBase64(key.publicKey),
@@ -44,14 +47,20 @@ export function migrateKeyObject(): {
       type: "migrateKeyPrivate",
       version: 1,
     },
-  }
+  };
 }
 export function generateMigrateKey(): { public: string; private: string } {
-  const keys = migrateKeyObject()
-  return { public: JSON.stringify(keys.public), private: JSON.stringify(keys.private) }
+  const keys = migrateKeyObject();
+  return {
+    public: JSON.stringify(keys.public),
+    private: JSON.stringify(keys.private),
+  };
 }
 
 export function generateMigrateSignKey(): { public: string; private: string } {
-  const keys = migrateSignKeyObject()
-  return { public: JSON.stringify(keys.public), private: JSON.stringify(keys.private) }
+  const keys = migrateSignKeyObject();
+  return {
+    public: JSON.stringify(keys.public),
+    private: JSON.stringify(keys.private),
+  };
 }

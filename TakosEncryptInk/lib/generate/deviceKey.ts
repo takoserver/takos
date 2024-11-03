@@ -1,4 +1,4 @@
-import { arrayBufferToBase64 } from "../../utils/buffers.ts"
+import { arrayBufferToBase64 } from "../../utils/buffers.ts";
 
 export async function generateDeviceKey(): Promise<string> {
   //aes-256-gcm
@@ -9,11 +9,11 @@ export async function generateDeviceKey(): Promise<string> {
     },
     true,
     ["encrypt", "decrypt"],
-  )
-  const keyExport = await crypto.subtle.exportKey("raw", key)
+  );
+  const keyExport = await crypto.subtle.exportKey("raw", key);
   return JSON.stringify({
     key: arrayBufferToBase64(keyExport),
     type: "deviceKey",
     version: 1,
-  })
+  });
 }

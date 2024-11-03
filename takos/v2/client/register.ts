@@ -5,7 +5,11 @@ import { sendMail } from "../../utils/sendEmail.ts";
 import tempUsers from "../../models/tempUsers.ts";
 import { concatenateUint8Arrays } from "../../utils/connectBinary.ts";
 import users from "../../models/users.ts";
-import { checkUserName, checkNickName, checkPassword } from "../../utils/checks.ts";
+import {
+  checkNickName,
+  checkPassword,
+  checkUserName,
+} from "../../utils/checks.ts";
 const singlend = new Singlend();
 singlend.group(
   z.object({
@@ -51,7 +55,7 @@ singlend.group(
         console.log(res);
         return ok({ sessionid: sessionid });
       },
-    )
+    ),
 );
 
 singlend.on(
@@ -70,7 +74,9 @@ singlend.on(
       console.log("ok");
       return ok("ok");
     }
-    await tempUsers.updateOne({ token: query.sessionid }, { missCheck: user.missCheck + 1 });
+    await tempUsers.updateOne({ token: query.sessionid }, {
+      missCheck: user.missCheck + 1,
+    });
     return error("error", 400);
   },
 ).on(
@@ -86,7 +92,7 @@ singlend.on(
       return ok("error");
     }
     if (user.checked) {
-      if(!checkUserName(query.userName) && !checkPassword(query.password)) {
+      if (!checkUserName(query.userName) && !checkPassword(query.password)) {
         console.log("ok");
         return error("error", 400);
       }
@@ -107,7 +113,7 @@ singlend.on(
     }
     return error("error", 403);
   },
-)
+);
 
 export default singlend;
 function generateRandomSalt() {

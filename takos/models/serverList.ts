@@ -1,10 +1,10 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 const serverListSchema = new mongoose.Schema({
-    serverDomain: {
-        type: String,
-        required: true,
-    },
-})
+  serverDomain: {
+    type: String,
+    required: true,
+  },
+});
 
-export default mongoose.model("serverList", serverListSchema)
+export default mongoose.model("serverList", serverListSchema);
