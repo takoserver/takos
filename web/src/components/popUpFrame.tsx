@@ -15,7 +15,9 @@ export function PopUpFrame(
             ×
           </span>
         </div>
-        {children}
+        <div class="h-full overflow-y-auto">
+          {children}
+        </div>
       </div>
     </div>
   );

@@ -12,7 +12,7 @@ export const inputMessageState = atom<string>("");
 export const MasterKeyState = atom<
   {
     public: string;
-    secret: string;
+    private: string;
   } | null
 >();
 export const setDefaultServerState = atom<boolean>(setting.setDefaultServer);

@@ -14,6 +14,12 @@ export function isValidkeyShareSignKeyPublic(key: string): boolean {
     const keyRaw = new Uint8Array(base64ToArrayBuffer(keyObject.key));
     if (keyRaw.length !== 1952) return false;
     if (!isValidUUIDv7(keyObject.uuidv7)) return false;
+    if(new Date(keyObject.timestamp).toString() === "Invalid Date") return false;
+    //その他にkeyObjectに値があるかどうかの確認
+    for(const key in keyObject){
+      if(key === "key" || key === "type" || key === "version" || key === "uuidv7" || key === "timestamp") continue;
+      return false
+    }
     return true;
     // deno-lint-ignore no-unused-vars
   } catch (error) {
@@ -28,6 +34,12 @@ export function isValidkeyShareSignKeyPrivate(key: string): boolean {
     const keyRaw = new Uint8Array(base64ToArrayBuffer(keyObject.key));
     if (keyRaw.length !== 4032) return false;
     if (!isValidUUIDv7(keyObject.uuidv7)) return false;
+    if(new Date(keyObject.timestamp).toString() === "Invalid Date") return false;
+    //その他にkeyObjectに値があるかどうかの確認
+    for(const key in keyObject){
+      if(key === "key" || key === "type" || key === "version" || key === "uuidv7" || key === "timestamp") continue;
+      return false
+    }
     return true;
     // deno-lint-ignore no-unused-vars
   } catch (error) {

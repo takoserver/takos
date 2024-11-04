@@ -295,13 +295,13 @@ singlend.group(
         const result = sessionDatas.map((data) => {
           return {
             keyShareKey: data.keyShareKey,
-            keyShareSignKey: data.keyShareSignKey,
-            keyShareSignKeySign: data.keyShareSignSing,
-            keyShareKeySign: data.keyShareSing,
+            sign: data.keyShareSing,
             sessionUUID: data.sessionUUID,
           };
         });
-        return ok(result);
+        return ok({
+          keySharekeys: result,
+        });
       },
     )
     return singlend;
