@@ -14,7 +14,7 @@ import {
   isValidMasterKeyPriv,
   isValidMasterKeyPub,
 } from "../isValid.ts/masterKey.ts";
-export function generateKeyShareKeyObject(uuid: string): {
+export function generateKeyShareKeyObject(uuid: string, timestamp: string): {
   public: KeyShareKeyPublicObject;
   private: KeyShareKeyPrivateObject;
 } {
@@ -29,17 +29,19 @@ export function generateKeyShareKeyObject(uuid: string): {
     type: "KeyShareKeyPublic",
     version: 1,
     uuidv7: uuid,
+    timestamp: timestamp,
   };
   const privateObject: KeyShareKeyPrivateObject = {
     key: privateKeyString,
     type: "KeyShareKeyPrivate",
     version: 1,
     uuidv7: uuid,
+    timestamp: timestamp,
   };
   return { public: publicObject, private: privateObject };
 }
 
-export function generateKeyShareSignKeyObject(uuid: string): {
+export function generateKeyShareSignKeyObject(uuid: string, timestamp: string): {
   public: keyShareSignKeyPublicObject;
   private: keyShareSignKeyPrivateObject;
 } {
@@ -55,12 +57,14 @@ export function generateKeyShareSignKeyObject(uuid: string): {
     type: "keyShareSignKeyPublic",
     version: 1,
     uuidv7: uuid,
+    timestamp: timestamp,
   };
   const privateObject: keyShareSignKeyPrivateObject = {
     key: privateKeyString,
     type: "keyShareSignKeyPrivate",
     version: 1,
     uuidv7: uuid,
+    timestamp: timestamp,
   };
   return { public: publicObject, private: privateObject };
 }
@@ -81,8 +85,9 @@ export async function generateKeyShareKeys(
     keyShareSignKey: { public: string; private: string; sign: string };
   }
 > {
-  const keyShareKey = generateKeyShareKeyObject(uuid);
-  const keyShareSignKey = generateKeyShareSignKeyObject(uuid);
+  const timestamp = new Date().toISOString();
+  const keyShareKey = generateKeyShareKeyObject(uuid, timestamp);
+  const keyShareSignKey = generateKeyShareSignKeyObject(uuid, timestamp);
   const keyShareKeyPublic = JSON.stringify(keyShareKey.public);
   const keyShareKeyPrivate = JSON.stringify(keyShareKey.private);
   const keyShareSignKeyPublic = JSON.stringify(keyShareSignKey.public);

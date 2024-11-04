@@ -11,7 +11,7 @@
   "dependencies": {
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^0.14.7",
-    "@takos/takos-encrypt-ink": "npm:@jsr/takos__takos-encrypt-ink@^4.0.5",
+    "@takos/takos-encrypt-ink": "npm:@jsr/takos__takos-encrypt-ink@^4.0.6",
     "fnv1a": "^1.1.1",
     "idb": "^8.0.0",
     "jotai": "^2.10.1",

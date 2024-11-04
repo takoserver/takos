@@ -61,6 +61,7 @@ export interface KeyShareKeyPublicObject {
   key: string;
   type: "KeyShareKeyPublic";
   version: number;
+  timestamp: string;
   uuidv7: string; //uuidv7
 }
 
@@ -68,6 +69,7 @@ export interface KeyShareKeyPrivateObject {
   key: string;
   type: "KeyShareKeyPrivate";
   version: number;
+  timestamp: string;
   uuidv7: string; //uuidv7
 }
 
@@ -75,6 +77,7 @@ export interface keyShareSignKeyPublicObject {
   key: string;
   type: "keyShareSignKeyPublic";
   version: number;
+  timestamp: string;
   uuidv7: string; //uuidv7
 }
 
@@ -83,6 +86,7 @@ export interface keyShareSignKeyPrivateObject {
   type: "keyShareSignKeyPrivate";
   version: number;
   uuidv7: string; //uuidv7
+  timestamp: string;
 }
 
 export interface migrateKeyPublicObject {

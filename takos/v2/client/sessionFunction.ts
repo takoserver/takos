@@ -216,15 +216,15 @@ singlend.group(
         sign: z.string(),
       }),
       async (query, value, ok, error) => {
-        if (!value.sessionInfo.encrypted) return error("error", 400);
+        if (!value.sessionInfo.encrypted) return error("error1", 400);
         const migrateData = await MigrateData.findOne({
           migrateid: query.migrateid,
         });
-        if (!migrateData) return error("error", 400);
-        if (!migrateData.accept) return error("error", 400);
-        if (!migrateData.sended) return error("error", 400);
+        if (!migrateData) return error("error2", 400);
+        if (!migrateData.accept) return error("error3", 400);
+        if (migrateData.sended) return error("error4", 400);
         if (migrateData.accepterSessionid !== value.sessionInfo.sessionid) {
-          return error("error", 400);
+          return error("error5", 400);
         }
         await MigrateData.updateOne({ migrateid: query.migrateid }, {
           migrateData: query.migrateData,
@@ -242,27 +242,68 @@ singlend.group(
       },
     );
     singlend.on(
-      "getMigrateData",
+      "encryptSession",
       z.object({
-        migrateid: z.string(),
+        keyShareKey: z.string(),
+        keyShareSignKey: z.string(),
+        keyShareSignKeySign: z.string(),
+        keyShareKeySign: z.string(),
+        sessionUUID: z.string(),
       }),
       async (query, value, ok, error) => {
         if (value.sessionInfo.encrypted) return error("error", 400);
-        const migrateData = await MigrateData.findOne({
-          migrateid: query.migrateid,
+        if (
+          !isValidKeyShareKeyPublic(query.keyShareKey) ||
+          !isValidkeyShareSignKeyPublic(query.keyShareSignKey)
+        ) return error("error", 400);
+        if (!isValidUUIDv7(query.sessionUUID)) return error("error", 400);
+        const masterKey = value.userInfo.masterKey;
+        if(!masterKey) return error("error", 400);
+        if (
+          !verifyDataMasterKey(
+            query.keyShareKey,
+            masterKey,
+            query.keyShareKeySign,
+          ) ||
+          !verifyDataMasterKey(
+            query.keyShareSignKey,
+            masterKey,
+            query.keyShareSignKeySign,
+          )
+        ) return error("error", 400);
+
+        await Session.updateOne({ sessionid: value.sessionInfo.sessionid }, {
+          encrypted: true,
+          sessionUUID: query.sessionUUID,
+          keyShareKey: query.keyShareKey,
+          keyShareSignKey: query.keyShareSignKey,
+          keyShareSignSing: query.keyShareSignKeySign,
+          keyShareSing: query.keyShareKeySign,
         });
-        if (!migrateData) return error("error", 400);
-        if (!migrateData.accept) return error("error", 400);
-        if (!migrateData.sended) return error("error", 400);
-        if (migrateData.requesterSessionid !== value.sessionInfo.sessionid) {
-          return error("error", 400);
-        }
-        return ok({
-          migrateData: migrateData.migrateData,
-          sign: migrateData.sign,
-        });
+        return ok("ok");
       },
-    );
+    )
+    singlend.on(
+      "getKeyShareKeys",
+      z.object({}),
+      async (_query, value, ok) => {
+        const sessionDatas = await Session.find({
+          encrypted: true,
+          userName: value.userInfo.userName,
+          sessionid: { $ne: value.sessionInfo.sessionid }
+        });
+        const result = sessionDatas.map((data) => {
+          return {
+            keyShareKey: data.keyShareKey,
+            keyShareSignKey: data.keyShareSignKey,
+            keyShareSignKeySign: data.keyShareSignSing,
+            keyShareKeySign: data.keyShareSing,
+            sessionUUID: data.sessionUUID,
+          };
+        });
+        return ok(result);
+      },
+    )
     return singlend;
   },
 );

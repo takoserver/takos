@@ -80,10 +80,18 @@ async function subscribeMessage(channel: string | string[]) {
         if (!sessionInfo) {
           return;
         }
+        const migrateData = await MigrateData.findOne({
+          migrateid: query.migrateid,
+        });
+        if (!migrateData) {
+          return;
+        }
         sessionInfo[1].ws.send(JSON.stringify({
           type: "noticeSendMigrateData",
           data: {
             migrateid: query.migrateid,
+            migrateData: migrateData.migrateData,
+            sign: migrateData.sign,
           },
         }));
         break;
