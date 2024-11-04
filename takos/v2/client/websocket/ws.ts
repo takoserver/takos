@@ -6,6 +6,7 @@ import { WSContext } from "hono/ws";
 import pubClient from "../../../utils/pubClient.ts";
 import env from "../../../utils/env.ts";
 import redis from "redis";
+import MigrateData from "../../../models/migrateData.ts";
 const redisURL = env["REDIS_URL"];
 const redisch = env["REDIS_CH"];
 const subClient = redis.createClient({
@@ -40,7 +41,7 @@ async function subscribeMessage(channel: string | string[]) {
         }));
         break;
       }
-      
+
       case "noticeMigrateSignKey": {
         const query: {
           sessionid: string;
@@ -52,10 +53,17 @@ async function subscribeMessage(channel: string | string[]) {
         if (!sessionInfo) {
           return;
         }
+        const migrateData = await MigrateData.findOne({
+          migrateid: query.migrateid,
+        });
+        if (!migrateData) {
+          return;
+        }
         sessionInfo[1].ws.send(JSON.stringify({
           type: "noticeMigrateSignKey",
           data: {
             migrateid: query.migrateid,
+            migrateSignKey: migrateData.migrateSignKey,
           },
         }));
         break;

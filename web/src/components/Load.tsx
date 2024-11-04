@@ -14,6 +14,8 @@ import {
 import {
   showMigrateRequest,
   migrateSessionid,
+  migrateRequestPage,
+  migrateSignKeyPublicState,
 } from "../utils/migrateState";
 import { requester } from "../utils/requester";
 import { createTakosDB, localStorageEditor } from "../utils/idb";
@@ -172,13 +174,19 @@ export function Load() {
         const setMigrateSessionid = useSetAtom(migrateSessionid);
         websocket.onmessage = (event) => {
           const data = JSON.parse(event.data);
+          console.log(data);
           switch(data.type) {
             case "requestMigrateSignKey": {
-              console.log("requestMigrateSignKey");
               setShowMigrate(true);
-              setMigrateSessionid(data.sessionid);
+              setMigrateSessionid(data.data.migrateid);
               break;
             }
+            case "noticeMigrateSignKey": {
+              const setMigratePage = useSetAtom(migrateRequestPage);
+              const setMigrateSignKeyPublic = useSetAtom(migrateSignKeyPublicState);
+              setMigratePage(3);
+              setMigrateSignKeyPublic(data.data.migrateSignKey);
+             }
           }
         }
         

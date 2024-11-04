@@ -61,6 +61,7 @@ import { generateKeyShareKeys } from "./lib/generate/keyShareKey.ts";
 import { generateMigrateKey, generateMigrateSignKey } from "./lib/generate/migrateKey.ts";
 import { generateRoomKey } from "./lib/generate/roomKey.ts";
 import { keyHash } from "./utils/keyHash.ts";
+import { EncryptDataMigrateKey, DecryptDataMigrateKey } from "./lib/encrypt/migrateKey.ts";
 export {
   DecryptDataAccountKey,
   decryptDataDeviceKey,
@@ -103,4 +104,6 @@ export {
   verifyDataMasterKey,
   verifyDataMigrateSignKey,
   generateMigrateSignKey,
+  EncryptDataMigrateKey,
+  DecryptDataMigrateKey,
 };

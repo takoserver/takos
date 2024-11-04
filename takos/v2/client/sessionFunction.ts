@@ -182,16 +182,16 @@ singlend.group(
         migrateid: z.string(),
       }),
       async (query, value, ok, error) => {
-        if (!value.sessionInfo.encrypted) return error("error", 400);
+        if (!value.sessionInfo.encrypted) return error("error1", 400);
         const migrateData = await MigrateData.findOne({
           migrateid: query.migrateid,
         });
-        if (!migrateData) return error("error", 400);
-        if (!migrateData.accept) return error("error", 400);
+        if (!migrateData) return error("error2", 400);
+        if (migrateData.accept) return error("error3", 400);
         if (!isValidmigrateSignKeyyPublic(query.migrateSignKey)) {
-          return error("error", 400);
+          return error("error4", 400);
         }
-        await migrateData.updateOne({ migrateid: query.migrateid }, {
+        await MigrateData.updateOne({ migrateid: query.migrateid }, {
           migrateSignKey: query.migrateSignKey,
           accept: true,
           accepterSessionid: value.sessionInfo.sessionid,
@@ -203,7 +203,9 @@ singlend.group(
             migrateid: query.migrateid,
           },
         }));
-        return ok("ok");
+        return ok({
+          migrateKey: migrateData.migrateKey,
+        });
       },
     );
     singlend.on(
@@ -224,7 +226,7 @@ singlend.group(
         if (migrateData.accepterSessionid !== value.sessionInfo.sessionid) {
           return error("error", 400);
         }
-        await migrateData.updateOne({ migrateid: query.migrateid }, {
+        await MigrateData.updateOne({ migrateid: query.migrateid }, {
           migrateData: query.migrateData,
           sign: query.sign,
           sended: true,
