@@ -4,7 +4,7 @@
   },
 
   "name": "@takos/takos-encrypt-ink",
-  "version": "4.0.9",
+  "version": "4.0.10",
   "exports": "./mod.ts",
   "fmt": {
     "lineWidth": 120,
@@ -12,7 +12,8 @@
   },
   "imports": {
     "@noble/post-quantum": "npm:@noble/post-quantum@^0.2.0",
-    "base64-arraybuffer": "npm:base64-arraybuffer@^1.0.2"
+    "base64-arraybuffer": "npm:base64-arraybuffer@^1.0.2",
+    "uuidv7": "npm:uuidv7@^1.0.2"
   },
   "license": "AGPL-3.0"
 }

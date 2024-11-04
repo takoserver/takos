@@ -16,6 +16,8 @@ import {
   verifyDataKeyShareKey,
   verifyDataMasterKey,
   EncryptDataKeyShareKey,
+  isValidkeyShareSignKeyPrivate,
+  isValidkeyShareSignKeyPublic,
 } from "@takos/takos-encrypt-ink";
 import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "../popUpFrame";
 import { createSignal } from "solid-js";
@@ -106,7 +108,9 @@ function Setting() {
               );
               return JSON.parse(decryptedKeyShareSignKey);
             })();
-            console.log(keyShareSignKey);
+            console.log(JSON.parse(keyShareSignKey.public));
+            console.log(isValidkeyShareSignKeyPublic(keyShareSignKey.public));
+            console.log(isValidkeyShareSignKeyPrivate(keyShareSignKey.private));
             const shareDataSign = await signDataKeyShareKey(shareData, {
               public: keyShareSignKey.public,
               private: keyShareSignKey.private,
