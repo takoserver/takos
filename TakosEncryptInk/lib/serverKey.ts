@@ -1,6 +1,9 @@
 import { ml_dsa65 } from "@noble/post-quantum/ml-dsa";
 import { arrayBufferToBase64, base64ToArrayBuffer } from "../utils/buffers.ts"
-function generateServerKey() {
+function generateServerKey(): {
+    public: string;
+    private: string;
+} {
     const seed = crypto.getRandomValues(new Uint8Array(32));
     const key = ml_dsa65.keygen(seed);
     return {
