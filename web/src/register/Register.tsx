@@ -73,11 +73,14 @@ export function Register(
                     recapchaVersion: "v3",
                     recapcha: recapcha,
                   });
+                  const json = await res.json();
                   if (res.status !== 200) {
-                    alert("エラーが発生しました");
+                    if (json.error === "recapcha error") {
+                      setIsFailedRecapcha(true);
+                    }
                     return;
                   }
-                  const json = await res.json();
+
                   setSessionid(json.sessionid);
                 }
                 setPage(1);

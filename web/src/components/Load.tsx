@@ -22,10 +22,13 @@ import { requester } from "../utils/requester";
 import { createTakosDB, localStorageEditor } from "../utils/idb";
 import {
   decryptDataDeviceKey,
+  DecryptDataKeyShareKey,
   DecryptDataMigrateKey,
   encryptDataDeviceKey,
   generateKeyShareKeys,
   keyHash,
+  verifyDataKeyShareKey,
+  verifyDataMasterKey,
   verifyDataMigrateSignKey,
 } from "@takos/takos-encrypt-ink";
 import { uuidv7 } from "uuidv7";
@@ -116,7 +119,15 @@ export function Load() {
   };
 
   const processSessionInfo = async (response: any) => {
+    console.log(response);
     const db = await createTakosDB();
+    const deviceKey = response.deviceKey;
+    const encryptedMasterKey = localStorageEditor.get("masterKey");
+    if (!encryptedMasterKey) return;
+    const masterKey = JSON.parse(
+      await decryptDataDeviceKey(encryptedMasterKey, response.deviceKey),
+    );
+    setMasterKey(masterKey);
     if (response.sharedDataIds.length !== 0) {
       const keyShareKeysIdb = await db.getAll("keyShareKeys");
       const keyShareKeys = await decryptKeyShareKeys(
@@ -124,17 +135,78 @@ export function Load() {
         response.deviceKey,
       );
       for (const sharedDataIds of response.sharedDataIds) {
-        // TODO: Process shared data with keyShareKeys
+        const server = domain();
+        if (!server) {
+          console.error("Invalid server");
+          return;
+        }
+        const response = await requester(server, "getSharedData", {
+          id: sharedDataIds,
+          sessionid: sessionId(),
+        });
+        if (response.status !== 200) {
+          console.error("Setup failed");
+          return;
+        }
+        const data = await response.json();
+        if (
+          verifyDataMasterKey(
+            data.keyShareSignKey,
+            masterKey.public,
+            data.keyShareSignKeySign,
+          )
+        ) {
+          const keyShareKeyHash = JSON.parse(data.data).encryptedKeyHash;
+          const keyShareKeyArray = keyShareKeys.find((key) =>
+            key[0] === keyShareKeyHash
+          );
+          if (!keyShareKeyArray) {
+            console.error("Invalid key share key");
+            return;
+          }
+          const keyShareKey = keyShareKeyArray[2].private;
+          if (!keyShareKey) {
+            console.error("Invalid key share key");
+            return;
+          }
+          const decryptData = await DecryptDataKeyShareKey(
+            data.data,
+            keyShareKey,
+          );
+          if (
+            !verifyDataKeyShareKey(decryptData, data.keyShareSignKey, data.sign)
+          ) {
+            console.error("Invalid key share key");
+            return;
+          }
+          if (data.type === "key") {
+            const keysObject = JSON.parse(decryptData);
+            const identityKey = keysObject.identityKey;
+            const accountKey = keysObject.accountKey;
+            const encryptedIdentityKey = await encryptDataDeviceKey(
+              JSON.stringify(identityKey),
+              deviceKey,
+            );
+            const encryptedAccountKey = await encryptDataDeviceKey(
+              JSON.stringify(accountKey),
+              deviceKey,
+            );
+            await db.put("identityAndAccountKeys", {
+              encryptedIdentityKey,
+              encryptedAccountKey,
+              hashHex: await keyHash(identityKey.public),
+              sended: true,
+              key: await keyHash(identityKey.public),
+              timestamp: identityKey.public.timestamp,
+            });
+            const res = await requester(server, "noticeGetSharedData", {
+              id: sharedDataIds,
+              sessionid: sessionId(),
+            })
+          }
+        }
       }
     }
-
-    const encryptedMasterKey = localStorageEditor.get("masterKey");
-    if (!encryptedMasterKey) return;
-    const masterKey = JSON.parse(
-      await decryptDataDeviceKey(encryptedMasterKey, response.deviceKey),
-    );
-    setMasterKey(masterKey);
-
     const identityAndAccountKeys = await db.getAll("identityAndAccountKeys");
     const decryptedKeys = await decryptIdentityAndAccountKeys(
       identityAndAccountKeys,
@@ -144,7 +216,7 @@ export function Load() {
     setSetUp(response.setuped);
     setEncryptedSession(response.sessionEncrypted);
     setLogin(true);
-  };
+  }
 
   const loadSession = async () => {
     const sessionid = localStorageEditor.get("sessionid");
@@ -168,7 +240,7 @@ export function Load() {
           processSessionInfo(response);
         } else {
           setSetUp(response.setuped);
-          setLogin(true);
+          setLogin(false);
           setLoad(true);
           setEncryptedSession(false);
         }
@@ -177,6 +249,7 @@ export function Load() {
         );
         websocket.onopen = () => {
           setWebSocket(websocket);
+          console.log("Session loaded");
           setLoad(true);
         };
         websocket.onclose = () => {
@@ -186,7 +259,6 @@ export function Load() {
         const setMigrateSessionid = useSetAtom(migrateSessionid);
         websocket.onmessage = async (event) => {
           const data = JSON.parse(event.data);
-          console.log(data);
           switch (data.type) {
             case "requestMigrateSignKey": {
               setShowMigrate(true);

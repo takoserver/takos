@@ -6,11 +6,15 @@ import "./App.css";
 import { ChangeURL } from "./components/ChangeURL.tsx";
 import { Register } from "./register/index.tsx";
 import { Chat } from "./components/Chat.tsx";
+import { createEffect } from "solid-js";
 function App({ page }: { page?: "home" | "talk" | "friend" | "setting" }) {
   const [load] = useAtom(loadState);
   const [login] = useAtom(loginState);
   const [_page, setPageState] = useAtom(pageState);
   setPageState(page || "talk");
+  createEffect(() => {
+    console.log(load(),login());
+  });
   return (
     <>
       {!load() && <Loading />}
@@ -18,7 +22,7 @@ function App({ page }: { page?: "home" | "talk" | "friend" | "setting" }) {
       <ChangeURL></ChangeURL>
       <Load></Load>
       {load() && login() && <Chat />}
-      {load() && !login() && <Register />}
+      {load() && !login() && login() !== undefined && <Register />}
     </>
   );
 }

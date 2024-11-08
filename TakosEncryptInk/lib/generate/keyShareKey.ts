@@ -41,7 +41,10 @@ export function generateKeyShareKeyObject(uuid: string, timestamp: string): {
   return { public: publicObject, private: privateObject };
 }
 
-export function generateKeyShareSignKeyObject(uuid: string, timestamp: string): {
+export function generateKeyShareSignKeyObject(
+  uuid: string,
+  timestamp: string,
+): {
   public: keyShareSignKeyPublicObject;
   private: keyShareSignKeyPrivateObject;
 } {

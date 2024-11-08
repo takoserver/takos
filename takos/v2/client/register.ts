@@ -23,7 +23,9 @@ singlend.group(
     if (await checkRecapcha(query.recapcha, query.recapchaVersion)) {
       return next({});
     }
-    return error("error");
+    return error({
+      error: "recapcha error",
+    });
   },
   (singlend) =>
     singlend.on(
@@ -31,7 +33,11 @@ singlend.group(
       z.object({
         email: z.string(),
       }),
-      async (query, value, ok) => {
+      async (query, value, ok, error) => {
+        const usersInfo = await users.findOne({ email: query.email });
+        if (usersInfo) {
+          return error("error", 400);
+        }
         const code = generateRandomSixDigit();
         sendMail(
           query.email,
@@ -103,6 +109,16 @@ singlend.on(
         concatenateUint8Arrays([salt, password]),
       );
       const passwordHashHex = arrayBufferToHex(passwordHash);
+      const checkUser = await users.findOne({
+        $or: [
+          { email: user.email },
+          { userName: query.userName },
+        ],
+      });
+      if (checkUser) {
+        return error("error", 400);
+      }
+      await tempUsers.deleteOne({ email: user.email });
       await users.create({
         email: user.email,
         password: passwordHashHex,

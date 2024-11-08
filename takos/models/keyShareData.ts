@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
 
 const keyShareDataSchema = new mongoose.Schema({
+  id: {
+    type: String,
+    required: true,
+    unique: true,
+  },
   userName: {
     type: String,
     required: true,
@@ -10,18 +15,22 @@ const keyShareDataSchema = new mongoose.Schema({
     required: true,
   },
   EncryptedDataKeyShareKey: {
+    type: [[String]], // 修正: 二次元配列に変更
+    required: true,
+  },
+  keyShareSign: {
     type: String,
     required: true,
   },
-  Sign: {
-    type: String,
+  deriveredSession: {
+    type: [String],
     required: true,
   },
   timestamp: { type: Date, default: Date.now, expires: 60 * 60 * 24 },
-  id: {
+  type: {
     type: String,
+    enum: ["key", "allowKey"],
     required: true,
-    unique: true,
   },
 });
 

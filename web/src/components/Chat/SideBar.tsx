@@ -10,14 +10,16 @@ import { createTakosDB } from "../../utils/idb";
 import { requester } from "../../utils/requester";
 import {
   decryptDataDeviceKey,
+  encryptDataDeviceKey,
+  EncryptDataKeyShareKey,
   generateIdentityKeyAndAccountKey,
+  isValidkeyShareSignKeyPrivate,
+  isValidkeyShareSignKeyPublic,
+  keyHash,
   signDataKeyShareKey,
   signDataMasterKey,
   verifyDataKeyShareKey,
   verifyDataMasterKey,
-  EncryptDataKeyShareKey,
-  isValidkeyShareSignKeyPrivate,
-  isValidkeyShareSignKeyPublic,
 } from "@takos/takos-encrypt-ink";
 import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "../popUpFrame";
 import { createSignal } from "solid-js";
@@ -47,6 +49,19 @@ function Setting() {
       keyShareKeySign: string;
     },
   ][]>([]);
+  const [rawIdentityKeyAndAccountKey, setRawIdentityKeyAndAccountKey] =
+    createSignal<{
+      identityKey: {
+        public: string;
+        private: string;
+        sign: string;
+      };
+      accountKey: {
+        public: string;
+        private: string;
+        sign: string;
+      };
+    }>();
   return (
     <>
       <button
@@ -77,7 +92,6 @@ function Setting() {
                 private: masterKeyValue.private,
               });
             const shareData = JSON.stringify(newIdentityKeyAndAccountKey);
-
             const keyShareKeyRes = await requester(
               server,
               "getKeyShareKeys",
@@ -117,6 +131,7 @@ function Setting() {
             });
             setShareData(shareData);
             setShareDataSign(shareDataSign);
+            setRawIdentityKeyAndAccountKey(newIdentityKeyAndAccountKey);
             setChooseShareSessionUUID(
               keyShareKeyRes.map((keyShareKey: {
                 keyShareKey: string;
@@ -196,11 +211,72 @@ function Setting() {
                     const encryptedShareData = await EncryptDataKeyShareKey(
                       sahredata(),
                       keyShareKey,
-                    )
+                    );
+                    return [session[0], encryptedShareData];
                   }
-                })
+                }),
               );
-              console.log(encryptedIdentityKeyAndAccountKey);
+
+              encryptedIdentityKeyAndAccountKey.filter((data) => {
+                if (data) {
+                  return data;
+                }
+              });
+              const db = await createTakosDB();
+              const deviceKeyValue = deviceKey();
+              if (!deviceKeyValue) {
+                console.log("Invalid DeviceKey");
+                return;
+              }
+              const identityAndAccount = rawIdentityKeyAndAccountKey();
+              if (!identityAndAccount) return;
+              const encryptedAccountKey = await encryptDataDeviceKey(
+                JSON.stringify(identityAndAccount.accountKey),
+                deviceKeyValue,
+              );
+              const encryptedIdentityKey = await encryptDataDeviceKey(
+                JSON.stringify(identityAndAccount.identityKey),
+                deviceKeyValue,
+              );
+              const requestData = {
+                sessionid: localStorage.getItem("sessionid"),
+                sharedData: encryptedIdentityKeyAndAccountKey.filter((data) =>
+                  data !== undefined
+                ),
+                sign: shareDataSign(),
+                identityKeyPublic: identityAndAccount.identityKey.public,
+                accountKeyPublic: identityAndAccount.accountKey.public,
+              };
+              const response = await requester(
+                server,
+                "updateIdentityKeyAndAccountKey",
+                requestData,
+              );
+              if (response.status === 200) {
+                await db.put("identityAndAccountKeys", {
+                  encryptedIdentityKey: encryptedIdentityKey,
+                  encryptedAccountKey: encryptedAccountKey,
+                  hashHex: await keyHash(identityAndAccount.identityKey.public),
+                  sended: true,
+                  key: await keyHash(identityAndAccount.identityKey.public),
+                  timestamp:
+                    JSON.parse(identityAndAccount.identityKey.public).timestamp,
+                });
+                alert("成功しました");
+                window.location.reload();
+                return;
+              }
+              alert("失敗しました");
+              //sendedをfalseにする
+              await db.put("identityAndAccountKeys", {
+                encryptedIdentityKey: encryptedIdentityKey,
+                encryptedAccountKey: encryptedAccountKey,
+                hashHex: await keyHash(identityAndAccount.identityKey.public),
+                sended: false,
+                key: await keyHash(identityAndAccount.identityKey.public),
+                timestamp:
+                  JSON.parse(identityAndAccount.identityKey.public).timestamp,
+              });
             }}
           >
             更新

@@ -1,18 +1,22 @@
-import { generateKeyShareKeys } from "../lib/generate/keyShareKey.ts"
-import { isValidkeyShareSignKeyPrivate } from "../lib/isValid.ts/keyShareKey.ts"
-import { signDataKeyShareKey } from "../lib/sign/signDataKeyShareSignKey.ts"
-import { generateIdentityKeyAndAccountKey, generateMasterKey, isValidkeyShareSignKeyPublic } from "../mod.ts"
-import { uuidv7 } from "uuidv7"
+import { generateKeyShareKeys } from "../lib/generate/keyShareKey.ts";
+import { isValidkeyShareSignKeyPrivate } from "../lib/isValid.ts/keyShareKey.ts";
+import { signDataKeyShareKey } from "../lib/sign/signDataKeyShareSignKey.ts";
+import {
+  generateIdentityKeyAndAccountKey,
+  generateMasterKey,
+  isValidkeyShareSignKeyPublic,
+} from "../mod.ts";
+import { uuidv7 } from "uuidv7";
 
 async function createUserKeys() {
-    const masterkeys = generateMasterKey();
-    const identityAndAccountKeys = await generateIdentityKeyAndAccountKey(
-      masterkeys,
-    );
-    return {
-      masterkeys,
-      identityAndAccountKeys,
-};
+  const masterkeys = generateMasterKey();
+  const identityAndAccountKeys = await generateIdentityKeyAndAccountKey(
+    masterkeys,
+  );
+  return {
+    masterkeys,
+    identityAndAccountKeys,
+  };
 }
 
 const bobKeys = await createUserKeys();

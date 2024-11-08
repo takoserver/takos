@@ -11,26 +11,26 @@ export function isValidkeyShareSignKeyPublic(key: string): boolean {
     const keyObject: keyShareSignKeyPublicObject = JSON.parse(key);
 
     if (keyObject.type !== "keyShareSignKeyPublic") {
-      console.log("1")
+      console.log("1");
       return false;
     }
     const keyRaw = new Uint8Array(base64ToArrayBuffer(keyObject.key));
     if (keyRaw.length !== 1952) {
-      console.log("2")
+      console.log("2");
       return false;
     }
     if (!isValidUUIDv7(keyObject.uuidv7)) {
-      console.log("3")
+      console.log("3");
       return false;
     }
-    if(new Date(keyObject.timestamp).toString() === "Invalid Date") {
-      console.log("4")
+    if (new Date(keyObject.timestamp).toString() === "Invalid Date") {
+      console.log("4");
       return false;
     }
     return true;
     // deno-lint-ignore no-unused-vars
   } catch (error) {
-    console.log("0")
+    console.log("0");
     return false;
   }
 }
@@ -39,26 +39,26 @@ export function isValidkeyShareSignKeyPrivate(key: string): boolean {
   try {
     const keyObject: keyShareSignKeyPrivateObject = JSON.parse(key);
     if (keyObject.type !== "keyShareSignKeyPrivate") {
-      console.log("1")
+      console.log("1");
       return false;
     }
     const keyRaw = new Uint8Array(base64ToArrayBuffer(keyObject.key));
     if (keyRaw.length !== 4032) {
-      console.log("2")
+      console.log("2");
       return false;
     }
     if (!isValidUUIDv7(keyObject.uuidv7)) {
-      console.log("3")
+      console.log("3");
       return false;
     }
-    if(new Date(keyObject.timestamp).toString() === "Invalid Date") {
-      console.log("4")
+    if (new Date(keyObject.timestamp).toString() === "Invalid Date") {
+      console.log("4");
       return false;
     }
     return true;
     // deno-lint-ignore no-unused-vars
   } catch (error) {
-    console.log("0")
+    console.log("0");
     return false;
   }
 }

@@ -13,6 +13,7 @@ import {
   isValidMasterKeyPub,
   isValidmigrateKeyPublic,
   isValidmigrateSignKeyyPublic,
+  isValidSign,
   keyHash,
   verifyDataIdentityKey,
   verifyDataMasterKey,
@@ -25,7 +26,7 @@ import {
 } from "../../utils/buffers.ts";
 import { checkNickName } from "../../utils/checks.ts";
 import MigrateData from "../../models/migrateData.ts";
-
+import Key from "../../models/keys.ts";
 const singlend = new Singlend();
 
 singlend.group(
@@ -49,7 +50,9 @@ singlend.group(
       z.object({}),
       async (query, value, ok) => {
         const SharedData = await KeyShareData.find({
-          sessionid: value.sessionInfo.sessionid,
+          userName: value.userInfo.userName,
+          deriveredSession: { $ne: value.sessionInfo.sessionid },
+          sessionid: { $ne: value.sessionInfo.sessionid },
         });
         return ok({
           setuped: value.userInfo.setup,
@@ -258,7 +261,7 @@ singlend.group(
         ) return error("error", 400);
         if (!isValidUUIDv7(query.sessionUUID)) return error("error", 400);
         const masterKey = value.userInfo.masterKey;
-        if(!masterKey) return error("error", 400);
+        if (!masterKey) return error("error", 400);
         if (
           !verifyDataMasterKey(
             query.keyShareKey,
@@ -282,7 +285,7 @@ singlend.group(
         });
         return ok("ok");
       },
-    )
+    );
     singlend.on(
       "getKeyShareKeys",
       z.object({}),
@@ -290,7 +293,7 @@ singlend.group(
         const sessionDatas = await Session.find({
           encrypted: true,
           userName: value.userInfo.userName,
-          sessionid: { $ne: value.sessionInfo.sessionid }
+          sessionid: { $ne: value.sessionInfo.sessionid },
         });
         const result = sessionDatas.map((data) => {
           return {
@@ -303,7 +306,114 @@ singlend.group(
           keySharekeys: result,
         });
       },
-    )
+    );
+    singlend.on(
+      "updateIdentityKeyAndAccountKey",
+      z.object({
+        sharedData: z.array(z.array(z.any())),
+        sign: z.string(),
+        identityKeyPublic: z.string(),
+        accountKeyPublic: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        if (!isValidSign(query.sign)) return error("error1", 400);
+        if (
+          !isValidIdentityPublicKey(query.identityKeyPublic) ||
+          !isValidAccountPublicKey(query.accountKeyPublic)
+        ) return error("error2", 400);
+        await Keys.create({
+          userName: value.userInfo.userName,
+          identityKey: query.identityKeyPublic,
+          accountKey: query.accountKeyPublic,
+          keyHash: await keyHash(query.identityKeyPublic),
+          timestamp: (JSON.parse(query.identityKeyPublic)).timestamp,
+        });
+        const keyShareData: [string, string][] = [];
+        for (const data of query.sharedData) {
+          const sessionInfo = await Session.findOne({
+            sessionUUID: data[0],
+          });
+          if (!sessionInfo) return error("error3", 400);
+          if (!sessionInfo.encrypted) return error("error4", 400);
+          if (sessionInfo.userName !== value.userInfo.userName) {
+            return error("error5", 400);
+          }
+          keyShareData.push([data[0], data[1]]);
+        }
+        await KeyShareData.create({
+          id: crypto.getRandomValues(new Uint32Array(1))[0].toString(16),
+          userName: value.userInfo.userName,
+          sessionid: value.sessionInfo.sessionid,
+          EncryptedDataKeyShareKey: keyShareData,
+          keyShareSign: query.sign,
+          deriveredSession: [],
+          timestamp: new Date(),
+          type: "key",
+        });
+        return ok("ok");
+      },
+    );
+    singlend.on(
+      "getSharedData",
+      z.object({
+        id: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        const data = await KeyShareData.findOne({
+          id: query.id,
+        });
+        if (!data) return error("error", 400);
+        if (data.userName !== value.userInfo.userName) {
+          return error("error", 400);
+        }
+        const keyShareKey = await Session.findOne({
+          sessionid: data.sessionid,
+          deriveredSession: { $ne: value.sessionInfo.sessionid },
+        });
+        if (!keyShareKey) return error("error", 400);
+        const keyShareDataIndex = data.EncryptedDataKeyShareKey.findIndex(
+          (keyShareData) => {
+            return keyShareData[0] === value.sessionInfo.sessionUUID;
+          },
+        );
+        if (keyShareDataIndex === -1) return error("error", 400);
+        const keyShareData =
+          data.EncryptedDataKeyShareKey[keyShareDataIndex][1];
+        return ok({
+          data: keyShareData as string,
+          sign: data.keyShareSign,
+          keyShareSignKey: keyShareKey.keyShareSignKey,
+          type: data.type,
+          keyShareSignKeySign: keyShareKey.keyShareSignSing,
+        });
+      },
+    );
+    singlend.on(
+      "noticeGetSharedData",
+      z.object({
+        id: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        const data = await KeyShareData.findOne({
+          id: query.id,
+        });
+        if (!data) return error("error", 400);
+        if (data.userName !== value.userInfo.userName) {
+          return error("error", 400);
+        }
+        const keyShareKey = await Session.findOne({
+          sessionid: data.sessionid,
+          deriveredSession: { $ne: value.sessionInfo.sessionid },
+        });
+        if (!keyShareKey) return error("error", 400);
+        await KeyShareData.updateOne({ id: query.id }, {
+          $push: {
+            deriveredSession: value.sessionInfo.sessionid,
+          }
+        });
+        return ok("ok");
+      },
+    );
     return singlend;
   },
 );

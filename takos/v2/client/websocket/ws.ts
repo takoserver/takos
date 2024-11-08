@@ -111,57 +111,57 @@ await subscribeMessage(redisch);
 export default app;
 
 app.get(
-    "/",
-    upgradeWebSocket((c) => {
-      return {
-        onOpen: (event, ws) => {
-            async function run() {
-              const sessionid = c.req.query("sessionid");
-              if (!sessionid) {
-                ws.close();
-                return;
-              }
-              const user = await Session.findOne({ sessionid: sessionid });
-              if (!user) {
-                ws.close();
-                return;
-              }
-              const wsSession = crypto.getRandomValues(new Uint32Array(1))[0]
-                .toString(16);
-              session.set(wsSession, {
-                ws,
-                sessionid,
-                userName: user.userName,
-                encrypted: user.encrypted,
-              });
-              ws.send(JSON.stringify({
-                type: "session",
-                sessionid: wsSession,
-              }));
-            }
-            run();
-          },
-          onMessage: (event, ws) => {
-            const dataString = event.data.toString();
-            const data: {
-              type: string;
-              sessionid: string;
-              data: any;
-            } = JSON.parse(dataString);
-            const sessionData = session.get(data.sessionid);
-            if (!sessionData) {
-              return;
-            }
-          },
-          onClose: (event, ws) => {
-            const sessionData = Array.from(session.entries()).find(([_, value]) =>
-              value.ws === ws
-            );
-            if (!sessionData) {
-              return;
-            }
-            session.delete(sessionData[0]);
-          },
-      };
-    }),
+  "/",
+  upgradeWebSocket((c) => {
+    return {
+      onOpen: (event, ws) => {
+        async function run() {
+          const sessionid = c.req.query("sessionid");
+          if (!sessionid) {
+            ws.close();
+            return;
+          }
+          const user = await Session.findOne({ sessionid: sessionid });
+          if (!user) {
+            ws.close();
+            return;
+          }
+          const wsSession = crypto.getRandomValues(new Uint32Array(1))[0]
+            .toString(16);
+          session.set(wsSession, {
+            ws,
+            sessionid,
+            userName: user.userName,
+            encrypted: user.encrypted,
+          });
+          ws.send(JSON.stringify({
+            type: "session",
+            sessionid: wsSession,
+          }));
+        }
+        run();
+      },
+      onMessage: (event, ws) => {
+        const dataString = event.data.toString();
+        const data: {
+          type: string;
+          sessionid: string;
+          data: any;
+        } = JSON.parse(dataString);
+        const sessionData = session.get(data.sessionid);
+        if (!sessionData) {
+          return;
+        }
+      },
+      onClose: (event, ws) => {
+        const sessionData = Array.from(session.entries()).find(([_, value]) =>
+          value.ws === ws
+        );
+        if (!sessionData) {
+          return;
+        }
+        session.delete(sessionData[0]);
+      },
+    };
+  }),
 );
