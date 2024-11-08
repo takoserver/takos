@@ -72,6 +72,9 @@ import {
   DecryptDataKeyShareKey,
   EncryptDataKeyShareKey,
 } from "./lib/encrypt/keyShareKey.ts";
+
+import { generateServerKey, signData, verifyData } from "./lib/serverKey.ts";
+
 export {
   DecryptDataAccountKey,
   decryptDataDeviceKey,
@@ -118,4 +121,7 @@ export {
   verifyDataKeyShareKey,
   verifyDataMasterKey,
   verifyDataMigrateSignKey,
+  generateServerKey,
+  signData,
+  verifyData,
 };
