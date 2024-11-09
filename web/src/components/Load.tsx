@@ -1,12 +1,15 @@
 import { useAtom, useSetAtom } from "solid-jotai";
 import {
+  birthdayState,
   deviceKeyState,
   domainState,
   EncryptedSessionState,
+  iconState,
   IdentityKeyAndAccountKeyState,
   loadState,
   loginState,
   MasterKeyState,
+  nicknameState,
   sessionidState,
   setUpState,
   webSocketState,
@@ -81,6 +84,9 @@ export function Load() {
   const [sessionId, setSessionid] = useAtom(sessionidState);
   const [migrateKeyPrivate] = useAtom(migrateKeyPrivateState);
   const [migrateSignKeyPublic] = useAtom(migrateSignKeyPublicState);
+  const setIcon = useSetAtom(iconState);
+  const setNickname = useSetAtom(nicknameState);
+  const setBirthday = useSetAtom(birthdayState);
   const handleSessionFailure = () => {
     setLogin(false);
     setLoad(true);
@@ -243,6 +249,15 @@ export function Load() {
           setLogin(false);
           setLoad(true);
           setEncryptedSession(false);
+        }
+        const profile = await requester(serverDomain, "getProfile", {
+          sessionid,
+        });
+        if (profile.status === 200) {
+          const response = await profile.json();
+          setIcon(response.icon);
+          setNickname(response.nickName);
+          setBirthday(response.birthday);
         }
         const websocket = new WebSocket(
           `wss://${domain()}/takos/v2/client/ws?sessionid=${sessionId()}`,

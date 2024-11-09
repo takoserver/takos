@@ -1,19 +1,3 @@
-import { useEffect, useState } from "preact/hooks";
-import { AppStateType } from "../util/types.ts";
-import {
-  createRoomKey,
-  encryptDataDeviceKey,
-  encryptWithAccountKey,
-  generateKeyHashHexJWK,
-  isValidAccountKey,
-  isValidIdentityKeySign,
-  isValidMasterKeyTimeStamp,
-  MasterKeyPub,
-  signData,
-} from "@takos/takos-encrypt-ink";
-import { isFragment } from "https://esm.sh/v128/preact@10.19.6/compat/src/index.js";
-import { createTakosDB, saveToDbAllowKeys } from "../util/idbSchama.ts";
-
 // Define the InputProps interface for type-checking
 interface InputProps {
   value: string;
@@ -22,7 +6,7 @@ interface InputProps {
 }
 
 // Define the RegisterForm component
-export default function RegisterForm({ state }: { state: AppStateType }) {
+export default function RegisterForm() {
   const [showModal, setShowModal] = useState(false);
   const [value, setValue] = useState("");
 
@@ -93,16 +77,13 @@ function Input(
 }
 
 // Define the VideoList component
-const VideoList = (
-  { state }: { state: AppStateType },
-) => {
+const VideoList = () => {
   const [items, setItems] = useState<{
     requesterId: string;
     targetName: string;
     type: string;
     uuid: string;
   }[]>([]);
-
   useEffect(() => {
     const fetchData = async () => {
       const res = await fetch("/takos/v2/client/friends/requestList");
@@ -132,137 +113,7 @@ const VideoList = (
                       userName={video.requesterId}
                       type={video.type}
                       acceptOnClick={async () => {
-                        const latestIdentityAndAccountKeys =
-                          state.IdentityKeyAndAccountKeys.value[0];
-                        const keys = await fetch(
-                          `/takos/v2/client/users/keys?userId=${video.requesterId}?latest=true`,
-                        ).then((res) => res.json());
-                        const userMasterKey: MasterKeyPub = keys.masterKey;
-                        const db = await createTakosDB();
-                        const isRegioned = await db.get(
-                          "allowKeys",
-                          await generateKeyHashHexJWK(
-                            keys.masterKey,
-                          ),
-                        );
-                        if (!isRegioned) {
-                          const verifyMasterKeyValid =
-                            isValidMasterKeyTimeStamp(
-                              userMasterKey,
-                            );
-                          if (!verifyMasterKeyValid) {
-                            alert("エラーが発生しました2");
-                            return;
-                          }
-                          const date = userMasterKey.timestamp;
-
-                          await saveToDbAllowKeys(
-                            await generateKeyHashHexJWK(
-                              keys.masterKey,
-                            ),
-                            video.requesterId,
-                            "recognition",
-                            date,
-                            state,
-                            true,
-                          );
-                        }
-                        // 一つ次に新しいmasterKeyをidbから取得
-                        const allowedMasterKeys = await db.getAll(
-                          "allowKeys",
-                        );
-                        const userMasterKeys = allowedMasterKeys.filter(
-                          (data) => data.allowedUserId === video.requesterId,
-                        );
-                        const thisMasterKeyTimeString = (userMasterKeys.find(
-                          async (data) =>
-                            data.keyHash ===
-                              await generateKeyHashHexJWK(userMasterKey),
-                        ))?.timestamp;
-                        if (!thisMasterKeyTimeString) {
-                          alert("エラーが発生しました2");
-                          return;
-                        }
-                        //新しい順にuserMasterKeysを並び替え
-                        userMasterKeys.sort((a, b) => {
-                          return new Date(b.timestamp).getTime() -
-                            new Date(a.timestamp).getTime();
-                        });
-                        //thisMasterKeyTimeのインデックスを取得
-                        const thisMasterKeyIndex = userMasterKeys.findIndex(
-                          (data) => data.timestamp === thisMasterKeyTimeString,
-                        );
-                        //一つ次に新しいmasterKeyを取得
-                        const nextMasterKey =
-                          userMasterKeys[thisMasterKeyIndex - 1];
-                        if (nextMasterKey) {
-                          const nextMasterKeyTime = new Date(
-                            nextMasterKey.timestamp,
-                          );
-                          const identityKeyTime = keys.keys.timestamp;
-                          if (nextMasterKeyTime < identityKeyTime) {
-                            alert("エラーが発生しました3");
-                            return;
-                          }
-                        }
-                        if (
-                          !isValidIdentityKeySign(
-                            userMasterKey,
-                            keys.keys.identityKey,
-                          )
-                        ) {
-                          alert("エラーが発生しました4");
-                          return;
-                        }
-                        if (
-                          !isValidAccountKey(
-                            keys.keys.identityKey,
-                            keys.keys.accountKey,
-                          )
-                        ) {
-                          alert("エラーが発生しました5");
-                          return;
-                        }
-                        const roomKey = await createRoomKey(
-                          latestIdentityAndAccountKeys.identityKey,
-                        );
-                        const encryptedRoomKey = await encryptWithAccountKey(
-                          keys.keys.accountKey,
-                          JSON.stringify(roomKey),
-                        );
-                        const encryptedRoomKeyForMe =
-                          await encryptWithAccountKey(
-                            state.IdentityKeyAndAccountKeys.value[0].accountKey
-                              .public,
-                            JSON.stringify(roomKey),
-                          );
-                        const res = await fetch(
-                          "/takos/v2/client/friends/accept",
-                          {
-                            method: "POST",
-                            headers: {
-                              "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify({
-                              uuid: video.uuid,
-                              roomKey: [{
-                                userId: video.requesterId,
-                                key: encryptedRoomKey,
-                              }, {
-                                userId: state.userId.value,
-                                key: encryptedRoomKeyForMe,
-                              }],
-                              hashHex: roomKey.hashHex,
-                            }),
-                          },
-                        );
-                        const data = await res.json();
-                        if (data.status === false) {
-                          alert("エラーが発生しました6");
-                        } else {
-                          alert("リクエストを承認しました");
-                        }
-                        console.log(data);
+                        //
                       }}
                       rejectOnClick={() => {
                         alert("まだ対応してません");

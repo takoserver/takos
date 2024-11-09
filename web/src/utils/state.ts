@@ -52,3 +52,7 @@ export const isValidInputState = atom<boolean>(false);
 
 export const domainState = atom<string | null>();
 export const sessionidState = atom<string | null>();
+
+export const iconState = atom<string | null>();
+export const nicknameState = atom<string | null>();
+export const birthdayState = atom<string | null>();

@@ -372,7 +372,7 @@ singlend.group(
         });
         if (!keyShareKey) return error("error", 400);
         const keyShareDataIndex = data.EncryptedDataKeyShareKey.findIndex(
-          (keyShareData) => {
+          (keyShareData: any) => {
             return keyShareData[0] === value.sessionInfo.sessionUUID;
           },
         );
@@ -412,6 +412,17 @@ singlend.group(
           }
         });
         return ok("ok");
+      },
+    );
+    singlend.on(
+      "getProfile",
+      z.object({}),
+      (_query, value, ok) => {
+        return ok({
+          nickName: value.userInfo.nickName,
+          icon: value.userInfo.icon,
+          birthday: value.userInfo.birthday,
+        });
       },
     );
     return singlend;

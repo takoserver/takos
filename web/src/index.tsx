@@ -34,6 +34,10 @@ const routes = [
     path: "/setting",
     component: () => <App page="setting" />,
   },
+  {
+    path: "/notification",
+    component: () => <App page="notification" />,
+  }
 ];
 
 render(() => <Router>{routes}</Router>, root!);

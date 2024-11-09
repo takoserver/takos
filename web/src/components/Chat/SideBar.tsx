@@ -23,6 +23,7 @@ import {
 } from "@takos/takos-encrypt-ink";
 import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "../popUpFrame";
 import { createSignal } from "solid-js";
+import { checkUserName } from "../../../../takos/utils/checks";
 export function SideBer() {
   const [page] = useAtom(pageState);
 
@@ -30,9 +31,56 @@ export function SideBer() {
     <>
       {page() === "home" && <Home />}
       {page() === "setting" && <Setting />}
+      {page() === "friend" && <Friend />}
+      {page() === "notification" && <Notification />}
     </>
   );
 }
+
+
+function Friend() {
+  const [addFriendByIdFormOpen, setAddFriendByIdFormOpen] = createSignal(false);
+  const [addFriendByIdFormInput, setAddFriendByIdFormInput] = createSignal("");
+  return (
+    <>
+    <button
+    onClick={() => {
+      setAddFriendByIdFormOpen(true);
+    }}
+    >
+      友達をidで追加
+    </button>
+    {addFriendByIdFormOpen() && (
+      <PopUpFrame closeScript={setAddFriendByIdFormOpen}>
+        <div>
+          <PopUpTitle>友達をidで追加</PopUpTitle>
+          <PopUpInput type="text" placeholder="id" state={setAddFriendByIdFormInput} />
+          <button
+          class="w-full mt-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onClick={() => {
+            if(!checkUserName(addFriendByIdFormInput())) {
+              alert("idが不正です");
+              return;
+            }
+            
+          }}
+          >追加</button>
+        </div>
+      </PopUpFrame>
+    )}
+    </>
+  );
+}
+
+function Notification() {
+  return (
+    <div>
+      <h1>Notification</h1>
+    </div>
+  );
+}
+
+
 
 function Setting() {
   const [domain] = useAtom(domainState);
