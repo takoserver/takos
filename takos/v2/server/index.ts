@@ -4,10 +4,12 @@ import { Singlend } from "@evex/singlend";
 import { cors } from "hono/cors";
 import serverKey from "../../models/serverKey.ts";
 import { verifyData } from "@takos/takos-encrypt-ink";
+import { verifyDataServer } from "../../utils/requesterServer.ts";
+import requestDB from "../../models/request.ts";
+import { splitUserName } from "../../utils/utils.ts";
+import { getTimestampFromUUIDv7 } from "../../utils/uuidToTimeStamp.ts";
 const app = new Hono();
 const singlend = new Singlend();
-
-
 
 singlend.on(
     "getServerKey",
@@ -28,33 +30,53 @@ singlend.on(
 singlend.group(
     z.object({
         signature: z.string(),
-        signedKeytimestamp: z.string(),
-        request: z.string()
+        request: z.string(),
+        keyTimestamp: z.string(),
+        keyExpire: z.string(),
+        serverDomain: z.string(),
     }),
     async (query, next, error) => {
-        const key = await serverKey.findOne({
-            timestamp: query.signedKeytimestamp
-        })
-        if (!key) {
-            return error("aaa", 500);
+        const verify = await verifyDataServer(query);
+        if(verify[0]) {
+            return next({
+                request: verify[1],
+                serverDomain: query.serverDomain,
+            });
         }
-        if(new Date(key.expire) < new Date()) {
-            return error("aaa", 500);
-        }
-        if(!verifyData(query.request, query.signature, key.public)) {
-            return error("aaa", 500);
-        }
-        const request = JSON.parse(query.request);
-        return next({
-            request
-        });
+        return error("error", 500);
     },
     (singlend) =>{
         singlend.on(
             "requestFriend",
             z.object({}),
-            (query, value, ok) => {
-                return ok("test");
+            async (query, value, ok) => {
+                if(await requestDB.findOne({
+                    sender: value.request.sender,
+                    receiver: value.request.receiver,
+                    type: "friendRequest",
+                })) {
+                    return ok("already requested");
+                }
+                const { domain: userDoamin } = splitUserName(value.request.requestid)
+                const { domain: idDomain, userName: uuidv7 } = splitUserName(value.request.id)
+                const serverDomain = query.serverDomain;
+                if(userDoamin !== serverDomain || idDomain !== serverDomain) {
+                    return ok("not same domain");
+                }
+                const timestamp = new Date(getTimestampFromUUIDv7(uuidv7)).getTime();
+                if(timestamp < new Date().getTime() - 5 * 60 * 1000) {
+                    return ok("timeout");
+                }
+                await requestDB.create({
+                    id: value.request.id,
+                    sender: value.request.sender,
+                    receiver: value.request.receiver,
+                    type: "friendRequest",
+                    query: value.request.query,
+                });
+                return ok({
+                    status: true,
+                });
             }
         )
         singlend.on(

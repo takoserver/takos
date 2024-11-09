@@ -41,6 +41,7 @@ export function SideBer() {
 function Friend() {
   const [addFriendByIdFormOpen, setAddFriendByIdFormOpen] = createSignal(false);
   const [addFriendByIdFormInput, setAddFriendByIdFormInput] = createSignal("");
+  const [domain] = useAtom(domainState);
   return (
     <>
     <button
@@ -57,12 +58,14 @@ function Friend() {
           <PopUpInput type="text" placeholder="id" state={setAddFriendByIdFormInput} />
           <button
           class="w-full mt-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          onClick={() => {
-            if(!checkUserName(addFriendByIdFormInput())) {
-              alert("idが不正です");
-              return;
-            }
-            
+          onClick={async () => {
+            const server = domain();
+            if (!server) return;
+            console.log()
+            const res = await requester(server, "requestFriend", {
+              sessionid: localStorage.getItem("sessionid"),
+              userName: addFriendByIdFormInput(),
+            });
           }}
           >追加</button>
         </div>

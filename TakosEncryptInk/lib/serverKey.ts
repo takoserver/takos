@@ -15,12 +15,12 @@ function generateServerKey(): {
 
 function signData (data: string, secretKey: string): string {
     const key = base64ToArrayBuffer(secretKey)
-    return arrayBufferToBase64(ml_dsa65.sign(new TextEncoder().encode(data), new Uint8Array(key)))
+    return arrayBufferToBase64(ml_dsa65.sign(new Uint8Array(key),new TextEncoder().encode(data)))
 }
 
 function verifyData (data: string, signature: string, publicKey: string): boolean {
     const key = base64ToArrayBuffer(publicKey)
-    return ml_dsa65.verify(new TextEncoder().encode(data), new Uint8Array(base64ToArrayBuffer(signature)), new Uint8Array(key))
+    return ml_dsa65.verify(new Uint8Array(key),new TextEncoder().encode(data), new Uint8Array(base64ToArrayBuffer(signature)))
 }
 
 export { generateServerKey, signData, verifyData }

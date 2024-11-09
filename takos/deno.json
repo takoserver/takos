@@ -14,6 +14,7 @@
     "mongoose": "npm:mongoose@^8.7.2",
     "nodemailer": "npm:nodemailer@^6.9.15",
     "redis": "npm:redis@^4.7.0",
+    "uuidv7": "npm:uuidv7@^1.0.2",
     "zod": "npm:zod@^3.23.8"
   }
 }

@@ -125,7 +125,7 @@ export function Load() {
   };
 
   const processSessionInfo = async (response: any) => {
-    console.log(response);
+    console.log(response, "response");
     const db = await createTakosDB();
     const deviceKey = response.deviceKey;
     const encryptedMasterKey = localStorageEditor.get("masterKey");
@@ -246,7 +246,7 @@ export function Load() {
           processSessionInfo(response);
         } else {
           setSetUp(response.setuped);
-          setLogin(false);
+          setLogin(true);
           setLoad(true);
           setEncryptedSession(false);
         }

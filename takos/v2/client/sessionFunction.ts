@@ -5,6 +5,7 @@ import Session from "../../models/sessions.ts";
 import KeyShareData from "../../models/keyShareData.ts";
 import Keys from "../../models/keys.ts";
 import pubClient from "../../utils/pubClient.ts";
+import { uuidv7 } from "uuidv7";
 import {
   isValidAccountPublicKey,
   isValidIdentityPublicKey,
@@ -27,6 +28,10 @@ import {
 import { checkNickName } from "../../utils/checks.ts";
 import MigrateData from "../../models/migrateData.ts";
 import Key from "../../models/keys.ts";
+import { splitUserName } from "../../utils/utils.ts";
+import env from "../../utils/env.ts";
+import { requesterServer } from "../../utils/requesterServer.ts";
+import requestDB from "../../models/request.ts";
 const singlend = new Singlend();
 
 singlend.group(
@@ -425,6 +430,52 @@ singlend.group(
         });
       },
     );
+    singlend.on(
+      "requestFriend",
+      z.object({
+        userName: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        const { userName: _userName, domain } = splitUserName(query.userName);
+        if(await requestDB.findOne({sender: query.userName, receiver: value.userInfo.userName})) {
+          return error("error", 400);
+        }
+        const requestid = uuidv7() + "@" + env["DOMAIN"]
+        if(domain !== env["DOMAIN"]) {
+          console.log("requestRemoteServer")
+          const requestRemoteServer = await requesterServer(
+            domain,
+            JSON.stringify({
+              type: "requestFriend",
+              data: {
+                sender: value.userInfo.userName,
+                receiver: query.userName,
+                uuid: requestid,
+              },
+            }),
+          )
+          if(requestRemoteServer.status) {
+            await requestDB.create({
+              id: requestid,
+              sender: value.userInfo.userName,
+              receiver: query.userName,
+              type: "friendRequest",
+              query: "",
+            });
+            return ok("ok");
+          }
+          return error("error", 400);
+        }
+        await requestDB.create({
+          id: requestid,
+          sender: value.userInfo.userName,
+          receiver: query.userName,
+          type: "friendRequest",
+          query: "",
+        })
+        return ok("ok");
+      },
+    )
     return singlend;
   },
 );
