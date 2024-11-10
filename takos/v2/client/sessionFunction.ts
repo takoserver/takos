@@ -32,6 +32,11 @@ import { splitUserName } from "../../utils/utils.ts";
 import env from "../../utils/env.ts";
 import { requesterServer } from "../../utils/requesterServer.ts";
 import requestDB from "../../models/request.ts";
+import Friend from "../../models/Friend.ts";
+import Group from "../../models/group.ts";
+import Message from "../../models/message.ts";
+import message from "../../models/message.ts";
+import RoomKey from "../../models/roomKey.ts";
 const singlend = new Singlend();
 
 singlend.group(
@@ -150,6 +155,8 @@ singlend.group(
           accountKey: query.accountKey,
           keyHash: keyHashResult,
           timestamp: idenTImestamp,
+          idenSign: query.identityKeySign,
+          accSign: query.accountKeySign,
         });
         return ok("ok");
       },
@@ -319,6 +326,8 @@ singlend.group(
         sign: z.string(),
         identityKeyPublic: z.string(),
         accountKeyPublic: z.string(),
+        idenSign: z.string(),
+        accSign: z.string(),
       }),
       async (query, value, ok, error) => {
         if (!isValidSign(query.sign)) return error("error1", 400);
@@ -326,12 +335,20 @@ singlend.group(
           !isValidIdentityPublicKey(query.identityKeyPublic) ||
           !isValidAccountPublicKey(query.accountKeyPublic)
         ) return error("error2", 400);
+        if(!verifyDataMasterKey(query.identityKeyPublic, value.userInfo.masterKey!, query.idenSign)) {
+          return error("error6", 400);
+        }
+        if(!verifyDataIdentityKey(query.accountKeyPublic, query.identityKeyPublic, query.accSign)) {
+          return error("error7", 400);
+        }
         await Keys.create({
           userName: value.userInfo.userName,
           identityKey: query.identityKeyPublic,
           accountKey: query.accountKeyPublic,
           keyHash: await keyHash(query.identityKeyPublic),
           timestamp: (JSON.parse(query.identityKeyPublic)).timestamp,
+          idenSign: query.idenSign,
+          accSign: query.accSign,
         });
         const keyShareData: [string, string][] = [];
         for (const data of query.sharedData) {
@@ -437,7 +454,9 @@ singlend.group(
       }),
       async (query, value, ok, error) => {
         const { userName: _userName, domain } = splitUserName(query.userName);
-        if(await requestDB.findOne({sender: query.userName, receiver: value.userInfo.userName})) {
+        if(await requestDB.findOne({sender: query.userName, receiver: value.userInfo.userName + "@" + env["DOMAIN"], type: "friendRequest"}) ||
+        await requestDB.findOne({sender: value.userInfo.userName + "@" + env["DOMAIN"], receiver: query.userName, type: "friendRequest"})
+        ) {
           return error("error", 400);
         }
         const requestid = uuidv7() + "@" + env["DOMAIN"]
@@ -445,19 +464,18 @@ singlend.group(
           console.log("requestRemoteServer")
           const requestRemoteServer = await requesterServer(
             domain,
+            "requestFriend",
             JSON.stringify({
-              type: "requestFriend",
-              data: {
-                sender: value.userInfo.userName,
+                sender: value.userInfo.userName + "@" + env["DOMAIN"],
                 receiver: query.userName,
-                uuid: requestid,
-              },
-            }),
+                id: requestid,
+            })
           )
+          console.log(requestRemoteServer)
           if(requestRemoteServer.status) {
             await requestDB.create({
               id: requestid,
-              sender: value.userInfo.userName,
+              sender: value.userInfo.userName + "@" + env["DOMAIN"],
               receiver: query.userName,
               type: "friendRequest",
               query: "",
@@ -468,7 +486,7 @@ singlend.group(
         }
         await requestDB.create({
           id: requestid,
-          sender: value.userInfo.userName,
+          sender: value.userInfo.userName + "@" + env["DOMAIN"],
           receiver: query.userName,
           type: "friendRequest",
           query: "",
@@ -476,6 +494,374 @@ singlend.group(
         return ok("ok");
       },
     )
+    singlend.on(
+      "acceptFriend",
+      z.object({
+        id: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        const requestDatas = await requestDB.findOne({id: query.id, receiver: value.userInfo.userName + "@" + env["DOMAIN"], type: "friendRequest"});
+        if(!requestDatas) return error("error1", 400);
+        const { domain } = splitUserName(requestDatas.sender);
+        if(domain !== env["DOMAIN"]) {
+          const requestRemoteServer = await requesterServer(
+            domain,
+            "acceptFriend",
+            JSON.stringify({
+                id: query.id,
+            })
+          )
+          if(requestRemoteServer.status) {
+            await Friend.create({
+              userName: value.userInfo.userName + "@" + env["DOMAIN"],
+              friendId: requestDatas.sender,
+            });
+            await requestDB.deleteOne({id: query.id});
+            return ok("ok");
+          }
+          console.log(requestRemoteServer)
+          return error("error2", 400);
+        }
+        await Friend.create({
+          userName: value.userInfo.userName + "@" + env["DOMAIN"],
+          friendId: requestDatas.sender,
+        });
+        await Friend.create({
+          userName: requestDatas.sender,
+          friendId: value.userInfo.userName + "@" + env["DOMAIN"],
+        });
+        await requestDB.deleteOne({id: query.id});
+        return ok("ok");
+      }
+    )
+    singlend.on(
+      "getNotification",
+      z.object({}),
+      async (_query, value, ok, error) => {
+        const requestDatas = await requestDB.find({receiver: value.userInfo.userName + "@" + env["DOMAIN"], type: "friendRequest"});
+        const result = requestDatas.map((data) => {
+          return {
+            id: data.id,
+            sender: data.sender,
+            type: data.type,
+          }
+        })
+        return ok({
+          request: result,
+        })
+      }
+    )
+    singlend.on(
+      "getTalkList",
+      z.object({}),
+      async (_query, value, ok, error) => {
+        const friends = await Friend.find({userName: value.userInfo.userName + "@" + env["DOMAIN"]});
+        const groups = await Group.find({members: value.userInfo.userName});
+        const friendResult = await Promise.all(friends.map(async (data) => {
+          const messageLatest = await Message.findOne({
+              type: "friend",
+              friend: {
+                $all: [data.userName, data.friendId],
+              }
+          }).sort({timestamp: -1});
+          if(!messageLatest) {
+            return {
+              roomName: data.friendId,
+              type: "friend",
+              timestamp: data.timestamp,
+              roomid: data.userName + "-" + data.friendId,
+            }
+          }
+          return {
+            roomName: data.friendId,
+            type: "friend",
+            timestamp: messageLatest.timestamp,
+            roomid: data.userName + "-" + data.friendId,
+          }
+        }))
+        const groupResult = await Promise.all(groups.map(async (data) => {
+          const messageLatest = await Message.findOne({
+              type: "group",
+              roomid: data.uuid
+          }).sort({timestamp: -1});
+          if(!messageLatest) {
+            return {
+              roomName: data.uuid,
+              type: "group",
+              timestamp: data.timestamp,
+              roomid: data.uuid,
+            }
+          }
+          return {
+            roomName: data.uuid,
+            type: "group",
+            timestamp: messageLatest.timestamp,
+            roomid: data.uuid,
+          }
+        }))
+        return ok({
+          talkList: (friendResult.concat(groupResult)).sort((a, b) => {
+            return a.timestamp > b.timestamp ? -1 : 1;
+          })
+        })
+      })
+    singlend.on(
+      "getFriendIcon",
+      z.object({
+        userName: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        const { domain, userName } = splitUserName(query.userName);
+        if(!Friend.findOne({userName: value.userInfo.userName + "@" + env["DOMAIN"], friendId: query.userName})) {
+          return error("error", 400);
+        }
+        if(domain !== env["DOMAIN"]) {
+          const requestRemoteServer = await requesterServer(
+            domain,
+            "getFriendIcon",
+            JSON.stringify({
+                userName: query.userName,
+                requester: value.userInfo.userName + "@" + env["DOMAIN"],
+            })
+          )
+          if(requestRemoteServer.status) {
+            return ok({
+              icon: requestRemoteServer.icon,
+            });
+          }
+          return error("error", 400);
+        }
+        const friend = await User.findOne({userName});
+        if(!friend) return error("error", 400);
+        if(!friend.icon) return error("error", 400);
+        return ok({
+          icon: friend.icon,
+        });
+      }
+    )
+    singlend.on(
+      "getFriendNickName",
+      z.object({
+        userName: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        const { domain, userName } = splitUserName(query.userName);
+        if(!Friend.findOne({userName: value.userInfo.userName + "@" + env["DOMAIN"], friendId: query.userName})) {
+          return error("error1", 400);
+        }
+        if(domain !== env["DOMAIN"]) {
+          const requestRemoteServer = await requesterServer(
+            domain,
+            "getFriendNickName",
+            JSON.stringify({
+                userName: query.userName,
+                requester: value.userInfo.userName + "@" + env["DOMAIN"],
+            })
+          )
+          if(requestRemoteServer.status) {
+            return ok({
+              nickName: requestRemoteServer.nickName,
+            });
+          }
+          return error("error2", 400);
+        }
+        const friend = await User.findOne({userName});
+        if(!friend) return error("error3", 400);
+        if(!friend.nickName) return error("error4", 400);
+        return ok({
+          nickName: friend.nickName,
+        });
+      }
+    )
+    singlend.on(
+      "updateRoomKey",
+      z.object({
+        type: z.string(),
+        roomid: z.string(),
+        sign: z.string(),
+        encryptedKey: z.array(z.any()),
+      }),
+      async (query, value, ok, error) => {
+        const validateFriendRoom = async () => {
+          const [user, friend] = query.roomid.split("-");
+          if (user !== value.userInfo.userName + "@" + env["DOMAIN"]) return error("error1", 400);
+          if (!await Friend.findOne({ userName: user, friendId: friend })) return error("error2", 400);
+          const users = [user, friend];
+          for (const encryptedKey of query.encryptedKey) {
+            const userId = encryptedKey[0];
+            if (!users.includes(userId)) return error("error3", 400);
+            users.splice(users.indexOf(userId), 1);
+          }
+          return users.length === 0;
+        };
+
+        const validateGroupRoom = async () => {
+          const group = await Group.findOne({ uuid: query.roomid });
+          if (!group) return error("error4", 400);
+          if (!group.members.includes(value.userInfo.userName)) return error("error5", 400);
+          const users = group.members;
+          for (const encryptedKey of query.encryptedKey) {
+            if (!users.includes(encryptedKey[0])) return error("error6", 400);
+            users.splice(users.indexOf(encryptedKey[0]), 1);
+          }
+          return users.length === 0;
+        };
+
+        const isValid = query.type === "friend" ? await validateFriendRoom() : query.type === "group" ? await validateGroupRoom() : false;
+        if (!isValid) return error("error7", 400);
+        await RoomKey.create({
+          roomid: query.roomid,
+          type: query.type,
+          roomKey: query.encryptedKey,
+          sign: query.sign,
+        });
+        return ok("ok");
+      }
+    );
+    singlend.on(
+      "getLatestMyRoomKey",
+      z.object({
+        roomid: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        const roomKey = await RoomKey.findOne({
+          roomid: query.roomid,
+          type: "friend",
+        }).sort({ timestamp: -1 });
+        if (!roomKey) return ok({
+          encryptedKey: null,
+          status: false,
+        });
+        const encryptedkey = roomKey.roomKey.find((data) => {
+          return data[0] === value.userInfo.userName + "@" + env["DOMAIN"];
+        });
+        if (!encryptedkey) return error("error", 400);
+        return ok({
+          encryptedKey: encryptedkey[1] as string,
+          status: true,
+        });
+      }
+    );
+    singlend.on(
+      "getRoomKey",
+      z.object({
+        roomid: z.string(),
+        keyHash: z.string(),
+        userId: z.string(),
+        type: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        if(query.type === "friend") {
+          const [user, friend] = query.roomid.split("-");
+          if (user !== value.userInfo.userName + "@" + env["DOMAIN"]) return error("error1", 400);
+          if (!await Friend.findOne({ userName: user, friendId: friend })) return error("error2", 400);
+          if(query.userId == friend) {
+            const { userName: _, domain } = splitUserName(friend);
+            if(domain !== env["DOMAIN"]) {
+              const requestRemoteServer = await requesterServer(
+                domain,
+                "getRoomKey",
+                JSON.stringify({
+                    roomid: friend + "-" + user,
+                    keyHash: query.keyHash,
+                    userId: query.userId,
+                    type: "friend",
+                    requester: value.userInfo.userName + "@" + env["DOMAIN"],
+                })
+              )
+              if(requestRemoteServer.status) {
+                return ok({
+                  encryptedKey: requestRemoteServer.encryptedKey,
+                });
+              }
+              return error("error3", 400);
+            }
+            const roomKey = await RoomKey.findOne({
+              roomid: friend + "-" + user,
+              type: "friend",
+            }).sort({ timestamp: -1 });
+            if (!roomKey) return error("error3", 400);
+            const encryptedkey = roomKey.roomKey.find((data) => {
+              return data[0] === query.userId;
+            });
+            if (!encryptedkey) return error("error4", 400);
+            return ok({
+              encryptedKey: encryptedkey[1] as string,
+            });
+          } else if(query.userId == user) {
+            const roomKey = await RoomKey.findOne({
+              roomid: user + "-" + friend,
+              type: "friend",
+            }).sort({ timestamp: -1 });
+            if (!roomKey) return error("error5", 400);
+            const encryptedkey = roomKey.roomKey.find((data) => {
+              return data[0] === query.userId;
+            });
+            if (!encryptedkey) return error("error6", 400);
+            return ok({
+              encryptedKey: encryptedkey[1] as string,
+            });
+          } else {
+            return error("error3", 400);
+          }
+        } else if(query.type === "group") {
+          const group = await Group.findOne({ uuid: query.roomid });
+          if (!group) return error("error7", 400);
+          if (!group.members.includes(value.userInfo.userName)) return error("error8", 400);
+          if (!group.members.includes(query.userId)) return error("error9", 400);
+          const { userName: _, domain } = splitUserName(query.userId);
+          if(domain == env["DOMAIN"]) {
+            const roomKey = await RoomKey.findOne({
+              roomid: query.roomid,
+              type: "group",
+            }).sort({ timestamp: -1 });
+            if (!roomKey) return error("error10", 400);
+            const encryptedkey = roomKey.roomKey.find((data) => {
+              return data[0] === query.userId;
+            });
+            if (!encryptedkey) return error("error11", 400);
+            return ok({
+              encryptedKey: encryptedkey[1] as string,
+            });
+          } else {
+            const requestRemoteServer = await requesterServer(
+              domain,
+              "getRoomKey",
+              JSON.stringify({
+                  roomid: query.roomid,
+                  keyHash: query.keyHash,
+                  userId: query.userId,
+                  type: "group",
+              })
+            )
+            if(requestRemoteServer.status) {
+              return ok({
+                encryptedKey: requestRemoteServer.encryptedKey,
+              });
+            }
+            return error("error12", 400);
+          }
+        } else {
+          return error("error4", 400);
+        }
+      }
+    )
+    singlend.on(
+      "getIdentityKeyAndAccountKeySign",
+      z.object({
+        keyHash: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        const key = await Keys.findOne({
+          userName: value.userInfo.userName,
+          keyHash: query.keyHash,
+        });
+        if (!key) return error("error", 400);
+        return ok({
+          idenSign: key.idenSign,
+          accSign: key.accSign,
+        });
+      })
     return singlend;
   },
 );

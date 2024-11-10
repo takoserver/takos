@@ -6,7 +6,7 @@ export function ChangeURL() {
   const [page] = useAtom(pageState);
   const [load] = useAtom(loadState);
   createEffect(() => {
-    if(!load()) return;
+    if (!load()) return;
     const url = window.location.pathname;
     if (login()) {
       if (page() === "home" && url !== "/home") {

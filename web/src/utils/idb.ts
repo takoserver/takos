@@ -31,10 +31,25 @@ export interface TakosDB extends DBSchema {
       latest: boolean;
     };
   };
+  latestRoomKeyHash: {
+    key: string; // roomid
+    value: {
+      keyHash: string;
+      timestamp: string;
+      key?: string;
+    };
+  };
+  latestIdentityKeyHash: {
+    key: string; // userName
+    value: {
+      timestamp: string;
+      key?: string;
+    };
+  };
 }
 
 export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
-  return openDB<TakosDB>("takos-db", 7, {
+  return openDB<TakosDB>("takos-db", 9, {
     upgrade(db) {
       if (!db.objectStoreNames.contains("identityAndAccountKeys")) {
         db.createObjectStore("identityAndAccountKeys", {
@@ -48,6 +63,16 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
       }
       if (!db.objectStoreNames.contains("keyShareKeys")) {
         db.createObjectStore("keyShareKeys", {
+          keyPath: "key",
+        });
+      }
+      if (!db.objectStoreNames.contains("latestRoomKeyHash")) {
+        db.createObjectStore("latestRoomKeyHash", {
+          keyPath: "key",
+        });
+      }
+      if (!db.objectStoreNames.contains("latestIdentityKeyHash")) {
+        db.createObjectStore("latestIdentityKeyHash", {
           keyPath: "key",
         });
       }

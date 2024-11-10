@@ -65,7 +65,7 @@ function ThreeTitle() {
 }
 
 function Notification() {
-  return <h1 class="p-talk-list-title">通知</h1>
+  return <h1 class="p-talk-list-title">通知</h1>;
 }
 
 function One() {

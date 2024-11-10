@@ -1,5 +1,5 @@
 import ChatTalkTitle from "../islands/ChatTalkTitle.tsx";
-import ChatTalkContent from "../islands/ChatTalkContent.tsx";
+import ChatTalkContent from "../islands/ChatTalkContent.tsx
 import ChatSend from "../islands/ChatSend.tsx";
 import ChatTalkTitleContent from "../islands/ChatTalkTitleContent.tsx";
 import { AppStateType } from "../util/types.ts";

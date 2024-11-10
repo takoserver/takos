@@ -1,10 +1,16 @@
 import { inputMessageState, isValidInputState } from "../../utils/state";
 import { useAtom } from "solid-jotai";
+import { createSignal } from "solid-js";
+import { roomKeyState } from "../../utils/roomState";
 function ChatSend() {
   const [inputMessage, setInputMessage] = useAtom(inputMessageState);
   const [isValidInput, setIsValidInput] = useAtom(isValidInputState);
+  const [roomKey, setRoomKey] = useAtom(roomKeyState);
   const sendHandler = async () => {
   };
+  createSignal(() => {
+    setRoomKey([]);
+  });
   return (
     <div class="p-talk-chat-send">
       <form class="p-talk-chat-send__form">

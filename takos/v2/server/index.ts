@@ -8,6 +8,11 @@ import { verifyDataServer } from "../../utils/requesterServer.ts";
 import requestDB from "../../models/request.ts";
 import { splitUserName } from "../../utils/utils.ts";
 import { getTimestampFromUUIDv7 } from "../../utils/uuidToTimeStamp.ts";
+import env from "../../utils/env.ts";
+import Friend from "../../models/Friend.ts";
+import User from "../../models/users.ts";
+import RoomKey from "../../models/roomKey.ts";
+import Group from "../../models/group.ts";
 const app = new Hono();
 const singlend = new Singlend();
 
@@ -43,36 +48,61 @@ singlend.group(
                 serverDomain: query.serverDomain,
             });
         }
-        return error("error", 500);
+        return error({
+            error: "invalid signature",
+        }, 500);
     },
     (singlend) =>{
         singlend.on(
             "requestFriend",
             z.object({}),
             async (query, value, ok) => {
+                const request: {
+                    id: string,
+                    sender: string,
+                    receiver: string,
+                } = value.request
                 if(await requestDB.findOne({
-                    sender: value.request.sender,
-                    receiver: value.request.receiver,
+                    sender: request.sender,
+                    receiver: request.receiver,
                     type: "friendRequest",
                 })) {
-                    return ok("already requested");
+                    return ok({
+                        error: "already requested",
+                        status: false,
+                    });
                 }
-                const { domain: userDoamin } = splitUserName(value.request.requestid)
-                const { domain: idDomain, userName: uuidv7 } = splitUserName(value.request.id)
+                const { domain: userDoamin } = splitUserName(request.sender)
+                const { domain: idDomain, userName: uuidv7 } = splitUserName(request.id)
                 const serverDomain = query.serverDomain;
+                console.log(request)
                 if(userDoamin !== serverDomain || idDomain !== serverDomain) {
-                    return ok("not same domain");
+                    console.log("userDomain" + userDoamin,
+                        "serverDoamin" + serverDomain, "idDomain" + idDomain)
+                    return ok({
+                        error: "invalid domain",
+                        status: false,
+                    });
+                }
+                if(env["DOMAIN"] !== (splitUserName(request.receiver)).domain) {
+                    return ok({
+                        error: "invalid domain2",
+                        status: false,
+                    });
                 }
                 const timestamp = new Date(getTimestampFromUUIDv7(uuidv7)).getTime();
                 if(timestamp < new Date().getTime() - 5 * 60 * 1000) {
-                    return ok("timeout");
+                    return ok({
+                        error: "invalid timestamp",
+                        status: false,
+                    });
                 }
                 await requestDB.create({
-                    id: value.request.id,
-                    sender: value.request.sender,
-                    receiver: value.request.receiver,
+                    id: request.id,
+                    sender: request.sender,
+                    receiver: request.receiver,
                     type: "friendRequest",
-                    query: value.request.query,
+                    query: "",
                 });
                 return ok({
                     status: true,
@@ -82,7 +112,43 @@ singlend.group(
         singlend.on(
             "acceptFriend",
             z.object({}),
-            async (_query,value, ok, error) => {
+            async (_query, value, ok) => {
+                const request: {
+                    id: string,
+                } = value.request
+                const { domain: userDoamin } = splitUserName(request.id)
+                if(userDoamin !== env["DOMAIN"]) {
+                    return ok({
+                        error: "invalid domain",
+                        status: false,
+                    });
+                }
+                const requestDBData = await requestDB.findOne({
+                    id: request.id,
+                    type: "friendRequest",
+                });
+                if(!requestDBData) {
+                    return ok({
+                        error: "request not found",
+                        status: false,
+                    });
+                }
+                if(value.serverDomain !== splitUserName(requestDBData.receiver).domain) {
+                    return ok({
+                        error: "invalid domain2",
+                        status: false,
+                    });
+                }
+                await Friend.create({
+                    userName: requestDBData.sender,
+                    friendId: requestDBData.receiver,
+                })
+                await requestDB.deleteOne({
+                    id: request.id,
+                })
+                return ok({
+                    status: true,
+                });
             },
         );
         singlend.on(
@@ -121,6 +187,121 @@ singlend.group(
             async (_query, value, ok, error) => {
             },
         );
+        singlend.on(
+            "getFriendIcon",
+            z.object({}),
+            async (_query, value, ok, error) => {
+                const { domain: userDoamin } = splitUserName(value.request.requester)
+                if(userDoamin !== value.serverDomain) {
+                    return error("error", 400);
+                }
+                if(!Friend.findOne({userName: value.request.userName, friendId: value.request.requester })) {
+                    return error("error", 400);
+                }
+                const { userName } = splitUserName(value.request.userName)
+                const userInfo = await User.findOne({userName: userName});
+                if(!userInfo) {
+                    return error("error", 400);
+                }
+                return ok({
+                    icon: userInfo.icon,
+                    status: true,
+                });
+            },
+        )
+        singlend.on(
+            "getFriendNickName",
+            z.object({}),
+            async (_query, value, ok, error) => {
+                const { domain: userDoamin } = splitUserName(value.request.requester)
+                if(userDoamin !== value.serverDomain) {
+                    return error("error1", 400);
+                }
+                if(!Friend.findOne({userName: value.request.userName, friendId: value.request.requester })) {
+                    return error("error1", 400);
+                }
+                const { userName } = splitUserName(value.request.userName)
+                const userInfo = await User.findOne({userName: userName});
+                if(!userInfo) {
+                    return error("error", 400);
+                }
+                return ok({
+                    nickName: userInfo.nickName,
+                    status: true,
+                });
+            },
+        )
+        singlend.on(
+            "getRoomKey",
+            z.object({}),
+            async (_query, value, ok, error) => {
+                const request: {
+                    roomid: string
+                    keyHash: string
+                    userId: string
+                    type: "friend" | "group"
+                    requester: string
+                } = value.request;
+                const { domain: userDoamin } = splitUserName(request.requester)
+                if(userDoamin !== value.serverDomain) {
+                    return error("error", 400);
+                }
+                const { domain: friendDomain } = splitUserName(request.userId)
+                if(friendDomain !== env["DOMAIN"]) {
+                    return error("error", 400);
+                }
+                if(request.type === "friend") {
+                    if(!Friend.findOne({userName: request.userId, friendId: request.requester })) {
+                        return error("error", 400);
+                    }
+                    const roomKey = await RoomKey.findOne({
+                        roomid: request.roomid,
+                        keyHash: request.keyHash,
+                    });
+                    if(!roomKey) {
+                        return error("error", 400);
+                    }
+                    const encryptedkey = roomKey.roomKey.find((key) => {
+                        return key[0] === request.userId;
+                    });
+                    if(!encryptedkey) {
+                        return error("error", 400);
+                    }
+                    return ok({
+                        key: encryptedkey[1] as string,
+                        status: true,
+                    });
+                } else if(request.type === "group") {
+                    if(!Group.findOne({
+                        uuid: request.roomid,
+                        members: {
+                            $in: [request.userId, request.requester],
+                        }
+                    })) {
+                        return error("error", 400);
+                    }
+                    const roomKey = await RoomKey.findOne({
+                        roomid: request.roomid,
+                        keyHash: request.keyHash,
+                    });
+                    if(!roomKey) {
+                        return error("error", 400);
+                    }
+                    const encryptedkey = roomKey.roomKey.find((key) => {
+                        return key[0] === request.userId;
+                    });
+                    if(!encryptedkey) {
+                        return error("error", 400);
+                    }
+                    return ok({
+                        key: encryptedkey[1] as string,
+                        status: true,
+                    });
+                } else {
+                    return error("error", 400);
+                }
+            },
+        )
         return singlend
     }
 )

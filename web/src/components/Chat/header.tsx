@@ -1,12 +1,14 @@
 import { useAtom } from "solid-jotai";
 import HeaderButton from "./headerButton.tsx";
 import { iconState } from "../../utils/state.ts";
+import { isSelectRoomState } from "../../utils/roomState.ts";
 export default function ChatHeader() {
   const [icon] = useAtom(iconState);
+  const [isSelectRoom] = useAtom(isSelectRoomState);
   return (
     <>
       <header
-        class="l-header"
+        class={`l-header ${isSelectRoom() ? "is-inview" : ""}`}
         id="header"
       >
         <div class="l-header-logo">
@@ -68,23 +70,23 @@ export default function ChatHeader() {
             page={"notification"}
           >
             <a>
-            <svg
-            role="img"
-            xmlns="http://www.w3.org/2000/svg"
-            width="100%"
-            height="100%"
-            viewBox="0 0 24 24"
-            aria-labelledby="notificationIconTitle"
-            stroke="#ffffff"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            fill="none"
-          >
-            <title id="notificationIconTitle">Notification</title>
-            <path d="M12 22C13.6569 22 15 20.6569 15 19H9C9 20.6569 10.3431 22 12 22Z" />
-            <path d="M18 10V16L21 19H3L6 16V10C6 6.68629 8.68629 4 12 4C15.3137 4 18 6.68629 18 10Z" />
-          </svg>
+              <svg
+                role="img"
+                xmlns="http://www.w3.org/2000/svg"
+                width="100%"
+                height="100%"
+                viewBox="0 0 24 24"
+                aria-labelledby="notificationIconTitle"
+                stroke="#ffffff"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                fill="none"
+              >
+                <title id="notificationIconTitle">Notification</title>
+                <path d="M12 22C13.6569 22 15 20.6569 15 19H9C9 20.6569 10.3431 22 12 22Z" />
+                <path d="M18 10V16L21 19H3L6 16V10C6 6.68629 8.68629 4 12 4C15.3137 4 18 6.68629 18 10Z" />
+              </svg>
             </a>
           </HeaderButton>
           <HeaderButton

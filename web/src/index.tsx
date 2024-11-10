@@ -37,7 +37,7 @@ const routes = [
   {
     path: "/notification",
     component: () => <App page="notification" />,
-  }
+  },
 ];
 
 render(() => <Router>{routes}</Router>, root!);

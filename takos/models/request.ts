@@ -19,7 +19,6 @@ const requestSchema = new mongoose.Schema({
     },
     query: {
         type: String,
-        required: true
     }
 })
 

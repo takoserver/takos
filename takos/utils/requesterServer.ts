@@ -5,46 +5,32 @@ import env from "./env.ts";
 
 async function requesterServer(
     server: string,
-    request: string,
+    type: string,
+    request: string
 ) {
-    const key = await serverKey.findOne({}).sort({ timestamp: -1 });
-    if (!key) {
-        return { error: "server key not found" };
-    }
-    if (new Date(new Date(key.expire).getTime() - 365 * 24 * 60 * 60 * 1000) < new Date()) {
+    let key = await serverKey.findOne({}).sort({ timestamp: -1 });
+    if (!key || new Date(new Date(key.expire).getTime() - 24 * 60 * 60 * 1000) < new Date()) {
         const newKey = generateServerKey();
-        const key = await serverKey.create({
+        key = await serverKey.create({
             public: newKey.public,
             private: newKey.private,
         });
-        const signature = signData(request, key.private);
-        const response = await fetch(`https://${server}/server`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                signature,
-                request,
-                keyTimestamp: key.timestamp,
-                keyExpire: key.expire,
-                serverDomain: env["DOMAIN"],
-            }),
-        });
-        return await response.json();
     }
     const signature = signData(request, key.private);
-    const response = await fetch(`https://${server}/server`, {
+    const response = await fetch(`https://${server}/takos/v2/server`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            signature,
-            request,
-            keyTimestamp: key.timestamp,
-            keyExpire: key.expire,
-            serverDomain: env["DOMAIN"],
+            type,
+            query: {
+                signature,
+                request,
+                keyTimestamp: key.timestamp,
+                keyExpire: key.expire,
+                serverDomain: env["DOMAIN"],
+            }
         }),
     });
     return await response.json();
@@ -64,15 +50,16 @@ async function verifyDataServer(
         timestamp: body.keyTimestamp,
     })
     if (!cacheKey) {
-        const latestKey = await fetch(`https://${body.serverDomain}/server`, {
+        const latestKey = await (await fetch(`https://${body.serverDomain}/takos/v2/server`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                request: "getServerKey",
+                type: "getServerKey",
+                query: {}
             }),
-        }).then((res) => res.json());
+        })).json();
         if (!latestKey.pubKey) {
             return [false, null];
         }
@@ -81,10 +68,11 @@ async function verifyDataServer(
             return [false, null];
         }
         await otherServerKey.create({
+            public: latestKey.pubKey,
             domain: body.serverDomain,
-            timestamp: body.keyTimestamp,
-            expire: body.keyExpire,
-        });
+            timestamp: latestKey.timestamp,
+            expire: latestKey.expire,
+        })
         return [true, JSON.parse(body.request)];
     } else {
         if(new Date(cacheKey.expire) < new Date()) {

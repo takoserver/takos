@@ -10,6 +10,8 @@ import env from "../../utils/env.ts";
 import { arrayBufferToBase64 } from "../../utils/buffers.ts";
 import { cors } from "hono/cors";
 import ws from "./websocket/ws.ts";
+import User from "../../models/users.ts";
+import Key from "../../models/keys.ts";
 
 singlend.mount(registers);
 
@@ -22,6 +24,109 @@ singlend.on(
     });
   },
 );
+
+singlend.on(
+  "getMasterKey",
+  z.object({
+    userName: z.string(),
+  }),
+  async (query, ok, error) => {
+    const user = await User.findOne({ userName: query.userName });
+    if (!user) {
+      return error({ error: "user not found" });
+    }
+    return ok({ masterKey: user.masterKey });
+  }
+)
+singlend.on(
+  "getIdentiyKeyAndAccountKey",
+  z.object({
+    userName: z.string(),
+    hash: z.string(),
+  }),
+  async (query, ok, error) => {
+    const user = await User.findOne({ userName: query.userName });
+    if (!user) {
+      return error({ error: "user not found" });
+    }
+    const key = await Key.findOne({ userName: query.userName, keyHash: query.hash });
+    if (!key) {
+      return error({ error: "key not found" });
+    }
+    return ok({
+      identityKey: key!.identityKey,
+      accountKey: key!.accountKey,
+      idenSign: key!.idenSign,
+      accSign: key!.accSign,
+    });
+})
+singlend.on(
+  "getIdentiyKey",
+  z.object({
+    userName: z.string(),
+    hash: z.string(),
+  }),
+  async (query, ok, error) => {
+    const user = await User.findOne({ userName: query.userName });
+    if (!user) {
+      return error({ error: "user not found" });
+    }
+    const key = await Key.findOne({
+      userName: query.userName,
+      keyHash: query.hash,
+    })
+    if (!key) {
+      return error({ error: "key not found" });
+    }
+    return ok({
+      identityKey: key!.identityKey,
+      idenSign: key!.idenSign
+     });
+  })
+singlend.on(
+  "getIdentityKeyAndAccountKeyLatest",
+  z.object({
+    userName: z.string(),
+  }),
+  async (query, ok, error) => {
+    const user = await User.findOne({ userName: query.userName });
+    if (!user) {
+      return error({ error: "user not found" });
+    }
+    const key = await Key.findOne({
+      userName: query.userName,
+    }).sort({ timestamp: -1 });
+    if (!key) {
+      return error({ error: "key not found" });
+    }
+    return ok({
+      identityKey: key!.identityKey,
+      accountKey: key!.accountKey,
+      idenSign: key!.idenSign,
+      accSign: key!.accSign,
+    });
+  })
+singlend.on(
+  "getIdentityKeyLatest",
+  z.object({
+    userName: z.string(),
+  }),
+  async (query, ok, error) => {
+    const user = await User.findOne({ userName: query.userName });
+    if (!user) {
+      return error({ error: "user not found" });
+    }
+    const key = await Key.findOne({
+      userName: query.userName,
+    }).sort({ timestamp: -1 });
+    if (!key) {
+      return error({ error: "key not found" });
+    }
+    return ok({
+      identityKey: key!.identityKey,
+      idenSign: key!.idenSign,
+    });
+})
 
 singlend.on(
   "getRecapchaV3",

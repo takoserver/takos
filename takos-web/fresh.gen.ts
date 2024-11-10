@@ -15,7 +15,7 @@ import * as $talk_friends_name_ from "./routes/talk/friends/[name].tsx";
 import * as $talk_index from "./routes/talk/index.tsx";
 import * as $test from "./routes/test.tsx";
 import * as $ChatSend from "./islands/ChatSend.tsx";
-import * as $ChatTalkContent from "./islands/ChatTalkContent.tsx";
+import * as $ChatTalkContent from "./islands/ChatTalkContent.tsx
 import * as $ChatTalkTitle from "./islands/ChatTalkTitle.tsx";
 import * as $ChatTalkTitleContent from "./islands/ChatTalkTitleContent.tsx";
 import * as $Default from "./islands/Default.tsx";

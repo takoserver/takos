@@ -13,6 +13,14 @@ const keySchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  idenSign: {
+    type: String,
+    required: true,
+  },
+  accSign: {
+    type: String,
+    required: true,
+  },
   keyHash: {
     type: String,
     required: true,

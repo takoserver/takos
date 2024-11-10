@@ -10,8 +10,10 @@ import {
   loginState,
   MasterKeyState,
   nicknameState,
+  notificationState,
   sessionidState,
   setUpState,
+  talkListState,
   webSocketState,
 } from "../utils/state";
 import {
@@ -87,6 +89,8 @@ export function Load() {
   const setIcon = useSetAtom(iconState);
   const setNickname = useSetAtom(nicknameState);
   const setBirthday = useSetAtom(birthdayState);
+  const [notification, setNotification] = useAtom(notificationState);
+  const setTalkList = useSetAtom(talkListState);
   const handleSessionFailure = () => {
     setLogin(false);
     setLoad(true);
@@ -111,7 +115,16 @@ export function Load() {
     keys: any[],
     deviceKey: string,
   ): Promise<
-    [string, string, { identityKey: string; accountKey: string }][]
+    [string, string, {
+      identityKey: {
+        public: string;
+        private: string;
+      };
+      accountKey: {
+        public: string;
+        private: string;
+      };
+    }][]
   > => {
     return Promise.all(keys.map(async (key) => {
       const identityKey = JSON.parse(
@@ -122,6 +135,40 @@ export function Load() {
       );
       return [key.hashHex, key.timestamp, { identityKey, accountKey }];
     }));
+  };
+
+  const setNotificationFn = async () => {
+    const server = domain();
+    if (!server) {
+      console.error("Invalid server");
+      return;
+    }
+    const response = await requester(server, "getNotification", {
+      sessionid: sessionId(),
+    });
+    if (response.status !== 200) {
+      console.error("Notification failed");
+      return;
+    }
+    const data = await response.json();
+    setNotification(data.request);
+  };
+
+  const setFriendListFn = async () => {
+    const server = domain();
+    if (!server) {
+      console.error("Invalid server");
+      return;
+    }
+    const response = await requester(server, "getTalkList", {
+      sessionid: sessionId(),
+    });
+    if (response.status !== 200) {
+      console.error("Friend list failed");
+      return;
+    }
+    const data = await response.json();
+    setTalkList(data.talkList);
   };
 
   const processSessionInfo = async (response: any) => {
@@ -208,7 +255,7 @@ export function Load() {
             const res = await requester(server, "noticeGetSharedData", {
               id: sharedDataIds,
               sessionid: sessionId(),
-            })
+            });
           }
         }
       }
@@ -221,8 +268,10 @@ export function Load() {
     setIdentityKeyAndAccountKey(decryptedKeys);
     setSetUp(response.setuped);
     setEncryptedSession(response.sessionEncrypted);
+    setNotificationFn();
+    setFriendListFn();
     setLogin(true);
-  }
+  };
 
   const loadSession = async () => {
     const sessionid = localStorageEditor.get("sessionid");
