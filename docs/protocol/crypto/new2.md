@@ -31,7 +31,7 @@ ML-KEMとML-DSAはpqc対応の標準化された暗号化方式です。
 
 ### 鍵の形式
 
-- **masterKey**: `<KEY_TYPE>-<TIMESTAMP>-<BINARY_KEY>`
+- **masterKey**: `<KEY_TYPE>-<BINARY_KEY>`
 - **identityKey**: `<KEY_TYPE>-<TIMESTAMP>-<BINARY_KEY>-<SESSION_UUID>`
 - **accountKey**: `<KEY_TYPE>-<TIMESTAMP>-<BINARY_KEY>`
 - **roomKey**: `<KEY_TYPE>-<TIMESTAMP>-<BINARY_KEY>-<SESSION_UUID>-<ROOM_ID>`
