@@ -1,6 +1,6 @@
 # takos protocolのメッセージ暗号化
 
-## 鍵の形式: `<KEY_TYPE>-<TIMESTAMP>-<BINARY_KEY>-<?SESSION-UUID>`
+### 鍵の形式: `<KEY_TYPE>-<TIMESTAMP>[-<SESSION_UUID>]-<BINARY_KEY>`
 
 ## その他の数値の定義
 
