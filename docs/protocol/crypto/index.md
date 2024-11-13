@@ -133,3 +133,39 @@ identityKeyは連続してのみ使用できる。
 - timestamp
 
 ISO8601形式の文字列
+
+次の暗号化プロトコルの草案を元に暗号化プロトコルを完成させてください。
+
+次の暗号化プロトコルで改善点を教えてください。 アルゴリズムは 署名用はml-dsa
+暗号化用はml-kem 共通鍵はaes
+
+masterKeyはアカウントに一つだけ存在している全ての鍵の信頼の根幹となる鍵である。
+
+identityKeyは各デバイスにある署名用の鍵。メッセージやroomKeyを署名する。
+
+accountKeyはidentityKeyと同時に生成されるidentitiyKeyによって署名された暗号化用の鍵
+
+shareKey デバイス間でaccountKeyを共有するための公開鍵
+
+roomKey
+各デバイスで各ルームごとに生成される暗号化用の共通鍵。accountKeyで他のユーザーに送られる
+
+メッセージの送信と受信:
+
+RoomKeyの生成:
+
+各ルームごとにデバイスがRoomKeyを生成。 必要に応じて定期的に更新。
+RoomKeyの共有:
+
+RoomKeyを受信者のAccountKeyの公開鍵で暗号化し、送信。
+送信時にIdentityKeyで署名。 メッセージの暗号化と送信:
+
+メッセージをRoomKeyで暗号化。 暗号化したメッセージを送信。
+
+受信側の処理:
+
+AccountKeyの秘密鍵でRoomKeyを復号。 RoomKeyでメッセージを復号。
+送信者のIdentityKeyで署名を検証し、メッセージの真正性を確認。
+identityKeyは同じデバイスidで連続して使用することができる。
+
+定期的にidentityKeyとaccountKeyとroomKeyを更新する。
