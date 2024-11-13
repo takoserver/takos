@@ -31,14 +31,14 @@ ML-KEMとML-DSAはpqc対応の標準化された暗号化方式です。
 
 ### 鍵の形式
 
-- **masterKey**: `<KEY_TYPE>-<BINARY_KEY>`
-- **identityKey**: `<KEY_TYPE>-<TIMESTAMP>-<BINARY_KEY>-<SESSION_UUID>`
-- **accountKey**: `<KEY_TYPE>-<TIMESTAMP>-<BINARY_KEY>`
-- **roomKey**: `<KEY_TYPE>-<TIMESTAMP>-<BINARY_KEY>-<SESSION_UUID>-<ROOM_ID>`
-- **shareKey**: `<KEY_TYPE>-<TIMESTAMP>-<BINARY_KEY>-<SESSION_UUID>`
-- **shareSignKey**: `<KEY_TYPE>-<TIMESTAMP>-<BINARY_KEY>-<SESSION_UUID>`
-- **migrateKey**: `<KEY_TYPE>-<TIMESTAMP>-<BINARY_KEY>`
-- **migrateSignKey**: `<KEY_TYPE>-<TIMESTAMP>-<BINARY_KEY>`
+- **masterKey**: `<"masterKeyPublic" | "masterKeyPrivate"">-<BINARY_KEY>`
+- **identityKey**: `<"identityKeyPublic" | "identityKeyPrivate">-<TIMESTAMP>-<SESSION_UUID>-<BINARY_KEY>`
+- **accountKey**: `<"accountKeyPublic" | "accountKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
+- **roomKey**: `<"roomKey">-<TIMESTAMP>-<SESSION_UUID>-<BINARY_KEY>`
+- **shareKey**: `<"shareKeyPublic" | "sharekeyPrivate">-<TIMESTAMP>-<SESSION_UUID>-<BINARY_KEY>`
+- **shareSignKey**: `<"shareSignKeyPublic" | "shareSignKeyPrivate">-<TIMESTAMP>-<SESSION_UUID>-<BINARY_KEY>`
+- **migrateKey**: `<"migrateKeyPublic" | "migrateKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
+- **migrateSignKey**: `<"migrateSignKeyPublic" | "migrateSignKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
 
 keyTypeは上記の鍵の種類を指します。
 timestampは鍵の生成時刻を指します。
@@ -58,7 +58,7 @@ sessionUUID: uuid v7。セッションを識別するためのuuid。identityKey
 interface roomKeyMetaData {
   roomKeyHash: string;
   sharedUser: {
-    userid: string; //<userId>
+    userId: string; //<userId>
     masterKeyHash: string; // <sha256 encoded by base64>
     accountKeyTimeStamp: number; // <timestamp>
   }[];
@@ -69,7 +69,7 @@ identityKeyで署名します。
 
 ## 暗号の形式
 
-`<KEY_TYPE>-<KEY_HASH>-<BINARY_ENCRYPTED_DATA>`
+`<KEY_TYPE>-<KEY_HASH>-<BINARY_ENCRYPTED_DATA>-<VI>[-<CIPHER_TEXT>]`
 
 keyTypeは上記の鍵の種類を指します。
 keyHashはbase64でエンコードされたsha256のハッシュ値を指します。
@@ -146,4 +146,4 @@ masterKeyのhashをオフラインで確認したり、信頼できる方法でm
 
 同じsessionUUIDのroomKeyは連続してのみ利用可能です。
 同じsessionUUIDのidentityKeyは連続してのみ利用可能です。
-サーバー側のtimestampとメッセージのtimestampの誤差が10秒以上ある場合、メッセージは無効となります。
+サーバー側のtimestampとメッセージのtimestampの誤差が1分以上ある場合、メッセージは無効となります。
