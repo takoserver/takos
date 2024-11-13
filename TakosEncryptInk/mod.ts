@@ -41,7 +41,7 @@ export function parseMasterKey(key: string): {
   }
 }
 
-export async function signMasterKey(key: string,data: string) {
+export async function signMasterKey(key: string,data: string): Promise<string | null> {
   if(!isValidMasterKeyPrivate(key)) {
     return null;
   }
@@ -53,7 +53,7 @@ export async function signMasterKey(key: string,data: string) {
   return "masterKey" + "-" + Keyhash + "-" + signString;
 }
 
-export function verifyMasterKey(key: string,sign: string,data: string) {
+export function verifyMasterKey(key: string,sign: string,data: string): boolean {
   if(!isValidMasterKeyPublic(key)) {
     return false;
   }
@@ -64,7 +64,7 @@ export function verifyMasterKey(key: string,sign: string,data: string) {
   return verify;
 }
 
-export async function signIdentityKey(key: string,data: string) {
+export async function signIdentityKey(key: string,data: string): Promise<string | null> {
   if(!isValidIdentityKeyPrivate(key)) {
     return null;
   }
@@ -76,7 +76,7 @@ export async function signIdentityKey(key: string,data: string) {
   return "identityKey" + "-" + Keyhash + "-" + signString;
 }
 
-export function verifyIdentityKey(key: string,sign: string,data: string) {
+export function verifyIdentityKey(key: string,sign: string,data: string): boolean {
   if(!isValidIdentityKeyPublic(key)) {
     console.log("invalid key")
     return false;
@@ -89,7 +89,10 @@ export function verifyIdentityKey(key: string,sign: string,data: string) {
 }
 
 
-export function generateMasterKey() {
+export function generateMasterKey(): {
+  publicKey: string,
+  privateKey: string,
+} {
   const seed = crypto.getRandomValues(new Uint8Array(32));
   const key = ml_dsa87.keygen(seed);
   const publicKeyBinary = arrayBufferToBase64(key.publicKey);
@@ -130,7 +133,11 @@ export function isValidMasterKeyPrivate(key: string): boolean {
   return true;
 }
 
-export async function generateIdentityKey(uuid: string, masterKey: string) {
+export async function generateIdentityKey(uuid: string, masterKey: string): Promise<{
+  publickKey: string,
+  privateKey: string,
+  sign: string,
+  } | null> {
   if(!isValidUUIDv7(uuid)) {
     return null
   }
@@ -204,7 +211,11 @@ export function isValidIdentityKeyPrivate(key: string): boolean {
   return true;
 }
 
-export async function generateAccountKey(masterKey: string) {
+export async function generateAccountKey(masterKey: string): Promise<{
+  publickKey: string,
+  privateKey: string,
+  sign: string,
+} | null> {
   if(!isValidMasterKeyPrivate(masterKey)) {
     return null;
   }
@@ -275,7 +286,7 @@ export function isValidAccountKeyPrivate(key: string): boolean {
   return true;
 }
 
-export async function encryptDataAccountKey(key: string, data: string) {
+export async function encryptDataAccountKey(key: string, data: string): Promise<string | null> {
   if(!isValidAccountKeyPublic(key)) {
     return null;
   }
@@ -373,7 +384,7 @@ export function isValidEncryptedRoomKey(data: string): boolean {
   return true;
 }
 
-export async function decryptDataAccountKey(key: string, data: string) {
+export async function decryptDataAccountKey(key: string, data: string): Promise<string | null> {
   if(!isValidAccountKeyPrivate(key)) {
     return null;
   }
@@ -404,7 +415,7 @@ export async function decryptDataAccountKey(key: string, data: string) {
   return new TextDecoder().decode(decryptedData);
 }
 
-export async function generateRoomkey(sessionUUID: string) {
+export async function generateRoomkey(sessionUUID: string): Promise<string | null> {
   if(!isValidUUIDv7(sessionUUID)) {
     return null
   }
@@ -458,7 +469,7 @@ export function isValidRoomKey(key: string): boolean {
   return true;
 }
 
-export async function encryptDataRoomKey(key: string, data: string) {
+export async function encryptDataRoomKey(key: string, data: string): Promise<string | null> {
   if(!isValidRoomKey(key)) {
     return null;
   }
@@ -501,7 +512,7 @@ export function isValidEncryptedDataRoomKey(data: string): boolean {
   return true;
 }
 
-export async function decryptDataRoomKey(key: string, data: string) {
+export async function decryptDataRoomKey(key: string, data: string): Promise<string | null> {
   if(!isValidRoomKey(key)) {
     return null;
   }
@@ -606,7 +617,10 @@ export async function encryptMessage(
   roomKey: string,
   identityKey: string,
   roomid: string,
-) {
+): Promise<{
+  message: string,
+  sign: string,
+} | null> {
   if(!isValidRoomKey(roomKey)) {
     return null;
   }
@@ -652,7 +666,14 @@ export async function decryptMessage(
   roomKey: string,
   identityKey: string,
   roomid: string,
-) {
+): Promise<{
+  type: "text" | "image" | "video" | "audio" | "file",
+  content: string,
+  channel: string,
+  timestamp: number,
+  isLarge: boolean,
+  original?: string,
+} | null> {
   if(!isValidRoomKey(roomKey)) {
     return null;
   }
@@ -689,7 +710,11 @@ export async function decryptMessage(
   }
 }
 
-export async function generateShareKey(masterKey: string, sessionUUID: string) {
+export async function generateShareKey(masterKey: string, sessionUUID: string): Promise<{
+  publickKey: string,
+  privateKey: string,
+  sign: string,
+} | null> {
   if(!isValidMasterKeyPrivate(masterKey)) {
     return null;
   }
@@ -767,7 +792,7 @@ export function isValidShareKeyPrivate(key: string): boolean {
   return true;
 }
 
-export async function encryptDataShareKey(key: string, data: string) {
+export async function encryptDataShareKey(key: string, data: string): Promise<string | null> {
   if(!isValidShareKeyPublic(key)) {
     return null;
   }
@@ -798,7 +823,7 @@ export async function encryptDataShareKey(key: string, data: string) {
   return "shareKey" + "-" + keyHashString + "-" + encryptedDataString + "-" + viString + "-" + ciphertextString;
 }
 
-export async function decryptDataShareKey(key: string, data: string) {
+export async function decryptDataShareKey(key: string, data: string): Promise<string | null> {
   if(!isValidShareKeyPrivate(key)) {
     return null;
   }
