@@ -1,5 +1,7 @@
 # takos protocolのメッセージ暗号化
 
+ML-KEMとML-DSAはpqc対応の標準化された暗号化方式です。
+
 ## 鍵の種類
 
 - **masterKey**: 
@@ -23,7 +25,7 @@
 - **migrateKey**: 
   - **アルゴリズム**: ML-KEM-1024
   - **役割**: デバイスの鍵を移行するための鍵。
-- **migrateSignkey**: ML-DSA-87
+- **migrateSignkey**:
   - **アルゴリズム**: ML-DSA-87
   - **役割**: migrateKeyで暗号化されたデータを署名するための鍵。
 
@@ -48,7 +50,7 @@ v7。セッションを識別するためのuuid。identityKeyやroomKey、share
 ```ts
 interface roomKeyMetaData {
   roomKeyHash: string;
-  shareedUser: {
+  sharedUser: {
     userid: string; //<userId>
     masterKeyHash: string; // <sha256 encoded by base64>
     accountKeyTimeStamp: number; // <timestamp>
