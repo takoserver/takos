@@ -96,7 +96,7 @@ export interface NotEncryptMessage {
     content: string;
   };
   channel: string;
-  orignal?: string;
+  original?: string;
   timestamp: string;
   isLarge: boolean;
 }
@@ -105,7 +105,7 @@ export interface EncryptedMessage {
   encrypted: true;
   value: string;
   channel: string;
-  orignal?: string;
+  original?: string;
   timestamp: string;
   isLarge: boolean;
 }
