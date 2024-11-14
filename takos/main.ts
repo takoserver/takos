@@ -1,3 +1,3 @@
-import { start } from "./index.ts"
+import { start } from "./index.ts";
 
 start();

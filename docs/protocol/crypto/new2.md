@@ -19,9 +19,6 @@ ML-KEMとML-DSAはpqc対応の標準化された暗号化方式です。
 - **shareKey**: 
   - **アルゴリズム**: ML-KEM-768 
   - **役割**: accountKeyを他のセッションに共有するための鍵。
-- **shareSignKey**: 
-  - **アルゴリズム**: ML-DSA-65 
-  - **役割**: shareKeyで暗号化したものを署名する鍵。
 - **migrateKey**: 
   - **アルゴリズム**: ML-KEM-1024
   - **役割**: デバイスの鍵を移行するための鍵。
@@ -75,15 +72,6 @@ interface roomKey {
 ```ts
 interface shareKey {
   keyType: "shareKeyPublic" | "sharekeyPrivate"
-  key: string
-  timestamp: number
-  sessionUuid: string
-} 
-```
-- **shareSignKey**:
-```ts
-interface shareSignKey {
-  keyType: "shareSignKeyPublic" | "shareSignKeyPrivate"
   key: string
   timestamp: number
   sessionUuid: string

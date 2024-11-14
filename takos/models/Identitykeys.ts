@@ -21,7 +21,7 @@ const keySchema = new mongoose.Schema({
   hash: {
     type: String,
     required: true,
-  }
+  },
 });
 
 const Key = mongoose.model("identityKeys", keySchema);

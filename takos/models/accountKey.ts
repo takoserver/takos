@@ -19,7 +19,7 @@ const keyShareDataSchema = new mongoose.Schema({
   },
   encryptedAccountKey: {
     type: [String, String],
-  }
+  },
 });
 
 const KeyShareData = mongoose.model("keyShareData", keyShareDataSchema);

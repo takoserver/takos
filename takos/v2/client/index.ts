@@ -37,8 +37,8 @@ singlend.on(
       return error({ error: "user not found" });
     }
     return ok({ masterKey: user.masterKey });
-  }
-)
+  },
+);
 singlend.on(
   "getIdentiyKey",
   z.object({
@@ -53,15 +53,16 @@ singlend.on(
     const key = await IdentityKey.findOne({
       userName: query.userName,
       hash: query.hash,
-    })
+    });
     if (!key) {
       return error({ error: "key not found" });
     }
     return ok({
       identityKey: key!.identityKey,
-      idenSign: key!.sign
+      idenSign: key!.sign,
     });
-})
+  },
+);
 singlend.on(
   "getAccountKey",
   z.object({
@@ -76,15 +77,16 @@ singlend.on(
     const key = await AccountKey.findOne({
       userName: query.userName,
       hash: query.hash,
-    })
+    });
     if (!key) {
       return error({ error: "key not found" });
     }
     return ok({
       accountKey: key!.accoutKey,
-      accSign: key!.sign
+      accSign: key!.sign,
     });
-})
+  },
+);
 singlend.on(
   "getIdentityKeyLatest",
   z.object({
@@ -105,7 +107,8 @@ singlend.on(
       identityKey: key!.identityKey,
       idenSign: key!.sign,
     });
-})
+  },
+);
 singlend.on(
   "getAccountKeyLatest",
   z.object({
@@ -126,7 +129,8 @@ singlend.on(
       accountKey: key!.accoutKey,
       accSign: key!.sign,
     });
-})
+  },
+);
 
 singlend.on(
   "getRecapchaV3",

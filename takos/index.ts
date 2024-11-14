@@ -43,11 +43,11 @@ export function start() {
         generateKey = true;
       } else {
         const now = new Date();
-        if(new Date(result.expire) < now) {
+        if (new Date(result.expire) < now) {
           generateKey = true;
         }
       }
-      if(generateKey) {
+      if (generateKey) {
         const Key = generateServerKey();
         serverKey.create({
           public: Key.public,
