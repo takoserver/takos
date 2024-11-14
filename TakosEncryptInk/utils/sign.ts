@@ -1,5 +1,4 @@
 import { ml_dsa65 } from "@noble/post-quantum/ml-dsa";
-import { SingObject } from "../types/keys.ts";
 import { arrayBufferToBase64, base64ToArrayBuffer } from "./buffers.ts";
 import { keyHash } from "./keyHash.ts";
 
