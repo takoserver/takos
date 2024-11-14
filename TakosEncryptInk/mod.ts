@@ -457,7 +457,7 @@ export async function encryptDataRoomKey(key: string, data: string): Promise<str
   return JSON.stringify(result);
 }
 
-function isValidEncryptedRoomKey(data: string): boolean {
+export function isValidEncryptedRoomKey(data: string): boolean {
   if(!isValidEncryptedDataAccountKey(data)) {
     return false;
   }
@@ -469,9 +469,6 @@ function isValidEncryptedRoomKey(data: string): boolean {
 
 export async function decryptDataRoomKey(key: string, data: string): Promise<string | null> {
   if(!isValidRoomKey(key)) {
-    return null;
-  }
-  if(!isValidEncryptedRoomKey(data)) {
     return null;
   }
   const { key: keyBinary } = JSON.parse(key);
@@ -1218,7 +1215,7 @@ export function verifyDataMigrateSignKey(key: string, sign: string, data: string
 
 export function isValidSignMigrateSignKey(sign: string): boolean {
   const { keyHash, signature, keyType } = JSON.parse(sign);
-  if(sign.length !== 4510) {
+  if(sign.length !== 4512) {
     console.log(sign.length)
     return false;
   }
@@ -1235,97 +1232,3 @@ export function isValidSignMigrateSignKey(sign: string): boolean {
   }
   return true;
 }
-
-async function test() {
-  const masterKey = generateMasterKey();
-  console.log(isValidMasterKeyPrivate(masterKey.privateKey));
-  console.log(isValidMasterKeyPublic(masterKey.publicKey));
-
-  const identityKey = await generateIdentityKey(uuidv7(), masterKey.privateKey);
-  if (!identityKey) return;
-  console.log(verifyMasterKey(masterKey.publicKey, identityKey.sign, identityKey.publickKey));
-  console.log(isValidIdentityKeyPrivate(identityKey.privateKey));
-  console.log(isValidIdentityKeyPublic(identityKey.publickKey));
-
-  const secretText = "Hello World";
-  const sign = await signIdentityKey(identityKey.privateKey, secretText);
-  if (!sign) {
-    console.log("sign error");
-    return;
-  }
-  console.log(verifyIdentityKey(identityKey.publickKey, sign, secretText));
-
-  const accountKey = await generateAccountKey(masterKey.privateKey);
-  if (!accountKey) return;
-  console.log(isValidAccountKeyPrivate(accountKey.privateKey));
-  console.log(isValidAccountKeyPublic(accountKey.publickKey));
-
-  const encryptedData = await encryptDataAccountKey(accountKey.publickKey, secretText);
-  if (!encryptedData) return;
-  console.log(isValidEncryptedDataAccountKey(encryptedData));
-
-  const decryptedData = await decryptDataAccountKey(accountKey.privateKey, encryptedData);
-  console.log(decryptedData);
-
-  const roomKey = await generateRoomkey(uuidv7());
-  if (!roomKey) return;
-  console.log(isValidRoomKey(roomKey));
-
-  const encryptedRoomKey = await encryptDataAccountKey(accountKey.publickKey, roomKey);
-  if (!encryptedRoomKey) return;
-  console.log(isValidEncryptedRoomKey(encryptedRoomKey));
-
-  const decryptedRoomKey = await decryptDataAccountKey(accountKey.privateKey, encryptedRoomKey);
-  console.log(decryptedRoomKey === roomKey);
-
-  const shareKey = await generateShareKey(masterKey.privateKey, uuidv7());
-  if (!shareKey) return;
-  console.log(isValidShareKeyPrivate(shareKey.privateKey));
-  console.log(isValidShareKeyPublic(shareKey.publickKey));
-
-  const encryptedShareKey = await encryptDataShareKey(shareKey.publickKey, secretText);
-  if (!encryptedShareKey) return;
-  const decryptedShareKey = await decryptDataShareKey(shareKey.privateKey, encryptedShareKey);
-  console.log(decryptedShareKey === secretText);
-
-  const encryptedAccountKey = await encryptDataShareKey(shareKey.publickKey, accountKey.publickKey);
-  if (!encryptedAccountKey) return;
-  console.log(isValidEncryptedAccountKey(encryptedAccountKey));
-
-  console.log(isValidSignMasterkey(identityKey.sign));
-  console.log(isValidSignMasterkey(accountKey.sign));
-  console.log(isValidSignIdentityKey(sign));
-
-  const shareSignKey = await generateShareSignKey(masterKey.privateKey, uuidv7());
-  if (!shareSignKey) return;
-  console.log(isValidShareSignKeyPrivate(shareSignKey.privateKey));
-  console.log(isValidShareSignKeyPublic(shareSignKey.publickKey));
-
-  const signShareKey = await signDataShareSignKey(shareSignKey.privateKey, secretText);
-  if (!signShareKey) return;
-  console.log(verifyDataShareSignKey(shareSignKey.publickKey, signShareKey, secretText));
-  console.log(isValidSignShareSignKey(signShareKey));
-
-  const migrateKey = generateMigrateKey();
-  console.log(isValidMigrateKeyPrivate(migrateKey.privateKey));
-  console.log(isValidMigrateKeyPublic(migrateKey.publickKey));
-
-  const encryptedMigrateKey = await encryptDataMigrateKey(migrateKey.publickKey, secretText);
-  if (!encryptedMigrateKey) return;
-  console.log(isValidEncryptedDataMigrateKey(encryptedMigrateKey));
-
-  const decryptedMigrateKey = await decryptDataMigrateKey(migrateKey.privateKey, encryptedMigrateKey);
-  console.log(decryptedMigrateKey === secretText);
-
-  const migrateSignKey = generateMigrateSignKey();
-  console.log(isValidMigrateSignKeyPrivate(migrateSignKey.privateKey));
-  console.log(isValidMigrateSignKeyPublic(migrateSignKey.publickKey));
-
-  const signMigrateKey = await signDataMigrateSignKey(migrateSignKey.privateKey, secretText);
-  if (!signMigrateKey) return;
-  console.log(verifyDataMigrateSignKey(migrateSignKey.publickKey, signMigrateKey, secretText));
-  console.log(isValidSignMigrateSignKey(signMigrateKey));
-  console.log("test end");
-}
-
-test()
