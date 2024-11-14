@@ -4,6 +4,17 @@ import { arrayBufferToBase64, base64ToArrayBuffer } from "./utils/buffers.ts"
 import { uuidv7 } from "uuidv7"
 import { keyHash } from "./utils/keyHash.ts";
 import { encrypt } from "./utils/encrypt.ts"
+import {
+  masterKey,
+  identityKey,
+  accountKey,
+  roomKey,
+  shareKey,
+  shareSignKey,
+  migrateKey,
+  migrateSignKey,
+  Sign
+} from "./type.ts"
 
 export {keyHash}
 
@@ -12,55 +23,35 @@ export function isValidUUIDv7(uuid: string): boolean {
     /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidV7Regex.test(uuid);
 }
-export function parseSign (sign: string): {
-  keyHash: string,
-  signBinary: ArrayBuffer,
-  keyType: string,
-} {
-  const signArray = sign.split("-");
-  const keyType = signArray[0];
-  const keyHash = signArray[1];
-  const signBinary = base64ToArrayBuffer(signArray[2]);
-  return {
-    keyHash: keyHash,
-    signBinary: signBinary,
-    keyType: keyType,
-  }
-}
-
-export function parseMasterKey(key: string): {
-  keyBinary: ArrayBuffer,
-  keyType: string,
-} {
-  const keyArray = key.split("-", 2); // 分割回数を制限
-  const keyType = keyArray[0];
-  const keyBinary = base64ToArrayBuffer(keyArray.slice(1).join('-'));
-  return {
-    keyBinary: keyBinary,
-    keyType: keyType,
-  }
-}
 
 export async function signMasterKey(key: string,data: string): Promise<string | null> {
   if(!isValidMasterKeyPrivate(key)) {
     return null;
   }
-  const { keyBinary } = parseMasterKey(key);
+  const { key: keyBinary } = JSON.parse(key);
   const dataArray = new TextEncoder().encode(data);
-  const signature = ml_dsa87.sign(new Uint8Array(keyBinary), dataArray, new Uint8Array(64));
+  const signature = ml_dsa87.sign(new Uint8Array(base64ToArrayBuffer(keyBinary)), dataArray, new Uint8Array(64));
   const signString =  arrayBufferToBase64(signature);
   const Keyhash = await keyHash(key);
-  return "masterKey" + "-" + Keyhash + "-" + signString;
+  const signResult: Sign = {
+    signature: signString,
+    keyHash: Keyhash,
+    keyType: "masterKey",
+  }
+  return JSON.stringify(signResult);
 }
 
 export function verifyMasterKey(key: string,sign: string,data: string): boolean {
   if(!isValidMasterKeyPublic(key)) {
     return false;
   }
-  const { keyBinary } = parseMasterKey(key);
-  const signArray = parseSign(sign);
+  const { key: keyBinary } = JSON.parse(key);
+  const signData: Sign = JSON.parse(sign);
+  if(signData.keyType !== "masterKey") {
+    return false;
+  }
   const dataArray = new TextEncoder().encode(data);
-  const verify = ml_dsa87.verify(new Uint8Array(keyBinary), dataArray, new Uint8Array(signArray.signBinary));
+  const verify = ml_dsa87.verify(new Uint8Array(base64ToArrayBuffer(keyBinary)), dataArray, new Uint8Array(base64ToArrayBuffer(signData.signature)));
   return verify;
 }
 
@@ -68,26 +59,32 @@ export async function signIdentityKey(key: string,data: string): Promise<string 
   if(!isValidIdentityKeyPrivate(key)) {
     return null;
   }
-  const { keyBinary } = parseIdentityKey(key);
+  const { key: keyBinary } = JSON.parse(key);
   const dataArray = new TextEncoder().encode(data);
-  const signature = ml_dsa65.sign(new Uint8Array(keyBinary), dataArray, new Uint8Array(64));
+  const signature = ml_dsa65.sign(new Uint8Array(base64ToArrayBuffer(keyBinary)), dataArray, new Uint8Array(64));
   const signString =  arrayBufferToBase64(signature);
   const Keyhash = await keyHash(key);
-  return "identityKey" + "-" + Keyhash + "-" + signString;
+  const signResult: Sign = {
+    signature: signString,
+    keyHash: Keyhash,
+    keyType: "identityKey",
+  }
+  return JSON.stringify(signResult);
 }
 
 export function verifyIdentityKey(key: string,sign: string,data: string): boolean {
   if(!isValidIdentityKeyPublic(key)) {
-    console.log("invalid key")
     return false;
   }
-  const { keyBinary } = parseIdentityKey(key);
-  const signArray = parseSign(sign);
+  const { key: keyBinary } = JSON.parse(key);
+  const signData: Sign = JSON.parse(sign);
+  if(signData.keyType !== "identityKey") {
+    return false;
+  }
   const dataArray = new TextEncoder().encode(data);
-  const verify = ml_dsa65.verify(new Uint8Array(keyBinary), dataArray, new Uint8Array(signArray.signBinary));
+  const verify = ml_dsa65.verify(new Uint8Array(base64ToArrayBuffer(keyBinary)), dataArray, new Uint8Array(base64ToArrayBuffer(signData.signature)));
   return verify;
 }
-
 
 export function generateMasterKey(): {
   publicKey: string,
@@ -97,37 +94,48 @@ export function generateMasterKey(): {
   const key = ml_dsa87.keygen(seed);
   const publicKeyBinary = arrayBufferToBase64(key.publicKey);
   const privateKeyBinary = arrayBufferToBase64(key.secretKey);
+  const publickKey: masterKey = {
+    keyType: "masterKeyPublic",
+    key: publicKeyBinary,
+  }
+  const privateKey: masterKey = {
+    keyType: "masterKeyPrivate",
+    key: privateKeyBinary,
+  }
   return {
-    publicKey: "masterKeyPublic" + "-" + publicKeyBinary,
-    privateKey: "masterKeyPrivate" + "-" + privateKeyBinary,
+    publicKey: JSON.stringify(publickKey),
+    privateKey: JSON.stringify(privateKey),
   }
 }
-
-export function isValidMasterKeyPublic(key: string): boolean {
-  if(key.length !== 3472) {
+export function isValidMasterKeyPrivate(key: string): boolean {
+  if(key.length !== 6567) {
+    console.log(key.length)
     return false;
   } 
-  const { keyBinary, keyType } = parseMasterKey(key);
-  if(keyType !== "masterKeyPublic") {
+  const { key: keyBinary, keyType } = JSON.parse(key);
+  if(keyType !== "masterKeyPrivate") {
     return false;
   }
-  const keyBinaryArray = new Uint8Array(keyBinary);
-  if(keyBinaryArray.length !== 2592) {
+  const keyBinaryArray = new Uint8Array(base64ToArrayBuffer(keyBinary));
+  if(keyBinaryArray.length !== 4896) {
+    console.log(keyBinaryArray.length)
     return false;
   }
   return true;
 }
 
-export function isValidMasterKeyPrivate(key: string): boolean {
-  if(key.length !== 6545) {
+export function isValidMasterKeyPublic(key: string): boolean {
+  if(key.length !== 3494) {
+    console.log(key.length)
     return false;
   } 
-  const { keyBinary, keyType } = parseMasterKey(key);
-  if(keyType !== "masterKeyPrivate") {
+  const { key: keyBinary, keyType } = JSON.parse(key);
+  if(keyType !== "masterKeyPublic") {
     return false;
   }
-  const keyBinaryArray = new Uint8Array(keyBinary);
-  if(keyBinaryArray.length !== 4896) {
+  const keyBinaryArray = new Uint8Array(base64ToArrayBuffer(keyBinary));
+  if(keyBinaryArray.length !== 2592) {
+    console.log(keyBinaryArray.length)
     return false;
   }
   return true;
@@ -149,8 +157,20 @@ export async function generateIdentityKey(uuid: string, masterKey: string): Prom
   const publicKeyBinary = arrayBufferToBase64(key.publicKey);
   const privateKeyBinary = arrayBufferToBase64(key.secretKey);
   const timestamp = new Date().getTime();
-  const publickKey = "identityKeyPublic" + "-" + timestamp + "-" + uuid + "-" + publicKeyBinary
-  const privateKey = "identityKeyPrivate" + "-" + timestamp + "-" + uuid + "-" + privateKeyBinary
+  const publickKeyObj:identityKey = {
+    keyType: "identityKeyPublic",
+    key: publicKeyBinary,
+    timestamp: timestamp,
+    sessionUuid: uuid,
+  }
+  const privateKeyObj:identityKey = {
+    keyType: "identityKeyPrivate",
+    key: privateKeyBinary,
+    timestamp: timestamp,
+    sessionUuid: uuid,
+  }
+  const publickKey = JSON.stringify(publickKeyObj);
+  const privateKey = JSON.stringify(privateKeyObj);
   const sign = await signMasterKey(masterKey,publickKey);
   if(!sign) {
     return null;
@@ -162,54 +182,40 @@ export async function generateIdentityKey(uuid: string, masterKey: string): Prom
   }
 }
 
-export function parseIdentityKey(key: string): {
-  timestamp: number,
-  sessionUUID: string,
-  keyBinary: ArrayBuffer,
-  keyType: string,
-} {
-  const keyArray = key.split("-");
-  const keyType = keyArray[0];
-  const timestamp = parseInt(keyArray[1]);
-  const sessionUUID = keyArray[2] + "-" + keyArray[3] + "-" + keyArray[4] + "-" + keyArray[5] + "-" + keyArray[6];
-  const keyBinary = base64ToArrayBuffer(keyArray[7]);
-  return {
-    timestamp: timestamp,
-    sessionUUID: sessionUUID,
-    keyBinary: keyBinary,
-    keyType: keyType,
-  }
-}
-
-export function isValidIdentityKeyPublic(key: string): boolean {
-  if(key.length !== 2673) {
-    return false;
-  } 
-  const { keyBinary, keyType } = parseIdentityKey(key);
-  if(keyType !== "identityKeyPublic") {
-    return false;
-  }
-  const keyBinaryArray = new Uint8Array(keyBinary);
-  if(keyBinaryArray.length !== 1952) {
-    return false;
-  }
-  return true;
-}
-
 export function isValidIdentityKeyPrivate(key: string): boolean {
-  if(key.length !== 5446) {
+  if(key.length !== 5496) {
+    console.log(key.length)
     return false;
   } 
-  const { keyBinary, keyType } = parseIdentityKey(key);
+  const { key: keyBinary, keyType } = JSON.parse(key);
   if(keyType !== "identityKeyPrivate") {
     return false;
   }
-  const keyBinaryArray = new Uint8Array(keyBinary);
+  const keyBinaryArray = new Uint8Array(base64ToArrayBuffer(keyBinary));
   if(keyBinaryArray.length !== 4032) {
+    console.log(keyBinaryArray.length)
     return false;
   }
   return true;
 }
+
+export function isValidIdentityKeyPublic(key: string): boolean {
+  if(key.length !== 2723) {
+    console.log(key.length)
+    return false;
+  }
+  const { key: keyBinary, keyType } = JSON.parse(key);
+  if(keyType !== "identityKeyPublic") {
+    return false;
+  }
+  const keyBinaryArray = new Uint8Array(base64ToArrayBuffer(keyBinary));
+  if(keyBinaryArray.length !== 1952) {
+    console.log(keyBinaryArray.length)
+    return false;
+  }
+  return true;
+}
+
 
 export async function generateAccountKey(masterKey: string): Promise<{
   publickKey: string,
@@ -223,8 +229,18 @@ export async function generateAccountKey(masterKey: string): Promise<{
   const publicKeyBinary = arrayBufferToBase64(key.publicKey);
   const privateKeyBinary = arrayBufferToBase64(key.secretKey);
   const timestamp = new Date().getTime();
-  const publickKey = "accountKeyPublic" + "-" + timestamp  + "-" + publicKeyBinary
-  const privateKey = "accountKeyPrivate" + "-" + timestamp +  "-" + privateKeyBinary
+  const publickKeyObj = {
+    keyType: "accountKeyPublic",
+    key: publicKeyBinary,
+    timestamp: timestamp,
+  }
+  const privateKeyObj = {
+    keyType: "accountKeyPrivate",
+    key: privateKeyBinary,
+    timestamp: timestamp,
+  }
+  const publickKey = JSON.stringify(publickKeyObj);
+  const privateKey = JSON.stringify(privateKeyObj);
   const sign = await signMasterKey(masterKey,publickKey);
   if(!sign) {
     return null;
@@ -233,22 +249,6 @@ export async function generateAccountKey(masterKey: string): Promise<{
     publickKey: publickKey,
     privateKey: privateKey,
     sign: sign,
-  }
-}
-
-export function parseAccountKey(key: string): {
-  timestamp: number,
-  keyBinary: ArrayBuffer,
-  keyType: string,
-} {
-  const keyArray = key.split("-");
-  const keyType = keyArray[0];
-  const timestamp = parseInt(keyArray[1]);
-  const keyBinary = base64ToArrayBuffer(keyArray[2]);
-  return {
-    timestamp: timestamp,
-    keyBinary: keyBinary,
-    keyType: keyType,
   }
 }
 
@@ -855,66 +855,23 @@ export async function decryptDataShareKey(key: string, data: string): Promise<st
 }
 
 async function test() {
-  const roomid = "bob@takos.jp" + "-" + "alice@takos.jp";
-  async function generateUserKey() {
-    const masterKey = generateMasterKey()
-    const key = await generateIdentityKey(uuidv7(), masterKey.privateKey)
-    if(!key) {
-      return
-    }
-    const accountKey = await generateAccountKey(masterKey.privateKey)
-    if(!accountKey) {
-      return
-    }
-    const sessionUUID = uuidv7();
-    return {
-      masterKey: masterKey,
-      identityKey: key,
-      accountKey: accountKey,
-      sessionUUID: sessionUUID,
-    }
+  const masterKey = generateMasterKey();
+  console.log(isValidMasterKeyPrivate(masterKey.privateKey))
+  console.log(isValidMasterKeyPublic(masterKey.publicKey))
+  const identityKey = await generateIdentityKey(uuidv7(), masterKey.privateKey);
+  if(!identityKey) {
+    return;
   }
-  const alice = await generateUserKey()
-  const bob = await generateUserKey()
-  if(!alice || !bob) {
-    return
+  console.log(verifyMasterKey(masterKey.publicKey, identityKey?.sign, identityKey?.publickKey))
+  console.log(isValidIdentityKeyPrivate(identityKey.privateKey))
+  console.log(isValidIdentityKeyPublic(identityKey.publickKey))
+  const seacretText = "Hello World"
+  const sign = await signIdentityKey(identityKey.privateKey, seacretText);
+  if(!sign) {
+    console.log("sign error")
+    return;
   }
-  const aliceRoomKey = await generateRoomkey(alice.sessionUUID)
-  if(!aliceRoomKey) {
-    return
-  }
-  const roomKeyMetaData = await encryptRoomKeyWithAccountKeys([{
-    userId: "bob@takos.jp",
-    masterKey: bob.masterKey.publicKey,
-    accountKey: bob.accountKey.publickKey,
-    accountKeySign: bob.accountKey.sign,
-  }], aliceRoomKey, alice.identityKey.privateKey)
-  const encryptedMessage = await encryptMessage({
-    type: "text",
-    content: "Hello",
-    channel: "main",
-    timestamp: new Date().getTime(),
-    isLarge: false,
-  }, aliceRoomKey, alice.identityKey.privateKey, roomid)
-  if(!encryptedMessage || !roomKeyMetaData) {
-    return
-  }
-  const roomKey = await decryptDataAccountKey(bob.accountKey.privateKey, roomKeyMetaData.encryptedData[0].encryptedData)
-  console.log(new Uint8Array(base64ToArrayBuffer(roomKeyMetaData.encryptedData[0].encryptedData)).length)
-  if(!roomKey) {
-    return
-  }
-  const decryptedMessage = await decryptMessage(encryptedMessage, {
-    timestamp: new Date().getTime(),
-  }, roomKey, alice.identityKey.publickKey, roomid)
-  const shareKey = await generateShareKey(alice.masterKey.privateKey, alice.sessionUUID)
-  if(!shareKey) {
-    return
-  }
-  const encryptedShareKey = await encryptDataShareKey(shareKey.publickKey, alice.accountKey.privateKey)
-  if(!encryptedShareKey) {
-    return
-  }
-  console.log(encryptedShareKey.length)
-  console.log(await decryptDataShareKey(shareKey.privateKey, encryptedShareKey))
+  console.log(verifyIdentityKey(identityKey.publickKey, sign, seacretText))
 }
+
+test()

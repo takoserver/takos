@@ -31,14 +31,73 @@ ML-KEMとML-DSAはpqc対応の標準化された暗号化方式です。
 
 ### 鍵の形式
 
-- **masterKey**: `<"masterKeyPublic" | "masterKeyPrivate"">-<BINARY_KEY>`
-- **identityKey**: `<"identityKeyPublic" | "identityKeyPrivate">-<TIMESTAMP>-<SESSION_UUID>-<BINARY_KEY>`
-- **accountKey**: `<"accountKeyPublic" | "accountKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
-- **roomKey**: `<"roomKey">-<TIMESTAMP>-<SESSION_UUID>-<BINARY_KEY>`
-- **shareKey**: `<"shareKeyPublic" | "sharekeyPrivate">-<TIMESTAMP>-<SESSION_UUID>-<BINARY_KEY>`
-- **shareSignKey**: `<"shareSignKeyPublic" | "shareSignKeyPrivate">-<TIMESTAMP>-<SESSION_UUID>-<BINARY_KEY>`
+- **masterKey**:
+```ts
+interface masterKey {
+  keyType: "masterKeyPublic" | "masterKeyPrivate"
+  key: string
+} 
+```
+- **identityKey**:
+```ts
+interface identityKey {
+  keyType: "identityKeyPublic" | "identityKeyPrivate"
+  key: string
+  timestamp: number
+  sessionUuid: string
+} 
+```
+- **accountKey**:
+```ts
+interface accountKey {
+  keyType: "accountKeyPublic" | "accountKeyPrivate"
+  key: string
+  timestamp: number
+} 
+```
+- **roomKey**:
+```ts
+interface roomKey {
+  keyType: "roomKey"
+  key: string
+  timestamp: number
+  sessionUuid: string
+} 
+```
+- **shareKey**:
+```ts
+interface shareKey {
+  keyType: "shareKeyPublic" | "sharekeyPrivate"
+  key: string
+  timestamp: number
+  sessionUuid: string
+} 
+```
+- **shareSignKey**:
+```ts
+interface shareSignKey {
+  keyType: "shareSignKeyPublic" | "shareSignKeyPrivate"
+  key: string
+  timestamp: number
+  sessionUuid: string
+} 
+```
 - **migrateKey**: `<"migrateKeyPublic" | "migrateKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
+```ts
+interface migrateKey {
+  keyType: "migrateKeyPublic" | "migrateKeyPrivate"
+  key: string
+  timestamp: number
+} 
+```
 - **migrateSignKey**: `<"migrateSignKeyPublic" | "migrateSignKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
+```ts
+interface migrateSignKey {
+  keyType: "migrateSignKeyPublic" | "migrateSignKeyPrivate"
+  key: string
+  timestamp: number
+} 
+```
 
 keyTypeは上記の鍵の種類を指します。
 timestampは鍵の生成時刻を指します。
