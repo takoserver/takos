@@ -934,7 +934,7 @@ export function verifyDataShareSignKey(key: string, sign: string, data: string):
   return verify;
 }
 
-export function isValidSignMasterkey(sign: string) {
+export function isValidSignMasterkey(sign: string): boolean {
   const { keyHash, signature, keyType } = JSON.parse(sign);
   if(sign.length !== 6267) {
     console.log(sign.length)
@@ -953,7 +953,7 @@ export function isValidSignMasterkey(sign: string) {
   }
   return true;
 }
-export function isValidSignIdentityKey(sign: string) {
+export function isValidSignIdentityKey(sign: string): boolean {
   const { keyHash, signature, keyType } = JSON.parse(sign);
   if(sign.length !== 4509) {
     console.log(sign.length)
@@ -972,7 +972,7 @@ export function isValidSignIdentityKey(sign: string) {
   }
   return true;
 }
-export function isValidSignShareSignKey(sign: string) {
+export function isValidSignShareSignKey(sign: string): boolean {
   const { keyHash, signature, keyType } = JSON.parse(sign);
   if(sign.length !== 4510) {
     console.log(sign.length)
@@ -1129,7 +1129,10 @@ export function isValidEncryptedDataMigrateKey(data: string): boolean {
   return true;
 }
 
-export function generateMigrateSignKey() {
+export function generateMigrateSignKey(): {
+  publickKey: string
+  privateKey: string
+} {
   const seed = crypto.getRandomValues(new Uint8Array(32));
   const key = ml_dsa65.keygen(seed);
   const publicKeyBinary = arrayBufferToBase64(key.publicKey);
@@ -1213,7 +1216,7 @@ export function verifyDataMigrateSignKey(key: string, sign: string, data: string
   return verify;
 }
 
-export function isValidSignMigrateSignKey(sign: string) {
+export function isValidSignMigrateSignKey(sign: string): boolean {
   const { keyHash, signature, keyType } = JSON.parse(sign);
   if(sign.length !== 4510) {
     console.log(sign.length)
