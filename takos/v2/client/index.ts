@@ -11,7 +11,8 @@ import { arrayBufferToBase64 } from "../../utils/buffers.ts";
 import { cors } from "hono/cors";
 import ws from "./websocket/ws.ts";
 import User from "../../models/users.ts";
-import Key from "../../models/keys.ts";
+import IdentityKey from "../../models/Identitykeys.ts";
+import AccountKey from "../../models/accountKey.ts";
 
 singlend.mount(registers);
 
@@ -39,28 +40,6 @@ singlend.on(
   }
 )
 singlend.on(
-  "getIdentiyKeyAndAccountKey",
-  z.object({
-    userName: z.string(),
-    hash: z.string(),
-  }),
-  async (query, ok, error) => {
-    const user = await User.findOne({ userName: query.userName });
-    if (!user) {
-      return error({ error: "user not found" });
-    }
-    const key = await Key.findOne({ userName: query.userName, keyHash: query.hash });
-    if (!key) {
-      return error({ error: "key not found" });
-    }
-    return ok({
-      identityKey: key!.identityKey,
-      accountKey: key!.accountKey,
-      idenSign: key!.idenSign,
-      accSign: key!.accSign,
-    });
-})
-singlend.on(
   "getIdentiyKey",
   z.object({
     userName: z.string(),
@@ -71,41 +50,41 @@ singlend.on(
     if (!user) {
       return error({ error: "user not found" });
     }
-    const key = await Key.findOne({
+    const key = await IdentityKey.findOne({
       userName: query.userName,
-      keyHash: query.hash,
+      hash: query.hash,
     })
     if (!key) {
       return error({ error: "key not found" });
     }
     return ok({
       identityKey: key!.identityKey,
-      idenSign: key!.idenSign
-     });
-  })
+      idenSign: key!.sign
+    });
+})
 singlend.on(
-  "getIdentityKeyAndAccountKeyLatest",
+  "getAccountKey",
   z.object({
     userName: z.string(),
+    hash: z.string(),
   }),
   async (query, ok, error) => {
     const user = await User.findOne({ userName: query.userName });
     if (!user) {
       return error({ error: "user not found" });
     }
-    const key = await Key.findOne({
+    const key = await AccountKey.findOne({
       userName: query.userName,
-    }).sort({ timestamp: -1 });
+      hash: query.hash,
+    })
     if (!key) {
       return error({ error: "key not found" });
     }
     return ok({
-      identityKey: key!.identityKey,
-      accountKey: key!.accountKey,
-      idenSign: key!.idenSign,
-      accSign: key!.accSign,
+      accountKey: key!.accoutKey,
+      accSign: key!.sign
     });
-  })
+})
 singlend.on(
   "getIdentityKeyLatest",
   z.object({
@@ -116,7 +95,7 @@ singlend.on(
     if (!user) {
       return error({ error: "user not found" });
     }
-    const key = await Key.findOne({
+    const key = await IdentityKey.findOne({
       userName: query.userName,
     }).sort({ timestamp: -1 });
     if (!key) {
@@ -124,7 +103,28 @@ singlend.on(
     }
     return ok({
       identityKey: key!.identityKey,
-      idenSign: key!.idenSign,
+      idenSign: key!.sign,
+    });
+})
+singlend.on(
+  "getAccountKeyLatest",
+  z.object({
+    userName: z.string(),
+  }),
+  async (query, ok, error) => {
+    const user = await User.findOne({ userName: query.userName });
+    if (!user) {
+      return error({ error: "user not found" });
+    }
+    const key = await AccountKey.findOne({
+      userName: query.userName,
+    }).sort({ timestamp: -1 });
+    if (!key) {
+      return error({ error: "key not found" });
+    }
+    return ok({
+      accountKey: key!.accoutKey,
+      accSign: key!.sign,
     });
 })
 

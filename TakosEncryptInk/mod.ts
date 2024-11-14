@@ -14,7 +14,8 @@ import {
   migrateKey,
   migrateSignKey,
   Sign,
-  EncryptedData
+  EncryptedData,
+  deviceKey
 } from "./type.ts"
 
 export {keyHash}
@@ -230,12 +231,12 @@ export async function generateAccountKey(masterKey: string): Promise<{
   const publicKeyBinary = arrayBufferToBase64(key.publicKey);
   const privateKeyBinary = arrayBufferToBase64(key.secretKey);
   const timestamp = new Date().getTime();
-  const publickKeyObj = {
+  const publickKeyObj: accountKey = {
     keyType: "accountKeyPublic",
     key: publicKeyBinary,
     timestamp: timestamp,
   }
-  const privateKeyObj = {
+  const privateKeyObj: accountKey = {
     keyType: "accountKeyPrivate",
     key: privateKeyBinary,
     timestamp: timestamp,
@@ -1231,4 +1232,96 @@ export function isValidSignMigrateSignKey(sign: string): boolean {
     return false;
   }
   return true;
+}
+
+export async function generateDeviceKey(): Promise<string> {
+  const key = await crypto.subtle.generateKey(
+    {
+      name: "AES-GCM",
+      length: 256,
+    },
+    true,
+    ["encrypt", "decrypt"]
+  );
+  const keyBinary = await crypto.subtle.exportKey("raw", key);
+  const keyBinaryString = arrayBufferToBase64(keyBinary);
+  const deviceKey: deviceKey = {
+    keyType: "deviceKey",
+    key: keyBinaryString,
+  }
+  return JSON.stringify(deviceKey);
+}
+
+export function isValidDeviceKey(key: string): boolean {
+  if(key.length !== 76) {
+    console.log(key.length)
+    return false;
+  }
+  const { key: keyBinary, keyType } = JSON.parse(key);
+  if(keyType !== "deviceKey") {
+    return false;
+  }
+  const keyBinaryArray = new Uint8Array(base64ToArrayBuffer(keyBinary));
+  if(keyBinaryArray.length !== 32) {
+    console.log(keyBinaryArray.length)
+    return false;
+  }
+  return true;
+}
+
+export async function encryptDataDeviceKey(key: string, data: string): Promise<string | null> {
+  if(!isValidDeviceKey(key)) {
+    return null;
+  }
+  const { key: keyBinary } = JSON.parse(key);
+  const dataArray = new TextEncoder().encode(data);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const importedKey = await crypto.subtle.importKey(
+    "raw",
+    new Uint8Array(base64ToArrayBuffer(keyBinary)),
+    "AES-GCM",
+    true,
+    ["encrypt", "decrypt"]
+  );
+  const encryptedData = await crypto.subtle.encrypt(
+    {
+      name: "AES-GCM",
+      iv: iv,
+    },
+    importedKey,
+    dataArray
+  );
+  const viString = arrayBufferToBase64(iv);
+  const encryptedDataString = arrayBufferToBase64(encryptedData);
+  const result: EncryptedData = {
+    keyType: "deviceKey",
+    keyHash: await keyHash(key),
+    encryptedData: encryptedDataString,
+    iv: viString,
+  }
+  return JSON.stringify(result);
+}
+
+export async function decryptDataDeviceKey(key: string, data: string): Promise<string | null> {
+  if(!isValidDeviceKey(key)) {
+    return null;
+  }
+  const { key: keyBinary } = JSON.parse(key);
+  const { encryptedData: binaryEncryptedData, iv } = JSON.parse(data);
+  const importedKey = await crypto.subtle.importKey(
+    "raw",
+    new Uint8Array(base64ToArrayBuffer(keyBinary)),
+    "AES-GCM",
+    true,
+    ["encrypt", "decrypt"]
+  );
+  const decryptedData = await crypto.subtle.decrypt(
+    {
+      name: "AES-GCM",
+      iv: new Uint8Array(base64ToArrayBuffer(iv)),
+    },
+    importedKey,
+    new Uint8Array(base64ToArrayBuffer(binaryEncryptedData))
+  );
+  return new TextDecoder().decode(decryptedData);
 }

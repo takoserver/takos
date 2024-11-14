@@ -54,3 +54,8 @@ export interface EncryptedData {
   iv: string
   cipherText?: string
 }
+
+export interface deviceKey {
+  keyType: "deviceKey"
+  key: string
+}

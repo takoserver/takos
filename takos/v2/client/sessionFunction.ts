@@ -7,17 +7,12 @@ import Keys from "../../models/keys.ts";
 import pubClient from "../../utils/pubClient.ts";
 import { uuidv7 } from "uuidv7";
 import {
-  isValidAccountPublicKey,
-  isValidIdentityPublicKey,
-  isValidKeyShareKeyPublic,
-  isValidkeyShareSignKeyPublic,
-  isValidMasterKeyPub,
-  isValidmigrateKeyPublic,
-  isValidmigrateSignKeyyPublic,
-  isValidSign,
-  keyHash,
-  verifyDataIdentityKey,
-  verifyDataMasterKey,
+  isValidAccountKeyPrivate,
+  isValidAccountKeyPublic,
+  isValidIdentityKeyPrivate,
+  isValidIdentityKeyPublic,
+  isValidEncryptedAccountKey,
+  isValidEncryptedRoomKey,
 } from "@takos/takos-encrypt-ink";
 
 import { decode, Image } from "imagescript";

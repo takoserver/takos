@@ -9,26 +9,20 @@ const keySchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  accountKey: {
+  sign: {
     type: String,
     required: true,
   },
-  idenSign: {
+  sessionid: {
     type: String,
     required: true,
   },
-  accSign: {
+  timestamp: { type: Date, default: Date.now },
+  hash: {
     type: String,
     required: true,
-  },
-  keyHash: {
-    type: String,
-    required: true,
-  },
-  timestamp: {
-    type: String,
-  },
+  }
 });
 
-const Key = mongoose.model("keys", keySchema);
+const Key = mongoose.model("identityKeys", keySchema);
 export default Key;

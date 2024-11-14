@@ -9,20 +9,13 @@ const sessionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  deviceKey: {
+  keyShareKey: {
     type: String,
     required: true,
   },
   timestamp: { type: Date, default: Date.now },
-  encrypted: {
-    type: Boolean,
-    default: false,
-  },
-  sessionUUID: {
-    type: String,
-  },
 });
 
-const Session = mongoose.model("sessions", sessionSchema);
+const Session = mongoose.model("keyShareKey", sessionSchema);
 
 export default Session;
