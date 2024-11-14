@@ -20,7 +20,7 @@ export interface roomKey {
     sessionUuid: string
   } 
 export interface shareKey {
-    keyType: "shareKeyPublic" | "sharekeyPrivate"
+    keyType: "shareKeyPublic" | "shareKeyPrivate"
     key: string
     timestamp: number
     sessionUuid: string
@@ -35,16 +35,22 @@ export interface shareSignKey {
 export interface migrateKey {
     keyType: "migrateKeyPublic" | "migrateKeyPrivate"
     key: string
-    timestamp: number
   } 
 export interface migrateSignKey {
     keyType: "migrateSignKeyPublic" | "migrateSignKeyPrivate"
     key: string
-    timestamp: number
 }
 
 export interface Sign {
   keyHash: string
   signature: string
   keyType: string
+}
+
+export interface EncryptedData {
+  keyType: string
+  keyHash: string
+  encryptedData: string
+  iv: string
+  cipherText?: string
 }

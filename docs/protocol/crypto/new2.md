@@ -11,7 +11,7 @@ ML-KEMとML-DSAはpqc対応の標準化された暗号化方式です。
   - **アルゴリズム**: ML-DSA-65 
   - **役割**: メッセージやroomKeyのメタ情報を署名するために利用する。
 - **accountKey**: 
-  - **アルゴリズム**: ML-KEM-1024 
+  - **アルゴリズム**: ML-KEM-768
   - **役割**: roomKeyを暗号化して送信するための鍵。
 - **roomKey**: 
   - **アルゴリズム**: AES-256 
@@ -38,6 +38,8 @@ interface masterKey {
   key: string
 } 
 ```
+公開鍵の文字数: 2723
+秘密鍵の文字数: 5496
 - **identityKey**:
 ```ts
 interface identityKey {
@@ -47,6 +49,8 @@ interface identityKey {
   sessionUuid: string
 } 
 ```
+公開鍵の文字数: 3494
+秘密鍵の文字数: 6567
 - **accountKey**:
 ```ts
 interface accountKey {
@@ -55,6 +59,8 @@ interface accountKey {
   timestamp: number
 } 
 ```
+公開鍵の文字数: 1645
+秘密鍵の文字数: 3266
 - **roomKey**:
 ```ts
 interface roomKey {
@@ -64,6 +70,7 @@ interface roomKey {
   sessionUuid: string
 } 
 ```
+鍵の文字数: 153
 - **shareKey**:
 ```ts
 interface shareKey {
@@ -128,7 +135,17 @@ identityKeyで署名します。
 
 ## 暗号の形式
 
-`<KEY_TYPE>-<KEY_HASH>-<BINARY_ENCRYPTED_DATA>-<VI>[-<CIPHER_TEXT>]`
+```ts
+
+export interface EncryptedData {
+  keyType: string
+  keyHash: string
+  binaryEncryptedData: string
+  vi: string
+  cipherText?: string
+}
+
+```
 
 keyTypeは上記の鍵の種類を指します。
 keyHashはbase64でエンコードされたsha256のハッシュ値を指します。
@@ -136,7 +153,15 @@ binaryEncryptedDataは暗号化されたデータをbase64でエンコードし�
 
 ## 署名の形式
 
-`<KEY_TYPE>-<KEY_HASH>-<BINARY_SIGNATURE>`
+```ts
+
+export interface Sign {
+  keyHash: string
+  signature: string
+  keyType: string
+}
+
+```
 
 keyTypeは上記の鍵の種類を指します。
 keyHashはbase64でエンコードされたsha256のハッシュ値を指します。
