@@ -77,6 +77,8 @@ interface shareKey {
   sessionUuid: string
 } 
 ```
+公開鍵の文字数: 1696
+秘密鍵の文字数: 3317
 - **migrateKey**: `<"migrateKeyPublic" | "migrateKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
 ```ts
 interface migrateKey {
@@ -85,6 +87,8 @@ interface migrateKey {
   timestamp: number
 } 
 ```
+公開鍵の文字数: 1619
+秘密鍵の文字数: 3240
 - **migrateSignKey**: `<"migrateSignKeyPublic" | "migrateSignKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
 ```ts
 interface migrateSignKey {
@@ -93,6 +97,8 @@ interface migrateSignKey {
   timestamp: number
 } 
 ```
+公開鍵の文字数: 2647
+秘密鍵の文字数: 5420
 
 keyTypeは上記の鍵の種類を指します。
 timestampは鍵の生成時刻を指します。
@@ -135,6 +141,10 @@ export interface EncryptedData {
 
 ```
 
+暗号化された鍵
+- accountKey: 3806
+- roomKey:
+
 keyTypeは上記の鍵の種類を指します。
 keyHashはbase64でエンコードされたsha256のハッシュ値を指します。
 binaryEncryptedDataは暗号化されたデータをbase64でエンコードしたものを指します。
@@ -150,6 +160,10 @@ export interface Sign {
 }
 
 ```
+
+署名のサイズ
+- masterKey: 6267
+- identityKey: 4509
 
 keyTypeは上記の鍵の種類を指します。
 keyHashはbase64でエンコードされたsha256のハッシュ値を指します。
