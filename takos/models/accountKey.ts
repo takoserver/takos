@@ -18,7 +18,14 @@ const keyShareDataSchema = new mongoose.Schema({
     required: true,
   },
   encryptedAccountKey: {
-    type: [String, String],
+    type: Array,
+  },
+  deriveredSession: {
+    type: Array,
+    default: [],
+  },
+  privateSign: {
+    type: String,
   },
 });
 

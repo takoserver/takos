@@ -16,7 +16,7 @@ import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "../popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import { checkUserName } from "../../../../takos/utils/checks";
 import { splitUserName } from "../../../../takos-web/util/takosClient";
-import { encryptDataShareKey, generateAccountKey, isValidEncryptedAccountKey, keyHash } from "@takos/takos-encrypt-ink";
+import { encryptDataDeviceKey, encryptDataShareKey, generateAccountKey, keyHash, signMasterKey } from "@takos/takos-encrypt-ink";
 export function SideBer() {
   const [page] = useAtom(pageState);
 
@@ -339,11 +339,17 @@ function Setting() {
             onClick={async () => {
               const uuid = localStorage.getItem("sessionuuid");
               //@ts-ignore
-              const masterKeyValue = masterKey() as string
+              const masterKeyValue = masterKey()
               if (!uuid) return;
               if (!masterKey) return;
-              const acccountKey = await generateAccountKey(JSON.parse(masterKeyValue).privateKey);
+              console.log(masterKeyValue);
+              //@ts-ignore
+              const acccountKey = await generateAccountKey(masterKeyValue!.privateKey);
               if (!acccountKey) return;
+              const encryptedAccountKeyDeviceKey = await encryptDataDeviceKey(
+                deviceKey()!,
+                acccountKey.privateKey,
+              );
               const encryptedAccountKeys: [string,string][] = []
               for(const session of chooseAccountKeyShareSessionUUID()) {
                 if(session[2]) {
@@ -358,11 +364,15 @@ function Setting() {
                   encryptedAccountKeys.push([session[0],encryptedAccountKey]);
                 }
               }
+              //@ts-ignore
+              const privateSign = await signMasterKey(masterKeyValue!.privateKey,
+              acccountKey.privateKey);
               const response = await requester(domain() as string, "updateAccountKey", {
                 sessionid: localStorage.getItem("sessionid"),
                 sharedData: encryptedAccountKeys,
                 accountKeyPublic: acccountKey.publickKey,
                 accSign: acccountKey.sign,
+                privateSign: privateSign,
               });
               if(response.status !== 200) {
                 console.error("Failed to update account key");
@@ -371,7 +381,7 @@ function Setting() {
               const db = await createTakosDB();
               await db.put("accountKeys", {
                 key: await keyHash(acccountKey.publickKey),
-                encryptedKey: encryptedAccountKeys[0][1],
+                encryptedKey: encryptedAccountKeyDeviceKey!,
                 timestamp: JSON.parse(acccountKey.publickKey).timestamp,
               });
               alert("アカウントキーの更新が完了しました");

@@ -58,13 +58,46 @@ singlend.group(
       "getSessionInfo",
       z.object({}),
       async (query, value, ok) => {
+        const sbareAccountKey = await AccountKey.find({
+          userName: value.userInfo.userName,
+          encryptedAccountKey: {
+            $elemMatch: {
+              0: value.sessionInfo.sessionUUID,
+            }
+          },
+          deriveredSession: {
+            $ne: value.sessionInfo.sessionid
+          }
+        });
         return ok({
           setuped: value.userInfo.setup,
           sessionEncrypted: value.sessionInfo.encrypted,
           deviceKey: value.sessionInfo.deviceKey,
+          share: sbareAccountKey.map((data) => {
+            return data.hash;
+          }),
         });
       },
     );
+    singlend.on(
+      "getShareData",
+      z.object({
+       hash: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        console.log("getAccountKey");
+        const sbareAccountKey = await AccountKey.findOne({
+          hash: query.hash,
+        });
+        if (!sbareAccountKey) return error("error", 400);
+        return ok({
+          accountKey: (sbareAccountKey.encryptedAccountKey.find(
+            (data) => data[0] === value.sessionInfo.sessionUUID,
+          ))[1],
+          privateSign: sbareAccountKey.privateSign,
+        });
+      },
+    )
     singlend.on(
       "setUp",
       z.object({
@@ -127,6 +160,7 @@ singlend.group(
           sign: query.identityKeySign,
           hash: await keyHash(query.identityKey),
           sessionid: value.sessionInfo.sessionid,
+          encryptedAccountKey: [],
         });
         await AccountKey.create({
           userName: value.userInfo.userName,
@@ -234,6 +268,7 @@ singlend.group(
           sign: query.accountKeySign,
           hash: await keyHash(query.accountKey),
           encryptedAccountKey: [],
+          privateSign: "",
         });
         await Session.updateOne(
           { sessionid: value.sessionInfo.sessionid },
@@ -462,57 +497,48 @@ singlend.group(
       z.object({
         accountKeyPublic: z.string(),
         accSign: z.string(),
-        sharedData: z.array(z.array(z.string(), z.string())),
+        sharedData: z.array(z.any()),
+        privateSign: z.string(),
       }),
       async (query, value, ok, error) => {
-        if (!value.userInfo.masterKey) return error("error2", 400);
+        if (!value.userInfo.masterKey) return error("error", 400);
         if (!isValidAccountKeyPublic(query.accountKeyPublic)) {
-          return error("error2", 400);
+          return error("error", 400);
         }
         if (
-          verifyDataMigrateSignKey(
+          !verifyMasterKey(
             value.userInfo.masterKey,
             query.accSign,
             query.accountKeyPublic,
-          )
+          ) ||
+          !isValidSignMasterkey(query.privateSign)
         ) {
-          return error("error3", 400);
+          return error("error", 400);
+        }
+        const encryptedAccountKey: [string,string][] = []
+        for (const data of query.sharedData) {
+          const sessionUUID = data[0];
+          const encryptedAccountKeyValue = data[1];
+          if (!isValidEncryptedAccountKey(encryptedAccountKeyValue)) {
+            return error("error1", 400);
+          }
+          if (!await Session.findOne({ sessionUUID })) {
+            return error("error2", 400);
+          }
+          if(!isValidEncryptedAccountKey(encryptedAccountKeyValue)) {
+            return error("error3", 400);
+          }
+         encryptedAccountKey.push([sessionUUID, encryptedAccountKeyValue]);
         }
         await AccountKey.create({
           userName: value.userInfo.userName,
           accoutKey: query.accountKeyPublic,
           sign: query.accSign,
           hash: await keyHash(query.accountKeyPublic),
-          encryptedAccountKey: await Promise.all(query.sharedData.map(async (data) => {
-            const sessionUUID = data[0];
-            const encryptedAccountKey = data[1];
-            if (!await Session.findOne({ sessionUUID })) throw new Error("error4");
-            return [sessionUUID, encryptedAccountKey];
-          }))
-        });
+          encryptedAccountKey: encryptedAccountKey,
+          privateSign: query.privateSign,
+        })
         return ok("ok");
-      },
-    );
-    singlend.on(
-      "getAccountKeyPrivate",
-      z.object({
-        hash: z.string(),
-      }),
-      async (query, value, ok, error) => {
-        const accountKey = await AccountKey.findOne({
-          userName: value.userInfo.userName,
-          hash: query.hash,
-        });
-        if (!accountKey) return error("error", 400);
-        const accountKeyPrivate = accountKey.encryptedAccountKey.find(
-          (data) => {
-            return data[0] === value.sessionInfo.sessionUUID;
-          },
-        );
-        if (!accountKeyPrivate) return error("error", 400);
-        return ok({
-          accountKeyPrivate: accountKeyPrivate[1],
-        });
       },
     );
     singlend.on(

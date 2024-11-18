@@ -806,7 +806,8 @@ export function isValidEncryptedAccountKey(data: string): boolean {
   if(!isValidEncryptedDataShareKey(data)) {
     return false;
   }
-  if(data.length !== 5966) {
+  if(data.length !== 16618) {
+    console.log(data.length)
     return false;
   }
   return true;
@@ -1374,19 +1375,12 @@ async function testAccountKey() {
     console.log("error")
     return;
   }
-  const encryptedAccountKey = await encryptDataShareKey(shareKey.publickKey, accountKey.privateKey);
+  const encryptedAccountKey = await encryptDataShareKey(shareKey.publickKey, JSON.stringify(accountKey));
   if(!encryptedAccountKey) {
     console.log("error")
     return;
   }
   console.log(isValidEncryptedAccountKey(encryptedAccountKey))
-  const roomKey = await generateRoomkey(uuidv7());
-  const encryptedRoomKey = await encryptDataAccountKey(accountKey.publickKey, roomKey? roomKey: "");
-  if(!encryptedRoomKey) {
-    console.log("error")
-    return;
-  }
-  console.log(isValidEncryptedRoomKey(encryptedRoomKey))
 }
 
-//testAccountKey()
+testAccountKey()

@@ -28,7 +28,10 @@ import { createTakosDB, localStorageEditor } from "../utils/idb";
 import { uuidv7 } from "uuidv7";
 import {
   decryptDataDeviceKey,
+  decryptDataShareKey,
   encryptDataDeviceKey,
+  keyHash,
+  verifyMasterKey,
 } from "@takos/takos-encrypt-ink";
 import { createWebsocket } from "../utils/ws";
 export function Loading() {
@@ -110,7 +113,40 @@ export function Load() {
       handleSessionFailure();
       return;
     }
-    console.log(json);
+    for(const key of json.share) {
+      const data = await requester(serverDomain, "getShareData", {
+        hash: key,
+        sessionid,
+      }).then((res) => res.json());
+      if (data.error) {
+        handleSessionFailure();
+        return;
+      }
+      console.log(data);
+      const keyShareHash = JSON.parse(data.accountKey)
+      console.log(keyShareHash.keyHash)
+      const db = await createTakosDB();
+      const encryptedkeyShareKey = await db.get("shareKeys", keyShareHash.keyHash)
+      if(!encryptedkeyShareKey) {
+        continue;
+      }
+      const keyShare = await decryptDataDeviceKey(json.deviceKey, encryptedkeyShareKey.encryptedKey)
+      if(!keyShare) {
+        continue;
+      }
+      const accountKey = await decryptDataShareKey(keyShare, data.accountKey)
+      if(!accountKey) {
+        continue;
+      }
+      if(!verifyMasterKey(json.deviceKey, json.privateSign, accountKey)) {
+        continue;
+      }
+      await db.put("accountKeys", {
+        key: await keyHash(accountKey),
+        encryptedKey: await encryptDataDeviceKey(json.deviceKey, accountKey.privateKey),
+        timestamp: accountKey.timestamp,
+      });
+    }
     setEncryptedSession(json.sessionEncrypted);
     setSetUp(json.setuped);
     setDeviceKey(json.deviceKey);
