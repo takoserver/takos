@@ -22,6 +22,6 @@ const keyShareDataSchema = new mongoose.Schema({
   },
 });
 
-const KeyShareData = mongoose.model("keyShareData", keyShareDataSchema);
+const KeyShareData = mongoose.model("accountKey", keyShareDataSchema);
 
 export default KeyShareData;

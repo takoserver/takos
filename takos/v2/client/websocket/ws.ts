@@ -47,18 +47,22 @@ async function subscribeMessage(channel: string | string[]) {
           sessionid: string;
           migrateid: string;
         } = data.data;
-        const sessionInfo = Array.from(session.entries()).find(([_, value]) =>
-          value.sessionid === query.sessionid
-        );
+        const sessionInfo = Array.from(session.entries()).find(([_, value]) => {
+          console.log(value.sessionid, query.sessionid);
+          return value.sessionid === query.sessionid;
+        });
         if (!sessionInfo) {
+          console.log("sessionInfo not found");
           return;
         }
         const migrateData = await MigrateData.findOne({
           migrateid: query.migrateid,
         });
         if (!migrateData) {
+          console.log("migrateData not found");
           return;
         }
+        console.log("noticeMigrateSignKey");
         sessionInfo[1].ws.send(JSON.stringify({
           type: "noticeMigrateSignKey",
           data: {

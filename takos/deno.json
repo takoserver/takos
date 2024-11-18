@@ -6,7 +6,7 @@
     "@evex/singlend": "jsr:@evex/singlend@^1.2.3",
     "@std/assert": "jsr:@std/assert@1",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.2",
-    "@takos/takos-encrypt-ink": "jsr:@takos/takos-encrypt-ink@^5.1.2",
+    "@takos/takos-encrypt-ink": "jsr:@takos/takos-encrypt-ink@^5.2.0",
     "base64-arraybuffer": "npm:base64-arraybuffer@^1.0.2",
     "hono": "jsr:@hono/hono@^4.6.5",
     "hono/hono/client": "jsr:@hono/hono@^4.6.5/client",

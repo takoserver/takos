@@ -1,7 +1,7 @@
 import { uuidv7 } from "uuidv7"
 import { decryptDataAccountKey,isValidEncryptedRoomKey, decryptDataMigrateKey, decryptDataShareKey, decryptMessage, encryptDataAccountKey, encryptDataMigrateKey, encryptDataShareKey, encryptMessage, encryptRoomKeyWithAccountKeys, generateAccountKey, generateIdentityKey, generateMasterKey, generateMigrateKey, generateMigrateSignKey, generateRoomkey, generateShareKey, generateShareSignKey, isValidAccountKeyPrivate, isValidAccountKeyPublic, isValidEncryptedDataAccountKey, isValidEncryptedDataMigrateKey, isValidIdentityKeyPrivate, isValidIdentityKeyPublic, isValidMasterKeyPrivate, isValidMasterKeyPublic, isValidMigrateKeyPrivate, isValidMigrateKeyPublic, isValidMigrateSignKeyPrivate, isValidMigrateSignKeyPublic, isValidRoomKey, isValidShareKeyPrivate, isValidShareKeyPublic, isValidShareSignKeyPrivate, isValidShareSignKeyPublic, isValidSignIdentityKey, isValidSignMigrateSignKey, isValidSignShareSignKey, signDataMigrateSignKey, signDataShareSignKey, signIdentityKey, verifyDataMigrateSignKey, verifyDataShareSignKey, verifyIdentityKey, verifyMasterKey } from "./mod.ts"
 
-async function testMasterKey() {
+function testMasterKey() {
     console.log("Testing Master Key...");
     const masterKey = generateMasterKey();
     console.log("Valid Private:", isValidMasterKeyPrivate(masterKey.privateKey));

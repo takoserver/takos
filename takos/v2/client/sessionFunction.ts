@@ -5,11 +5,8 @@ import Session from "../../models/sessions.ts";
 import pubClient from "../../utils/pubClient.ts";
 import { uuidv7 } from "uuidv7";
 import {
-  isValidAccountKeyPrivate,
   isValidAccountKeyPublic,
   isValidEncryptedAccountKey,
-  isValidEncryptedRoomKey,
-  isValidIdentityKeyPrivate,
   isValidIdentityKeyPublic,
   isValidMasterKeyPublic,
   isValidMigrateKeyPublic,
@@ -109,28 +106,15 @@ singlend.group(
         }
         const { sessionUuid: idenSessionUuid } = JSON.parse(query.identityKey);
         const { sessionUuid: shareSessionUuid } = JSON.parse(query.shareKey);
-        if(idenSessionUuid !== query.sessionUUID || shareSessionUuid !== query.sessionUUID) return error("error", 400);
+        if (
+          idenSessionUuid !== query.sessionUUID ||
+          shareSessionUuid !== query.sessionUUID
+        ) return error("error", 400);
         const iconBinary = base64ToArrayBuffer(query.icon);
         const icon = await decode(new Uint8Array(iconBinary));
         if (!icon) return error("error", 400);
         icon.resize(256, 256);
         const iconData = await icon.encode();
-        await User.updateOne(
-          { userName: value.userInfo.userName },
-          {
-            masterKey: query.masterKey,
-            setup: true,
-            nickName: query.nickName,
-            icon: arrayBufferToBase64(iconData),
-            birthday: query.birthday,
-          },
-        );
-        await Session.updateOne(
-          { sessionid: value.sessionInfo.sessionid },
-          { encrypted: true,
-            sessionUUID: query.sessionUUID,
-           },
-        );
         await KeyShareKey.create({
           userName: value.userInfo.userName,
           shareKey: query.shareKey,
@@ -146,11 +130,115 @@ singlend.group(
         });
         await AccountKey.create({
           userName: value.userInfo.userName,
-          accountKey: query.accountKey,
+          accoutKey: query.accountKey,
           sign: query.accountKeySign,
           hash: await keyHash(query.accountKey),
           encryptedAccountKey: [],
         });
+        await User.updateOne(
+          { userName: value.userInfo.userName },
+          {
+            masterKey: query.masterKey,
+            setup: true,
+            nickName: query.nickName,
+            icon: arrayBufferToBase64(iconData),
+            birthday: query.birthday,
+          },
+        );
+        await Session.updateOne(
+          { sessionid: value.sessionInfo.sessionid },
+          { encrypted: true, sessionUUID: query.sessionUUID },
+        );
+        return ok("ok");
+      },
+    );
+    singlend.on(
+      "resetMasterKey",
+      z.object({
+        masterKey: z.string(),
+        identityKey: z.string(),
+        accountKey: z.string(),
+        identityKeySign: z.string(),
+        accountKeySign: z.string(),
+        sessionUUID: z.string(),
+        shareKey: z.string(),
+        shareKeySign: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        if (value.sessionInfo.encrypted) return error("error", 400);
+        if (
+          !isValidIdentityKeyPublic(query.identityKey) ||
+          !isValidAccountKeyPublic(query.accountKey) ||
+          !isValidShareKeyPublic(query.shareKey) ||
+          !isValidMasterKeyPublic(query.masterKey)
+        ) return error("error1", 400);
+        if (
+          !verifyMasterKey(
+            query.masterKey,
+            query.identityKeySign,
+            query.identityKey,
+          ) ||
+          !verifyMasterKey(
+            query.masterKey,
+            query.accountKeySign,
+            query.accountKey,
+          ) ||
+          !verifyMasterKey(query.masterKey, query.shareKeySign, query.shareKey)
+        ) {
+          return error("error2", 400);
+        }
+        const { sessionUuid: idenSessionUuid } = JSON.parse(query.identityKey);
+        const { sessionUuid: shareSessionUuid } = JSON.parse(query.shareKey);
+        if (
+          idenSessionUuid !== query.sessionUUID ||
+          shareSessionUuid !== query.sessionUUID
+        ) return error("error3", 400);
+        await User.updateOne(
+          { userName: value.userInfo.userName },
+          {
+            masterKey: query.masterKey,
+          },
+        );
+        await Session.deleteMany({
+          userName: value.userInfo.userName,
+          sessionid: { $ne: value.sessionInfo.sessionid },
+        });
+        await KeyShareKey.deleteMany({
+          userName: value.userInfo.userName,
+          sessionid: { $ne: value.sessionInfo.sessionid },
+        });
+        await IdentityKey.deleteMany({
+          userName: value.userInfo.userName,
+          sessionid: { $ne: value.sessionInfo.sessionid },
+        });
+        await AccountKey.deleteMany({
+          userName: value.userInfo.userName,
+          sessionid: { $ne: value.sessionInfo.sessionid },
+        });
+        await KeyShareKey.create({
+          userName: value.userInfo.userName,
+          shareKey: query.shareKey,
+          sign: query.shareKeySign,
+          sessionid: value.sessionInfo.sessionid,
+        });
+        await IdentityKey.create({
+          userName: value.userInfo.userName,
+          identityKey: query.identityKey,
+          sign: query.identityKeySign,
+          hash: await keyHash(query.identityKey),
+          sessionid: value.sessionInfo.sessionid,
+        });
+        await AccountKey.create({
+          userName: value.userInfo.userName,
+          accoutKey: query.accountKey,
+          sign: query.accountKeySign,
+          hash: await keyHash(query.accountKey),
+          encryptedAccountKey: [],
+        });
+        await Session.updateOne(
+          { sessionid: value.sessionInfo.sessionid },
+          { encrypted: true, sessionUUID: query.sessionUUID },
+        );
         return ok("ok");
       },
     );
@@ -260,8 +348,8 @@ singlend.group(
       }),
       async (query, value, ok, error) => {
         if (value.sessionInfo.encrypted) return error("error", 400);
-        if(!value.userInfo.masterKey) return error("error", 400);
-        if(!value.userInfo.setup) return error("error", 400);
+        if (!value.userInfo.masterKey) return error("error", 400);
+        if (!value.userInfo.setup) return error("error", 400);
         if (
           !isValidShareKeyPublic(query.shareKey) ||
           !isValidIdentityKeyPublic(query.identityKey) ||
@@ -284,7 +372,10 @@ singlend.group(
         }
         const { sessionUuid: idenSessionUuid } = JSON.parse(query.identityKey);
         const { sessionUuid: shareSessionUuid } = JSON.parse(query.shareKey);
-        if(idenSessionUuid !== query.sessionUUID || shareSessionUuid !== query.sessionUUID) return error("error", 400);
+        if (
+          idenSessionUuid !== query.sessionUUID ||
+          shareSessionUuid !== query.sessionUUID
+        ) return error("error", 400);
         await Session.updateOne({ sessionid: value.sessionInfo.sessionid }, {
           encrypted: true,
           sessionUUID: query.sessionUUID,
@@ -306,7 +397,7 @@ singlend.group(
       },
     );
     singlend.on(
-      "getKeyShareKeys",
+      "getShareKeys",
       z.object({}),
       async (_query, value, ok) => {
         const sessionDatas = await Session.find({
@@ -314,7 +405,7 @@ singlend.group(
           userName: value.userInfo.userName,
           sessionid: { $ne: value.sessionInfo.sessionid },
         });
-        const result = []
+        const result = [];
         for (const sessionData of sessionDatas) {
           const keyShareKey = await KeyShareKey.findOne({
             sessionid: sessionData.sessionid,
@@ -323,7 +414,7 @@ singlend.group(
           if (!keyShareKey) continue;
           result.push({
             session: sessionData.sessionUUID,
-            shareKey: keyShareKey.ShareKey,
+            shareKey: keyShareKey.shareKey,
             sign: keyShareKey.sign,
           });
         }
@@ -337,15 +428,25 @@ singlend.group(
         idenSign: z.string(),
       }),
       async (query, value, ok, error) => {
-        if(!value.userInfo.masterKey) return error("error", 400);
+        if (!value.userInfo.masterKey) return error("error", 400);
         if (!isValidIdentityKeyPublic(query.identityKeyPublic)) {
           return error("error", 400);
         }
-        if (verifyDataMigrateSignKey(value.userInfo.masterKey, query.idenSign,query.identityKeyPublic)) {
+        if (
+          verifyDataMigrateSignKey(
+            value.userInfo.masterKey,
+            query.idenSign,
+            query.identityKeyPublic,
+          )
+        ) {
           return error("error", 400);
         }
-        const { sessionUuid: idenSessionUuid } = JSON.parse(query.identityKeyPublic);
-        if(idenSessionUuid !== value.sessionInfo.sessionUUID) return error("error", 400);
+        const { sessionUuid: idenSessionUuid } = JSON.parse(
+          query.identityKeyPublic,
+        );
+        if (idenSessionUuid !== value.sessionInfo.sessionUUID) {
+          return error("error", 400);
+        }
         await IdentityKey.create({
           userName: value.userInfo.userName,
           identityKey: query.identityKeyPublic,
@@ -364,25 +465,30 @@ singlend.group(
         sharedData: z.array(z.array(z.string(), z.string())),
       }),
       async (query, value, ok, error) => {
-        if(!value.userInfo.masterKey) return error("error", 400);
+        if (!value.userInfo.masterKey) return error("error2", 400);
         if (!isValidAccountKeyPublic(query.accountKeyPublic)) {
-          return error("error", 400);
+          return error("error2", 400);
         }
-        if (verifyDataMigrateSignKey(value.userInfo.masterKey, query.accSign,query.accountKeyPublic)) {
-          return error("error", 400);
+        if (
+          verifyDataMigrateSignKey(
+            value.userInfo.masterKey,
+            query.accSign,
+            query.accountKeyPublic,
+          )
+        ) {
+          return error("error3", 400);
         }
         await AccountKey.create({
           userName: value.userInfo.userName,
-          accountKey: query.accountKeyPublic,
+          accoutKey: query.accountKeyPublic,
           sign: query.accSign,
           hash: await keyHash(query.accountKeyPublic),
-          encryptedAccountKey: query.sharedData.map((data) => {
+          encryptedAccountKey: await Promise.all(query.sharedData.map(async (data) => {
             const sessionUUID = data[0];
             const encryptedAccountKey = data[1];
-            if(!isValidEncryptedAccountKey(encryptedAccountKey)) return null;
-            if(!Session.findOne({ sessionUUID })) return null;
+            if (!await Session.findOne({ sessionUUID })) throw new Error("error4");
             return [sessionUUID, encryptedAccountKey];
-          })
+          }))
         });
         return ok("ok");
       },
@@ -398,9 +504,11 @@ singlend.group(
           hash: query.hash,
         });
         if (!accountKey) return error("error", 400);
-        const accountKeyPrivate = accountKey.encryptedAccountKey.find((data) => {
-          return data[0] === value.sessionInfo.sessionUUID;
-        });
+        const accountKeyPrivate = accountKey.encryptedAccountKey.find(
+          (data) => {
+            return data[0] === value.sessionInfo.sessionUUID;
+          },
+        );
         if (!accountKeyPrivate) return error("error", 400);
         return ok({
           accountKeyPrivate: accountKeyPrivate[1],
@@ -671,199 +779,6 @@ singlend.group(
         return ok({
           nickName: friend.nickName,
         });
-      },
-    );
-    singlend.on(
-      "updateRoomKey",
-      z.object({
-        type: z.string(),
-        roomid: z.string(),
-        sign: z.string(),
-        encryptedKey: z.array(z.any()),
-      }),
-      async (query, value, ok, error) => {
-        const validateFriendRoom = async () => {
-          const [user, friend] = query.roomid.split("-");
-          if (user !== value.userInfo.userName + "@" + env["DOMAIN"]) {
-            return error("error1", 400);
-          }
-          if (!await Friend.findOne({ userName: user, friendId: friend })) {
-            return error("error2", 400);
-          }
-          const users = [user, friend];
-          for (const encryptedKey of query.encryptedKey) {
-            const userId = encryptedKey[0];
-            if (!users.includes(userId)) return error("error3", 400);
-            users.splice(users.indexOf(userId), 1);
-          }
-          return users.length === 0;
-        };
-
-        const validateGroupRoom = async () => {
-          const group = await Group.findOne({ uuid: query.roomid });
-          if (!group) return error("error4", 400);
-          if (!group.members.includes(value.userInfo.userName)) {
-            return error("error5", 400);
-          }
-          const users = group.members;
-          for (const encryptedKey of query.encryptedKey) {
-            if (!users.includes(encryptedKey[0])) return error("error6", 400);
-            users.splice(users.indexOf(encryptedKey[0]), 1);
-          }
-          return users.length === 0;
-        };
-
-        const isValid = query.type === "friend"
-          ? await validateFriendRoom()
-          : query.type === "group"
-          ? await validateGroupRoom()
-          : false;
-        if (!isValid) return error("error7", 400);
-        await RoomKey.create({
-          roomid: query.roomid,
-          type: query.type,
-          roomKey: query.encryptedKey,
-          sign: query.sign,
-        });
-        return ok("ok");
-      },
-    );
-    singlend.on(
-      "getLatestMyRoomKey",
-      z.object({
-        roomid: z.string(),
-      }),
-      async (query, value, ok, error) => {
-        const roomKey = await RoomKey.findOne({
-          roomid: query.roomid,
-          type: "friend",
-        }).sort({ timestamp: -1 });
-        if (!roomKey) {
-          return ok({
-            encryptedKey: null,
-            status: false,
-          });
-        }
-        const encryptedkey = roomKey.roomKey.find((data) => {
-          return data[0] === value.userInfo.userName + "@" + env["DOMAIN"];
-        });
-        if (!encryptedkey) return error("error", 400);
-        return ok({
-          encryptedKey: encryptedkey[1] as string,
-          status: true,
-        });
-      },
-    );
-    singlend.on(
-      "getRoomKey",
-      z.object({
-        roomid: z.string(),
-        keyHash: z.string(),
-        userId: z.string(),
-        type: z.string(),
-      }),
-      async (query, value, ok, error) => {
-        if (query.type === "friend") {
-          const [user, friend] = query.roomid.split("-");
-          if (user !== value.userInfo.userName + "@" + env["DOMAIN"]) {
-            return error("error1", 400);
-          }
-          if (!await Friend.findOne({ userName: user, friendId: friend })) {
-            return error("error2", 400);
-          }
-          if (query.userId == friend) {
-            const { userName: _, domain } = splitUserName(friend);
-            if (domain !== env["DOMAIN"]) {
-              const requestRemoteServer = await requesterServer(
-                domain,
-                "getRoomKey",
-                JSON.stringify({
-                  roomid: friend + "-" + user,
-                  keyHash: query.keyHash,
-                  userId: query.userId,
-                  type: "friend",
-                  requester: value.userInfo.userName + "@" + env["DOMAIN"],
-                }),
-              );
-              if (requestRemoteServer.status) {
-                return ok({
-                  encryptedKey: requestRemoteServer.encryptedKey,
-                });
-              }
-              return error("error3", 400);
-            }
-            const roomKey = await RoomKey.findOne({
-              roomid: friend + "-" + user,
-              type: "friend",
-            }).sort({ timestamp: -1 });
-            if (!roomKey) return error("error3", 400);
-            const encryptedkey = roomKey.roomKey.find((data) => {
-              return data[0] === query.userId;
-            });
-            if (!encryptedkey) return error("error4", 400);
-            return ok({
-              encryptedKey: encryptedkey[1] as string,
-            });
-          } else if (query.userId == user) {
-            const roomKey = await RoomKey.findOne({
-              roomid: user + "-" + friend,
-              type: "friend",
-            }).sort({ timestamp: -1 });
-            if (!roomKey) return error("error5", 400);
-            const encryptedkey = roomKey.roomKey.find((data) => {
-              return data[0] === query.userId;
-            });
-            if (!encryptedkey) return error("error6", 400);
-            return ok({
-              encryptedKey: encryptedkey[1] as string,
-            });
-          } else {
-            return error("error3", 400);
-          }
-        } else if (query.type === "group") {
-          const group = await Group.findOne({ uuid: query.roomid });
-          if (!group) return error("error7", 400);
-          if (!group.members.includes(value.userInfo.userName)) {
-            return error("error8", 400);
-          }
-          if (!group.members.includes(query.userId)) {
-            return error("error9", 400);
-          }
-          const { userName: _, domain } = splitUserName(query.userId);
-          if (domain == env["DOMAIN"]) {
-            const roomKey = await RoomKey.findOne({
-              roomid: query.roomid,
-              type: "group",
-            }).sort({ timestamp: -1 });
-            if (!roomKey) return error("error10", 400);
-            const encryptedkey = roomKey.roomKey.find((data) => {
-              return data[0] === query.userId;
-            });
-            if (!encryptedkey) return error("error11", 400);
-            return ok({
-              encryptedKey: encryptedkey[1] as string,
-            });
-          } else {
-            const requestRemoteServer = await requesterServer(
-              domain,
-              "getRoomKey",
-              JSON.stringify({
-                roomid: query.roomid,
-                keyHash: query.keyHash,
-                userId: query.userId,
-                type: "group",
-              }),
-            );
-            if (requestRemoteServer.status) {
-              return ok({
-                encryptedKey: requestRemoteServer.encryptedKey,
-              });
-            }
-            return error("error12", 400);
-          }
-        } else {
-          return error("error4", 400);
-        }
       },
     );
     return singlend;

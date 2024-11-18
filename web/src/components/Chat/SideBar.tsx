@@ -10,30 +10,13 @@ import {
 } from "../../utils/state";
 import { isSelectRoomState, selectedRoomState } from "../../utils/roomState";
 import { Home } from "./home";
-import { createTakosDB } from "../../utils/idb";
+import { clearDB, createTakosDB } from "../../utils/idb";
 import { requester } from "../../utils/requester";
-import {
-  decryptDataDeviceKey,
-  encryptDataDeviceKey,
-  EncryptDataKeyShareKey,
-  generateIdentityKeyAndAccountKey,
-  generateRoomKey,
-  isValidAccountPublicKey,
-  isValidIdentityPublicKey,
-  isValidkeyShareSignKeyPrivate,
-  isValidkeyShareSignKeyPublic,
-  isValidMasterKeyPub,
-  keyHash,
-  signDataKeyShareKey,
-  signDataMasterKey,
-  verifyDataIdentityKey,
-  verifyDataKeyShareKey,
-  verifyDataMasterKey,
-} from "@takos/takos-encrypt-ink";
 import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "../popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import { checkUserName } from "../../../../takos/utils/checks";
 import { splitUserName } from "../../../../takos-web/util/takosClient";
+import { encryptDataShareKey, generateAccountKey, isValidEncryptedAccountKey, keyHash } from "@takos/takos-encrypt-ink";
 export function SideBer() {
   const [page] = useAtom(pageState);
 
@@ -111,136 +94,6 @@ function TalkList() {
                   roomName: talk.roomName,
                 });
                 setIsSelectRoom(true);
-                const server = domain();
-                if (!server) return;
-                const latestRoomKey = await requester(
-                  server,
-                  "getLatestMyRoomKey",
-                  {
-                    sessionid: localStorage.getItem("sessionid"),
-                    roomid: talk.roomid,
-                  },
-                );
-                if (latestRoomKey.status === 200) {
-                  const data = await latestRoomKey.json();
-                  if (data.status) {
-                  } else {
-                    const { domain: friendDomain, userName: friendUserName } =
-                      splitUserName(talk.roomName);
-                    const db = await createTakosDB();
-                    const creditInfo = await db.getAll("allowKeys");
-                    const friendMasterKey = await requester(
-                      friendDomain,
-                      "getMasterKey",
-                      {
-                        userName: friendUserName,
-                      },
-                    ).then((res) => res.json());
-                    const friendIdentitykeyAndAccountKey = await requester(
-                      friendDomain,
-                      "getIdentityKeyAndAccountKeyLatest",
-                      {
-                        userName: friendUserName,
-                      },
-                    ).then((res) => res.json());
-                    const myLatestIdentityKey =
-                      identityKeyAndAccountKey().sort((a, b) => {
-                        return new Date(b[1]).getTime() -
-                          new Date(a[1]).getTime();
-                      })[0];
-                    const creditInfoInput = creditInfo.map((info) => {
-                      return {
-                        hash: info.keyHash,
-                        userId: info.userId,
-                        timestamp: info.timestamp,
-                        latest: info.latest,
-                      };
-                    });
-                    const latestIdentityKeyHash =
-                      (await db.getAll("latestIdentityKeyHash")).map((info) => {
-                        if (!info.key) {
-                          return undefined;
-                        }
-                        return {
-                          userId: info.key,
-                          timestamp: info.timestamp,
-                        };
-                      }).filter((
-                        info,
-                      ): info is { userId: string; timestamp: string } =>
-                        info !== undefined
-                      );
-                    const myIdenAndAcckeySign = await requester(
-                      server,
-                      "getIdentityKeyAndAccountKeySign",
-                      {
-                        keyHash: await keyHash(
-                          myLatestIdentityKey[2].identityKey.public,
-                        ),
-                        sessionid: localStorage.getItem("sessionid"),
-                      },
-                    ).then((res) => res.json());
-                    const roomKey = await generateRoomKey(
-                      {
-                        publicKey: myLatestIdentityKey[2].identityKey.public,
-                        secretKey: myLatestIdentityKey[2].identityKey.private,
-                      },
-                      [
-                        {
-                          masterKey: friendMasterKey.masterKey,
-                          identityKey: {
-                            public: friendIdentitykeyAndAccountKey.identityKey,
-                            sign: friendIdentitykeyAndAccountKey.idenSign,
-                          },
-                          accountKey: {
-                            public: friendIdentitykeyAndAccountKey.accountKey,
-                            sign: friendIdentitykeyAndAccountKey.accSign,
-                          },
-                          userId: talk.roomName,
-                        },
-                        {
-                          masterKey: masterKey()?.public,
-                          identityKey: {
-                            public: myLatestIdentityKey[2].identityKey.public,
-                            sign: myIdenAndAcckeySign.idenSign,
-                          },
-                          accountKey: {
-                            public: myLatestIdentityKey[2].accountKey.public,
-                            sign: myIdenAndAcckeySign.accSign,
-                          },
-                          userId: localStorage.getItem("userName") + "@" +
-                            localStorage.getItem("server"),
-                        },
-                      ],
-                      creditInfoInput,
-                      latestIdentityKeyHash,
-                    );
-                    for(const credit of roomKey.updatedCreditMasterKey) {
-                      const userid = credit.userId;
-                      //useridのもののlatestをfalseにする
-                      for(const info of creditInfo) {
-                        if(info.userId === userid) {
-                          await db.put("allowKeys", {
-                            key: info.keyHash,
-                            userId: info.userId,
-                            timestamp: info.timestamp,
-                            latest: false,
-                            keyHash: info.keyHash,
-                          });
-                        }
-                      }
-                    }
-                    for(const identimestamp of roomKey.updatedLatestIdentityKeyTimestamp) {
-                      await db.put("latestIdentityKeyHash", {
-                        key: identimestamp.userId,
-                        timestamp: identimestamp.timestamp,
-                      });
-                    }
-                    console.log(roomKey);
-                  }
-                } else {
-                  alert("鍵が取得できませんでした");
-                }
               }}
             >
               <img
@@ -358,9 +211,10 @@ function Setting() {
   const [deviceKey] = useAtom(deviceKeyState);
   const [sahredata, setShareData] = createSignal("");
   const [shareDataSign, setShareDataSign] = createSignal("");
-  const [chooseShareSession, setChooseShareSession] = createSignal(false);
-  const [chooseShareSessionUUID, setChooseShareSessionUUID] = createSignal<[
+  const [chooseAccountKeyShareSession, setChooseAccountKeyShareSession] = createSignal(false);
+  const [chooseAccountKeyShareSessionUUID, setChooseAccountKeyShareSessionUUID] = createSignal<[
     string, // sessionuuid
+    number, //timestamp
     boolean,
     {
       keySharekey: string;
@@ -386,217 +240,141 @@ function Setting() {
         onClick={async () => {
           localStorage.clear();
           const db = await createTakosDB();
-          await db.clear("allowKeys");
-          await db.clear("identityAndAccountKeys");
-          await db.clear("keyShareKeys");
+          await clearDB()
         }}
       >
         ログアウト
       </button>
-
+        <div>
+          魔法のボタンたち
+        </div>
       <div>
         <button
           onClick={async () => {
-            const server = domain();
-            if (!server) return;
-            const masterKeyValue = masterKey();
-            if (!masterKeyValue) {
-              console.log("Invalid MasterKey");
-              return;
-            }
-            const newIdentityKeyAndAccountKey =
-              await generateIdentityKeyAndAccountKey({
-                public: masterKeyValue.public,
-                private: masterKeyValue.private,
-              });
-            const shareData = JSON.stringify(newIdentityKeyAndAccountKey);
-            const keyShareKeyRes = await requester(
-              server,
-              "getKeyShareKeys",
+            const keyShareKeys = await requester(domain() as string, "getShareKeys", {
+              sessionid: localStorage.getItem("sessionid"),
+            }).then((res) => res.json());
+            if (!keyShareKeys) return;
+            const sahreUUID:[
+              string, // sessionuuid
+              number, //timestamp
+              boolean,
               {
-                sessionid: localStorage.getItem("sessionid"),
+                keySharekey: string;
+                keyShareKeySign: string;
               },
-            ).then((res) => res.json())
-              .then((res) => res.keySharekeys);
-            const now = new Date();
-
-            const keyShareSignKey = await (async () => {
-              const db = await createTakosDB();
-              const keyShareSignKey = await db.getAll("keyShareKeys");
-              // 新しい順に並び替え
-              keyShareSignKey.sort((a, b) => {
-                return new Date(b.timestamp).getTime() -
-                  new Date(a.timestamp).getTime();
-              });
-              const latestKeyShareKey = keyShareSignKey[0];
-              const deviceKeyValue = deviceKey();
-              if (!deviceKeyValue) {
-                console.log("Invalid DeviceKey");
-                return;
-              }
-              const decryptedKeyShareSignKey = await decryptDataDeviceKey(
-                latestKeyShareKey.keyShareSignKey,
-                deviceKeyValue,
-              );
-              return JSON.parse(decryptedKeyShareSignKey);
-            })();
-            console.log(JSON.parse(keyShareSignKey.public));
-            console.log(isValidkeyShareSignKeyPublic(keyShareSignKey.public));
-            console.log(isValidkeyShareSignKeyPrivate(keyShareSignKey.private));
-            const shareDataSign = await signDataKeyShareKey(shareData, {
-              public: keyShareSignKey.public,
-              private: keyShareSignKey.private,
-            });
-            setShareData(shareData);
-            setShareDataSign(shareDataSign);
-            setRawIdentityKeyAndAccountKey(newIdentityKeyAndAccountKey);
-            setChooseShareSessionUUID(
-              keyShareKeyRes.map((keyShareKey: {
-                keyShareKey: string;
-                sign: string;
-                sessionUUID: string;
-              }) => {
-                return [
-                  keyShareKey.sessionUUID,
-                  true,
-                  {
-                    keySharekey: keyShareKey.keyShareKey,
-                    keyShareKeySign: keyShareKey.sign,
-                  },
-                ];
-              }),
-            );
-            setChooseShareSession(true);
+            ][] = []
+            for(const key of keyShareKeys.keyShareKeys) {
+              sahreUUID.push([
+                key.session,
+                JSON.parse(key.shareKey).timestamp,
+                true,
+                {
+                  keySharekey: key.shareKey,
+                  keyShareKeySign: key.sign
+                }
+              ]);
+            }
+            setChooseAccountKeyShareSessionUUID(sahreUUID);
+            setChooseAccountKeyShareSession(true);
           }}
         >
-          鍵更新ボタン
+          AccountKey更新ボタン
         </button>
       </div>
-      {chooseShareSession() && (
+      <div>
+        <button
+          onClick={async () => {
+            
+          }}
+        >
+          identityKey更新ボタン
+        </button>
+      </div>
+      <div>
+        <button
+          onClick={async () => {
+            
+          }}
+        >
+          masterKey更新ボタン
+        </button>
+      </div>
+      {chooseAccountKeyShareSession() && (
         <PopUpFrame
-          closeScript={setChooseShareSession}
+          closeScript={setChooseAccountKeyShareSession}
         >
           <div>
             <PopUpTitle>共有するセッションを選択</PopUpTitle>
-            {chooseShareSessionUUID().map((session) => (
-              <div class="flex items-center gap-3 p-2 rounded-lg transition-colors">
-                <input
-                  type="checkbox"
-                  checked={session[1]}
-                  class="w-4 h-4 accent-blue-600 cursor-pointer"
-                  onClick={() => {
-                    setChooseShareSessionUUID(
-                      chooseShareSessionUUID().map((s) => {
-                        if (s[0] === session[0]) {
-                          return [s[0], !s[1], s[2]];
-                        }
-                        return s;
-                      }),
-                    );
-                  }}
-                />
+            {chooseAccountKeyShareSessionUUID().map((session) => (
+              <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors">
+              <input
+                type="checkbox"
+                checked={session[2]}
+                class="w-4 h-4 accent-blue-600 cursor-pointer"
+                onClick={() => {
+                setChooseAccountKeyShareSessionUUID(
+                  chooseAccountKeyShareSessionUUID().map((s) => {
+                  if (s[0] === session[0]) {
+                    return [s[0], s[1], !s[2], s[3]];
+                  }
+                  return s;
+                  }),
+                );
+                }}
+              />
+              <div class="flex flex-col">
                 <PopUpLabel htmlFor="text">
-                  {session[0]}
+                {session[0]}
                 </PopUpLabel>
+                <span class="text-gray-400 text-sm">
+                {new Date(session[1]).toLocaleString()}
+                </span>
+              </div>
               </div>
             ))}
           </div>
           <button
             class="w-full mt-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             onClick={async () => {
-              const server = domain();
-              if (!server) return;
-              const masterKeyValue = masterKey();
-              if (!masterKeyValue) {
-                console.log("Invalid MasterKey");
-                return;
-              }
-              const encryptedIdentityKeyAndAccountKey = await Promise.all(
-                chooseShareSessionUUID().map(async (session) => {
-                  if (session[1]) {
-                    const keyShareKey = session[2].keySharekey;
-                    const keyShareKeySign = session[2].keyShareKeySign;
-                    if (
-                      !verifyDataMasterKey(
-                        keyShareKey,
-                        masterKeyValue.public,
-                        keyShareKeySign,
-                      )
-                    ) {
-                      console.log("Invalid KeyShareKey");
-                      return;
-                    }
-                    const encryptedShareData = await EncryptDataKeyShareKey(
-                      sahredata(),
-                      keyShareKey,
-                    );
-                    return [session[0], encryptedShareData];
+              const uuid = localStorage.getItem("sessionuuid");
+              //@ts-ignore
+              const masterKeyValue = masterKey() as string
+              if (!uuid) return;
+              if (!masterKey) return;
+              const acccountKey = await generateAccountKey(JSON.parse(masterKeyValue).privateKey);
+              if (!acccountKey) return;
+              const encryptedAccountKeys: [string,string][] = []
+              for(const session of chooseAccountKeyShareSessionUUID()) {
+                if(session[2]) {
+                  const encryptedAccountKey = await encryptDataShareKey(
+                    session[3].keySharekey,
+                    acccountKey.privateKey,
+                  )
+                  if(!encryptedAccountKey) {
+                    console.error("Failed to encrypt account key");
+                    return;
                   }
-                }),
-              );
-
-              encryptedIdentityKeyAndAccountKey.filter((data) => {
-                if (data) {
-                  return data;
+                  encryptedAccountKeys.push([session[0],encryptedAccountKey]);
                 }
-              });
-              const db = await createTakosDB();
-              const deviceKeyValue = deviceKey();
-              if (!deviceKeyValue) {
-                console.log("Invalid DeviceKey");
-                return;
               }
-              const identityAndAccount = rawIdentityKeyAndAccountKey();
-              if (!identityAndAccount) return;
-              const encryptedAccountKey = await encryptDataDeviceKey(
-                JSON.stringify(identityAndAccount.accountKey),
-                deviceKeyValue,
-              );
-              const encryptedIdentityKey = await encryptDataDeviceKey(
-                JSON.stringify(identityAndAccount.identityKey),
-                deviceKeyValue,
-              );
-              const requestData = {
+              const response = await requester(domain() as string, "updateAccountKey", {
                 sessionid: localStorage.getItem("sessionid"),
-                sharedData: encryptedIdentityKeyAndAccountKey.filter((data) =>
-                  data !== undefined
-                ),
-                sign: shareDataSign(),
-                identityKeyPublic: identityAndAccount.identityKey.public,
-                accountKeyPublic: identityAndAccount.accountKey.public,
-                idenSign: identityAndAccount.identityKey.sign,
-                accSign: identityAndAccount.accountKey.sign,
-              };
-              const response = await requester(
-                server,
-                "updateIdentityKeyAndAccountKey",
-                requestData,
-              );
-              if (response.status === 200) {
-                await db.put("identityAndAccountKeys", {
-                  encryptedIdentityKey: encryptedIdentityKey,
-                  encryptedAccountKey: encryptedAccountKey,
-                  hashHex: await keyHash(identityAndAccount.identityKey.public),
-                  sended: true,
-                  key: await keyHash(identityAndAccount.identityKey.public),
-                  timestamp:
-                    JSON.parse(identityAndAccount.identityKey.public).timestamp,
-                });
-                alert("成功しました");
-                window.location.reload();
+                sharedData: encryptedAccountKeys,
+                accountKeyPublic: acccountKey.publickKey,
+                accSign: acccountKey.sign,
+              });
+              if(response.status !== 200) {
+                console.error("Failed to update account key");
                 return;
               }
-              alert("失敗しました");
-              //sendedをfalseにする
-              await db.put("identityAndAccountKeys", {
-                encryptedIdentityKey: encryptedIdentityKey,
-                encryptedAccountKey: encryptedAccountKey,
-                hashHex: await keyHash(identityAndAccount.identityKey.public),
-                sended: false,
-                key: await keyHash(identityAndAccount.identityKey.public),
-                timestamp:
-                  JSON.parse(identityAndAccount.identityKey.public).timestamp,
+              const db = await createTakosDB();
+              await db.put("accountKeys", {
+                key: await keyHash(acccountKey.publickKey),
+                encryptedKey: encryptedAccountKeys[0][1],
+                timestamp: JSON.parse(acccountKey.publickKey).timestamp,
               });
+              alert("アカウントキーの更新が完了しました");
             }}
           >
             更新

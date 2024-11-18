@@ -1,83 +1,89 @@
+import { decryptDataDeviceKey } from "@takos/takos-encrypt-ink";
 import { DBSchema, IDBPDatabase, openDB } from "idb";
 export interface TakosDB extends DBSchema {
-  keyShareKeys: {
+  shareKeys: {
     key: string;
     value: {
-      keyShareKey: string;
-      keyShareSignKey: string;
-      timestamp: string;
-      key?: string;
-      keyHash: string;
+      key: string; //hash
+      encryptedKey: string;
+      timestamp: number;
     };
   };
-  identityAndAccountKeys: {
+  identityKeys: {
     key: string;
     value: {
-      encryptedIdentityKey: string;
-      encryptedAccountKey: string;
-      hashHex: string;
-      key?: string;
-      sended: boolean;
-      timestamp: string;
+      key: string; //hash
+      encryptedKey: string;
+      timestamp: number;
+    };
+  };
+  accountKeys: {
+    key: string;
+    value: {
+      key: string; //hash
+      encryptedKey: string;
+      timestamp: number;
+    };
+  };
+  latestRoomkeyHash: {
+    key: string;
+    value: {
+      key: string; //roomId
+      timestamp: number;
+      hash: string;
     };
   };
   allowKeys: {
     key: string;
     value: {
-      key?: string;
-      keyHash: string;
+      key: string; //hash
       userId: string;
-      timestamp: string;
+      timestamp: number;
       latest: boolean;
-    };
-  };
-  latestRoomKeyHash: {
-    key: string; // roomid
-    value: {
-      keyHash: string;
-      timestamp: string;
-      key?: string;
-    };
-  };
-  latestIdentityKeyHash: {
-    key: string; // userName
-    value: {
-      timestamp: string;
-      key?: string;
     };
   };
 }
 
 export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
-  return openDB<TakosDB>("takos-db", 9, {
+  return openDB<TakosDB>("takos-db", 10, {
     upgrade(db) {
-      if (!db.objectStoreNames.contains("identityAndAccountKeys")) {
-        db.createObjectStore("identityAndAccountKeys", {
-          keyPath: "key",
-        });
-      }
-      if (!db.objectStoreNames.contains("allowKeys")) {
-        db.createObjectStore("allowKeys", {
-          keyPath: "key",
-        });
-      }
-      if (!db.objectStoreNames.contains("keyShareKeys")) {
-        db.createObjectStore("keyShareKeys", {
-          keyPath: "key",
-        });
-      }
-      if (!db.objectStoreNames.contains("latestRoomKeyHash")) {
-        db.createObjectStore("latestRoomKeyHash", {
-          keyPath: "key",
-        });
-      }
-      if (!db.objectStoreNames.contains("latestIdentityKeyHash")) {
-        db.createObjectStore("latestIdentityKeyHash", {
-          keyPath: "key",
-        });
-      }
+      db.createObjectStore("shareKeys", {
+        keyPath: "key",
+      });
+      db.createObjectStore("identityKeys", {
+        keyPath: "key",
+      });
+      db.createObjectStore("accountKeys", {
+        keyPath: "key",
+      });
+      db.createObjectStore("latestRoomkeyHash", {
+        keyPath: "key",
+      });
+      db.createObjectStore("allowKeys", {
+        keyPath: "key",
+      });
     },
   });
+}
+
+export async function getAccountKey(
+  hash: string,
+  deviceKey: string,
+): Promise<string | null> {
+  const db = await createTakosDB();
+  const data = await db.get("accountKeys", hash);
+  if (!data) return null;
+  return await decryptDataDeviceKey(deviceKey, data.encryptedKey);
+}
+
+export async function getIdentityKey(
+  hash: string,
+  deviceKey: string,
+): Promise<string | null> {
+  const db = await createTakosDB();
+  const data = await db.get("identityKeys", hash);
+  if (!data) return null;
+  return await decryptDataDeviceKey(deviceKey, data.encryptedKey);
 }
 
 type LocalStorageKey =
@@ -95,3 +101,12 @@ export const localStorageEditor = {
     return localStorage.getItem(key);
   },
 };
+
+export async function clearDB() {
+  const db = await createTakosDB();
+  db.clear("allowKeys");
+  db.clear("identityKeys");
+  db.clear("accountKeys");
+  db.clear("shareKeys");
+  db.clear("latestRoomkeyHash");
+}

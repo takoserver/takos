@@ -9,7 +9,7 @@ const sessionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  ShareKey: {
+  shareKey: {
     type: String,
     required: true,
   },

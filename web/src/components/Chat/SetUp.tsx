@@ -8,16 +8,17 @@ import { useAtom } from "solid-jotai";
 import { PopUpFrame } from "./setupPopup/popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import { arrayBufferToBase64 } from "../../utils/buffers";
-import {
-  encryptDataDeviceKey,
-  generateIdentityKeyAndAccountKey,
-  generateKeyShareKeys,
-  generateMasterKey,
-  keyHash,
-} from "@takos/takos-encrypt-ink";
 import { uuidv7 } from "uuidv7";
 import { requester } from "../../utils/requester";
 import { createTakosDB, localStorageEditor } from "../../utils/idb";
+import {
+  encryptDataDeviceKey,
+  generateAccountKey,
+  generateIdentityKey,
+  generateMasterKey,
+  generateShareKey,
+  keyHash,
+} from "@takos/takos-encrypt-ink";
 
 export function SetUp() {
   const [setUp, setSetUp] = useAtom(setUpState);
@@ -58,87 +59,87 @@ export function SetUp() {
                     const file = icon();
                     const reader = new FileReader();
                     reader.onload = async () => {
-                      const inputIcon = reader.result;
-                      const icon = arrayBufferToBase64(
-                        inputIcon as ArrayBuffer,
-                      );
+                      const arrayBuffer = reader.result as ArrayBuffer;
+                      const base64 = arrayBufferToBase64(arrayBuffer);
                       const masterKey = generateMasterKey();
-                      const identityKey = generateIdentityKeyAndAccountKey(
-                        masterKey,
-                      );
                       const sessionUUID = uuidv7();
-                      const keyShareKeys = await generateKeyShareKeys(
-                        masterKey,
+                      const identityKey = await generateIdentityKey(
+                        sessionUUID,
+                        masterKey.privateKey,
+                      );
+                      if (!identityKey) {
+                        throw new Error("identityKey is not generated");
+                      }
+                      const accountKey = await generateAccountKey(
+                        masterKey.privateKey,
+                      );
+                      const sharekey = await generateShareKey(
+                        masterKey.privateKey,
                         sessionUUID,
                       );
-                      const keyShareKey = keyShareKeys.keyShareKey;
-                      const keyShareSignKey = keyShareKeys.keyShareSignKey;
+                      if (!accountKey || !sharekey) {
+                        throw new Error(
+                          "accountKey or sharekey is not generated",
+                        );
+                      }
                       const response = await requester(serverDomain, "setUp", {
-                        masterKey: masterKey.public,
-                        identityKey: (await identityKey).identityKey.public,
-                        accountKey: (await identityKey).accountKey.public,
-                        nickName: nickname(),
-                        icon: icon,
-                        birthday: birthday(),
-                        keyShareKey: keyShareKey.public,
-                        keyShareSignKey: keyShareSignKey.public,
-                        identityKeySign: (await identityKey).identityKey.sign,
-                        accountKeySign: (await identityKey).accountKey.sign,
-                        keyShareKeySign: keyShareKey.sign,
-                        keyShareSignKeySign: keyShareSignKey.sign,
-                        sessionUUID: sessionUUID,
                         sessionid: sessionidS,
+                        masterKey: masterKey.publicKey,
+                        identityKey: identityKey.publickKey,
+                        accountKey: accountKey.publickKey,
+                        identityKeySign: identityKey.sign,
+                        accountKeySign: accountKey.sign,
+                        nickName: nickname(),
+                        icon: base64,
+                        birthday: birthday(),
+                        sessionUUID: sessionUUID,
+                        shareKey: sharekey.publickKey,
+                        shareKeySign: sharekey.sign,
                       });
-                      const idenKeyHash = await keyHash(
-                        (await identityKey).identityKey.public,
-                      );
-                      const idenTimestamp =
-                        (JSON.parse((await identityKey).identityKey.public))
-                          .timestamp;
-                      const keyShareKeyHash = await keyHash(keyShareKey.public);
-                      const keyShareTimestamp =
-                        (JSON.parse(keyShareKey.public)).timestamp;
                       if (response.status === 200) {
-                        const db = await createTakosDB();
-                        //db is npm package idb module IDBPDatabase<TakosDB>
                         const encryptedMasterKey = await encryptDataDeviceKey(
-                          JSON.stringify(masterKey),
                           deviceKeyS,
+                          JSON.stringify(masterKey),
                         );
                         const encryptedIdentityKey = await encryptDataDeviceKey(
-                          JSON.stringify((await identityKey).identityKey),
                           deviceKeyS,
+                          identityKey.privateKey,
                         );
                         const encryptedAccountKey = await encryptDataDeviceKey(
-                          JSON.stringify((await identityKey).accountKey),
                           deviceKeyS,
+                          accountKey.privateKey,
                         );
-                        const encryptedKeyShareKey = await encryptDataDeviceKey(
-                          JSON.stringify(keyShareKey),
+                        const encryptedShareKey = await encryptDataDeviceKey(
                           deviceKeyS,
+                          sharekey.privateKey,
                         );
-                        const encryptedKeyShareSignKey =
-                          await encryptDataDeviceKey(
-                            JSON.stringify(keyShareSignKey),
-                            deviceKeyS,
-                          );
-                        localStorageEditor.set("sessionuuid", sessionUUID);
+                        if (
+                          !encryptedMasterKey || !encryptedIdentityKey ||
+                          !encryptedAccountKey || !encryptedShareKey
+                        ) throw new Error("encrypted key is not generated");
                         localStorageEditor.set("masterKey", encryptedMasterKey);
-                        await db.put("identityAndAccountKeys", {
-                          encryptedIdentityKey: encryptedIdentityKey,
-                          encryptedAccountKey: encryptedAccountKey,
-                          hashHex: idenKeyHash,
-                          sended: false,
-                          key: idenKeyHash,
-                          timestamp: idenTimestamp,
+                        localStorageEditor.set("sessionuuid", sessionUUID);
+                        const db = await createTakosDB();
+                        await db.put("identityKeys", {
+                          key: await keyHash(identityKey.publickKey),
+                          encryptedKey: encryptedIdentityKey,
+                          timestamp:
+                            JSON.parse(identityKey.publickKey).timestamp,
                         });
-                        await db.put("keyShareKeys", {
-                          keyShareKey: encryptedKeyShareKey,
-                          keyShareSignKey: encryptedKeyShareSignKey,
-                          timestamp: keyShareTimestamp,
-                          key: keyShareKeyHash,
-                          keyHash: keyShareKeyHash,
+                        await db.put("accountKeys", {
+                          key: await keyHash(accountKey.publickKey),
+                          encryptedKey: encryptedAccountKey,
+                          timestamp:
+                            JSON.parse(accountKey.publickKey).timestamp,
                         });
+                        await db.put("shareKeys", {
+                          key: await keyHash(sharekey.publickKey),
+                          encryptedKey: encryptedShareKey,
+                          timestamp: JSON.parse(sharekey.publickKey).timestamp,
+                        });
+                        setSetted(true);
+                        setIsOpen(false);
+                        alert("セットアップが完了しました");
                       }
                     };
                     reader.readAsArrayBuffer(file!);

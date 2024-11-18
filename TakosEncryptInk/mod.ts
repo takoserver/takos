@@ -806,7 +806,7 @@ export function isValidEncryptedAccountKey(data: string): boolean {
   if(!isValidEncryptedDataShareKey(data)) {
     return false;
   }
-  if(data.length !== 3806) {
+  if(data.length !== 5966) {
     return false;
   }
   return true;
@@ -1349,3 +1349,44 @@ function verifyData (data: string, signature: string, publicKey: string): boolea
 }
 
 export { generateServerKey, signData, verifyData }
+
+async function testDeviceKey() {
+  const key = '{"keyType":"deviceKey","key":"vBRoTwEkJ58z4DJ0KccORwfIkFTKu+d+FS9BO8l/t0o="}'
+  if(!isValidDeviceKey(key)) {
+    console.log("error")
+    return; 
+  }
+  const data = "test";
+  const encryptedData = await encryptDataDeviceKey(key, data);
+  if(!encryptedData) {
+    console.log("error")
+    return;
+  }
+  const decryptedData = await decryptDataDeviceKey(key, encryptedData);
+  console.log(decryptedData)
+}
+
+async function testAccountKey() {
+  const masterKey = await generateMasterKey();
+  const accountKey = await generateAccountKey(masterKey.privateKey);
+  const shareKey = await generateShareKey(masterKey.privateKey, uuidv7());
+  if(!accountKey || !shareKey) {
+    console.log("error")
+    return;
+  }
+  const encryptedAccountKey = await encryptDataShareKey(shareKey.publickKey, accountKey.privateKey);
+  if(!encryptedAccountKey) {
+    console.log("error")
+    return;
+  }
+  console.log(isValidEncryptedAccountKey(encryptedAccountKey))
+  const roomKey = await generateRoomkey(uuidv7());
+  const encryptedRoomKey = await encryptDataAccountKey(accountKey.publickKey, roomKey? roomKey: "");
+  if(!encryptedRoomKey) {
+    console.log("error")
+    return;
+  }
+  console.log(isValidEncryptedRoomKey(encryptedRoomKey))
+}
+
+//testAccountKey()
