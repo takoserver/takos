@@ -1,6 +1,6 @@
 import { useAtom, useSetAtom } from "solid-jotai";
 import {
-    deviceKeyState,
+  deviceKeyState,
   domainState,
   loadState,
   sessionidState,
@@ -13,7 +13,14 @@ import {
   migrateSignKeyPublicState,
   showMigrateRequest,
 } from "./migrateState";
-import { decryptDataMigrateKey, encryptDataDeviceKey, generateIdentityKey, generateShareKey, keyHash, verifyDataMigrateSignKey } from "@takos/takos-encrypt-ink";
+import {
+  decryptDataMigrateKey,
+  encryptDataDeviceKey,
+  generateIdentityKey,
+  generateShareKey,
+  keyHash,
+  verifyDataMigrateSignKey,
+} from "@takos/takos-encrypt-ink";
 import { createEffect, createRoot } from "solid-js";
 import { createTakosDB, localStorageEditor } from "./idb";
 import { uuidv7 } from "uuidv7";
@@ -79,68 +86,83 @@ export function createWebsocket(loadedFn: () => void) {
               console.error("Invalid migrate sign key");
               return;
             }
-            const decryptedData = JSON.parse(await decryptDataMigrateKey(
+            const decryptedData = JSON.parse(
+              await decryptDataMigrateKey(
                 migrateKeyPrivate(),
                 migrateData,
-            ) as string)
-            const encryptedMasterKey = await encryptDataDeviceKey(
-                deviceKey() as string,
-                decryptedData.masterKey,
+              ) as string,
             );
-            if(!encryptedMasterKey) throw new Error("encrypted key is not generated");
+            const encryptedMasterKey = await encryptDataDeviceKey(
+              deviceKey() as string,
+              decryptedData.masterKey,
+            );
+            if (!encryptedMasterKey) {
+              throw new Error("encrypted key is not generated");
+            }
             localStorageEditor.set("masterKey", encryptedMasterKey);
             const db = await createTakosDB();
-            for(const accountKey of decryptedData.accountKeys) {
+            for (const accountKey of decryptedData.accountKeys) {
               const encryptedAccountKey = await encryptDataDeviceKey(
-                    deviceKey() as string,
-                    accountKey.key
+                deviceKey() as string,
+                accountKey.key,
               );
-            if(!encryptedAccountKey) throw new Error("encrypted key is not generated");
-            await db.put("accountKeys", {
-              key: await keyHash(accountKey.key),
-              encryptedKey: encryptedAccountKey,
-              timestamp: accountKey.timestamp,
-            });
+              if (!encryptedAccountKey) {
+                throw new Error("encrypted key is not generated");
+              }
+              await db.put("accountKeys", {
+                key: await keyHash(accountKey.key),
+                encryptedKey: encryptedAccountKey,
+                timestamp: accountKey.timestamp,
+              });
             }
             const uuid = uuidv7();
             localStorageEditor.set("sessionuuid", uuid);
             console.log(JSON.parse(decryptedData.masterKey));
-            const identityKey = await generateIdentityKey(uuid, JSON.parse(decryptedData.masterKey).privateKey);
-            if(!identityKey) throw new Error("Failed to create identity key");
-            const encryptedIdentityKey = await encryptDataDeviceKey(
-                deviceKey() as string,
-                identityKey.privateKey,
+            const identityKey = await generateIdentityKey(
+              uuid,
+              JSON.parse(decryptedData.masterKey).privateKey,
             );
-            if(!encryptedIdentityKey) throw new Error("encrypted key is not generated");
+            if (!identityKey) throw new Error("Failed to create identity key");
+            const encryptedIdentityKey = await encryptDataDeviceKey(
+              deviceKey() as string,
+              identityKey.privateKey,
+            );
+            if (!encryptedIdentityKey) {
+              throw new Error("encrypted key is not generated");
+            }
             await db.put("identityKeys", {
               key: await keyHash(identityKey.publickKey),
               encryptedKey: encryptedIdentityKey,
               timestamp: JSON.parse(identityKey.publickKey).timestamp,
             });
             const shareKey = await generateShareKey(
-                JSON.parse(decryptedData.masterKey).privateKey,
-                uuid,
+              JSON.parse(decryptedData.masterKey).privateKey,
+              uuid,
             );
-            if(!shareKey) throw new Error("Failed to create share key");
+            if (!shareKey) throw new Error("Failed to create share key");
             const encryptedShareKey = await encryptDataDeviceKey(
-                deviceKey() as string,
-                shareKey.privateKey,
+              deviceKey() as string,
+              shareKey.privateKey,
             );
-            if(!encryptedShareKey) throw new Error("encrypted key is not generated");
+            if (!encryptedShareKey) {
+              throw new Error("encrypted key is not generated");
+            }
             await db.put("shareKeys", {
               key: await keyHash(shareKey.publickKey),
               encryptedKey: encryptedShareKey,
               timestamp: JSON.parse(shareKey.publickKey).timestamp,
             });
             const res = await requester(domain() as string, "encryptSession", {
-                shareKey: shareKey.publickKey,
-                shareKeySign: shareKey.sign,
-                sessionUUID: uuid,
-                identityKey: identityKey.publickKey,
-                identityKeySign: identityKey.sign,
-                sessionid: sessionId(),
+              shareKey: shareKey.publickKey,
+              shareKeySign: shareKey.sign,
+              sessionUUID: uuid,
+              identityKey: identityKey.publickKey,
+              identityKeySign: identityKey.sign,
+              sessionid: sessionId(),
             });
-            if(res.status !== 200) throw new Error("Failed to migrate complete");
+            if (res.status !== 200) {
+              throw new Error("Failed to migrate complete");
+            }
             alert("Migrate complete");
             break;
           }

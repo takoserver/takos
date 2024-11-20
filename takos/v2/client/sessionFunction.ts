@@ -15,6 +15,7 @@ import {
   isValidSignMasterkey,
   keyHash,
   verifyDataMigrateSignKey,
+  verifyIdentityKey,
   verifyMasterKey,
 } from "@takos/takos-encrypt-ink";
 import { decode, Image } from "imagescript";
@@ -839,26 +840,38 @@ singlend.group(
         encryptedKey: z.array(z.any()),
       }),
       async (query, value, ok, error) => {
-        if (!value.userInfo.masterKey) return error("error", 400);
+        if (!value.userInfo.masterKey) return error("error1", 400);
         if(query.roomType !== "group" && query.roomType !== "friend") {
-          return error("error", 400);
+          return error("error2", 400);
         }
-        if(!verifyMasterKey(value.userInfo.masterKey, query.metaDataSign, query.metaData)) {
-          return error("error", 400);
+        console.log(JSON.parse(query.sign).keyHash);
+        const idenKey = await IdentityKey.findOne({
+          userName: value.userInfo.userName,
+          sessionid: value.sessionInfo.sessionid,
+          hash: JSON.parse(query.sign).keyHash
+        });
+        if(!idenKey) {
+          return error("error3", 400);
+        }
+        if(!verifyIdentityKey(idenKey.identityKey, query.metaDataSign, query.metaData)) {
+          return error("error4", 400);
+        }
+        if(!isValidMetaData(query.metaData, query.encryptedKey.length)) {
+          return error("error5", 400);
         }
         if(query.roomType === "friend") {
           const nameInfo = query.roomid.split("-");
           if(nameInfo.length !== 2) {
-            return error("error", 400);
+            return error("error6", 400);
           }
           if(nameInfo[0] !== value.userInfo.userName) {
-            return error("error", 400);
+            return error("erro7", 400);
           }
           if(!await Friend.findOne({
             userName: value.userInfo.userName + "@" + env["DOMAIN"],
             friendId: nameInfo[1],
           })) {
-            return error("error", 400);
+            return error("error8", 400);
           }
           const latestRoomKey = await RoomKey.findOne({
             roomid: query.roomid,
@@ -877,7 +890,7 @@ singlend.group(
                 userId: string;
               }) => {
                 if(!userIds.includes(data.userId)) {
-                  return error("error", 400);
+                  throw new Error("error9");
                 }
                 userIds.splice(userIds.indexOf(data.userId), 1);
                 return [data.userId, data.encryptedData];
@@ -899,7 +912,7 @@ singlend.group(
                 userId: string;
               }) => {
                 if(!userIds.includes(data.userId)) {
-                  return error("error", 400);
+                  throw new Error("error10");
                 }
                 userIds.splice(userIds.indexOf(data.userId), 1);
                 return [data.userId, data.encryptedData];

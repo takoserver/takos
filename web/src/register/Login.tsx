@@ -55,7 +55,7 @@ export function Login({ domain }: { domain: string }) {
                   localStorageEditor.set("userName", userName());
                   localStorageEditor.set("server", domain);
                   const db = await createTakosDB();
-                  clearDB()
+                  clearDB();
                   window.location.reload();
                 } else {
                   alert("ログインに失敗しました");

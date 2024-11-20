@@ -26,7 +26,7 @@ export function isValidUUIDv7(uuid: string): boolean {
   return uuidV7Regex.test(uuid);
 }
 
-export async function signMasterKey(key: string,data: string): Promise<string | null> {
+export function signMasterKey(key: string,data: string, pubKeyHash: string): string | null {
   if(!isValidMasterKeyPrivate(key)) {
     return null;
   }
@@ -34,10 +34,9 @@ export async function signMasterKey(key: string,data: string): Promise<string | 
   const dataArray = new TextEncoder().encode(data);
   const signature = ml_dsa87.sign(new Uint8Array(base64ToArrayBuffer(keyBinary)), dataArray, new Uint8Array(64));
   const signString =  arrayBufferToBase64(signature);
-  const Keyhash = await keyHash(key);
   const signResult: Sign = {
     signature: signString,
-    keyHash: Keyhash,
+    keyHash: pubKeyHash,
     keyType: "masterKey",
   }
   return JSON.stringify(signResult);
@@ -57,7 +56,7 @@ export function verifyMasterKey(key: string,sign: string,data: string): boolean 
   return verify;
 }
 
-export async function signIdentityKey(key: string,data: string): Promise<string | null> {
+export function signIdentityKey(key: string,data: string, pubKeyHash: string): string | null {
   if(!isValidIdentityKeyPrivate(key)) {
     return null;
   }
@@ -65,10 +64,9 @@ export async function signIdentityKey(key: string,data: string): Promise<string 
   const dataArray = new TextEncoder().encode(data);
   const signature = ml_dsa65.sign(new Uint8Array(base64ToArrayBuffer(keyBinary)), dataArray, new Uint8Array(64));
   const signString =  arrayBufferToBase64(signature);
-  const Keyhash = await keyHash(key);
   const signResult: Sign = {
     signature: signString,
-    keyHash: Keyhash,
+    keyHash: pubKeyHash,
     keyType: "identityKey",
   }
   return JSON.stringify(signResult);
@@ -109,6 +107,7 @@ export function generateMasterKey(): {
     privateKey: JSON.stringify(privateKey),
   }
 }
+
 export function isValidMasterKeyPrivate(key: string): boolean {
   if(key.length !== 6567) {
     console.log(key.length)
@@ -143,7 +142,10 @@ export function isValidMasterKeyPublic(key: string): boolean {
   return true;
 }
 
-export async function generateIdentityKey(uuid: string, masterKey: string): Promise<{
+export async function generateIdentityKey(uuid: string, masterKey: {
+  publicKey: string,
+  privateKey: string,
+}): Promise<{
   publickKey: string,
   privateKey: string,
   sign: string,
@@ -151,7 +153,10 @@ export async function generateIdentityKey(uuid: string, masterKey: string): Prom
   if(!isValidUUIDv7(uuid)) {
     return null
   }
-  if(!isValidMasterKeyPrivate(masterKey)) {
+  if(!isValidMasterKeyPrivate(masterKey.privateKey)) {
+    return null;
+  }
+  if(!isValidMasterKeyPublic(masterKey.publicKey)) {
     return null;
   }
   const seed = crypto.getRandomValues(new Uint8Array(32));
@@ -173,7 +178,7 @@ export async function generateIdentityKey(uuid: string, masterKey: string): Prom
   }
   const publickKey = JSON.stringify(publickKeyObj);
   const privateKey = JSON.stringify(privateKeyObj);
-  const sign = await signMasterKey(masterKey,publickKey);
+  const sign = await signMasterKey(masterKey.privateKey,publickKey, await keyHash(masterKey.publicKey));
   if(!sign) {
     return null;
   }
@@ -219,12 +224,18 @@ export function isValidIdentityKeyPublic(key: string): boolean {
 }
 
 
-export async function generateAccountKey(masterKey: string): Promise<{
+export async function generateAccountKey(masterKey: {
+  publicKey: string,
+  privateKey: string,
+}): Promise<{
   publickKey: string,
   privateKey: string,
   sign: string,
 } | null> {
-  if(!isValidMasterKeyPrivate(masterKey)) {
+  if(!isValidMasterKeyPrivate(masterKey.privateKey)) {
+    return null;
+  }
+  if(!isValidMasterKeyPublic(masterKey.publicKey)) {
     return null;
   }
   const key = ml_kem768.keygen();
@@ -243,7 +254,7 @@ export async function generateAccountKey(masterKey: string): Promise<{
   }
   const publickKey = JSON.stringify(publickKeyObj);
   const privateKey = JSON.stringify(privateKeyObj);
-  const sign = await signMasterKey(masterKey,publickKey);
+  const sign = signMasterKey(masterKey.privateKey,publickKey, await keyHash(masterKey.publicKey));
   if(!sign) {
     return null;
   }
@@ -409,6 +420,7 @@ export async function generateRoomkey(sessionUUID: string): Promise<string | nul
   }
   return JSON.stringify(roomKey);
 }
+
 export function isValidRoomKey(key: string): boolean {
   if(key.length !== 153) {
     console.log(key.length)
@@ -548,11 +560,11 @@ export async function encryptRoomKeyWithAccountKeys(key: {
     sharedUser: sharedUser,
   }
   const metadata = JSON.stringify(roomKeyMetaData);
-  const metadataSign = await signIdentityKey(identityKey, metadata);
+  const metadataSign = await signIdentityKey(identityKey, metadata, await keyHash(identityKey));
   if(!metadataSign) {
     return null;
   }
-  const roomKeySign = await signIdentityKey(identityKey, roomKey);
+  const roomKeySign = await signIdentityKey(identityKey, roomKey, await keyHash(identityKey));
   if(!roomKeySign) {
     return null;
   }
@@ -574,7 +586,10 @@ export async function encryptMessage(
     original?: string,
   },
   roomKey: string,
-  identityKey: string,
+  identityKey: {
+    privateKey: string,
+    pubKeyHash: string,
+  },
   roomid: string,
 ): Promise<{
   message: string,
@@ -583,7 +598,7 @@ export async function encryptMessage(
   if(!isValidRoomKey(roomKey)) {
     return null;
   }
-  if(!isValidIdentityKeyPrivate(identityKey)) {
+  if(!isValidIdentityKeyPrivate(identityKey.privateKey)) {
     return null;
   }
   const messageContent = JSON.stringify({
@@ -604,7 +619,7 @@ export async function encryptMessage(
     roomid: roomid,
   }
   const messageString = JSON.stringify(messageObj);
-  const sign = await signIdentityKey(identityKey, messageString);
+  const sign = signIdentityKey(identityKey.privateKey, messageString, identityKey.pubKeyHash);
   if(!sign) {
     return null;
   }
@@ -698,7 +713,7 @@ export async function generateShareKey(masterKey: string, sessionUUID: string): 
   }
   const publickKey = JSON.stringify(publickKeyObj);
   const privateKey = JSON.stringify(privateKeyObj);
-  const sign = await signMasterKey(masterKey,publickKey);
+  const sign = await signMasterKey(masterKey,publickKey, await keyHash(masterKey));
   if(!sign) {
     return null;
   }
@@ -837,8 +852,11 @@ export function isValidEncryptedDataShareKey(data: string): boolean {
   return true;
 }
 
-export async function generateShareSignKey(masterKey: string, sessionUUID: string): Promise<{ publickKey: string; privateKey: string; sign: string }> {
-  if(!isValidMasterKeyPrivate(masterKey)) {
+export async function generateShareSignKey(masterKey: {
+  publicKey: string,
+  privateKey: string,
+}, sessionUUID: string): Promise<{ publickKey: string; privateKey: string; sign: string }> {
+  if(!isValidMasterKeyPrivate(masterKey.privateKey)) {
     throw new Error("masterKey is invalid")
   }
   if(!isValidUUIDv7(sessionUUID)) {
@@ -863,7 +881,7 @@ export async function generateShareSignKey(masterKey: string, sessionUUID: strin
   }
   const publickKeyString = JSON.stringify(publickKey);
   const privateKeyString = JSON.stringify(privateKey);
-  const sign = await signMasterKey(masterKey,publickKeyString);
+  const sign = await signMasterKey(masterKey.privateKey,publickKeyString, await keyHash(masterKey.publicKey));
   if(!sign) {
     throw new Error("sign error")
   }
@@ -908,7 +926,7 @@ export function isValidShareSignKeyPrivate(key: string): boolean {
   return true;
 }
 
-export async function signDataShareSignKey(key: string, data: string): Promise<string | null> {
+export function signDataShareSignKey(key: string, data: string,pubKeyHash:string): string | null {
   if(!isValidShareSignKeyPrivate(key)) {
     return null;
   }
@@ -916,10 +934,9 @@ export async function signDataShareSignKey(key: string, data: string): Promise<s
   const dataArray = new TextEncoder().encode(data);
   const signature = ml_dsa65.sign(new Uint8Array(base64ToArrayBuffer(keyBinary)), dataArray, new Uint8Array(64));
   const signString =  arrayBufferToBase64(signature);
-  const Keyhash = await keyHash(key);
   const signResult: Sign = {
     signature: signString,
-    keyHash: Keyhash,
+    keyHash: pubKeyHash,
     keyType: "shareSignKey",
   }
   return JSON.stringify(signResult);
@@ -1190,7 +1207,7 @@ export function isValidMigrateSignKeyPublic(key: string): boolean {
   return true;
 }
 
-export async function signDataMigrateSignKey(key: string, data: string): Promise<string | null> {
+export function signDataMigrateSignKey(key: string, data: string, pubKeyHash: string): string | null {
   if(!isValidMigrateSignKeyPrivate(key)) {
     return null;
   }
@@ -1198,10 +1215,9 @@ export async function signDataMigrateSignKey(key: string, data: string): Promise
   const dataArray = new TextEncoder().encode(data);
   const signature = ml_dsa65.sign(new Uint8Array(base64ToArrayBuffer(keyBinary)), dataArray, new Uint8Array(64));
   const signString =  arrayBufferToBase64(signature);
-  const Keyhash = await keyHash(key);
   const signResult: Sign = {
     signature: signString,
-    keyHash: Keyhash,
+    keyHash: pubKeyHash,
     keyType: "migrateSignKey",
   }
   return JSON.stringify(signResult);
@@ -1379,125 +1395,4 @@ export function isValidkeyPairEncrypt(keyPair: { public: string, private: string
   const { cipherText, sharedSecret } = ml_kem768.encapsulate(new Uint8Array(base64ToArrayBuffer(keyObj.key)), new Uint8Array(32));
   const sharedSecret2 = ml_kem768.decapsulate(cipherText, new Uint8Array(base64ToArrayBuffer(JSON.parse(keyPair.private).key)));
   return arrayBufferToBase64(sharedSecret) === arrayBufferToBase64(sharedSecret2);
-}
-
-async function testDeviceKey() {
-  const key = '{"keyType":"deviceKey","key":"vBRoTwEkJ58z4DJ0KccORwfIkFTKu+d+FS9BO8l/t0o="}'
-  if(!isValidDeviceKey(key)) {
-    console.log("error")
-    return; 
-  }
-  const data = "test";
-  const encryptedData = await encryptDataDeviceKey(key, data);
-  if(!encryptedData) {
-    console.log("error")
-    return;
-  }
-  const decryptedData = await decryptDataDeviceKey(key, encryptedData);
-  console.log(decryptedData)
-}
-
-async function testAccountKey() {
-  const masterKey = await generateMasterKey();
-  const accountKey = await generateAccountKey(masterKey.privateKey);
-  const shareKey = await generateShareKey(masterKey.privateKey, uuidv7());
-  if(!accountKey || !shareKey) {
-    console.log("error")
-    return;
-  }
-  const encryptedAccountKey = await encryptDataShareKey(shareKey.publickKey, accountKey.privateKey);
-  if(!encryptedAccountKey) {
-    console.log("error")
-    return;
-  }
-  console.log(isValidEncryptedAccountKey(encryptedAccountKey))
-}
-
-//testAccountKey()
-
-function isValidMetaData(data: string, shareUser: number) {
-  // y = 119x+73
-  const keyLength = 119 * shareUser + 73;
-  if(data.length !== keyLength) {
-    console.log(data.length, keyLength)
-    return false;
-  }
-  return true;
-}
-
-async function isValidKeyPairTest() {
-  console.log("\nTesting Message...");
-  const createUserData = async () => {
-    const uuid = uuidv7();
-    const masterKey = generateMasterKey();
-    const identityKey = await generateIdentityKey(uuid, masterKey.privateKey);
-    const accountKey = await generateAccountKey(masterKey.privateKey);
-    if(!identityKey || !accountKey) throw new Error("Failed to create user data");
-    return {
-      uuid,
-      masterKey,
-      identityKey,
-      accountKey,
-    }
-  }
-  const bob = await createUserData();
-  const alice = await createUserData();
-  const aliceRoomKey = await generateRoomkey(alice.uuid);
-  if (!aliceRoomKey) return;
-  const encryptedAliceRoomKey = await encryptRoomKeyWithAccountKeys([{
-    masterKey: bob.masterKey.publicKey,
-    accountKeySign: bob.accountKey?.sign,
-    accountKey: bob.accountKey.publickKey,
-    userId: "bob",
-  }, {
-    masterKey: alice.masterKey.publicKey,
-    accountKeySign: alice.accountKey?.sign,
-    accountKey: alice.accountKey.publickKey,
-    userId: "alice",
-  }
-], aliceRoomKey, alice.identityKey.privateKey);
-const encryptedAliceRoomKey2 = await encryptRoomKeyWithAccountKeys([{
-  masterKey: bob.masterKey.publicKey,
-  accountKeySign: bob.accountKey?.sign,
-  accountKey: bob.accountKey.publickKey,
-  userId: "bob",
-}, {
-  masterKey: alice.masterKey.publicKey,
-  accountKeySign: alice.accountKey?.sign,
-  accountKey: alice.accountKey.publickKey,
-  userId: "alice",
-},
-{
-  masterKey: alice.masterKey.publicKey,
-  accountKeySign: alice.accountKey?.sign,
-  accountKey: alice.accountKey.publickKey,
-  userId: "alice2",
-}
-], aliceRoomKey, alice.identityKey.privateKey);
-const encryptedAliceRoomKey3 = await encryptRoomKeyWithAccountKeys([{
-  masterKey: bob.masterKey.publicKey,
-  accountKeySign: bob.accountKey?.sign,
-  accountKey: bob.accountKey.publickKey,
-  userId: "bob",
-}, {
-  masterKey: alice.masterKey.publicKey,
-  accountKeySign: alice.accountKey?.sign,
-  accountKey: alice.accountKey.publickKey,
-  userId: "alice",
-},
-{
-  masterKey: alice.masterKey.publicKey,
-  accountKeySign: alice.accountKey?.sign,
-  accountKey: alice.accountKey.publickKey,
-  userId: "alice2",
-},
-{
-  masterKey: alice.masterKey.publicKey,
-  accountKeySign: alice.accountKey?.sign,
-  accountKey: alice.accountKey.publickKey,
-  userId: "alice2",
-}
-], aliceRoomKey, alice.identityKey.privateKey);
-  console.log(encryptedAliceRoomKey?.metadata.length,encryptedAliceRoomKey2?.metadata.length)
-  console.log(encryptedAliceRoomKey3?.metadata.length)
 }

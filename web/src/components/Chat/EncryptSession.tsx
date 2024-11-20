@@ -199,7 +199,8 @@ export function EncryptSession() {
                             await db.put("shareKeys", {
                               key: await keyHash(sharekey.publickKey),
                               encryptedKey: encryptedShareKey,
-                              timestamp: JSON.parse(sharekey.publickKey).timestamp,
+                              timestamp:
+                                JSON.parse(sharekey.publickKey).timestamp,
                             });
                             setSetted(true);
                             setEncryptedSession(true);
@@ -336,18 +337,20 @@ export function AcceptMigrateKey() {
                           );
                           const db = await createTakosDB();
                           const allAccountKey = await Promise.all(
-                            (await db.getAll("accountKeys")).map( async (data) => {
-                              const decrypted = await decryptDataDeviceKey(
-                                deviceKey() as string,
-                                data.encryptedKey,
-                              );
-                              if (!decrypted) return null;
-                              return {
-                                key: decrypted,
-                                timestamp: data.timestamp,
-                              }
-                            })
-                          )
+                            (await db.getAll("accountKeys")).map(
+                              async (data) => {
+                                const decrypted = await decryptDataDeviceKey(
+                                  deviceKey() as string,
+                                  data.encryptedKey,
+                                );
+                                if (!decrypted) return null;
+                                return {
+                                  key: decrypted,
+                                  timestamp: data.timestamp,
+                                };
+                              },
+                            ),
+                          );
                           allAccountKey.filter((key) => key !== null);
                           const migrateData = JSON.stringify({
                             masterKey,

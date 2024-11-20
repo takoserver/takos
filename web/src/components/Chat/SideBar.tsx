@@ -16,7 +16,23 @@ import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "../popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import { checkUserName } from "../../../../takos/utils/checks";
 import { splitUserName } from "../../../../takos-web/util/takosClient";
-import { decryptDataDeviceKey, encryptDataDeviceKey, encryptDataShareKey, encryptRoomKeyWithAccountKeys, generateAccountKey, generateIdentityKey, generateMasterKey, generateMigrateKey, generateRoomkey, generateShareKey, isValidEncryptedAccountKey, isValidkeyPairEncrypt, isValidkeyPairSign, keyHash, signMasterKey } from "@takos/takos-encrypt-ink";
+import {
+  decryptDataDeviceKey,
+  encryptDataDeviceKey,
+  encryptDataShareKey,
+  encryptRoomKeyWithAccountKeys,
+  generateAccountKey,
+  generateIdentityKey,
+  generateMasterKey,
+  generateMigrateKey,
+  generateRoomkey,
+  generateShareKey,
+  isValidEncryptedAccountKey,
+  isValidkeyPairEncrypt,
+  isValidkeyPairSign,
+  keyHash,
+  signMasterKey,
+} from "@takos/takos-encrypt-ink";
 import { uuidv7 } from "uuidv7";
 export function SideBer() {
   const [page] = useAtom(pageState);
@@ -90,43 +106,65 @@ function TalkList() {
     });
     setIsSelectRoom(true);
     const latestRoomKeyhash = await db.getAll("latestRoomkeyHash");
-    if(latestRoomKeyhash.length === 0) {
-      const roomKey = await generateRoomkey(localStorageEditor.get("sessionuuid") as string)
-      if(!roomKey) {
+    if (latestRoomKeyhash.length === 0) {
+      const roomKey = await generateRoomkey(
+        localStorageEditor.get("sessionuuid") as string,
+      );
+      if (!roomKey) {
         console.error("Failed to generate room key");
         return;
       }
-      const friendMasterKey = await requester(splitUserName(talk.roomName).domain, "getMasterKey", {
-        userName: splitUserName(talk.roomName).userName,
-      })
-      const friendAccountKey = await requester(splitUserName(talk.roomName).domain, "getAccountKeyLatest", {
-        userName: splitUserName(talk.roomName).userName,
-      })
-      if(friendMasterKey.status !== 200 || friendAccountKey.status !== 200) {
+      const friendMasterKey = await requester(
+        splitUserName(talk.roomName).domain,
+        "getMasterKey",
+        {
+          userName: splitUserName(talk.roomName).userName,
+        },
+      );
+      const friendAccountKey = await requester(
+        splitUserName(talk.roomName).domain,
+        "getAccountKeyLatest",
+        {
+          userName: splitUserName(talk.roomName).userName,
+        },
+      );
+      if (friendMasterKey.status !== 200 || friendAccountKey.status !== 200) {
         console.error("Failed to get friend master key");
         return;
       }
       const friendMasterKeyJson = await friendMasterKey.json();
       const friendAccountKeyJson = await friendAccountKey.json();
-      const myIdentityKeyEncrypted = (await db.getAll("identityKeys")).sort((a,b) => a.timestamp - b.timestamp)[0];
-      const myAccountKeyEncryptedHash = ((await db.getAll("accountKeys")).sort((a,b) => a.timestamp - b.timestamp)[0]).key
+      const myIdentityKeyEncrypted =
+        (await db.getAll("identityKeys")).sort((a, b) =>
+          a.timestamp - b.timestamp
+        )[0];
+      const myAccountKeyEncryptedHash =
+        (await db.getAll("accountKeys")).sort((a, b) =>
+          a.timestamp - b.timestamp
+        )[0].key;
       const myIdentityKey = await decryptDataDeviceKey(
         deviceKey()!,
-        myIdentityKeyEncrypted.encryptedKey
-      )
-      if(!myIdentityKey) {
+        myIdentityKeyEncrypted.encryptedKey,
+      );
+      if (!myIdentityKey) {
         console.error("Failed to decrypt my identity key");
         return;
       }
-      const myAccountKey = await requester(domain() as string, "getAccountKey", {
-        hash: myAccountKeyEncryptedHash,
-        userName: localStorageEditor.get("userName"),
-      }).then((res) => res.json())
-      if(!myAccountKey) {
+      const myAccountKey = await requester(
+        domain() as string,
+        "getAccountKey",
+        {
+          hash: myAccountKeyEncryptedHash,
+          userName: localStorageEditor.get("userName"),
+        },
+      ).then((res) => res.json());
+      if (!myAccountKey) {
         console.error("Failed to get my account key");
         return;
       }
-      if(await keyHash(myAccountKey.accountKey) !== myAccountKeyEncryptedHash) {
+      if (
+        await keyHash(myAccountKey.accountKey) !== myAccountKeyEncryptedHash
+      ) {
         console.error("Invalid identity key");
         return;
       }
@@ -137,18 +175,20 @@ function TalkList() {
             accountKey: friendAccountKeyJson.accountKey,
             accountKeySign: friendAccountKeyJson.accSign,
             userId: talk.roomName,
-          },{
+          },
+          {
             //@ts-ignore
             masterKey: masterKey()!.publicKey,
             accountKey: myAccountKey.accountKey,
             accountKeySign: myAccountKey.sign,
-            userId: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server"),
-          }
+            userId: localStorageEditor.get("userName") + "@" +
+              localStorageEditor.get("server"),
+          },
         ],
         roomKey,
         myIdentityKey,
-      )
-      if(!encryptedRoomKey) {
+      );
+      if (!encryptedRoomKey) {
         console.error("Failed to encrypt room key");
         return;
       }
@@ -157,12 +197,13 @@ function TalkList() {
         metaData: encryptedRoomKey.metadata,
         metaDataSign: encryptedRoomKey.metadataSign,
         roomType: "friend",
-        encryptedData: encryptedRoomKey.encryptedData,
-      })
+        encryptedKey: encryptedRoomKey.encryptedData,
+        sign: encryptedRoomKey.sign,
+        sessionid: localStorage.getItem("sessionid"),
+      });
     } else {
-
     }
-  }
+  };
 
   return (
     <>
@@ -290,8 +331,12 @@ function Setting() {
   const [deviceKey] = useAtom(deviceKeyState);
   const [sahredata, setShareData] = createSignal("");
   const [shareDataSign, setShareDataSign] = createSignal("");
-  const [chooseAccountKeyShareSession, setChooseAccountKeyShareSession] = createSignal(false);
-  const [chooseAccountKeyShareSessionUUID, setChooseAccountKeyShareSessionUUID] = createSignal<[
+  const [chooseAccountKeyShareSession, setChooseAccountKeyShareSession] =
+    createSignal(false);
+  const [
+    chooseAccountKeyShareSessionUUID,
+    setChooseAccountKeyShareSessionUUID,
+  ] = createSignal<[
     string, // sessionuuid
     number, //timestamp
     boolean,
@@ -319,22 +364,26 @@ function Setting() {
         onClick={async () => {
           localStorage.clear();
           const db = await createTakosDB();
-          await clearDB()
+          await clearDB();
         }}
       >
         ログアウト
       </button>
-        <div>
-          魔法のボタンたち
-        </div>
+      <div>
+        魔法のボタンたち
+      </div>
       <div>
         <button
           onClick={async () => {
-            const keyShareKeys = await requester(domain() as string, "getShareKeys", {
-              sessionid: localStorage.getItem("sessionid"),
-            }).then((res) => res.json());
+            const keyShareKeys = await requester(
+              domain() as string,
+              "getShareKeys",
+              {
+                sessionid: localStorage.getItem("sessionid"),
+              },
+            ).then((res) => res.json());
             if (!keyShareKeys) return;
-            const sahreUUID:[
+            const sahreUUID: [
               string, // sessionuuid
               number, //timestamp
               boolean,
@@ -342,16 +391,16 @@ function Setting() {
                 keySharekey: string;
                 keyShareKeySign: string;
               },
-            ][] = []
-            for(const key of keyShareKeys.keyShareKeys) {
+            ][] = [];
+            for (const key of keyShareKeys.keyShareKeys) {
               sahreUUID.push([
                 key.session,
                 JSON.parse(key.shareKey).timestamp,
                 true,
                 {
                   keySharekey: key.shareKey,
-                  keyShareKeySign: key.sign
-                }
+                  keyShareKeySign: key.sign,
+                },
               ]);
             }
             setChooseAccountKeyShareSessionUUID(sahreUUID);
@@ -364,7 +413,6 @@ function Setting() {
       <div>
         <button
           onClick={async () => {
-            
           }}
         >
           identityKey更新ボタン
@@ -376,40 +424,52 @@ function Setting() {
             const uuid = uuidv7();
             const masterKey = await generateMasterKey();
             const accountKey = await generateAccountKey(masterKey.privateKey);
-            const shareKey = await generateShareKey(masterKey.privateKey, uuidv7());
-            const identityKey = await generateIdentityKey(uuid,masterKey.privateKey);
+            const shareKey = await generateShareKey(
+              masterKey.privateKey,
+              uuidv7(),
+            );
+            const identityKey = await generateIdentityKey(
+              uuid,
+              masterKey.privateKey,
+            );
             const migrateKey = await generateMigrateKey();
-            if(!masterKey || !accountKey || !shareKey || !identityKey || !migrateKey) {
-              console.log("error")
+            if (
+              !masterKey || !accountKey || !shareKey || !identityKey ||
+              !migrateKey
+            ) {
+              console.log("error");
               return;
             }
             console.log(isValidkeyPairSign({
               public: masterKey.publicKey,
               private: masterKey.privateKey,
-            }))
+            }));
             console.log(isValidkeyPairSign({
               public: identityKey.publickKey,
               private: identityKey.privateKey,
-            }))
+            }));
             console.log(isValidkeyPairEncrypt({
               public: accountKey.publickKey,
               private: accountKey.privateKey,
-            }))
+            }));
             console.log(isValidkeyPairEncrypt({
               public: shareKey.publickKey,
               private: shareKey.privateKey,
-            }))
+            }));
             console.log(isValidkeyPairEncrypt({
               public: migrateKey.publickKey,
               private: migrateKey.privateKey,
-            }))
-            const encryptedAccountKey = await encryptDataShareKey(shareKey.publickKey, accountKey.privateKey);
-            if(!encryptedAccountKey) {
-              console.log("error")
+            }));
+            const encryptedAccountKey = await encryptDataShareKey(
+              shareKey.publickKey,
+              accountKey.privateKey,
+            );
+            if (!encryptedAccountKey) {
+              console.log("error");
               return;
             }
-            console.log(encryptedAccountKey.length)
-            console.log(isValidEncryptedAccountKey(encryptedAccountKey))
+            console.log(encryptedAccountKey.length);
+            console.log(isValidEncryptedAccountKey(encryptedAccountKey));
           }}
         >
           masterKey更新ボタン
@@ -423,29 +483,29 @@ function Setting() {
             <PopUpTitle>共有するセッションを選択</PopUpTitle>
             {chooseAccountKeyShareSessionUUID().map((session) => (
               <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors">
-              <input
-                type="checkbox"
-                checked={session[2]}
-                class="w-4 h-4 accent-blue-600 cursor-pointer"
-                onClick={() => {
-                setChooseAccountKeyShareSessionUUID(
-                  chooseAccountKeyShareSessionUUID().map((s) => {
-                  if (s[0] === session[0]) {
-                    return [s[0], s[1], !s[2], s[3]];
-                  }
-                  return s;
-                  }),
-                );
-                }}
-              />
-              <div class="flex flex-col">
-                <PopUpLabel htmlFor="text">
-                {session[0]}
-                </PopUpLabel>
-                <span class="text-gray-400 text-sm">
-                {new Date(session[1]).toLocaleString()}
-                </span>
-              </div>
+                <input
+                  type="checkbox"
+                  checked={session[2]}
+                  class="w-4 h-4 accent-blue-600 cursor-pointer"
+                  onClick={() => {
+                    setChooseAccountKeyShareSessionUUID(
+                      chooseAccountKeyShareSessionUUID().map((s) => {
+                        if (s[0] === session[0]) {
+                          return [s[0], s[1], !s[2], s[3]];
+                        }
+                        return s;
+                      }),
+                    );
+                  }}
+                />
+                <div class="flex flex-col">
+                  <PopUpLabel htmlFor="text">
+                    {session[0]}
+                  </PopUpLabel>
+                  <span class="text-gray-400 text-sm">
+                    {new Date(session[1]).toLocaleString()}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -454,42 +514,51 @@ function Setting() {
             onClick={async () => {
               const uuid = localStorage.getItem("sessionuuid");
               //@ts-ignore
-              const masterKeyValue = masterKey()
+              const masterKeyValue = masterKey();
               if (!uuid) return;
               if (!masterKey) return;
               console.log(masterKeyValue);
               //@ts-ignore
-              const acccountKey = await generateAccountKey(masterKeyValue!.privateKey);
+              const acccountKey = await generateAccountKey(
+                masterKeyValue!.privateKey,
+              );
               if (!acccountKey) return;
               const encryptedAccountKeyDeviceKey = await encryptDataDeviceKey(
                 deviceKey()!,
                 acccountKey.privateKey,
               );
-              const encryptedAccountKeys: [string,string][] = []
-              for(const session of chooseAccountKeyShareSessionUUID()) {
-                if(session[2]) {
+              const encryptedAccountKeys: [string, string][] = [];
+              for (const session of chooseAccountKeyShareSessionUUID()) {
+                if (session[2]) {
                   const encryptedAccountKey = await encryptDataShareKey(
                     session[3].keySharekey,
-                    acccountKey.privateKey
-                  )
-                  if(!encryptedAccountKey) {
+                    acccountKey.privateKey,
+                  );
+                  if (!encryptedAccountKey) {
                     console.error("Failed to encrypt account key");
                     return;
                   }
                   console.log(encryptedAccountKey.length);
-                  encryptedAccountKeys.push([session[0],encryptedAccountKey]);
+                  encryptedAccountKeys.push([session[0], encryptedAccountKey]);
                 }
               }
               //@ts-ignore
-              const privateSign = await signMasterKey(masterKeyValue!.privateKey,
-              acccountKey.privateKey);
-              const response = await requester(domain() as string, "updateAccountKey", {
-                sessionid: localStorage.getItem("sessionid"),
-                sharedData: encryptedAccountKeys,
-                accountKeyPublic: acccountKey.publickKey,
-                accSign: acccountKey.sign,
-              });
-              if(response.status !== 200) {
+              const privateSign = await signMasterKey(
+                //@ts-ignore
+                masterKeyValue!.privateKey,
+                acccountKey.privateKey,
+              );
+              const response = await requester(
+                domain() as string,
+                "updateAccountKey",
+                {
+                  sessionid: localStorageEditor.get("sessionid"),
+                  sharedData: encryptedAccountKeys,
+                  accountKeyPublic: acccountKey.publickKey,
+                  accSign: acccountKey.sign,
+                },
+              );
+              if (response.status !== 200) {
                 console.error("Failed to update account key");
                 return;
               }

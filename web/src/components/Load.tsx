@@ -133,7 +133,7 @@ export function Load() {
         return;
       }
       setMasterKey(JSON.parse(masterKey));
-      for(const key of json.share) {
+      for (const key of json.share) {
         const data = await requester(serverDomain, "getShareData", {
           hash: key,
           sessionid,
@@ -142,45 +142,65 @@ export function Load() {
           handleSessionFailure();
           return;
         }
-        const keyShareHash = JSON.parse(data.accountKeyPrivate)
+        const keyShareHash = JSON.parse(data.accountKeyPrivate);
         const db = await createTakosDB();
-        const encryptedkeyShareKey = await db.get("shareKeys", keyShareHash.keyHash)
-        if(!encryptedkeyShareKey) {
-          console.log("encryptedkeyShareKey not found")
+        const encryptedkeyShareKey = await db.get(
+          "shareKeys",
+          keyShareHash.keyHash,
+        );
+        if (!encryptedkeyShareKey) {
+          console.log("encryptedkeyShareKey not found");
           continue;
         }
 
         //const isOK = await isOk()
 
-        const keyShare = await decryptDataDeviceKey(json.deviceKey, encryptedkeyShareKey.encryptedKey)
-        if(!keyShare) {
-          console.log("keyShare not found")
+        const keyShare = await decryptDataDeviceKey(
+          json.deviceKey,
+          encryptedkeyShareKey.encryptedKey,
+        );
+        if (!keyShare) {
+          console.log("keyShare not found");
           continue;
         }
-        const accountKey = await decryptDataShareKey(keyShare, data.accountKeyPrivate)
-        if(!accountKey) {
-          console.log("accountKey not found")
+        const accountKey = await decryptDataShareKey(
+          keyShare,
+          data.accountKeyPrivate,
+        );
+        if (!accountKey) {
+          console.log("accountKey not found");
           continue;
         }
-        if(!verifyMasterKey(JSON.parse(masterKey).publicKey, data.sign, data.accountKeyPublic)) {
+        if (
+          !verifyMasterKey(
+            JSON.parse(masterKey).publicKey,
+            data.sign,
+            data.accountKeyPublic,
+          )
+        ) {
           continue;
         }
-        if(!isValidkeyPairEncrypt({
-          public: data.accountKeyPublic,
-          private: accountKey,
-        })) {
-          console.log("keyPair is not valid")
+        if (
+          !isValidkeyPairEncrypt({
+            public: data.accountKeyPublic,
+            private: accountKey,
+          })
+        ) {
+          console.log("keyPair is not valid");
           continue;
         }
         await db.put("accountKeys", {
           key: await keyHash(data.accountKeyPublic),
-          encryptedKey: await encryptDataDeviceKey(json.deviceKey, accountKey) as string,
+          encryptedKey: await encryptDataDeviceKey(
+            json.deviceKey,
+            accountKey,
+          ) as string,
           timestamp: JSON.parse(accountKey).timestamp,
         });
         await requester(serverDomain, "noticeShareData", {
           sessionid,
           hash: key,
-        })
+        });
       }
       const profile = await requester(serverDomain, "getProfile", {
         sessionid,
