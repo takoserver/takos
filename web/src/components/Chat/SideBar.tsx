@@ -422,15 +422,21 @@ function Setting() {
         <button
           onClick={async () => {
             const uuid = uuidv7();
-            const masterKey = await generateMasterKey();
-            const accountKey = await generateAccountKey(masterKey.privateKey);
+            const masterKey = generateMasterKey();
+            const accountKey = await generateAccountKey({
+              privateKey: masterKey.privateKey,
+              publicKey: masterKey.publicKey,
+            });
             const shareKey = await generateShareKey(
               masterKey.privateKey,
               uuidv7(),
             );
             const identityKey = await generateIdentityKey(
               uuid,
-              masterKey.privateKey,
+              {
+                privateKey: masterKey.privateKey,
+                publicKey: masterKey.publicKey,
+              },
             );
             const migrateKey = await generateMigrateKey();
             if (
@@ -519,8 +525,14 @@ function Setting() {
               if (!masterKey) return;
               console.log(masterKeyValue);
               //@ts-ignore
+              if(!masterKeyValue) return;
               const acccountKey = await generateAccountKey(
-                masterKeyValue!.privateKey,
+                {
+                  //@ts-ignore
+                  privateKey: masterKeyValue.privateKey,
+                  //@ts-ignore
+                  publicKey: masterKeyValue.publicKey,
+                }
               );
               if (!acccountKey) return;
               const encryptedAccountKeyDeviceKey = await encryptDataDeviceKey(

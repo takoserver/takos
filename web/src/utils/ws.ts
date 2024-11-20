@@ -110,7 +110,7 @@ export function createWebsocket(loadedFn: () => void) {
                 throw new Error("encrypted key is not generated");
               }
               await db.put("accountKeys", {
-                key: await keyHash(accountKey.key),
+                key: accountKey.hash,
                 encryptedKey: encryptedAccountKey,
                 timestamp: accountKey.timestamp,
               });
@@ -120,7 +120,10 @@ export function createWebsocket(loadedFn: () => void) {
             console.log(JSON.parse(decryptedData.masterKey));
             const identityKey = await generateIdentityKey(
               uuid,
-              JSON.parse(decryptedData.masterKey).privateKey,
+              {
+                privateKey: JSON.parse(decryptedData.masterKey).privateKey,
+                publicKey: JSON.parse(decryptedData.masterKey).publicKey,
+              },
             );
             if (!identityKey) throw new Error("Failed to create identity key");
             const encryptedIdentityKey = await encryptDataDeviceKey(

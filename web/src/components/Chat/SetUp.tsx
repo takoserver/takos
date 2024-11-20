@@ -65,13 +65,19 @@ export function SetUp() {
                       const sessionUUID = uuidv7();
                       const identityKey = await generateIdentityKey(
                         sessionUUID,
-                        masterKey.privateKey,
+                        {
+                          privateKey: masterKey.privateKey,
+                          publicKey: masterKey.publicKey,
+                        }
                       );
                       if (!identityKey) {
                         throw new Error("identityKey is not generated");
                       }
                       const accountKey = await generateAccountKey(
-                        masterKey.privateKey,
+                        {
+                          privateKey: masterKey.privateKey,
+                          publicKey: masterKey.publicKey,
+                        },
                       );
                       const sharekey = await generateShareKey(
                         masterKey.privateKey,

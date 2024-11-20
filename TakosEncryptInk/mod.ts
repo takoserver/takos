@@ -516,7 +516,11 @@ export async function encryptRoomKeyWithAccountKeys(key: {
   accountKeySign: string,
   accountKey: string,
   userId: string,
-}[], roomKey: string,identityKey: string): Promise<{
+}[],
+roomKey: string,
+identityKey: string,
+pubKeyHash: string
+): Promise<{
   metadata: string; metadataSign: string; encryptedData: {
     userId: string
     encryptedData: string
@@ -560,11 +564,11 @@ export async function encryptRoomKeyWithAccountKeys(key: {
     sharedUser: sharedUser,
   }
   const metadata = JSON.stringify(roomKeyMetaData);
-  const metadataSign = await signIdentityKey(identityKey, metadata, await keyHash(identityKey));
+  const metadataSign = signIdentityKey(identityKey, metadata, pubKeyHash);
   if(!metadataSign) {
     return null;
   }
-  const roomKeySign = await signIdentityKey(identityKey, roomKey, await keyHash(identityKey));
+  const roomKeySign = signIdentityKey(identityKey, roomKey, pubKeyHash);
   if(!roomKeySign) {
     return null;
   }

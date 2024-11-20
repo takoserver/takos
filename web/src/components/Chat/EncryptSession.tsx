@@ -110,13 +110,19 @@ export function EncryptSession() {
                           const uuid = uuidv7();
                           const identityKey = await generateIdentityKey(
                             uuid,
-                            masterKey.privateKey,
+                            {
+                              privateKey: masterKey.privateKey,
+                              publicKey: masterKey.publicKey,
+                            },
                           );
                           if (!identityKey) {
                             throw new Error("identityKey is not generated");
                           }
                           const accountKey = await generateAccountKey(
-                            masterKey.privateKey,
+                            {
+                              privateKey: masterKey.privateKey,
+                              publicKey: masterKey.publicKey,
+                            },
                           );
                           if (!accountKey) {
                             throw new Error("accountKey is not generated");
@@ -346,6 +352,7 @@ export function AcceptMigrateKey() {
                                 if (!decrypted) return null;
                                 return {
                                   key: decrypted,
+                                  hash: data.key,
                                   timestamp: data.timestamp,
                                 };
                               },
@@ -362,9 +369,10 @@ export function AcceptMigrateKey() {
                               migrateData,
                             );
                           if (!encryptedMigrateData) return;
-                          const sign = await signDataMigrateSignKey(
+                          const sign = signDataMigrateSignKey(
                             migrateSignKeyPrivate(),
                             encryptedMigrateData,
+                            await keyHash(migrateKeyPublic()),
                           );
                           if (!sign) return;
                           const response = await requester(
