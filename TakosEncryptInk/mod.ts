@@ -509,6 +509,7 @@ export async function encryptRoomKeyWithAccountKeys(key: {
     userId: string
     encryptedData: string
   }[]
+  sign: string
 } | null> {
   const encryptedData = []
   const sharedUser: {
@@ -551,10 +552,15 @@ export async function encryptRoomKeyWithAccountKeys(key: {
   if(!metadataSign) {
     return null;
   }
+  const roomKeySign = await signIdentityKey(identityKey, roomKey);
+  if(!roomKeySign) {
+    return null;
+  }
   return {
     metadata: metadata,
     metadataSign: metadataSign,
     encryptedData: encryptedData,
+    sign: roomKeySign,
   }
 }
 
@@ -1409,36 +1415,89 @@ async function testAccountKey() {
 
 //testAccountKey()
 
-async function isValidKeyPairTest() {
-  const uuid = uuidv7();
-  const masterKey = await generateMasterKey();
-  const accountKey = await generateAccountKey(masterKey.privateKey);
-  const shareKey = await generateShareKey(masterKey.privateKey, uuidv7());
-  const identityKey = await generateIdentityKey(uuid,masterKey.privateKey);
-  const migrateKey = await generateMigrateKey();
-  if(!masterKey || !accountKey || !shareKey || !identityKey || !migrateKey) {
-    console.log("error")
-    return;
+function isValidMetaData(data: string, shareUser: number) {
+  // y = 119x+73
+  const keyLength = 119 * shareUser + 73;
+  if(data.length !== keyLength) {
+    console.log(data.length, keyLength)
+    return false;
   }
-  console.log(isValidkeyPairSign({
-    public: masterKey.publicKey,
-    private: masterKey.privateKey,
-  }))
-  console.log(isValidkeyPairSign({
-    public: identityKey.publickKey,
-    private: identityKey.privateKey,
-  }))
-  console.log(isValidkeyPairEncrypt({
-    public: accountKey.publickKey,
-    private: accountKey.privateKey,
-  }))
-  console.log(isValidkeyPairEncrypt({
-    public: shareKey.publickKey,
-    private: shareKey.privateKey,
-  }))
-  console.log(isValidkeyPairEncrypt({
-    public: migrateKey.publickKey,
-    private: migrateKey.privateKey,
-  }))
+  return true;
 }
-//isValidKeyPairTest()
+
+async function isValidKeyPairTest() {
+  console.log("\nTesting Message...");
+  const createUserData = async () => {
+    const uuid = uuidv7();
+    const masterKey = generateMasterKey();
+    const identityKey = await generateIdentityKey(uuid, masterKey.privateKey);
+    const accountKey = await generateAccountKey(masterKey.privateKey);
+    if(!identityKey || !accountKey) throw new Error("Failed to create user data");
+    return {
+      uuid,
+      masterKey,
+      identityKey,
+      accountKey,
+    }
+  }
+  const bob = await createUserData();
+  const alice = await createUserData();
+  const aliceRoomKey = await generateRoomkey(alice.uuid);
+  if (!aliceRoomKey) return;
+  const encryptedAliceRoomKey = await encryptRoomKeyWithAccountKeys([{
+    masterKey: bob.masterKey.publicKey,
+    accountKeySign: bob.accountKey?.sign,
+    accountKey: bob.accountKey.publickKey,
+    userId: "bob",
+  }, {
+    masterKey: alice.masterKey.publicKey,
+    accountKeySign: alice.accountKey?.sign,
+    accountKey: alice.accountKey.publickKey,
+    userId: "alice",
+  }
+], aliceRoomKey, alice.identityKey.privateKey);
+const encryptedAliceRoomKey2 = await encryptRoomKeyWithAccountKeys([{
+  masterKey: bob.masterKey.publicKey,
+  accountKeySign: bob.accountKey?.sign,
+  accountKey: bob.accountKey.publickKey,
+  userId: "bob",
+}, {
+  masterKey: alice.masterKey.publicKey,
+  accountKeySign: alice.accountKey?.sign,
+  accountKey: alice.accountKey.publickKey,
+  userId: "alice",
+},
+{
+  masterKey: alice.masterKey.publicKey,
+  accountKeySign: alice.accountKey?.sign,
+  accountKey: alice.accountKey.publickKey,
+  userId: "alice2",
+}
+], aliceRoomKey, alice.identityKey.privateKey);
+const encryptedAliceRoomKey3 = await encryptRoomKeyWithAccountKeys([{
+  masterKey: bob.masterKey.publicKey,
+  accountKeySign: bob.accountKey?.sign,
+  accountKey: bob.accountKey.publickKey,
+  userId: "bob",
+}, {
+  masterKey: alice.masterKey.publicKey,
+  accountKeySign: alice.accountKey?.sign,
+  accountKey: alice.accountKey.publickKey,
+  userId: "alice",
+},
+{
+  masterKey: alice.masterKey.publicKey,
+  accountKeySign: alice.accountKey?.sign,
+  accountKey: alice.accountKey.publickKey,
+  userId: "alice2",
+},
+{
+  masterKey: alice.masterKey.publicKey,
+  accountKeySign: alice.accountKey?.sign,
+  accountKey: alice.accountKey.publickKey,
+  userId: "alice2",
+}
+], aliceRoomKey, alice.identityKey.privateKey);
+  console.log(encryptedAliceRoomKey?.metadata.length,encryptedAliceRoomKey2?.metadata.length)
+  console.log(encryptedAliceRoomKey3?.metadata.length)
+}

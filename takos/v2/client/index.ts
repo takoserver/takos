@@ -83,7 +83,7 @@ singlend.on(
     }
     return ok({
       accountKey: key!.accoutKey,
-      accSign: key!.sign,
+      sign: key!.sign,
     });
   },
 );

@@ -24,9 +24,6 @@ const keyShareDataSchema = new mongoose.Schema({
     type: Array,
     default: [],
   },
-  privateSign: {
-    type: String,
-  },
 });
 
 const KeyShareData = mongoose.model("accountKey", keyShareDataSchema);

@@ -91,10 +91,11 @@ singlend.group(
         });
         if (!sbareAccountKey) return error("error", 400);
         return ok({
-          accountKey: (sbareAccountKey.encryptedAccountKey.find(
+          accountKeyPrivate: (sbareAccountKey.encryptedAccountKey.find(
             (data) => data[0] === value.sessionInfo.sessionUUID,
           ))[1],
-          privateSign: sbareAccountKey.privateSign,
+          sign: sbareAccountKey.sign,
+          accountKeyPublic: sbareAccountKey.accoutKey,
         });
       },
     )
@@ -521,7 +522,6 @@ singlend.group(
         accountKeyPublic: z.string(),
         accSign: z.string(),
         sharedData: z.array(z.any()),
-        privateSign: z.string(),
       }),
       async (query, value, ok, error) => {
         if (!value.userInfo.masterKey) return error("error", 400);
@@ -533,8 +533,7 @@ singlend.group(
             value.userInfo.masterKey,
             query.accSign,
             query.accountKeyPublic,
-          ) ||
-          !isValidSignMasterkey(query.privateSign)
+          )
         ) {
           return error("error", 400);
         }
@@ -559,7 +558,6 @@ singlend.group(
           sign: query.accSign,
           hash: await keyHash(query.accountKeyPublic),
           encryptedAccountKey: encryptedAccountKey,
-          privateSign: query.privateSign,
         })
         return ok("ok");
       },
@@ -830,6 +828,91 @@ singlend.group(
         });
       },
     );
+    singlend.on(
+      "updateRoomKey",
+      z.object({
+        roomid: z.string(),
+        metaData: z.string(),
+        metaDataSign: z.string(),
+        sign: z.string(),
+        roomType: z.string(),
+        encryptedKey: z.array(z.any()),
+      }),
+      async (query, value, ok, error) => {
+        if (!value.userInfo.masterKey) return error("error", 400);
+        if(query.roomType !== "group" && query.roomType !== "friend") {
+          return error("error", 400);
+        }
+        if(!verifyMasterKey(value.userInfo.masterKey, query.metaDataSign, query.metaData)) {
+          return error("error", 400);
+        }
+        if(query.roomType === "friend") {
+          const nameInfo = query.roomid.split("-");
+          if(nameInfo.length !== 2) {
+            return error("error", 400);
+          }
+          if(nameInfo[0] !== value.userInfo.userName) {
+            return error("error", 400);
+          }
+          if(!await Friend.findOne({
+            userName: value.userInfo.userName + "@" + env["DOMAIN"],
+            friendId: nameInfo[1],
+          })) {
+            return error("error", 400);
+          }
+          const latestRoomKey = await RoomKey.findOne({
+            roomid: query.roomid,
+            sessionid: value.sessionInfo.sessionid,
+          }).sort({ timestamp: -1 });
+          if(!latestRoomKey) {
+            const userIds = [value.userInfo.userName + "@" + env["DOMAIN"] , nameInfo[1]];
+            await RoomKey.create({
+              userName: value.userInfo.userName,
+              roomid: query.roomid,
+              roomType: query.roomType,
+              sessionid: value.sessionInfo.sessionid,
+              id: uuidv7(),
+              encryptedRoomKey: query.encryptedKey.map((data: {
+                encryptedData: string; 
+                userId: string;
+              }) => {
+                if(!userIds.includes(data.userId)) {
+                  return error("error", 400);
+                }
+                userIds.splice(userIds.indexOf(data.userId), 1);
+                return [data.userId, data.encryptedData];
+              }),
+              roomKeySign: query.sign,
+              metaData: query.metaData,
+              metaDataSign: query.metaDataSign,
+            });
+          } else if(new Date(latestRoomKey.timestamp).getTime() < new Date().getTime() - 1000 * 60 * 10) {
+            const userIds = [value.userInfo.userName + "@" + env["DOMAIN"] , nameInfo[1]];
+            await RoomKey.create({
+              userName: value.userInfo.userName,
+              roomid: query.roomid,
+              roomType: query.roomType,
+              sessionid: value.sessionInfo.sessionid,
+              id: uuidv7(),
+              encryptedRoomKey: query.encryptedKey.map((data: {
+                encryptedData: string; 
+                userId: string;
+              }) => {
+                if(!userIds.includes(data.userId)) {
+                  return error("error", 400);
+                }
+                userIds.splice(userIds.indexOf(data.userId), 1);
+                return [data.userId, data.encryptedData];
+              }),
+              roomKeySign: query.sign,
+              metaData: query.metaData,
+              metaDataSign: query.metaDataSign,
+            });
+          }
+        }
+        return ok("ok");
+      },
+    );
     return singlend;
   },
 );
@@ -848,4 +931,13 @@ async function resizeImage(icon: string) {
   const resizedImage = image.resize(256, 256);
   const resizedImageArrayBuffer = await resizedImage.encodeJPEG();
   return arrayBufferToBase64(resizedImageArrayBuffer);
+}
+function isValidMetaData(data: string, shareUser: number) {
+  // y = 119x+73
+  const keyLength = 119 * shareUser + 73;
+  if(data.length !== keyLength) {
+    console.log(data.length, keyLength)
+    return false;
+  }
+  return true;
 }

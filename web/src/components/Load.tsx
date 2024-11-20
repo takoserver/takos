@@ -30,7 +30,9 @@ import {
   decryptDataDeviceKey,
   decryptDataShareKey,
   encryptDataDeviceKey,
+  isValidkeyPairEncrypt,
   keyHash,
+  signMasterKey,
   verifyMasterKey,
 } from "@takos/takos-encrypt-ink";
 import { createWebsocket } from "../utils/ws";
@@ -140,32 +142,40 @@ export function Load() {
           handleSessionFailure();
           return;
         }
-        const keyShareHash = JSON.parse(data.accountKey)
+        const keyShareHash = JSON.parse(data.accountKeyPrivate)
         const db = await createTakosDB();
         const encryptedkeyShareKey = await db.get("shareKeys", keyShareHash.keyHash)
         if(!encryptedkeyShareKey) {
           console.log("encryptedkeyShareKey not found")
           continue;
         }
+
+        //const isOK = await isOk()
+
         const keyShare = await decryptDataDeviceKey(json.deviceKey, encryptedkeyShareKey.encryptedKey)
         if(!keyShare) {
           console.log("keyShare not found")
           continue;
         }
-        const accountKey = await decryptDataShareKey(keyShare, data.accountKey)
+        const accountKey = await decryptDataShareKey(keyShare, data.accountKeyPrivate)
         if(!accountKey) {
           console.log("accountKey not found")
           continue;
         }
-        console.log(JSON.parse(accountKey))
-        if(!verifyMasterKey(JSON.parse(masterKey).publicKey, data.privateSign, JSON.parse(accountKey).privateKey)) {
-          console.log("verifyMasterKey failed")
+        if(!verifyMasterKey(JSON.parse(masterKey).publicKey, data.sign, data.accountKeyPublic)) {
+          continue;
+        }
+        if(!isValidkeyPairEncrypt({
+          public: data.accountKeyPublic,
+          private: accountKey,
+        })) {
+          console.log("keyPair is not valid")
           continue;
         }
         await db.put("accountKeys", {
-          key: await keyHash(JSON.parse(accountKey).publickKey),
-          encryptedKey: await encryptDataDeviceKey(json.deviceKey, JSON.parse(accountKey).privateKey) as string,
-          timestamp: JSON.parse(JSON.parse(accountKey).publickKey).timestamp,
+          key: await keyHash(data.accountKeyPublic),
+          encryptedKey: await encryptDataDeviceKey(json.deviceKey, accountKey) as string,
+          timestamp: JSON.parse(accountKey).timestamp,
         });
         await requester(serverDomain, "noticeShareData", {
           sessionid,

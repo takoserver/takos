@@ -16,7 +16,8 @@ import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "../popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import { checkUserName } from "../../../../takos/utils/checks";
 import { splitUserName } from "../../../../takos-web/util/takosClient";
-import { decryptDataDeviceKey, encryptDataDeviceKey, encryptDataShareKey, encryptRoomKeyWithAccountKeys, generateAccountKey, generateRoomkey, keyHash, signMasterKey } from "@takos/takos-encrypt-ink";
+import { decryptDataDeviceKey, encryptDataDeviceKey, encryptDataShareKey, encryptRoomKeyWithAccountKeys, generateAccountKey, generateIdentityKey, generateMasterKey, generateMigrateKey, generateRoomkey, generateShareKey, isValidEncryptedAccountKey, isValidkeyPairEncrypt, isValidkeyPairSign, keyHash, signMasterKey } from "@takos/takos-encrypt-ink";
+import { uuidv7 } from "uuidv7";
 export function SideBer() {
   const [page] = useAtom(pageState);
 
@@ -81,6 +82,87 @@ function TalkList() {
     setNickNames(names);
     setIcons(iconsData);
   });
+  const handelSelectRoomFriend = async (talk: any) => {
+    const db = await createTakosDB();
+    setSelectedRoom({
+      type: "friend",
+      roomName: talk.roomName,
+    });
+    setIsSelectRoom(true);
+    const latestRoomKeyhash = await db.getAll("latestRoomkeyHash");
+    if(latestRoomKeyhash.length === 0) {
+      const roomKey = await generateRoomkey(localStorageEditor.get("sessionuuid") as string)
+      if(!roomKey) {
+        console.error("Failed to generate room key");
+        return;
+      }
+      const friendMasterKey = await requester(splitUserName(talk.roomName).domain, "getMasterKey", {
+        userName: splitUserName(talk.roomName).userName,
+      })
+      const friendAccountKey = await requester(splitUserName(talk.roomName).domain, "getAccountKeyLatest", {
+        userName: splitUserName(talk.roomName).userName,
+      })
+      if(friendMasterKey.status !== 200 || friendAccountKey.status !== 200) {
+        console.error("Failed to get friend master key");
+        return;
+      }
+      const friendMasterKeyJson = await friendMasterKey.json();
+      const friendAccountKeyJson = await friendAccountKey.json();
+      const myIdentityKeyEncrypted = (await db.getAll("identityKeys")).sort((a,b) => a.timestamp - b.timestamp)[0];
+      const myAccountKeyEncryptedHash = ((await db.getAll("accountKeys")).sort((a,b) => a.timestamp - b.timestamp)[0]).key
+      const myIdentityKey = await decryptDataDeviceKey(
+        deviceKey()!,
+        myIdentityKeyEncrypted.encryptedKey
+      )
+      if(!myIdentityKey) {
+        console.error("Failed to decrypt my identity key");
+        return;
+      }
+      const myAccountKey = await requester(domain() as string, "getAccountKey", {
+        hash: myAccountKeyEncryptedHash,
+        userName: localStorageEditor.get("userName"),
+      }).then((res) => res.json())
+      if(!myAccountKey) {
+        console.error("Failed to get my account key");
+        return;
+      }
+      if(await keyHash(myAccountKey.accountKey) !== myAccountKeyEncryptedHash) {
+        console.error("Invalid identity key");
+        return;
+      }
+      const encryptedRoomKey = await encryptRoomKeyWithAccountKeys(
+        [
+          {
+            masterKey: friendMasterKeyJson.masterKey,
+            accountKey: friendAccountKeyJson.accountKey,
+            accountKeySign: friendAccountKeyJson.accSign,
+            userId: talk.roomName,
+          },{
+            //@ts-ignore
+            masterKey: masterKey()!.publicKey,
+            accountKey: myAccountKey.accountKey,
+            accountKeySign: myAccountKey.sign,
+            userId: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server"),
+          }
+        ],
+        roomKey,
+        myIdentityKey,
+      )
+      if(!encryptedRoomKey) {
+        console.error("Failed to encrypt room key");
+        return;
+      }
+      const res = await requester(domain() as string, "updateRoomKey", {
+        roomid: talk.roomName,
+        metaData: encryptedRoomKey.metadata,
+        metaDataSign: encryptedRoomKey.metadataSign,
+        roomType: "friend",
+        encryptedData: encryptedRoomKey.encryptedData,
+      })
+    } else {
+
+    }
+  }
 
   return (
     <>
@@ -90,75 +172,7 @@ function TalkList() {
             <div
               class="flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-[#282828]"
               onClick={async () => {
-                const db = await createTakosDB();
-                setSelectedRoom({
-                  type: "friend",
-                  roomName: talk.roomName,
-                });
-                setIsSelectRoom(true);
-                const latestRoomKeyhash = await db.getAll("latestRoomkeyHash");
-                if(latestRoomKeyhash.length === 0) {
-                  const roomKey = await generateRoomkey(localStorageEditor.get("sessionuuid") as string)
-                  if(!roomKey) {
-                    console.error("Failed to generate room key");
-                    return;
-                  }
-                  const friendMasterKey = await requester(splitUserName(talk.roomName).domain, "getMasterKey", {
-                    userName: splitUserName(talk.roomName).userName,
-                  })
-                  const friendAccountKey = await requester(splitUserName(talk.roomName).domain, "getAccountKeyLatest", {
-                    userName: splitUserName(talk.roomName).userName,
-                  })
-                  if(friendMasterKey.status !== 200 || friendAccountKey.status !== 200) {
-                    console.error("Failed to get friend master key");
-                    return;
-                  }
-                  const friendMasterKeyJson = await friendMasterKey.json();
-                  const friendAccountKeyJson = await friendAccountKey.json();
-                  const myIdentityKeyEncrypted = (await db.getAll("identityKeys")).sort((a,b) => a.timestamp - b.timestamp)[0];
-                  const myAccountKeyEncrypted = (await db.getAll("accountKeys")).sort((a,b) => a.timestamp - b.timestamp)[0];
-                  const myIdentityKey = await decryptDataDeviceKey(
-                    deviceKey()!,
-                    myIdentityKeyEncrypted.encryptedKey
-                  )
-                  if(!myIdentityKey) {
-                    console.error("Failed to decrypt my identity key");
-                    return;
-                  }
-                  const myAccountKey = await decryptDataDeviceKey(
-                    deviceKey()!,
-                    myAccountKeyEncrypted.encryptedKey
-                  )
-                  if(!myAccountKey) {
-                    console.error("Failed to decrypt my account key");
-                    return;
-                  }
-                  console.log(myIdentityKey);
-                  console.log(myAccountKey);
-                  console.log(friendMasterKeyJson);
-                  console.log(friendAccountKeyJson);
-                  const encryptedRoomKey = await encryptRoomKeyWithAccountKeys(
-                    [
-                      {
-                        masterKey: friendMasterKeyJson.masterKey,
-                        accountKey: friendAccountKeyJson.accountKey,
-                        accountKeySign: friendAccountKeyJson.accSign,
-                        userId: talk.roomName,
-                      },{
-                        //@ts-ignore
-                        masterKey: masterKey()!.publicKey,
-                        accountKey: myAccountKey,
-                        accountKeySign: JSON.parse(myAccountKey).sign,
-                        userId: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server"),
-                      }
-                    ],
-                    roomKey,
-                    myIdentityKey,
-                  )
-                  console.log(encryptedRoomKey);
-                } else {
-
-                }
+                await handelSelectRoomFriend(talk);
               }}
             >
               <img
@@ -359,7 +373,43 @@ function Setting() {
       <div>
         <button
           onClick={async () => {
-            
+            const uuid = uuidv7();
+            const masterKey = await generateMasterKey();
+            const accountKey = await generateAccountKey(masterKey.privateKey);
+            const shareKey = await generateShareKey(masterKey.privateKey, uuidv7());
+            const identityKey = await generateIdentityKey(uuid,masterKey.privateKey);
+            const migrateKey = await generateMigrateKey();
+            if(!masterKey || !accountKey || !shareKey || !identityKey || !migrateKey) {
+              console.log("error")
+              return;
+            }
+            console.log(isValidkeyPairSign({
+              public: masterKey.publicKey,
+              private: masterKey.privateKey,
+            }))
+            console.log(isValidkeyPairSign({
+              public: identityKey.publickKey,
+              private: identityKey.privateKey,
+            }))
+            console.log(isValidkeyPairEncrypt({
+              public: accountKey.publickKey,
+              private: accountKey.privateKey,
+            }))
+            console.log(isValidkeyPairEncrypt({
+              public: shareKey.publickKey,
+              private: shareKey.privateKey,
+            }))
+            console.log(isValidkeyPairEncrypt({
+              public: migrateKey.publickKey,
+              private: migrateKey.privateKey,
+            }))
+            const encryptedAccountKey = await encryptDataShareKey(shareKey.publickKey, accountKey.privateKey);
+            if(!encryptedAccountKey) {
+              console.log("error")
+              return;
+            }
+            console.log(encryptedAccountKey.length)
+            console.log(isValidEncryptedAccountKey(encryptedAccountKey))
           }}
         >
           masterKey更新ボタン
@@ -420,12 +470,13 @@ function Setting() {
                 if(session[2]) {
                   const encryptedAccountKey = await encryptDataShareKey(
                     session[3].keySharekey,
-                    JSON.stringify(acccountKey)
+                    acccountKey.privateKey
                   )
                   if(!encryptedAccountKey) {
                     console.error("Failed to encrypt account key");
                     return;
                   }
+                  console.log(encryptedAccountKey.length);
                   encryptedAccountKeys.push([session[0],encryptedAccountKey]);
                 }
               }
@@ -437,7 +488,6 @@ function Setting() {
                 sharedData: encryptedAccountKeys,
                 accountKeyPublic: acccountKey.publickKey,
                 accSign: acccountKey.sign,
-                privateSign: privateSign,
               });
               if(response.status !== 200) {
                 console.error("Failed to update account key");
