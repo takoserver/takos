@@ -1368,7 +1368,7 @@ export function isValidkeyPairSign(keyPair: {public: string, private: string}): 
   return false;
 }
 
-export function isValidkeyPairEncrypt(keyPair: { public: string, private: string} ) {
+export function isValidkeyPairEncrypt(keyPair: { public: string, private: string} ): boolean {
   const keyObj = JSON.parse(keyPair.public);
   const { cipherText, sharedSecret } = ml_kem768.encapsulate(new Uint8Array(base64ToArrayBuffer(keyObj.key)), new Uint8Array(32));
   const sharedSecret2 = ml_kem768.decapsulate(cipherText, new Uint8Array(base64ToArrayBuffer(JSON.parse(keyPair.private).key)));
