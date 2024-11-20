@@ -10,13 +10,13 @@ import {
 } from "../../utils/state";
 import { isSelectRoomState, selectedRoomState } from "../../utils/roomState";
 import { Home } from "./home";
-import { clearDB, createTakosDB } from "../../utils/idb";
+import { clearDB, createTakosDB, localStorageEditor } from "../../utils/idb";
 import { requester } from "../../utils/requester";
 import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "../popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import { checkUserName } from "../../../../takos/utils/checks";
 import { splitUserName } from "../../../../takos-web/util/takosClient";
-import { encryptDataDeviceKey, encryptDataShareKey, generateAccountKey, keyHash, signMasterKey } from "@takos/takos-encrypt-ink";
+import { decryptDataDeviceKey, encryptDataDeviceKey, encryptDataShareKey, encryptRoomKeyWithAccountKeys, generateAccountKey, generateRoomkey, keyHash, signMasterKey } from "@takos/takos-encrypt-ink";
 export function SideBer() {
   const [page] = useAtom(pageState);
 
@@ -40,6 +40,7 @@ function TalkList() {
   const [isSelectRoom, setIsSelectRoom] = useAtom(isSelectRoomState);
   const [identityKeyAndAccountKey] = useAtom(IdentityKeyAndAccountKeyState);
   const [masterKey] = useAtom(MasterKeyState);
+  const [deviceKey] = useAtom(deviceKeyState);
 
   // 非同期でニックネームとアイコンを取得
   createEffect(async () => {
@@ -89,11 +90,75 @@ function TalkList() {
             <div
               class="flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-[#282828]"
               onClick={async () => {
+                const db = await createTakosDB();
                 setSelectedRoom({
                   type: "friend",
                   roomName: talk.roomName,
                 });
                 setIsSelectRoom(true);
+                const latestRoomKeyhash = await db.getAll("latestRoomkeyHash");
+                if(latestRoomKeyhash.length === 0) {
+                  const roomKey = await generateRoomkey(localStorageEditor.get("sessionuuid") as string)
+                  if(!roomKey) {
+                    console.error("Failed to generate room key");
+                    return;
+                  }
+                  const friendMasterKey = await requester(splitUserName(talk.roomName).domain, "getMasterKey", {
+                    userName: splitUserName(talk.roomName).userName,
+                  })
+                  const friendAccountKey = await requester(splitUserName(talk.roomName).domain, "getAccountKeyLatest", {
+                    userName: splitUserName(talk.roomName).userName,
+                  })
+                  if(friendMasterKey.status !== 200 || friendAccountKey.status !== 200) {
+                    console.error("Failed to get friend master key");
+                    return;
+                  }
+                  const friendMasterKeyJson = await friendMasterKey.json();
+                  const friendAccountKeyJson = await friendAccountKey.json();
+                  const myIdentityKeyEncrypted = (await db.getAll("identityKeys")).sort((a,b) => a.timestamp - b.timestamp)[0];
+                  const myAccountKeyEncrypted = (await db.getAll("accountKeys")).sort((a,b) => a.timestamp - b.timestamp)[0];
+                  const myIdentityKey = await decryptDataDeviceKey(
+                    deviceKey()!,
+                    myIdentityKeyEncrypted.encryptedKey
+                  )
+                  if(!myIdentityKey) {
+                    console.error("Failed to decrypt my identity key");
+                    return;
+                  }
+                  const myAccountKey = await decryptDataDeviceKey(
+                    deviceKey()!,
+                    myAccountKeyEncrypted.encryptedKey
+                  )
+                  if(!myAccountKey) {
+                    console.error("Failed to decrypt my account key");
+                    return;
+                  }
+                  console.log(myIdentityKey);
+                  console.log(myAccountKey);
+                  console.log(friendMasterKeyJson);
+                  console.log(friendAccountKeyJson);
+                  const encryptedRoomKey = await encryptRoomKeyWithAccountKeys(
+                    [
+                      {
+                        masterKey: friendMasterKeyJson.masterKey,
+                        accountKey: friendAccountKeyJson.accountKey,
+                        accountKeySign: friendAccountKeyJson.accSign,
+                        userId: talk.roomName,
+                      },{
+                        //@ts-ignore
+                        masterKey: masterKey()!.publicKey,
+                        accountKey: myAccountKey,
+                        accountKeySign: JSON.parse(myAccountKey).sign,
+                        userId: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server"),
+                      }
+                    ],
+                    roomKey,
+                    myIdentityKey,
+                  )
+                  console.log(encryptedRoomKey);
+                } else {
+
+                }
               }}
             >
               <img
@@ -355,7 +420,7 @@ function Setting() {
                 if(session[2]) {
                   const encryptedAccountKey = await encryptDataShareKey(
                     session[3].keySharekey,
-                    acccountKey.privateKey,
+                    JSON.stringify(acccountKey)
                   )
                   if(!encryptedAccountKey) {
                     console.error("Failed to encrypt account key");

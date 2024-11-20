@@ -113,40 +113,6 @@ export function Load() {
       handleSessionFailure();
       return;
     }
-    for(const key of json.share) {
-      const data = await requester(serverDomain, "getShareData", {
-        hash: key,
-        sessionid,
-      }).then((res) => res.json());
-      if (data.error) {
-        handleSessionFailure();
-        return;
-      }
-      console.log(data);
-      const keyShareHash = JSON.parse(data.accountKey)
-      console.log(keyShareHash.keyHash)
-      const db = await createTakosDB();
-      const encryptedkeyShareKey = await db.get("shareKeys", keyShareHash.keyHash)
-      if(!encryptedkeyShareKey) {
-        continue;
-      }
-      const keyShare = await decryptDataDeviceKey(json.deviceKey, encryptedkeyShareKey.encryptedKey)
-      if(!keyShare) {
-        continue;
-      }
-      const accountKey = await decryptDataShareKey(keyShare, data.accountKey)
-      if(!accountKey) {
-        continue;
-      }
-      if(!verifyMasterKey(json.deviceKey, json.privateSign, accountKey)) {
-        continue;
-      }
-      await db.put("accountKeys", {
-        key: await keyHash(accountKey),
-        encryptedKey: await encryptDataDeviceKey(json.deviceKey, accountKey.privateKey),
-        timestamp: accountKey.timestamp,
-      });
-    }
     setEncryptedSession(json.sessionEncrypted);
     setSetUp(json.setuped);
     setDeviceKey(json.deviceKey);
@@ -165,13 +131,66 @@ export function Load() {
         return;
       }
       setMasterKey(JSON.parse(masterKey));
+      for(const key of json.share) {
+        const data = await requester(serverDomain, "getShareData", {
+          hash: key,
+          sessionid,
+        }).then((res) => res.json());
+        if (data.error) {
+          handleSessionFailure();
+          return;
+        }
+        const keyShareHash = JSON.parse(data.accountKey)
+        const db = await createTakosDB();
+        const encryptedkeyShareKey = await db.get("shareKeys", keyShareHash.keyHash)
+        if(!encryptedkeyShareKey) {
+          console.log("encryptedkeyShareKey not found")
+          continue;
+        }
+        const keyShare = await decryptDataDeviceKey(json.deviceKey, encryptedkeyShareKey.encryptedKey)
+        if(!keyShare) {
+          console.log("keyShare not found")
+          continue;
+        }
+        const accountKey = await decryptDataShareKey(keyShare, data.accountKey)
+        if(!accountKey) {
+          console.log("accountKey not found")
+          continue;
+        }
+        console.log(JSON.parse(accountKey))
+        if(!verifyMasterKey(JSON.parse(masterKey).publicKey, data.privateSign, JSON.parse(accountKey).privateKey)) {
+          console.log("verifyMasterKey failed")
+          continue;
+        }
+        await db.put("accountKeys", {
+          key: await keyHash(JSON.parse(accountKey).publickKey),
+          encryptedKey: await encryptDataDeviceKey(json.deviceKey, JSON.parse(accountKey).privateKey) as string,
+          timestamp: JSON.parse(JSON.parse(accountKey).publickKey).timestamp,
+        });
+        await requester(serverDomain, "noticeShareData", {
+          sessionid,
+          hash: key,
+        })
+      }
       const profile = await requester(serverDomain, "getProfile", {
         sessionid,
       }).then((res) => res.json());
-      if (profile.error) {
+      const notification = await requester(serverDomain, "getNotification", {
+        sessionid,
+      }).then((res) => res.json());
+      if (profile.error || notification.error) {
         handleSessionFailure();
         return;
       }
+      const talkList = await requester(serverDomain, "getTalkList", {
+        sessionid,
+      }).then((res) => res.json());
+      if (talkList.error) {
+        handleSessionFailure();
+        return;
+      }
+      setTalkList(talkList.talkList);
+      setNotification(notification.request);
       setIcon(profile.icon);
       setNickname(profile.nickName);
       setBirthday(profile.birthday);

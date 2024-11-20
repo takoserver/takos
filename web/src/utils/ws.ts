@@ -85,7 +85,7 @@ export function createWebsocket(loadedFn: () => void) {
             ) as string)
             const encryptedMasterKey = await encryptDataDeviceKey(
                 deviceKey() as string,
-                JSON.stringify(decryptedData.masterKey),
+                decryptedData.masterKey,
             );
             if(!encryptedMasterKey) throw new Error("encrypted key is not generated");
             localStorageEditor.set("masterKey", encryptedMasterKey);

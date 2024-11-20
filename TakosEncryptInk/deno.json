@@ -4,7 +4,7 @@
   },
 
   "name": "@takos/takos-encrypt-ink",
-  "version": "5.2.2",
+  "version": "5.2.3",
   "exports": "./mod.ts",
   "fmt": {
     "lineWidth": 120,

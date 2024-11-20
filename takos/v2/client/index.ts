@@ -88,28 +88,6 @@ singlend.on(
   },
 );
 singlend.on(
-  "getIdentityKeyLatest",
-  z.object({
-    userName: z.string(),
-  }),
-  async (query, ok, error) => {
-    const user = await User.findOne({ userName: query.userName });
-    if (!user) {
-      return error({ error: "user not found" });
-    }
-    const key = await IdentityKey.findOne({
-      userName: query.userName,
-    }).sort({ timestamp: -1 });
-    if (!key) {
-      return error({ error: "key not found" });
-    }
-    return ok({
-      identityKey: key!.identityKey,
-      idenSign: key!.sign,
-    });
-  },
-);
-singlend.on(
   "getAccountKeyLatest",
   z.object({
     userName: z.string(),

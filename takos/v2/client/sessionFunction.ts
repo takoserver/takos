@@ -187,6 +187,29 @@ singlend.group(
       },
     );
     singlend.on(
+      "noticeShareData",
+      z.object({
+        hash: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        const accountKey = await AccountKey.findOne({ hash: query.hash });
+        if (!accountKey) return error("error", 400);
+        const encryptedAccountKey = accountKey.encryptedAccountKey.find(
+          (data) => data[0] === value.sessionInfo.sessionUUID,
+        );
+        if (!encryptedAccountKey) return error("error", 400);
+        await AccountKey.updateOne(
+          { hash: query.hash },
+          {
+            $push: {
+              deriveredSession: value.sessionInfo.sessionid,
+            },
+          },
+        );
+        return ok("ok");
+      },
+    )
+    singlend.on(
       "resetMasterKey",
       z.object({
         masterKey: z.string(),
@@ -571,7 +594,7 @@ singlend.group(
             type: "friendRequest",
           })
         ) {
-          return error("error", 400);
+          return error("error1", 400);
         }
         const requestid = uuidv7() + "@" + env["DOMAIN"];
         if (domain !== env["DOMAIN"]) {
@@ -596,7 +619,7 @@ singlend.group(
             });
             return ok("ok");
           }
-          return error("error", 400);
+          return error("error2", 400);
         }
         await requestDB.create({
           id: requestid,

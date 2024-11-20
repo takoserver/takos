@@ -1,4 +1,4 @@
-import { ml_kem768, ml_kem1024 } from "@noble/post-quantum/ml-kem";
+import { ml_kem768 } from "@noble/post-quantum/ml-kem";
 import { ml_dsa65, ml_dsa87 } from "@noble/post-quantum/ml-dsa";
 import { arrayBufferToBase64, base64ToArrayBuffer } from "./utils/buffers.ts"
 import { uuidv7 } from "uuidv7"
@@ -806,7 +806,7 @@ export function isValidEncryptedAccountKey(data: string): boolean {
   if(!isValidEncryptedDataShareKey(data)) {
     return false;
   }
-  if(data.length !== 16618) {
+  if(data.length !== 5966) {
     console.log(data.length)
     return false;
   }
@@ -1351,6 +1351,30 @@ function verifyData (data: string, signature: string, publicKey: string): boolea
 
 export { generateServerKey, signData, verifyData }
 
+export function isValidkeyPairSign(keyPair: {public: string, private: string}): boolean {
+  const keyObj = JSON.parse(keyPair.public);
+  const signText = "test";
+  if(keyObj.keyType == "masterKeyPublic") {
+    const sign = ml_dsa87.sign(new Uint8Array(base64ToArrayBuffer(JSON.parse(keyPair.private).key)), new TextEncoder().encode(signText));
+    const verify = ml_dsa87.verify(new Uint8Array(base64ToArrayBuffer(JSON.parse(keyPair.public).key)), new TextEncoder().encode(signText), sign);
+    return verify;
+  }
+  if(keyObj.keyType == "shareSignKeyPublic" || keyObj.keyType == "identityKeyPublic" || keyObj.keyType == "migrateSignKeyPublic") {
+    const sign = ml_dsa65.sign(new Uint8Array(base64ToArrayBuffer(JSON.parse(keyPair.private).key)), new TextEncoder().encode(signText));
+    const verify = ml_dsa65.verify(new Uint8Array(base64ToArrayBuffer(JSON.parse(keyPair.public).key)), new TextEncoder().encode(signText), sign);
+    return verify;
+  }
+  console.error("error KeyType:", keyObj.keyType)
+  return false;
+}
+
+export function isValidkeyPairEncrypt(keyPair: { public: string, private: string} ) {
+  const keyObj = JSON.parse(keyPair.public);
+  const { cipherText, sharedSecret } = ml_kem768.encapsulate(new Uint8Array(base64ToArrayBuffer(keyObj.key)), new Uint8Array(32));
+  const sharedSecret2 = ml_kem768.decapsulate(cipherText, new Uint8Array(base64ToArrayBuffer(JSON.parse(keyPair.private).key)));
+  return arrayBufferToBase64(sharedSecret) === arrayBufferToBase64(sharedSecret2);
+}
+
 async function testDeviceKey() {
   const key = '{"keyType":"deviceKey","key":"vBRoTwEkJ58z4DJ0KccORwfIkFTKu+d+FS9BO8l/t0o="}'
   if(!isValidDeviceKey(key)) {
@@ -1375,7 +1399,7 @@ async function testAccountKey() {
     console.log("error")
     return;
   }
-  const encryptedAccountKey = await encryptDataShareKey(shareKey.publickKey, JSON.stringify(accountKey));
+  const encryptedAccountKey = await encryptDataShareKey(shareKey.publickKey, accountKey.privateKey);
   if(!encryptedAccountKey) {
     console.log("error")
     return;
@@ -1383,4 +1407,38 @@ async function testAccountKey() {
   console.log(isValidEncryptedAccountKey(encryptedAccountKey))
 }
 
-testAccountKey()
+//testAccountKey()
+
+async function isValidKeyPairTest() {
+  const uuid = uuidv7();
+  const masterKey = await generateMasterKey();
+  const accountKey = await generateAccountKey(masterKey.privateKey);
+  const shareKey = await generateShareKey(masterKey.privateKey, uuidv7());
+  const identityKey = await generateIdentityKey(uuid,masterKey.privateKey);
+  const migrateKey = await generateMigrateKey();
+  if(!masterKey || !accountKey || !shareKey || !identityKey || !migrateKey) {
+    console.log("error")
+    return;
+  }
+  console.log(isValidkeyPairSign({
+    public: masterKey.publicKey,
+    private: masterKey.privateKey,
+  }))
+  console.log(isValidkeyPairSign({
+    public: identityKey.publickKey,
+    private: identityKey.privateKey,
+  }))
+  console.log(isValidkeyPairEncrypt({
+    public: accountKey.publickKey,
+    private: accountKey.privateKey,
+  }))
+  console.log(isValidkeyPairEncrypt({
+    public: shareKey.publickKey,
+    private: shareKey.privateKey,
+  }))
+  console.log(isValidkeyPairEncrypt({
+    public: migrateKey.publickKey,
+    private: migrateKey.privateKey,
+  }))
+}
+//isValidKeyPairTest()
