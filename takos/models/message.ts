@@ -1,6 +1,17 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
-const messageSchema = new mongoose.Schema({
+interface IMessage extends Document {
+  type: "friend" | "group";
+  roomid?: string;
+  friend?: string[];
+  message?: string;
+  sign?: string;
+  timestamp?: Date;
+  messageid: string;
+  isLocal: boolean;
+}
+
+const messageSchema: Schema = new Schema({
   type: {
     type: String,
     required: true,
@@ -10,24 +21,26 @@ const messageSchema = new mongoose.Schema({
     type: String,
   },
   friend: {
-    type: [String, String],
+    type: [String],
   },
   message: {
     type: String,
-    required: true,
   },
   sign: {
     type: String,
-    required: true,
-  },
-  roomKeyhash: {
-    type: String,
-    required: true,
   },
   timestamp: {
     type: Date,
     default: Date.now,
   },
+  messageid: {
+    type: String,
+    required: true,
+  },
+  isLocal: {
+    type: Boolean,
+    required: true,
+  },
 });
 
-export default mongoose.model("Message", messageSchema);
+export default mongoose.model<IMessage>("Message", messageSchema);

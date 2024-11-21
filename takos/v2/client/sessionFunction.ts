@@ -856,15 +856,12 @@ singlend.group(
         if(!verifyIdentityKey(idenKey.identityKey, query.metaDataSign, query.metaData)) {
           return error("error4", 400);
         }
-        if(!isValidMetaData(query.metaData, query.encryptedKey.length)) {
-          return error("error5", 400);
-        }
         if(query.roomType === "friend") {
           const nameInfo = query.roomid.split("-");
           if(nameInfo.length !== 2) {
             return error("error6", 400);
           }
-          if(nameInfo[0] !== value.userInfo.userName) {
+          if(nameInfo[0] !== value.userInfo.userName + "@" + env["DOMAIN"]) {
             return error("erro7", 400);
           }
           if(!await Friend.findOne({
@@ -873,6 +870,7 @@ singlend.group(
           })) {
             return error("error8", 400);
           }
+          const id = uuidv7();
           const latestRoomKey = await RoomKey.findOne({
             roomid: query.roomid,
             sessionid: value.sessionInfo.sessionid,
@@ -884,7 +882,7 @@ singlend.group(
               roomid: query.roomid,
               roomType: query.roomType,
               sessionid: value.sessionInfo.sessionid,
-              id: uuidv7(),
+              id,
               encryptedRoomKey: query.encryptedKey.map((data: {
                 encryptedData: string; 
                 userId: string;
@@ -899,14 +897,17 @@ singlend.group(
               metaData: query.metaData,
               metaDataSign: query.metaDataSign,
             });
+            return ok({id});
           } else if(new Date(latestRoomKey.timestamp).getTime() < new Date().getTime() - 1000 * 60 * 10) {
+            console.log("updateRoomKey");
             const userIds = [value.userInfo.userName + "@" + env["DOMAIN"] , nameInfo[1]];
+            const id = uuidv7();
             await RoomKey.create({
               userName: value.userInfo.userName,
               roomid: query.roomid,
               roomType: query.roomType,
               sessionid: value.sessionInfo.sessionid,
-              id: uuidv7(),
+              id,
               encryptedRoomKey: query.encryptedKey.map((data: {
                 encryptedData: string; 
                 userId: string;
@@ -921,11 +922,93 @@ singlend.group(
               metaData: query.metaData,
               metaDataSign: query.metaDataSign,
             });
+            return ok({id});
+          } else {
+            return error("error11", 400);
           }
         }
         return ok("ok");
       },
     );
+    singlend.on(
+      "getRoomKey",
+      z.object({
+        roomid: z.string(),
+        id: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        const roomKey = await RoomKey.findOne({
+          roomid: query.roomid,
+          userName: value.userInfo.userName,
+          sessionid: value.sessionInfo.sessionid,
+          id: query.id,
+        });
+        if(!roomKey) return error("error", 400);
+        return ok({
+          encryptedKey: roomKey.encryptedRoomKey.find((data) => data[0] === value.userInfo.userName + "@" + env["DOMAIN"])[1],
+          sign: roomKey.roomKeySign,
+          metaData: roomKey.metaData,
+          metaDataSign: roomKey.metaDataSign,
+        });
+      }
+    )
+    singlend.on(
+      "sendMessage",
+      z.object({
+        roomid: z.string(),
+        roomType: z.string(),
+        message: z.string(),
+        sign: z.string(),
+      }),
+      async (query, value, ok, error) => {
+        if(!value.userInfo.masterKey) return error("error1", 400);
+        if(query.roomType !== "group" && query.roomType !== "friend") {
+          return error("error2", 400);
+        }
+        const idenKey = await IdentityKey.findOne({
+          userName: value.userInfo.userName,
+          sessionid: value.sessionInfo.sessionid,
+          hash: JSON.parse(query.sign).keyHash
+        });
+        if(!idenKey) {
+          return error("error3", 400);
+        }
+        const roomKey = await RoomKey.findOne({
+          roomid: query.roomid,
+          userName: value.userInfo.userName,
+          sessionid: value.sessionInfo.sessionid,
+        });
+        if(!roomKey) return error("error4", 400);
+        if(!verifyIdentityKey(idenKey.identityKey, query.sign, query.message)) {
+          return error("error5", 400);
+        }
+        if(query.roomType === "friend") {
+          const nameInfo = query.roomid.split("-");
+          if(nameInfo.length !== 2) {
+            return error("error6", 400);
+          }
+          if(nameInfo[0] !== value.userInfo.userName + "@" + env["DOMAIN"]) {
+            return error("erro7", 400);
+          }
+          if(!await Friend.findOne({
+            userName: value.userInfo.userName + "@" + env["DOMAIN"],
+            friendId: nameInfo[1],
+          })) {
+            return error("error8", 400);
+          }
+          const message = await Message.create({
+            userName: value.userInfo.userName,
+            roomid: query.roomid,
+            roomType: "friend",
+            friend: [value.userInfo.userName + "@" + env["DOMAIN"], nameInfo[1]],
+            message: query.message,
+            sign: query.sign,
+            timestamp: new Date().toISOString(),
+          });
+          return ok({timestamp: message.timestamp});
+        }
+      }
+    )
     return singlend;
   },
 );

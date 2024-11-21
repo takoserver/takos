@@ -1,4 +1,4 @@
-import { useAtom } from "solid-jotai";
+import { useAtom, useSetAtom } from "solid-jotai";
 import {
   deviceKeyState,
   domainState,
@@ -8,15 +8,16 @@ import {
   pageState,
   talkListState,
 } from "../../utils/state";
-import { isSelectRoomState, selectedRoomState } from "../../utils/roomState";
+import { isSelectRoomState, selectedRoomState, roomKeyState } from "../../utils/roomState";
 import { Home } from "./home";
-import { clearDB, createTakosDB, localStorageEditor } from "../../utils/idb";
+import { clearDB, createTakosDB, isValidLatestAccountKey, localStorageEditor } from "../../utils/idb";
 import { requester } from "../../utils/requester";
 import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "../popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import { checkUserName } from "../../../../takos/utils/checks";
 import { splitUserName } from "../../../../takos-web/util/takosClient";
 import {
+  decryptDataAccountKey,
   decryptDataDeviceKey,
   encryptDataDeviceKey,
   encryptDataShareKey,
@@ -32,6 +33,7 @@ import {
   isValidkeyPairSign,
   keyHash,
   signMasterKey,
+  verifyIdentityKey,
 } from "@takos/takos-encrypt-ink";
 import { uuidv7 } from "uuidv7";
 export function SideBer() {
@@ -58,7 +60,7 @@ function TalkList() {
   const [identityKeyAndAccountKey] = useAtom(IdentityKeyAndAccountKeyState);
   const [masterKey] = useAtom(MasterKeyState);
   const [deviceKey] = useAtom(deviceKeyState);
-
+  const setRoomKeyState = useSetAtom(roomKeyState);
   // 非同期でニックネームとアイコンを取得
   createEffect(async () => {
     const server = domain();
@@ -103,6 +105,7 @@ function TalkList() {
     setSelectedRoom({
       type: "friend",
       roomName: talk.roomName,
+      roomid: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server") + "-" + talk.roomName,
     });
     setIsSelectRoom(true);
     const latestRoomKeyhash = await db.getAll("latestRoomkeyHash");
@@ -187,21 +190,96 @@ function TalkList() {
         ],
         roomKey,
         myIdentityKey,
+        myIdentityKeyEncrypted.key,
       );
       if (!encryptedRoomKey) {
         console.error("Failed to encrypt room key");
         return;
       }
+      if(!isValidLatestAccountKey(talk.roomName, friendAccountKeyJson.accountKey)) {
+        console.error("Invalid account key");
+        return;
+      }
       const res = await requester(domain() as string, "updateRoomKey", {
-        roomid: talk.roomName,
+        roomid: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server") + "-" + talk.roomName,
         metaData: encryptedRoomKey.metadata,
         metaDataSign: encryptedRoomKey.metadataSign,
         roomType: "friend",
         encryptedKey: encryptedRoomKey.encryptedData,
         sign: encryptedRoomKey.sign,
         sessionid: localStorage.getItem("sessionid"),
+      })
+      if (res.status !== 200) {
+        console.error("Failed to update room key");
+        return;
+      }
+      const json = await res.json();
+      await db.put("latestRoomkeyHash", {
+        key: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server") + "-" + talk.roomName,
+        timestamp: JSON.parse(roomKey).timestamp,
+        id: json.id
       });
+      setRoomKeyState([
+        {
+          userId: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server"),
+          key: roomKey,
+          metaData: encryptedRoomKey.metadata,
+          id: json.id,
+        }
+      ]);
     } else {
+      const latestid = latestRoomKeyhash.sort((a, b) => a.timestamp - b.timestamp)[0].id;
+      const encryptedRoomKey = await requester(domain() as string, "getRoomKey", {
+        id: latestid,
+        sessionid: localStorage.getItem("sessionid"),
+        roomid: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server") + "-" + talk.roomName,
+      }).then((res) => res.json());
+      if (!encryptedRoomKey) {
+        console.error("Failed to get room key");
+        return;
+      }
+      const encryptedAccountKey = await db.get("accountKeys", JSON.parse(encryptedRoomKey.encryptedKey).keyHash);
+      if (!encryptedAccountKey) {
+        console.error("Failed to get account key");
+        return;
+      }
+      const accountKey = await decryptDataDeviceKey(deviceKey()!, encryptedAccountKey.encryptedKey);
+      if (!accountKey) {
+        console.error("Failed to decrypt account key");
+        return;
+      }
+      const decryptedRoomKey = await decryptDataAccountKey(accountKey, encryptedRoomKey.encryptedKey);
+      if (!decryptedRoomKey) {
+        console.error("Failed to decrypt room key");
+        return;
+      };
+      const identityKeyEncrypted = await db.get("identityKeys", JSON.parse(encryptedRoomKey.metaDataSign).keyHash);
+      if (!identityKeyEncrypted) {
+        console.error("Failed to get identity key");
+        return;
+      }
+
+      const identityKey = await requester(domain() as string, "getIdentiyKey", {
+        hash: JSON.parse(encryptedRoomKey.metaDataSign).keyHash,
+        userName: localStorageEditor.get("userName"),
+      }).then((res) => res.json());
+      if (await keyHash(identityKey.identityKey) !== JSON.parse(encryptedRoomKey.metaDataSign).keyHash) {
+        console.error("Failed to get identity key");
+        return;
+      }
+
+      if (!verifyIdentityKey(identityKey.identityKey, encryptedRoomKey.metaDataSign, encryptedRoomKey.metaData)) {
+        console.error("Failed to verify identity key");
+        return;
+      }
+      setRoomKeyState([
+        {
+          userId: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server"),
+          key: decryptedRoomKey,
+          metaData: encryptedRoomKey.metadata,
+          id: latestid,
+        }
+      ]);
     }
   };
 

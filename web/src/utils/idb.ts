@@ -1,4 +1,4 @@
-import { decryptDataDeviceKey } from "@takos/takos-encrypt-ink";
+import { decryptDataDeviceKey, isValidAccountKeyPublic, keyHash } from "@takos/takos-encrypt-ink";
 import { DBSchema, IDBPDatabase, openDB } from "idb";
 export interface TakosDB extends DBSchema {
   shareKeys: {
@@ -30,7 +30,7 @@ export interface TakosDB extends DBSchema {
     value: {
       key: string; //roomId
       timestamp: number;
-      hash: string;
+      id: string;
     };
   };
   allowKeys: {
@@ -42,10 +42,18 @@ export interface TakosDB extends DBSchema {
       latest: boolean;
     };
   };
+  latestAccountKeyHash: {
+    key: string; //userId
+    value: {
+      key: string; //userId
+      hash: string;
+      timestamp: number;
+    };
+  };
 }
 
 export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
-  return openDB<TakosDB>("takos-db", 10, {
+  return openDB<TakosDB>("takos-db", 12, {
     upgrade(db) {
       db.createObjectStore("shareKeys", {
         keyPath: "key",
@@ -60,6 +68,9 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
         keyPath: "key",
       });
       db.createObjectStore("allowKeys", {
+        keyPath: "key",
+      });
+      db.createObjectStore("latestAccountKeyHash", {
         keyPath: "key",
       });
     },
@@ -86,6 +97,24 @@ export async function getIdentityKey(
   return await decryptDataDeviceKey(deviceKey, data.encryptedKey);
 }
 
+export async function getLatestIdentityKey(deviceKey: string): Promise<{
+  private: string;
+  hash: string;
+} | null> {
+  const db = await createTakosDB();
+  const data = await db.getAll("identityKeys");
+  if (!data) return null;
+  const decrypted = await decryptDataDeviceKey(
+    deviceKey,
+    data.sort((a, b) => b.timestamp - a.timestamp)[0].encryptedKey
+  )
+  if (!decrypted) return null;
+  return {
+    private: decrypted,
+    hash: data.sort((a, b) => b.timestamp - a.timestamp)[0].key
+  }
+}
+
 type LocalStorageKey =
   | "sessionid"
   | "userName"
@@ -109,4 +138,32 @@ export async function clearDB() {
   db.clear("accountKeys");
   db.clear("shareKeys");
   db.clear("latestRoomkeyHash");
+}
+
+export async function isValidLatestAccountKey(
+  userId: string,
+  key: string, 
+): Promise<boolean> {
+  if(!userId || !key) return false;
+  if(!isValidAccountKeyPublic(key)) return false;
+  const db = await createTakosDB();
+  const data = await db.get("latestAccountKeyHash", userId);
+  if(!data) {
+    await db.put("latestAccountKeyHash", {
+      key: userId,
+      hash: await keyHash(key),
+      timestamp: JSON.parse(key).timestamp,
+    });
+    return true;
+  }
+  if(data.hash === await keyHash(key)) return true;
+  if(new Date(data.timestamp) < new Date(JSON.parse(key).timestamp)) {
+    await db.put("latestAccountKeyHash", {
+      key: userId,
+      hash: await keyHash(key),
+      timestamp: JSON.parse(key).timestamp,
+    });
+    return true;
+  }
+  return false;
 }

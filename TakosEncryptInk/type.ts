@@ -18,7 +18,7 @@ export interface roomKey {
     key: string
     timestamp: number
     sessionUuid: string
-  } 
+}
 export interface shareKey {
     keyType: "shareKeyPublic" | "shareKeyPrivate"
     key: string

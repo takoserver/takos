@@ -1,16 +1,45 @@
-import { inputMessageState, isValidInputState } from "../../utils/state";
+import { deviceKeyState, inputMessageState, isValidInputState } from "../../utils/state";
 import { useAtom } from "solid-jotai";
 import { createSignal } from "solid-js";
-import { roomKeyState } from "../../utils/roomState";
+import { roomKeyState, selectedRoomState } from "../../utils/roomState";
+import { encryptMessage } from "@takos/takos-encrypt-ink";
+import { getLatestIdentityKey, localStorageEditor } from "../../utils/idb";
 function ChatSend() {
   const [inputMessage, setInputMessage] = useAtom(inputMessageState);
   const [isValidInput, setIsValidInput] = useAtom(isValidInputState);
   const [roomKey, setRoomKey] = useAtom(roomKeyState);
+  const [selectedRoom, setSelectedRoom] = useAtom(selectedRoomState);
+  const [deviceKey] = useAtom(deviceKeyState);
   const sendHandler = async () => {
+    if(roomKey().length === 0) return;
+    const message = inputMessage();
+    setInputMessage("");
+    const myLatestRoomKeyArray = roomKey().filter((room) => {
+      return room.userId === localStorageEditor.get("userName") + "@" + localStorageEditor.get("server");
+    });
+    if (!myLatestRoomKeyArray) return;
+    myLatestRoomKeyArray.sort((a, b) => {
+      return JSON.parse(a.key).timestamp - JSON.parse(b.key).timestamp;
+    });
+    const myLatestRoomKey = myLatestRoomKeyArray[0]
+    const latestIdentityKey = await getLatestIdentityKey(deviceKey() as string);
+    const encryptedMessage = await encryptMessage(
+      {
+        type: "text",
+        content: message,
+        channel: "main",
+        timestamp: new Date().getTime(),
+        isLarge: false
+      },
+      myLatestRoomKey.key,
+      {
+        privateKey: latestIdentityKey?.private as string,
+        pubKeyHash: latestIdentityKey?.hash as string,
+      },
+      selectedRoom()?.roomid as string,
+    )
+    console.log(encryptedMessage);
   };
-  createSignal(() => {
-    setRoomKey([]);
-  });
   return (
     <div class="p-talk-chat-send">
       <form class="p-talk-chat-send__form">
