@@ -1400,3 +1400,26 @@ export function isValidkeyPairEncrypt(keyPair: { public: string, private: string
   const sharedSecret2 = ml_kem768.decapsulate(cipherText, new Uint8Array(base64ToArrayBuffer(JSON.parse(keyPair.private).key)));
   return arrayBufferToBase64(sharedSecret) === arrayBufferToBase64(sharedSecret2);
 }
+
+
+export function isValidMessage(message: string): boolean {
+  const messageObj = JSON.parse(message);
+  if(messageObj.encrypted) {
+    if(messageObj.channel.length > 100) {
+      return false;
+    }
+    if(new Date(messageObj.timestamp).getTime() !== messageObj.timestamp) {
+      return false;
+    }
+    if(typeof messageObj.isLarge !== "boolean") {
+      return false;
+    }
+    if(!isValidEncryptedDataRoomKey(messageObj.value)) {
+      return false;
+    }
+    return true;
+  } else {
+      return false;
+  }
+}
+

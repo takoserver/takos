@@ -961,51 +961,58 @@ singlend.group(
         sign: z.string(),
       }),
       async (query, value, ok, error) => {
-        if(!value.userInfo.masterKey) return error("error1", 400);
         if(query.roomType !== "group" && query.roomType !== "friend") {
-          return error("error2", 400);
-        }
-        const idenKey = await IdentityKey.findOne({
-          userName: value.userInfo.userName,
-          sessionid: value.sessionInfo.sessionid,
-          hash: JSON.parse(query.sign).keyHash
-        });
-        if(!idenKey) {
-          return error("error3", 400);
-        }
-        const roomKey = await RoomKey.findOne({
-          roomid: query.roomid,
-          userName: value.userInfo.userName,
-          sessionid: value.sessionInfo.sessionid,
-        });
-        if(!roomKey) return error("error4", 400);
-        if(!verifyIdentityKey(idenKey.identityKey, query.sign, query.message)) {
-          return error("error5", 400);
+          return error("error1", 400);
         }
         if(query.roomType === "friend") {
           const nameInfo = query.roomid.split("-");
           if(nameInfo.length !== 2) {
-            return error("error6", 400);
+            return error("error2", 400);
           }
           if(nameInfo[0] !== value.userInfo.userName + "@" + env["DOMAIN"]) {
-            return error("erro7", 400);
+            return error("error3", 400);
           }
           if(!await Friend.findOne({
             userName: value.userInfo.userName + "@" + env["DOMAIN"],
             friendId: nameInfo[1],
           })) {
-            return error("error8", 400);
+            return error("error4", 400);
           }
-          const message = await Message.create({
+          const presedMessage = JSON.parse(query.message);
+          if(new Date(presedMessage.timestamp).getTime() > new Date().getTime() + 1000 * 60 * 1) {
+            return error("error5", 400);
+          }
+          const presedSign = JSON.parse(query.sign);
+          const idenKey = await IdentityKey.findOne({
             userName: value.userInfo.userName,
+            sessionid: value.sessionInfo.sessionid,
+            hash: presedSign.keyHash,
+          });
+          if(!idenKey) {
+            return error("error6", 400);
+          }
+          if(!verifyIdentityKey(idenKey.identityKey, presedSign.sign, query.message)) {
+            return error("error7", 400);
+          }
+          /*
+              encrypted: true,
+              value: data,
+              channel: message.channel,
+              timestamp: message.timestamp,
+              isLarge: message.isLarge,
+              original: message.original,
+              roomid: roomid,
+          */
+          await Message.create({
+            messageid: uuidv7() + "@" + env["DOMAIN"],
+            isLocal: true,
+            type: "friend",
             roomid: query.roomid,
-            roomType: "friend",
-            friend: [value.userInfo.userName + "@" + env["DOMAIN"], nameInfo[1]],
             message: query.message,
             sign: query.sign,
-            timestamp: new Date().toISOString(),
+            timestamp: presedMessage.timestamp,
+            read: [],
           });
-          return ok({timestamp: message.timestamp});
         }
       }
     )

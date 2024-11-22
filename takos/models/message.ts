@@ -1,17 +1,25 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-interface IMessage extends Document {
-  type: "friend" | "group";
-  roomid?: string;
-  friend?: string[];
-  message?: string;
-  sign?: string;
-  timestamp?: Date;
+export interface IMessage extends Document {
   messageid: string;
   isLocal: boolean;
+  type: string;
+  roomid: string;
+  message: string;
+  sign: string;
+  timestamp: Date;
+  read: string[];
 }
 
 const messageSchema: Schema = new Schema({
+  messageid: {
+    type: String,
+    required: true,
+  },
+  isLocal: {
+    type: Boolean,
+    required: true,
+  },
   type: {
     type: String,
     required: true,
@@ -19,9 +27,6 @@ const messageSchema: Schema = new Schema({
   },
   roomid: {
     type: String,
-  },
-  friend: {
-    type: [String],
   },
   message: {
     type: String,
@@ -33,14 +38,12 @@ const messageSchema: Schema = new Schema({
     type: Date,
     default: Date.now,
   },
-  messageid: {
+  read: {
+    type: Array,
+  },
+  roomKeyKyash: {
     type: String,
-    required: true,
-  },
-  isLocal: {
-    type: Boolean,
-    required: true,
-  },
+  }
 });
 
-export default mongoose.model<IMessage>("Message", messageSchema);
+export default mongoose.model<Document>("Message", messageSchema);
