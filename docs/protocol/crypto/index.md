@@ -1,171 +1,240 @@
-# 分散型チャットサービスでのE2EE暗号化
+# takos protocolのメッセージ暗号化
+
+ML-KEMとML-DSAはpqc対応の標準化された暗号化方式です。
+
+## 鍵の種類
+
+- **masterKey**: 
+  - **アルゴリズム**: ML-DSA-87 
+  - **役割**: 鍵の信頼の根幹となる鍵である。
+- **identityKey**: 
+  - **アルゴリズム**: ML-DSA-65 
+  - **役割**: メッセージやroomKeyのメタ情報を署名するために利用する。
+- **accountKey**: 
+  - **アルゴリズム**: ML-KEM-768
+  - **役割**: roomKeyを暗号化して送信するための鍵。
+- **roomKey**: 
+  - **アルゴリズム**: AES-256 
+  - **役割**: メッセージを暗号化するための鍵。暗号化に利用したaccountKeyのtimestamp、masterKeyのhashなどを含んだメタデータも同時に生成する。(後記述)
+- **shareKey**: 
+  - **アルゴリズム**: ML-KEM-768 
+  - **役割**: accountKeyを他のセッションに共有するための鍵。
+- **migrateKey**: 
+  - **アルゴリズム**: ML-KEM-1024
+  - **役割**: デバイスの鍵を移行するための鍵。
+- **migrateSignkey**:
+  - **アルゴリズム**: ML-DSA-87
+  - **役割**: migrateKeyで暗号化されたデータを署名するための鍵。
+
+### 鍵の形式
+
+以下のobjectをstringにしたものです。
+
+- **masterKey**:
+```ts
+interface masterKey {
+  keyType: "masterKeyPublic" | "masterKeyPrivate"
+  key: string
+} 
+```
+公開鍵の文字数: 2723
+秘密鍵の文字数: 5496
+- **identityKey**:
+```ts
+interface identityKey {
+  keyType: "identityKeyPublic" | "identityKeyPrivate"
+  key: string
+  timestamp: number
+  sessionUuid: string
+} 
+```
+公開鍵の文字数: 3494
+秘密鍵の文字数: 6567
+- **accountKey**:
+```ts
+interface accountKey {
+  keyType: "accountKeyPublic" | "accountKeyPrivate"
+  key: string
+  timestamp: number
+} 
+```
+公開鍵の文字数: 1645
+秘密鍵の文字数: 3266
+- **roomKey**:
+```ts
+interface roomKey {
+  keyType: "roomKey"
+  key: string
+  timestamp: number
+  sessionUuid: string
+} 
+```
+鍵の文字数: 153
+- **shareKey**:
+```ts
+interface shareKey {
+  keyType: "shareKeyPublic" | "sharekeyPrivate"
+  key: string
+  timestamp: number
+  sessionUuid: string
+} 
+```
+公開鍵の文字数: 1696
+秘密鍵の文字数: 3317
+- **migrateKey**: `<"migrateKeyPublic" | "migrateKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
+```ts
+interface migrateKey {
+  keyType: "migrateKeyPublic" | "migrateKeyPrivate"
+  key: string
+  timestamp: number
+} 
+```
+公開鍵の文字数: 1619
+秘密鍵の文字数: 3240
+- **migrateSignKey**: `<"migrateSignKeyPublic" | "migrateSignKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
+```ts
+interface migrateSignKey {
+  keyType: "migrateSignKeyPublic" | "migrateSignKeyPrivate"
+  key: string
+  timestamp: number
+} 
+```
+公開鍵の文字数: 2647
+秘密鍵の文字数: 5420
 
-## はじめに
+keyTypeは上記の鍵の種類を指します。
+timestampは鍵の生成時刻を指します。
+binaryKeyはbase64でエンコードされた鍵を指します。
+sessionUUIDはセッションを識別するためのuuidを指します。
+roomIdはroomKeyを識別するためのuuidを指します。
 
-このドキュメントは、分散型チャットサービスでのE2EE暗号化について説明します。
+## その他の数値の定義
 
-## E2EE暗号化とは
+sessionUUID: uuid v7。セッションを識別するためのuuid。identityKeyやroomKey、shareKey、shareSignKeyに含まれる
 
-E2EE暗号化（End-to-End
-Encryption）は、通信の送信者と受信者の間でのみ復号化できる暗号化方式です。中間者攻撃に対して強力なセキュリティを提供します。
+## roomKeyのメタデータ
 
-## tako'sのE2EE暗号化の基本的な仕組み
+このような形式のjsonをstringにしたものです。
 
-masterKeyをユーザー間で正しいことを確認し、masterKeyで署名された鍵を利用して暗号化を行います。
+```ts
+interface roomKeyMetaData {
+  roomKeyHash: string;
+  sharedUser: {
+    userId: string; //<userId>
+    masterKeyHash: string; // <sha256 encoded by base64>
+    accountKeyTimeStamp: number; // <timestamp>
+  }[];
+}
+```
 
-masterKeyのほかに以下の鍵が利用されます。
+identityKeyで署名します。
 
-- identityKey
-- accountKey
-- roomKey
-- deviceKey
-- keyShareKey
-- keyShareSignKey
-- migrateKey
-- migrateDataSignKey
+## 暗号の形式
 
-masterKeyを含め後程詳しく説明します。
+```ts
 
-## 暗号化プロセス
+export interface EncryptedData {
+  keyType: string
+  keyHash: string
+  binaryEncryptedData: string
+  vi: string
+  cipherText?: string
+}
 
-### ハッシュ値の生成
+```
 
-sha256を利用してハッシュ値を生成します。
+暗号化された鍵
+- accountKey: 3806
+- roomKey:
 
-masterKeyの承認する場合はハッシュ値に加え、soltを追加したハッシュ値も生成します。
+keyTypeは上記の鍵の種類を指します。
+keyHashはbase64でエンコードされたsha256のハッシュ値を指します。
+binaryEncryptedDataは暗号化されたデータをbase64でエンコードしたものを指します。
 
-### 鍵の役割
+## 署名の形式
 
-- **masterKey**
-  すべての鍵の信用の根拠となる鍵。この鍵を何らかの方法で共有して信頼する。
+```ts
 
-- **identityKey**\
-  他のユーザーに送信するroomKeyやメッセージの署名に使用する。これにより、roomKeyが送信者によって本当に生成されたものであることが保証される。\
-  signはkeyとtimestampのバイナリデータを連結して、masterKeyで署名する。
+export interface Sign {
+  keyHash: string
+  signature: string
+  keyType: string
+}
 
-- **accountKey**\
-  identityKeyによって署名されている暗号用の鍵。roomKeyを送信するために使用される。
+```
 
-- **roomKey**\
-  各チャットルーム内のメッセージを暗号化するための共通鍵。メッセージ送信時には、全参加者のaccountKeyで暗号化して配布する。\
-  自ら作成した鍵は自らのメッセージのみを暗号化するために使用し、他のユーザーは原則利用しない。
+署名のサイズ
+- masterKey: 6267
+- identityKey: 4509
 
-- **deviceKey**\
-  デバイスに保存されるデータを暗号化するための鍵。サーバーとクライアント双方で利用される共通鍵。
+keyTypeは上記の鍵の種類を指します。
+keyHashはbase64でエンコードされたsha256のハッシュ値を指します。
+binarySignatureは署名されたデータをbase64でエンコードしたものを指します。
 
-- **keyShareKey**\
-  デバイス間でidentityKeyやaccountKeyやmasterKeyの承認情報を共有するための鍵。
+## メッセージの形式
 
-- **KeyShareSignKey**\
-  keyShareKeyで暗号化されたデータを署名するための鍵。
+このような形式のjsonをstringにしたものです。
 
-- **migrateKey**\
-  デバイスの鍵を移行するための鍵。
+```ts
 
-- **migrateDataSignKey**\
-  migrateKeyで暗号化されたデータを署名するための鍵。
+export interface NotEncryptMessage {
+  encrypted: false;
+  value: {
+    type: "text" | "image" | "video" | "audio" | "file" | "other";
+    content: string;
+  };
+  channel: string;
+  original?: string;
+  timestamp: string;
+  isLarge: boolean;
+}
 
-### masterKeyの検証と承認
+export interface EncryptedMessage {
+  encrypted: true;
+  value: string; //encryptedDataRoomKey
+  channel: string;
+  original?: string;
+  timestamp: string;
+  isLarge: boolean;
+}
 
-masterKeyは検証し、承認することで本人がidentityKeyやaccountKeyを生成したことを確認します。masterKeyの検証は何らかの方法で本物であることを確認することで行います。
+export type Message = NotEncryptMessage | EncryptedMessage;
 
-#### 方法
+```
 
-- QRコード
-- ハッシュ値の比較
-- 他のユーザーによる承認
+## roomKeyの共有
 
-承認したユーザーはidentityKeyの署名を検証し、確認します。承認した後、異なるmasterKeyで署名されたidentityKeyやaccountKeyを検知した場合、認証を破棄します。
+roomKeyは共有するユーザーのaccountKeyで暗号化して送信します。
+accountKeyのtimestampを確認して鍵の有効性を確認します。
 
-また、後述するroomKeyで認証よりも後に作られた異なるmasterKeyで署名されたaccountKeyで暗号化したものを受信した場合、認証を破棄します。
 
-古いroomKeyを渡された場合でも、認証されている状態で認証されていないaccountKeyで暗号化して送信したroomKeyで暗号化することはありません。
+## メッセージの暗号化
 
-### identityKeyとaccountKeyの生成と共有、更新
+メッセージはroomKeyで暗号化されます。
 
-identityKeyを生成し、masterKeyで署名してaccountKeyを生成し、identityKeyで署名する。
-各公開鍵をサーバーにアップロードし、必要なときにサーバーは公開鍵を他のユーザーに配布する。
-identityKeyとaccountKeyは定期的に更新される。(頻度はユーザーが設定可能)
+受信者は自身のaccountKeyでroomKeyを復号し、roomKeyでメッセージを復号します。
 
-更新された鍵は既存のaccountKeyで暗号し既存のidentityKeyで署名して配布する。
+## accountKeyの共有
 
-各デバイスは各アカウントの最新のidentityKeyのtimestampを保持している。
-古いidentityKeyで署名されたaccountKeyを利用して暗号化することはできない。
+shareKeyで暗号化し、shareSignKeyで署名して各デバイスに共有します。
 
-相手の鍵が2年以上更新されていない場合警告を表示する。
+## 鍵の更新
 
-### roomKeyの生成と共有、更新
+identityKey、accountKey、roomKeyは定期的に更新します。更新時には新しい鍵を生成する。
 
-roomKeyを生成し、各ユーザーのaccountKeyで暗号化して配布する。
-roomKeyは定期的に更新される。(頻度はユーザーが設定可能)
-自分用のroomKeyは署名も送信する。
-roomKeyに暗号化に利用したaccountKeyのmasterKeyのハッシュ値を含める。(自らのaccountKeyで暗号化するもののみ)
-認証している鍵は認証で利用したsoltとそのハッシュも含める。
-roomKeyにroomidを含める。
+共有の方法は生成と同様です。
 
-masterKeyを認証した後、古いroomKeyでも認証されたものと同じmasterKeyで署名されたaccountKeyで暗号化して送信したroomKeyの場合継続して利用できる。
+## 鍵の信頼性の確保
 
-### 信頼情報の共有
+各鍵はmasterKeyで署名されています。
+masterKeyのhashをオフラインで確認したり、信頼できる方法でmasterKeyが正しいことを確認します。
 
-KeyShareKeyで暗号化してKeyShareSignKeyで署名された鍵を他のデバイスに配布する。
+### 新規デバイスの追加
 
-### メッセージの暗号化
+新規デバイスの追加時には、migrateKeyでデバイスの鍵を暗号化してmigrateSignKeyで署名し、各デバイスで鍵のハッシュを確認して送信&追加します。
 
-roomKeyで暗号化してidentityKeyで署名する。
+### トークルームにおける鍵の規則
 
-**リプレイ攻撃対策**
-
-timestampは同じユーザーで一意である必要がある。
-serverから伝えられたtimestampとメッセージに付属したtimestampが1分以上ずれている場合は拒否する。
-roomKeyのroomidと一致している必要がある。
-
-攻撃の標的はできるのはリプレイ攻撃元のグループと攻撃先のグループのどちらも入っている場合のみである。
-
-**トーク履歴のルール**
-
-identityKeyは連続してのみ使用できる。
-サーバーのtimestampによってメッセージの表示順が決定される。
-
-## 鍵の定義
-
-型に利用する単語の説明や、その単語に含む値の説明を記載します。
-
-- timestamp
-
-ISO8601形式の文字列
-
-次の暗号化プロトコルの草案を元に暗号化プロトコルを完成させてください。
-
-次の暗号化プロトコルで改善点を教えてください。 アルゴリズムは 署名用はml-dsa
-暗号化用はml-kem 共通鍵はaes
-
-masterKeyはアカウントに一つだけ存在している全ての鍵の信頼の根幹となる鍵である。
-
-identityKeyは各デバイスにある署名用の鍵。メッセージやroomKeyを署名する。
-
-accountKeyはidentityKeyと同時に生成されるidentitiyKeyによって署名された暗号化用の鍵
-
-shareKey デバイス間でaccountKeyを共有するための公開鍵
-
-roomKey
-各デバイスで各ルームごとに生成される暗号化用の共通鍵。accountKeyで他のユーザーに送られる
-
-メッセージの送信と受信:
-
-RoomKeyの生成:
-
-各ルームごとにデバイスがRoomKeyを生成。 必要に応じて定期的に更新。
-RoomKeyの共有:
-
-RoomKeyを受信者のAccountKeyの公開鍵で暗号化し、送信。
-送信時にIdentityKeyで署名。 メッセージの暗号化と送信:
-
-メッセージをRoomKeyで暗号化。 暗号化したメッセージを送信。
-
-受信側の処理:
-
-AccountKeyの秘密鍵でRoomKeyを復号。 RoomKeyでメッセージを復号。
-送信者のIdentityKeyで署名を検証し、メッセージの真正性を確認。
-identityKeyは同じデバイスidで連続して使用することができる。
-
-定期的にidentityKeyとaccountKeyとroomKeyを更新する。
+同じsessionUUIDのroomKeyは連続してのみ利用可能です。
+同じsessionUUIDのidentityKeyは連続してのみ利用可能です。
+サーバー側のtimestampとメッセージのtimestampの誤差が1分以上ある場合、メッセージは無効となります。

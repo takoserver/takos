@@ -9,6 +9,7 @@ import {
   isValidEncryptedAccountKey,
   isValidIdentityKeyPublic,
   isValidMasterKeyPublic,
+  isValidMessage,
   isValidMigrateKeyPublic,
   isValidMigrateSignKeyPublic,
   isValidShareKeyPublic,
@@ -705,9 +706,14 @@ singlend.group(
         const friendResult = await Promise.all(friends.map(async (data) => {
           const messageLatest = await Message.findOne({
             type: "friend",
-            friend: {
-              $all: [data.userName, data.friendId],
-            },
+            $or: [
+              {
+                roomid: data.userName + "-" + data.friendId,
+              },
+              {
+                roomid: data.friendId + "-" + data.userName,
+              },
+            ],
           }).sort({ timestamp: -1 });
           if (!messageLatest) {
             return {
@@ -991,34 +997,131 @@ singlend.group(
           if(!idenKey) {
             return error("error6", 400);
           }
-          if(!verifyIdentityKey(idenKey.identityKey, presedSign.sign, query.message)) {
-            return error("error7", 400);
+            if(!verifyIdentityKey(idenKey.identityKey, query.sign, query.message)) {
+              return error("error7", 400);
+            }
+          if(!isValidMessage(query.message)) {
+            return error("error8", 400);
           }
-          /*
-              encrypted: true,
-              value: data,
-              channel: message.channel,
-              timestamp: message.timestamp,
-              isLarge: message.isLarge,
-              original: message.original,
-              roomid: roomid,
-          */
+          const messageid = uuidv7() + "@" + env["DOMAIN"]
+          if(splitUserName(nameInfo[1]).domain !== env["DOMAIN"]) {
+            const requestRemoteServer = await requesterServer(
+              splitUserName(nameInfo[1]).domain,
+              "sendMessage",
+              JSON.stringify({
+                roomid: query.roomid,
+                roomType: "friend",
+                messageid: messageid,
+                sender: value.userInfo.userName + "@" + env["DOMAIN"],
+              }),
+            );
+            console.log(requestRemoteServer);
+            if(!requestRemoteServer.status) {
+              return error("error9", 400);
+            }
+          }
           await Message.create({
-            messageid: uuidv7() + "@" + env["DOMAIN"],
+            messageid: messageid,
             isLocal: true,
             type: "friend",
             roomid: query.roomid,
             message: query.message,
             sign: query.sign,
             timestamp: presedMessage.timestamp,
+            roomKeyHash: (JSON.parse(presedMessage.value)).keyHash,
             read: [],
           });
+          return ok("ok");
         }
+        return error("error9", 400);
+      }
+    )
+    singlend.on(
+      "getMessages",
+      z.object({
+        roomid: z.string(),
+        roomType: z.string(),
+        limit: z.number(),
+        since: z.string().optional(),
+      }),
+      async (query, value, ok, error) => {
+        if(query.roomType !== "group" && query.roomType !== "friend") {
+          return error("error1", 400);
+        }
+        if(query.roomType === "friend") {
+          const nameInfo = query.roomid.split("-");
+          if(nameInfo.length !== 2) {
+            return error("error2", 400);
+          }
+          if(nameInfo[0] !== value.userInfo.userName + "@" + env["DOMAIN"]) {
+            return error("error3", 400);
+          }
+          if(!await Friend.findOne({
+            userName: value.userInfo.userName + "@" + env["DOMAIN"],
+            friendId: nameInfo[1],
+          })) {
+            return error("error4", 400);
+          }
+          let messages
+          if(query.since) {
+            messages = await Message.find({
+              type: "friend",
+              roomid: query.roomid,
+              timestamp: { $gt: query.since },
+            }).sort({ timestamp: 1 }).limit(query.limit);
+          } else {
+            messages = await Message.find({
+              type: "friend",
+              roomid: query.roomid,
+            }).sort({ timestamp: 1 }).limit(query.limit);
+          }
+          const remoteMessages = messages.filter((data) => !data.isLocal);
+          const localMessagesResult = messages.filter((data) => data.isLocal).map((data) => {
+            return {
+              message: data.message,
+              sign: data.sign,
+              timestamp: data.timestamp,
+              read: data.read,
+              roomKeyHash: data.roomKeyHash,
+            }
+          })
+          if(remoteMessages.length === 0) {
+            return ok({
+              messages: localMessagesResult,
+            });
+          }
+          const remoteMessagesResponse = await multiFetchClient(remoteMessages.map((data) => {
+            return [splitUserName(data.roomid!.split("-")[1]).domain, "getMessage", JSON.stringify({
+              messageid: data.messageid,
+            })]
+          }))
+          const remoteMessagesResult = remoteMessagesResponse.map((data) => {
+            return {
+              message: data.message,
+              sign: data.sign,
+              timestamp: data.timestamp, // ここを追加
+              read: data.read,
+              roomKeyHash: data.roomKeyHash,
+            }
+          });
+          return ok({
+            messages: localMessagesResult.concat(remoteMessagesResult).sort((a, b) => {
+              return a.timestamp > b.timestamp ? 1 : -1;
+            }),
+          });
+        }
+        return error("error5", 400);
       }
     )
     return singlend;
   },
 );
+
+export async function multiFetchClient(data: [string, string, string][]): Promise<any[]> {
+  const promises = data.map(([param1, param2,param3]) => requesterServer(param1, param2, param3));
+  const results = await Promise.all(promises);
+  return results;
+}
 
 export default singlend;
 

@@ -13,6 +13,7 @@ import Friend from "../../models/Friend.ts";
 import User from "../../models/users.ts";
 import RoomKey from "../../models/roomKey.ts";
 import Group from "../../models/group.ts";
+import Message from "../../models/message.ts";
 const app = new Hono();
 const singlend = new Singlend();
 
@@ -160,6 +161,7 @@ singlend.group(
         });
       },
     );
+    /*
     singlend.on(
       "rejectFriend",
       z.object({}),
@@ -195,7 +197,7 @@ singlend.group(
       z.object({}),
       async (_query, value, ok, error) => {
       },
-    );
+    );*/
     singlend.on(
       "getFriendIcon",
       z.object({}),
@@ -285,7 +287,7 @@ singlend.group(
           if (!roomKey) {
             return error("error", 400);
           }
-          const encryptedkey = roomKey.roomKey.find((key) => {
+          const encryptedkey = roomKey.encryptedRoomKey.find((key) => {
             return key[0] === request.userId;
           });
           if (!encryptedkey) {
@@ -313,7 +315,7 @@ singlend.group(
           if (!roomKey) {
             return error("error", 400);
           }
-          const encryptedkey = roomKey.roomKey.find((key) => {
+          const encryptedkey = roomKey.encryptedRoomKey.find((key) => {
             return key[0] === request.userId;
           });
           if (!encryptedkey) {
@@ -323,6 +325,107 @@ singlend.group(
             key: encryptedkey[1] as string,
             status: true,
           });
+        } else {
+          return error("error", 400);
+        }
+      },
+    );
+    singlend.on(
+      "sendMessage",
+      z.object({}),
+      async (_query, value, ok, error) => {
+        const request: {
+          roomid: string;
+          sender: string;
+          roomType: "friend" | "group";
+          timestamp: string;
+          messageid: string;
+        } = value.request;
+        console.log("messageid", request.sender);
+        const { domain: userDoamin } = splitUserName(request.sender);
+        if (userDoamin !== value.serverDomain) {
+          return error("error", 400);
+        }
+        if (request.roomType === "friend") {
+          const roomidRequster = splitUserName(request.roomid).userName;
+          const roomidFriend = splitUserName(request.roomid).domain;
+          if (
+            !Friend.findOne({
+              userName: roomidRequster,
+              friendId: roomidFriend,
+            })
+          ) {
+            return error("error", 400);
+          }
+          const messageuuidDomain = splitUserName(request.messageid).domain;
+          if(value.serverDomain !== messageuuidDomain){
+            return error("error", 400);
+          }
+          await Message.findOne({
+            roomid: roomidFriend + "-" + roomidFriend,
+            isLocal: false,
+            timestamp: request.timestamp,
+            messageid: request.messageid,
+          });
+          return ok({
+            status: true,
+          });
+        } else if (request.roomType === "group") {
+          return error("error", 400);
+        } else {
+          return error("error", 400);
+        }
+      },
+    );
+    singlend.on(
+      "getMessage",
+      z.object({}),
+      async (_query, value, ok, error) => {
+        const { domain: userDoamin } = splitUserName(value.request.requester);
+        if (userDoamin !== value.serverDomain) {
+          return error("error", 400);
+        }
+        const request: {
+          roomid: string;
+          messageid: string;
+          requester: string;
+          roomType: "friend" | "group";
+        } = value.request;
+        console.log("messageid", request.messageid);
+        if(value.serverDomain !== splitUserName(request.requester).domain){
+          return error("error", 400);
+        }
+        if (request.roomType === "friend") {
+          const roomidRequster = splitUserName(request.roomid).userName;
+          const roomidFriend = splitUserName(request.roomid).domain;
+          if (
+            !Friend.findOne({
+              userName: roomidRequster,
+              friendId: roomidFriend,
+            })
+          ) {
+            return error("error", 400);
+          }
+          const messageuuidDomain = splitUserName(request.messageid).domain;
+          if(env["DOMAIN"] !== messageuuidDomain){
+            return error("error", 400);
+          }
+          const message = await Message.findOne({
+            roomid: roomidFriend + "-" + roomidRequster,
+            messageid: request.messageid,
+          });
+          if (!message) {
+            return error("error", 400);
+          }
+          return ok({
+            message: message.message,
+            sign: message.sign,
+            read: message.read,
+            roomKeyHash: message.roomKeyHash,
+            status: true,
+          });
+        } else if (request.roomType === "group") {
+          return error("error", 400);
         } else {
           return error("error", 400);
         }

@@ -281,6 +281,17 @@ function TalkList() {
         }
       ]);
     }
+    const messages = await requester(domain() as string, "getMessages", {
+      roomid: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server") + "-" + talk.roomName,
+      roomType: "friend",
+      sessionid: localStorage.getItem("sessionid"),
+      limit: 100,
+    }).then((res) => res.json());
+    if (messages.error) {
+      console.error("Failed to get messages");
+      return;
+    }
+    console.log(messages);
   };
 
   return (

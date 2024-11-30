@@ -28,112 +28,134 @@ export default defineConfig({
           {
             text: "Takos Encrypt Ink",
             link: "/protocol/crypto",
-            collapsed: false,
-            items: [
-              { text: "masterKey", link: "/protocol/crypto/masterkey" },
-              { text: "identityKey", link: "/protocol/crypto/identityKey" },
-              { text: "accountKey", link: "/protocol/crypto/accountKey" },
-              { text: "roomKey", link: "/protocol/crypto/roomKey" },
-              { text: "deviceKey", link: "/protocol/crypto/deviceKey" },
-              { text: "keyShareKey", link: "/protocol/crypto/keyShareKey" },
-              { text: "migrateKey", link: "/protocol/crypto/migrateKey" },
-              {
-                text: "migrateSignKey",
-                link: "/protocol/crypto/migrateSignKey",
-              },
-              { text: "talkData", link: "/protocol/crypto/talkData" },
-            ],
+            collapsed: true,
           },
           {
-            text: "decentralized",
-            link: "/protocol/decentralized",
-            collapsed: false,
+            text: "サーバー間通信用api",
+            link: "/protocol/decentralized/server",
+            collapsed: true,
             items: [
               {
-                text: "getPublicKey",
-                link: "/protocol/decentralized/getPublicKey",
+                text: "getServerKey",
+                link: "/protocol/decentralized/server/getServerKey",
+              },
+              {
+                text: "accept",
+                link: "/protocol/decentralized/server/accept",
+              },
+              {
+                text: "reject",
+                link: "/protocol/decentralized/server/reject",
+              },
+              {
+                text: "inviteGroup",
+                link: "/protocol/decentralized/server/inviteGroup",
+              },
+              {
+                text: "leaveGroup",
+                link: "/protocol/decentralized/server/leaveGroup",
+              },
+              {
+                text:"kickGroup",
+                link: "/protocol/decentralized/server/kickGroup",
+              },
+              {
+                text: "changeGroupAdmin",
+                link: "/protocol/decentralized/server/changeGroupAdmin",
+              },
+              {
+                text: "giveGroupAdmin",
+                link: "/protocol/decentralized/server/giveGroupAdmin",
+              },
+              {
+                text: "getGroupInfo",
+                link: "/protocol/decentralized/server/getGroupInfo",
+              },
+              {
+                text: "getFriendIcon",
+                link: "/protocol/decentralized/server/getFriendIcon",
+              },
+              {
+                text:"getFriendNickName",
+                link: "/protocol/decentralized/server/getFriendNickName",
+              },
+              {
+                text: "sendMessage",
+                link: "/protocol/decentralized/server/sendMessage",
+              },
+              {
+                text: "getMessage",
+                link: "/protocol/decentralized/server/getMessage",
+              },
+              {
+                text: "joinPublicGroup",
+                link: "/protocol/decentralized/server/joinPublicGroup",
+              },
+              {
+                text: "leavePublicGroup",
+                link: "/protocol/decentralized/server/leavePublicGroup",
+              },
+              {
+                text: "requestTextCall",
+                link: "/protocol/decentralized/server/requestTextCall",
+              },
+              {
+                text: "acceptTextCall",
+                link: "/protocol/decentralized/server/acceptTextCall",
+              },
+              {
+                text: "rejectTextCall",
+                link: "/protocol/decentralized/server/rejectTextCall",
               },
             ],
           },
-        ],
-      },
-      {
-        text: "takos web api",
-        items: [
           {
-            text: "sessions",
-            link: "/web/sessions",
-            collapsed: false,
+            text: "クライアント向け標準api",
+            link: "/protocol/decentralized/client",
+            collapsed: true,
             items: [
-              { text: "login", link: "/web/sessions/login" },
-              { text: "logout", link: "/web/sessions/logout" },
-              { text: "register", link: "/web/sessions/registers" },
+              {
+                text: "getMasterKey",
+                link: "/protocol/decentralized/client/getMasterKey",
+              },
+              {
+                text: "getIdentityKey",
+                link: "/protocol/decentralized/client/getIdentityKey",
+              },
+              {
+                text: "getAccountKey",
+                link: "/protocol/decentralized/client/getAccountKey",
+              },
+              {
+                text: "getRoomKey",
+                link: "/protocol/decentralized/client/getRoomKey",
+              },
+              {
+                text: "getServerIconImage",
+                link: "/protocol/decentralized/client/getServerIconImage",
+              },
+              {
+                text: "getServerBackgroundImage",
+                link: "/protocol/decentralized/client/getServerBackgroundImage",
+              },
+              {
+                text: "getServerInfo",
+                link: "/protocol/decentralized/client/getServerInfo",
+              },
+              {
+                text: "websocket",
+                link: "/protocol/decentralized/client/websocket",
+              }
             ],
           },
           {
-            text: "talk",
-            link: "/web/talk",
+            text: "その他処理",
+            link: "/protocol",
             collapsed: false,
             items: [
-              { text: "data", link: "/web/talk/data" },
-              { text: "delete", link: "/web/talk/delete" },
-              { text: "send", link: "/web/talk/send" },
-            ],
-          },
-          {
-            text: "user",
-            link: "/web/user",
-            collapsed: false,
-            items: [
-              { text: "key", link: "/web/user/key" },
-              { text: "icon", link: "/web/user/icon" },
-              { text: "nickName", link: "/web/user/nickName" },
-            ],
-          },
-          {
-            text: "profile",
-            link: "/web/profile",
-            collapsed: false,
-            items: [
-              { text: "nickName", link: "/web/profile/nickName" },
-              { text: "icon", link: "/web/profile/icon" },
-              { text: "key", link: "/web/profile/key" },
-            ],
-          },
-          {
-            text: "friend",
-            link: "/web/friend",
-            collapsed: false,
-            items: [
-              { text: "list", link: "/web/friend/list" },
-              { text: "request", link: "/web/friend/request" },
-              { text: "accept", link: "/web/friend/accept" },
-              { text: "delete", link: "/web/friend/delete" },
-            ],
-          },
-          {
-            text: "group",
-            link: "/web/group",
-            collapsed: false,
-            items: [
-              { text: "create", link: "/web/group/create" },
-              { text: "delete", link: "/web/group/delete" },
-              { text: "join", link: "/web/group/join" },
-              { text: "invite", link: "/web/group/invite" },
-              { text: "leave", link: "/web/group/leave" },
-              { text: "list", link: "/web/group/list" },
-            ],
-          },
-          {
-            text: "community",
-            link: "/web/community",
-            collapsed: false,
-            items: [
-              { text: "create", link: "/web/community/create" },
-              { text: "delete", link: "/web/community/delete" },
-              { text: "join", link: "/web/community/join" },
-              { text: "leave", link: "/web/community/leave" },
-              { text: "list", link: "/web/community/list" },
+              { text: "メッセージ送信", link: "/protocol/introduction" },
+              { text: "メッセージ受信", link: "/protocol/introduction" },
+              { text: "友達追加", link: "/protocol/introduction" },
             ],
           },
         ],

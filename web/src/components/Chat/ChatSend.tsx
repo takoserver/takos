@@ -4,6 +4,7 @@ import { createSignal } from "solid-js";
 import { roomKeyState, selectedRoomState } from "../../utils/roomState";
 import { encryptMessage } from "@takos/takos-encrypt-ink";
 import { getLatestIdentityKey, localStorageEditor } from "../../utils/idb";
+import { requester } from "../../utils/requester";
 function ChatSend() {
   const [inputMessage, setInputMessage] = useAtom(inputMessageState);
   const [isValidInput, setIsValidInput] = useAtom(isValidInputState);
@@ -38,7 +39,19 @@ function ChatSend() {
       },
       selectedRoom()?.roomid as string,
     )
-    console.log(encryptedMessage);
+    const res = await requester(localStorageEditor.get("server") as string, "sendMessage", {
+      roomid: selectedRoom()?.roomid,
+      roomType: selectedRoom()?.type,
+      message: encryptedMessage?.message,
+      sign: encryptedMessage?.sign as string,
+      sessionid: localStorageEditor.get("sessionid"),
+    })
+    if (res.status !== 200) {
+      console.error("failed to send message");
+      return;
+    }
+    const json = await res.json();
+    console.log(json);
   };
   return (
     <div class="p-talk-chat-send">
