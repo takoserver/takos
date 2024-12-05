@@ -48,6 +48,10 @@ export default defineConfig({
                 link: "/protocol/decentralized/server/reject",
               },
               {
+                text: "requestFriend",
+                link: "/protocol/decentralized/server/requestFriend",
+              },
+              {
                 text: "inviteGroup",
                 link: "/protocol/decentralized/server/inviteGroup",
               },
@@ -58,14 +62,6 @@ export default defineConfig({
               {
                 text:"kickGroup",
                 link: "/protocol/decentralized/server/kickGroup",
-              },
-              {
-                text: "changeGroupAdmin",
-                link: "/protocol/decentralized/server/changeGroupAdmin",
-              },
-              {
-                text: "giveGroupAdmin",
-                link: "/protocol/decentralized/server/giveGroupAdmin",
               },
               {
                 text: "getGroupInfo",
@@ -82,10 +78,6 @@ export default defineConfig({
               {
                 text: "sendMessage",
                 link: "/protocol/decentralized/server/sendMessage",
-              },
-              {
-                text: "getMessage",
-                link: "/protocol/decentralized/server/getMessage",
               },
               {
                 text: "joinPublicGroup",
@@ -145,18 +137,17 @@ export default defineConfig({
               {
                 text: "websocket",
                 link: "/protocol/decentralized/client/websocket",
-              }
+              },
+              {
+                text: "getMessage",
+                link: "/protocol/decentralized/server/getMessage",
+              },
             ],
           },
           {
-            text: "その他処理",
-            link: "/protocol",
+            text: "処理",
+            link: "/protocol/process",
             collapsed: false,
-            items: [
-              { text: "メッセージ送信", link: "/protocol/introduction" },
-              { text: "メッセージ受信", link: "/protocol/introduction" },
-              { text: "友達追加", link: "/protocol/introduction" },
-            ],
           },
         ],
       },

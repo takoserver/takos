@@ -27,6 +27,11 @@ app.route("/takos/v2", v2).use(
     },
   }),
 );
+
+app.post("/takos/ping", (c) => {
+  return c.json({ pong: true });
+});
+
 export function start() {
   mongoose.connect(env["MONGO_URI"]).then(() => {
     console.log("Connected to MongoDB");
