@@ -57,14 +57,6 @@ friendとgroupの違いは、暗号化しないことでNotEncryptedMessageの�
 
 `deleteFriend` apiを利用して、friendを削除する。
 
-## friendのブロック
-
-`blockFriend` apiを利用して、friendをブロックする。
-
-## friendのブロック解除
-
-`unblockFriend` apiを利用して、friendのブロックを解除する。
-
 ## publicGroupへの参加
 
 `joinPublicGroup` apiを利用して、publicGroupに参加する。
