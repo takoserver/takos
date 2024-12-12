@@ -1,6 +1,6 @@
-# グループから追放するapi
+# グループ招待するapi
 
-type: `kickGroup`
+type: `inviteGroup`
 
 ### request value: 
 
@@ -18,6 +18,9 @@ type: `kickGroup`
 ```ts
 {
     status: boolean;
-    message: string;
+    groupId: string;
+    groupName: string;
+    userIds: string[];
+    icon: string;
 }
 ```

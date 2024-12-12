@@ -4,6 +4,8 @@
 
 ## リクエスト
 
+※textCallは除く
+
 ```ts
 {
     type: string,

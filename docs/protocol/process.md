@@ -73,3 +73,9 @@ friendとgroupの違いは、暗号化しないことでNotEncryptedMessageの�
 
 `reject` apiを利用して参加申請を拒否することにより、publicGroupへの参加がキャンセルされる。
 
+## textCall
+
+`textCall` apiを利用して、リクエストを送信する。リクエストにはcallIdが含まれる。
+
+callIdを利用してリクエスト元サーバーのwebsocketに接続し、textCallを開始する。
+

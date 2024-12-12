@@ -1,12 +1,13 @@
-# publicGroupから脱退するapi
+# messageを取得するapi
 
-type: `leavePublicGroup`
+type: `getMessage`
 
 ### request value: 
 
 ```ts
 {
-    publicGroupId: string;
+    messageId: string;
+    roomId: string;
 }
 ```
 
@@ -16,5 +17,6 @@ type: `leavePublicGroup`
 {
     status: boolean;
     message: string;
+    signature: string;
 }
 ```

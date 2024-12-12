@@ -1,8 +1,8 @@
-# masterKeyを取得する
+# friendのiconを取得する
 
-type:`getMasterKey`
+type: `getFriendIcon`
 
-### request value:
+### request value: 
 
 ```ts
 {
@@ -15,6 +15,6 @@ type:`getMasterKey`
 ```ts
 {
     status: boolean;
-    masterKey: string;
+    icon: string;
 }
 ```

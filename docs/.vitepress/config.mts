@@ -64,18 +64,6 @@ export default defineConfig({
                 link: "/protocol/decentralized/server/kickGroup",
               },
               {
-                text: "getGroupInfo",
-                link: "/protocol/decentralized/server/getGroupInfo",
-              },
-              {
-                text: "getFriendIcon",
-                link: "/protocol/decentralized/server/getFriendIcon",
-              },
-              {
-                text:"getFriendNickName",
-                link: "/protocol/decentralized/server/getFriendNickName",
-              },
-              {
                 text: "sendMessage",
                 link: "/protocol/decentralized/server/sendMessage",
               },
@@ -84,20 +72,16 @@ export default defineConfig({
                 link: "/protocol/decentralized/server/joinPublicGroup",
               },
               {
+                text: "requestPublicGroup",
+                link: "/protocol/decentralized/server/requestPublicGroup",
+              },
+              {
                 text: "leavePublicGroup",
                 link: "/protocol/decentralized/server/leavePublicGroup",
               },
               {
                 text: "requestTextCall",
                 link: "/protocol/decentralized/server/requestTextCall",
-              },
-              {
-                text: "acceptTextCall",
-                link: "/protocol/decentralized/server/acceptTextCall",
-              },
-              {
-                text: "rejectTextCall",
-                link: "/protocol/decentralized/server/rejectTextCall",
               },
             ],
           },
@@ -135,12 +119,24 @@ export default defineConfig({
                 link: "/protocol/decentralized/client/getServerInfo",
               },
               {
-                text: "websocket",
-                link: "/protocol/decentralized/client/websocket",
+                text: "textCall",
+                link: "/protocol/decentralized/client/textCall",
               },
               {
                 text: "getMessage",
-                link: "/protocol/decentralized/server/getMessage",
+                link: "/protocol/decentralized/client/getMessage",
+              },
+              {
+                text: "getGroupInfo",
+                link: "/protocol/decentralized/client/getGroupInfo",
+              },
+              {
+                text: "getFriendIcon",
+                link: "/protocol/decentralized/client/getFriendIcon",
+              },
+              {
+                text:"getFriendNickName",
+                link: "/protocol/decentralized/client/getFriendNickName",
               },
             ],
           },

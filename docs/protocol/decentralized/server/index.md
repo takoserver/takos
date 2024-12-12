@@ -25,4 +25,6 @@
 2. 取得した鍵で`request`を検証します。
 3. 検証が成功した場合、リクエストを処理します。
 
-これから記述するリクエストはrequestにstringにしたものです。
+これから記述するrequest valueは、`request`の中身です。
+
+`request`はjson_to_stringをしたものです。

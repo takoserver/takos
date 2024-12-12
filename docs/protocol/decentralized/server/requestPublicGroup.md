@@ -1,6 +1,6 @@
-# publicGroupから脱退するapi
+# publicGroupに参加を申請するapi
 
-type: `leavePublicGroup`
+type: `requestPublicGroup`
 
 ### request value: 
 
