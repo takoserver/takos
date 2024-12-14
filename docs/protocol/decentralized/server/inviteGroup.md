@@ -6,7 +6,6 @@ type: `inviteGroup`
 
 ```ts
 {
-    requestId: string;
     senderId: string;
     receiverId: string;
     groupId: string;
@@ -19,5 +18,6 @@ type: `inviteGroup`
 {
     status: boolean;
     message: string;
+    requestId: string;
 }
 ```

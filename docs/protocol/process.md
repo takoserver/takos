@@ -23,13 +23,19 @@ frindであることが前提。
 
 `leaveGroup` apiを利用して、groupから脱退する。
 
+グループに参加している全てのサーバーに脱退したことをapiで通知する。
+
 ## groupでのkick
 
 `kickGroup` apiを利用して、groupからkickする。
 
+グループに参加している全てのサーバーにkickしたことをapiで通知する。
+
 ## groupの削除
 
 `deleteGroup` apiを利用して、groupを削除したことを通知する。
+
+グループに参加している全てのサーバーに削除したことをapiで通知する。
 
 ## friendのチャット
 

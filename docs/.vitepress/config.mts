@@ -145,6 +145,11 @@ export default defineConfig({
             link: "/protocol/process",
             collapsed: false,
           },
+          {
+            text: "rooms",
+            link: "/protocol/room",
+            collapsed: false,
+          },
         ],
       },
     ],

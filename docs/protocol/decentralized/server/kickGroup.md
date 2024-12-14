@@ -6,7 +6,6 @@ type: `kickGroup`
 
 ```ts
 {
-    requestId: string;
     senderId: string;
     receiverId: string;
     groupId: string;
