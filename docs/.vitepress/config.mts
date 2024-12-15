@@ -121,7 +121,7 @@ export default defineConfig({
               },
               {
                 text: "friendの名前を取得",
-                link: "/protocol/decentralized/client/getFriendName",
+                link: "/protocol/decentralized/client/getFriendNickName",
               },
               {
                 text: "friendの情報を取得する",

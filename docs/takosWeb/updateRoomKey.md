@@ -1,9 +1,9 @@
-# グループの名前を変更する
+# roomKeyの更新api
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/api/group/name`
+- **URLパス**: `/api/roomKey`
 
 ### ヘッダー
 
@@ -24,15 +24,17 @@ Authorization: sessionid <セッションID>
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `name` | string | リクエストID                   |
+| `roomId` | string | 部屋ID                   |
+| `encryptedRoomKey` | { userId: string, roomKey: string }[] | 暗号化された部屋鍵 |
+| `roomKeyMetaData` | string | 部屋鍵のメタデータ                   |
+| `roomKeyMetaDataSign` | string | 部屋鍵のメタデータの署名                   |
 
 ### レスポンス
 
 レスポンスコード: 200
 
 ```ts
-{
-}
+
 ```
 
 レスポンスコード: 400
@@ -42,4 +44,3 @@ Authorization: sessionid <セッションID>
   error: string;
 }
 ```
-

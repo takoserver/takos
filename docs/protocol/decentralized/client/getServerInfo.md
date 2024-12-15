@@ -7,10 +7,11 @@
 
 ```ts
 {
-  serverInfo: {
-    serverDomain: string;
     serverName: string;
+    serverDescription: string;
+    serverIconImage: string;
+    serverBackgroundImage: string;
+    users: number;
     takosProtocolVersion: string;
-  }
 }
 ```

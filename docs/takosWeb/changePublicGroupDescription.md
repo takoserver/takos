@@ -1,9 +1,9 @@
-# グループの名前を変更する
+# publicGroupのDescriptionを変更する
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/api/group/name`
+- **URLパス**: `/api/publicGroup/description`
 
 ### ヘッダー
 
@@ -24,7 +24,7 @@ Authorization: sessionid <セッションID>
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `name` | string | リクエストID                   |
+| `description` | string | nickName       |
 
 ### レスポンス
 

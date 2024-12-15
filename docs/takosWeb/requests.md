@@ -1,9 +1,9 @@
-# グループの名前を変更する
+# リクエスト情報取得API仕様
 
 ### エンドポイント情報
 
-- **HTTPメソッド**: POST
-- **URLパス**: `/api/group/name`
+- **HTTPメソッド**: GET
+- **URLパス**: `/api/requests`
 
 ### ヘッダー
 
@@ -24,7 +24,7 @@ Authorization: sessionid <セッションID>
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `name` | string | リクエストID                   |
+| | | |
 
 ### レスポンス
 
@@ -32,7 +32,11 @@ Authorization: sessionid <セッションID>
 
 ```ts
 {
-}
+    requestId: string;
+    type: string;
+    senderId: string;
+    content: string;
+}[]
 ```
 
 レスポンスコード: 400
@@ -42,4 +46,3 @@ Authorization: sessionid <セッションID>
   error: string;
 }
 ```
-

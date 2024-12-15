@@ -1,9 +1,9 @@
-# グループの名前を変更する
+# グループ招待API
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/api/group/name`
+- **URLパス**: `/api/group/inivite`
 
 ### ヘッダー
 
@@ -24,7 +24,8 @@ Authorization: sessionid <セッションID>
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `name` | string | リクエストID                   |
+| `groupId` | string | グループID                   |
+| `userId` | string | 招待するユーザーID                   |
 
 ### レスポンス
 
@@ -42,4 +43,3 @@ Authorization: sessionid <セッションID>
   error: string;
 }
 ```
-

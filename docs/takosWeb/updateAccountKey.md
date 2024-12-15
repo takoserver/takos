@@ -1,9 +1,9 @@
-# グループの名前を変更する
+# アカウントキー更新API
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/api/group/name`
+- **URLパス**: `/api/accountKey`
 
 ### ヘッダー
 
@@ -24,15 +24,16 @@ Authorization: sessionid <セッションID>
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `name` | string | リクエストID                   |
+| `accountKey` | string | アカウントキー                   |
+| `signature` | string | 署名                   |
+| `encryptedAccountKey` | { sessionUUID: string, accountKey: string }[] | 暗号化されたアカウントキー                   |
 
 ### レスポンス
 
 レスポンスコード: 200
 
 ```ts
-{
-}
+
 ```
 
 レスポンスコード: 400
@@ -42,4 +43,3 @@ Authorization: sessionid <セッションID>
   error: string;
 }
 ```
-

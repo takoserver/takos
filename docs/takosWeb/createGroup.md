@@ -1,9 +1,9 @@
-# グループの名前を変更する
+# グループ作成API
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/api/group/name`
+- **URLパス**: `/api/group/create`
 
 ### ヘッダー
 
@@ -24,7 +24,10 @@ Authorization: sessionid <セッションID>
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `name` | string | リクエストID                   |
+| `name` | string | name      |
+| `icon` | string | icon(なくてもいい)       |
+| `discription` | string | discription(なくてもいい)       |
+| `friends` | string[] | 友達のidのリスト       |
 
 ### レスポンス
 

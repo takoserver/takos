@@ -1,9 +1,9 @@
-# グループの名前を変更する
+# 公開グループに参加するのをリクエストするapi
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/api/group/name`
+- **URLパス**: `/api/publicGroup`
 
 ### ヘッダー
 
@@ -24,7 +24,7 @@ Authorization: sessionid <セッションID>
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `name` | string | リクエストID                   |
+| `userId` | string | リクエストID                   |
 
 ### レスポンス
 
@@ -42,4 +42,3 @@ Authorization: sessionid <セッションID>
   error: string;
 }
 ```
-

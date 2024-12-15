@@ -1,9 +1,9 @@
-# グループの名前を変更する
+# メッセージ送信API
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/api/group/name`
+- **URLパス**: `/api/messages`
 
 ### ヘッダー
 
@@ -24,15 +24,17 @@ Authorization: sessionid <セッションID>
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `name` | string | リクエストID                   |
+| `message` | string | メッセージの内容                   |
+| `roomId` | string | メッセージを送信する部屋のID                   |
+| `type` | string | メッセージの種類                   |
+| `hash` | string | メッセージを送信する部屋の鍵のハッシュ                   |
 
 ### レスポンス
 
 レスポンスコード: 200
 
 ```ts
-{
-}
+
 ```
 
 レスポンスコード: 400
@@ -42,4 +44,3 @@ Authorization: sessionid <セッションID>
   error: string;
 }
 ```
-

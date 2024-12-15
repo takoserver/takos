@@ -1,9 +1,9 @@
-# グループの名前を変更する
+# reCAPCHAのkeyを取得するapi
 
 ### エンドポイント情報
 
-- **HTTPメソッド**: POST
-- **URLパス**: `/api/group/name`
+- **HTTPメソッド**: GET
+- **URLパス**: `/api/recaptcha`
 
 ### ヘッダー
 
@@ -24,7 +24,7 @@ Authorization: sessionid <セッションID>
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `name` | string | リクエストID                   |
+| | | |
 
 ### レスポンス
 
@@ -32,6 +32,8 @@ Authorization: sessionid <セッションID>
 
 ```ts
 {
+    v2: string;
+    v3: string;
 }
 ```
 
@@ -42,4 +44,3 @@ Authorization: sessionid <セッションID>
   error: string;
 }
 ```
-

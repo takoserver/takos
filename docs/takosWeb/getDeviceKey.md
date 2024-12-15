@@ -1,9 +1,9 @@
-# グループの名前を変更する
+# デバイスキー取得API
 
 ### エンドポイント情報
 
-- **HTTPメソッド**: POST
-- **URLパス**: `/api/group/name`
+- **HTTPメソッド**: GET
+- **URLパス**: `/api/deviceKey/`
 
 ### ヘッダー
 
@@ -24,7 +24,7 @@ Authorization: sessionid <セッションID>
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `name` | string | リクエストID                   |
+| | | |
 
 ### レスポンス
 
@@ -32,6 +32,7 @@ Authorization: sessionid <セッションID>
 
 ```ts
 {
+    deviceKey: string;
 }
 ```
 
@@ -42,4 +43,3 @@ Authorization: sessionid <セッションID>
   error: string;
 }
 ```
-

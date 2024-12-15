@@ -1,9 +1,9 @@
-# グループの名前を変更する
+# プロフィール取得API仕様
 
 ### エンドポイント情報
 
-- **HTTPメソッド**: POST
-- **URLパス**: `/api/group/name`
+- **HTTPメソッド**: GET
+- **URLパス**: `/api/accountKey`
 
 ### ヘッダー
 
@@ -24,7 +24,7 @@ Authorization: sessionid <セッションID>
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `name` | string | リクエストID                   |
+| `hash` | string | ハッシュ値                   |
 
 ### レスポンス
 
@@ -32,6 +32,7 @@ Authorization: sessionid <セッションID>
 
 ```ts
 {
+    accountKey: string;
 }
 ```
 
@@ -42,4 +43,3 @@ Authorization: sessionid <セッションID>
   error: string;
 }
 ```
-

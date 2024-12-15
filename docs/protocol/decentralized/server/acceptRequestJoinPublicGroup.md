@@ -17,8 +17,9 @@
 Authorization: Signature sign="<署名>", Expires="<有効期限>, domain="<ドメイン>"
 ```
 
-- `sign`: リクエストボディの署名
-- `Expiry`: 署名の有効期限
+- `sign`: リクエストボディ全体を署名したもの。
+- `Expires`: ISO 8601 フォーマット（例: `2024-12-15T10:00:00Z`）。
+- `domain`: 対象リクエストのドメイン名（例: `example.com`）。
 
 ### リクエストボディ
 

@@ -1,9 +1,9 @@
-# グループの名前を変更する
+# shareKeyの更新
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/api/group/name`
+- **URLパス**: `/api/shareKey`
 
 ### ヘッダー
 
@@ -24,15 +24,15 @@ Authorization: sessionid <セッションID>
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `name` | string | リクエストID                   |
+| `shareKey` | string | シェアキー                     |
+| `signature` | string | 署名                           |
 
 ### レスポンス
 
 レスポンスコード: 200
 
 ```ts
-{
-}
+
 ```
 
 レスポンスコード: 400
@@ -42,4 +42,3 @@ Authorization: sessionid <セッションID>
   error: string;
 }
 ```
-
