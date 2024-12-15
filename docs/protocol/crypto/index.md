@@ -4,22 +4,23 @@ ML-KEMとML-DSAはpqc対応の標準化された暗号化方式です。
 
 ## 鍵の種類
 
-- **masterKey**: 
-  - **アルゴリズム**: ML-DSA-87 
+- **masterKey**:
+  - **アルゴリズム**: ML-DSA-87
   - **役割**: 鍵の信頼の根幹となる鍵である。
-- **identityKey**: 
-  - **アルゴリズム**: ML-DSA-65 
+- **identityKey**:
+  - **アルゴリズム**: ML-DSA-65
   - **役割**: メッセージやroomKeyのメタ情報を署名するために利用する。
-- **accountKey**: 
+- **accountKey**:
   - **アルゴリズム**: ML-KEM-768
   - **役割**: roomKeyを暗号化して送信するための鍵。
-- **roomKey**: 
-  - **アルゴリズム**: AES-256 
-  - **役割**: メッセージを暗号化するための鍵。暗号化に利用したaccountKeyのtimestamp、masterKeyのhashなどを含んだメタデータも同時に生成する。(後記述)
-- **shareKey**: 
-  - **アルゴリズム**: ML-KEM-768 
+- **roomKey**:
+  - **アルゴリズム**: AES-256
+  - **役割**:
+    メッセージを暗号化するための鍵。暗号化に利用したaccountKeyのtimestamp、masterKeyのhashなどを含んだメタデータも同時に生成する。(後記述)
+- **shareKey**:
+  - **アルゴリズム**: ML-KEM-768
   - **役割**: accountKeyを他のセッションに共有するための鍵。
-- **migrateKey**: 
+- **migrateKey**:
   - **アルゴリズム**: ML-KEM-1024
   - **役割**: デバイスの鍵を移行するための鍵。
 - **migrateSignkey**:
@@ -31,86 +32,102 @@ ML-KEMとML-DSAはpqc対応の標準化された暗号化方式です。
 以下のobjectをstringにしたものです。
 
 - **masterKey**:
+
 ```ts
 interface masterKey {
-  keyType: "masterKeyPublic" | "masterKeyPrivate"
-  key: string
-} 
+  keyType: "masterKeyPublic" | "masterKeyPrivate";
+  key: string;
+}
 ```
-公開鍵の文字数: 2723
-秘密鍵の文字数: 5496
+
+公開鍵の文字数: 2723 秘密鍵の文字数: 5496
+
 - **identityKey**:
+
 ```ts
 interface identityKey {
-  keyType: "identityKeyPublic" | "identityKeyPrivate"
-  key: string
-  timestamp: number
-  sessionUuid: string
-} 
+  keyType: "identityKeyPublic" | "identityKeyPrivate";
+  key: string;
+  timestamp: number;
+  sessionUuid: string;
+}
 ```
-公開鍵の文字数: 3494
-秘密鍵の文字数: 6567
+
+公開鍵の文字数: 3494 秘密鍵の文字数: 6567
+
 - **accountKey**:
+
 ```ts
 interface accountKey {
-  keyType: "accountKeyPublic" | "accountKeyPrivate"
-  key: string
-  timestamp: number
-} 
+  keyType: "accountKeyPublic" | "accountKeyPrivate";
+  key: string;
+  timestamp: number;
+}
 ```
-公開鍵の文字数: 1645
-秘密鍵の文字数: 3266
+
+公開鍵の文字数: 1645 秘密鍵の文字数: 3266
+
 - **roomKey**:
+
 ```ts
 interface roomKey {
-  keyType: "roomKey"
-  key: string
-  timestamp: number
-  sessionUuid: string
-} 
+  keyType: "roomKey";
+  key: string;
+  timestamp: number;
+  sessionUuid: string;
+}
 ```
+
 鍵の文字数: 153
+
 - **shareKey**:
+
 ```ts
 interface shareKey {
-  keyType: "shareKeyPublic" | "sharekeyPrivate"
-  key: string
-  timestamp: number
-  sessionUuid: string
-} 
+  keyType: "shareKeyPublic" | "sharekeyPrivate";
+  key: string;
+  timestamp: number;
+  sessionUuid: string;
+}
 ```
-公開鍵の文字数: 1696
-秘密鍵の文字数: 3317
-- **migrateKey**: `<"migrateKeyPublic" | "migrateKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
+
+公開鍵の文字数: 1696 秘密鍵の文字数: 3317
+
+- **migrateKey**:
+  `<"migrateKeyPublic" | "migrateKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
+
 ```ts
 interface migrateKey {
-  keyType: "migrateKeyPublic" | "migrateKeyPrivate"
-  key: string
-  timestamp: number
-} 
+  keyType: "migrateKeyPublic" | "migrateKeyPrivate";
+  key: string;
+  timestamp: number;
+}
 ```
-公開鍵の文字数: 1619
-秘密鍵の文字数: 3240
-- **migrateSignKey**: `<"migrateSignKeyPublic" | "migrateSignKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
+
+公開鍵の文字数: 1619 秘密鍵の文字数: 3240
+
+- **migrateSignKey**:
+  `<"migrateSignKeyPublic" | "migrateSignKeyPrivate">-<TIMESTAMP>-<BINARY_KEY>`
+
 ```ts
 interface migrateSignKey {
-  keyType: "migrateSignKeyPublic" | "migrateSignKeyPrivate"
-  key: string
-  timestamp: number
-} 
+  keyType: "migrateSignKeyPublic" | "migrateSignKeyPrivate";
+  key: string;
+  timestamp: number;
+}
 ```
-公開鍵の文字数: 2647
-秘密鍵の文字数: 5420
 
-keyTypeは上記の鍵の種類を指します。
-timestampは鍵の生成時刻を指します。
+公開鍵の文字数: 2647 秘密鍵の文字数: 5420
+
+keyTypeは上記の鍵の種類を指します。 timestampは鍵の生成時刻を指します。
 binaryKeyはbase64でエンコードされた鍵を指します。
 sessionUUIDはセッションを識別するためのuuidを指します。
 roomIdはroomKeyを識別するためのuuidを指します。
 
 ## その他の数値の定義
 
-sessionUUID: uuid v7。セッションを識別するためのuuid。identityKeyやroomKey、shareKey、shareSignKeyに含まれる
+sessionUUID: uuid
+v7。セッションを識別するためのuuid。identityKeyやroomKey、shareKey、shareSignKeyに含まれる
 
 ## roomKeyのメタデータ
 
@@ -132,18 +149,17 @@ identityKeyで署名します。
 ## 暗号の形式
 
 ```ts
-
 export interface EncryptedData {
-  keyType: string
-  keyHash: string
-  binaryEncryptedData: string
-  vi: string
-  cipherText?: string
+  keyType: string;
+  keyHash: string;
+  binaryEncryptedData: string;
+  vi: string;
+  cipherText?: string;
 }
-
 ```
 
 暗号化された鍵
+
 - accountKey: 3806
 - roomKey:
 
@@ -154,16 +170,15 @@ binaryEncryptedDataは暗号化されたデータをbase64でエンコードし�
 ## 署名の形式
 
 ```ts
-
 export interface Sign {
-  keyHash: string
-  signature: string
-  keyType: string
+  keyHash: string;
+  signature: string;
+  keyType: string;
 }
-
 ```
 
 署名のサイズ
+
 - masterKey: 6267
 - identityKey: 4509
 
@@ -176,7 +191,6 @@ binarySignatureは署名されたデータをbase64でエンコードしたも�
 このような形式のjsonをstringにしたものです。
 
 ```ts
-
 export interface NotEncryptMessage {
   encrypted: false;
   value: {
@@ -199,14 +213,12 @@ export interface EncryptedMessage {
 }
 
 export type Message = NotEncryptMessage | EncryptedMessage;
-
 ```
 
 ## roomKeyの共有
 
 roomKeyは共有するユーザーのaccountKeyで暗号化して送信します。
 accountKeyのtimestampを確認して鍵の有効性を確認します。
-
 
 ## メッセージの暗号化
 

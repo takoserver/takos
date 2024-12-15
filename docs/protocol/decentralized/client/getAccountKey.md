@@ -1,22 +1,32 @@
 # accountKeyを取得する
 
-type:`getAccountKey`
+### エンドポイント情報
 
-### request value:
+- **HTTPメソッド**: GET
+- **URLパス**: `_takos/v2/accountKey`
 
-```ts
-{
-    userId: string;
-    keyHash: string;
-}
-```
+### パラメーター
+
+| 名前     | 型     | 説明         |
+| -------- | ------ | ------------ |
+| `userId` | string | 鍵のユーザー |
+| `hash`   | string | 鍵のハッシュ |
 
 ### レスポンス
 
+レスポンスコード: 200
+
 ```ts
 {
-    status: boolean;
-    accountKey: string;
-    signature: string;
+  accountKey: string;
+  signature: string;
+}
+```
+
+レスポンスコード: 400
+
+```ts
+{
+  error: string;
 }
 ```

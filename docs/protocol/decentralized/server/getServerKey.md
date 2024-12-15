@@ -1,15 +1,28 @@
-# serverKeyを取得する
+# serverKeyを取得するapi
 
-type: `getServerKey`
+- **HTTPメソッド**: GET
+- **URLパス**: `_takos/v2/serverKey`
 
-query: `{}`
+### パラメーター
+
+| 名前     | 型     | 説明         |
+| -------- | ------ | ------------ |
+| `expiry` | string | 鍵の有効期限 |
 
 ### レスポンス
 
+レスポンスコード: 200
+
 ```ts
 {
-      pubKey: string, 
-      expire: string, //number
-      timestamp: string, //number
+  serverKey: string;
+}
+```
+
+レスポンスコード: 400
+
+```ts
+{
+  error: string;
 }
 ```

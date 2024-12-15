@@ -1,22 +1,48 @@
-# 別サーバーにfriend申請するapi
+# 友達リクエストするapi
 
-type: `requestFriend`
+### エンドポイント情報
 
-### request value: 
+- **HTTPメソッド**: POST
+- **URLパス**: `/_takos/v2/friend/request`
 
-```ts
-{
-    requestId: string;
-    senderId: string;
-    receiverId: string;
-}
+### ヘッダー
+
+| 名前            | 型     | 説明                                       |
+| --------------- | ------ | ------------------------------------------ |
+| `Authorization` | string | 認証情報を含むヘッダー（以下の形式で指定） |
+
+**`Authorization`ヘッダーの形式**:
+
 ```
+Authorization: Signature sign="<署名>", Expires="<有効期限>, domain="<ドメイン>"
+```
+
+- `sign`: リクエストボディの署名
+- `Expiry`: 署名の有効期限
+
+### リクエストボディ
+
+リクエストのボディは、JSON形式で以下の内容を含みます。
+
+| 名前        | 型     | 説明                           |
+| ----------- | ------ | ------------------------------ |
+| `senderId`  | string | リクエストを送るユーザー         |
+| `receiverId`| string | リクエストを送られるユーザー     |
+| `type`      | string | リクエストの種類（`"requestFriend"`）  |
 
 ### レスポンス
 
+レスポンスコード: 200
+
 ```ts
 {
-    status: boolean;
-    message: string;
+}
+```
+
+レスポンスコード: 400
+
+```ts
+{
+  error: string;
 }
 ```

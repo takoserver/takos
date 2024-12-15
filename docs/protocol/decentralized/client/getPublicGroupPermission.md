@@ -1,16 +1,15 @@
-# messageを取得するapi
+# publicGroupのパーミッション取得
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: GET
-- **URLパス**: `_takos/v2/message`
+- **URLパス**: `_takos/v2/publicGroupPermission`
 
 ### パラメーター
 
 | 名前        | 型     | 説明         |
 | ----------- | ------ | ------------ |
-| `messageId` | string | 鍵のユーザー |
-| `roomId`    | string | 鍵のハッシュ |
+| `roomId`    | string | publicGroupのid |
 
 ### レスポンス
 
@@ -18,9 +17,9 @@
 
 ```ts
 {
-  message: string;
-  signature: string;
-  serverData: string;
+  deleteMessage: boolean;
+  kickUser: boolean;
+  acceptRequestJoin: boolean;
 }
 ```
 

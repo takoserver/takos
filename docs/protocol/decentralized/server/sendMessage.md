@@ -1,70 +1,48 @@
-# メッセージを送信するapi
+# 友達リクエストするapi
 
-## friend
+### エンドポイント情報
 
-type: `sendFriendMessage`
+- **HTTPメソッド**: POST
+- **URLパス**: `/_takos/v2/sendMessage`
 
-### request value: 
+### ヘッダー
 
-```ts
-{
-    messageId: string;
-    senderId: string;
-    receiverId: string;
-}
+| 名前            | 型     | 説明                                       |
+| --------------- | ------ | ------------------------------------------ |
+| `Authorization` | string | 認証情報を含むヘッダー（以下の形式で指定） |
+
+**`Authorization`ヘッダーの形式**:
+
 ```
+Authorization: Signature sign="<署名>", Expires="<有効期限>, domain="<ドメイン>"
+```
+
+- `sign`: リクエストボディの署名
+- `Expiry`: 署名の有効期限
+
+### リクエストボディ
+
+リクエストのボディは、JSON形式で以下の内容を含みます。
+
+| 名前        | 型     | 説明                           |
+| ----------- | ------ | ------------------------------ |
+| `senderId`  | string | リクエストを送るユーザー         |
+| `roomId`    | string | リクエストを送られるユーザー     |
+| `messageId` | string | メッセージのid                   |
 
 ### レスポンス
 
+レスポンスコード: 200
+
 ```ts
 {
-    status: boolean;
-    message: string;
 }
 ```
 
-## group
-
-type: `sendGroupMessage`
-
-### request value: 
+レスポンスコード: 400
 
 ```ts
 {
-    messageId: string;
-    senderId: string;
-    receiverId: string;
-}
-```
-
-### レスポンス
-
-```ts
-{
-    status: boolean;
-    message: string;
-}
-```
-
-## publicGroup
-
-type: `sendPublicGroupMessage`
-
-### request value: 
-
-```ts
-{
-    messageId: string;
-    senderId: string;
-    receiverId: string;
-}
-```
-
-### レスポンス
-
-```ts
-{
-    status: boolean;
-    message: string;
+  error: string;
 }
 ```

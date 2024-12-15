@@ -1,9 +1,9 @@
-# masterKeyを取得する
+# roomKeyを取得する
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: GET
-- **URLパス**: `_takos/v2/masterKey`
+- **URLパス**: `_takos/v2/roomKeyMetaData`
 
 ### パラメーター
 
@@ -11,6 +11,7 @@
 | -------- | ------ | ------------ |
 | `userId` | string | 鍵のユーザー |
 | `hash`   | string | 鍵のハッシュ |
+| `roomId` | string | 部屋のID     |
 
 ### レスポンス
 
@@ -18,7 +19,7 @@
 
 ```ts
 {
-  masterKey: string;
+  metaData: string;
   signature: string;
 }
 ```

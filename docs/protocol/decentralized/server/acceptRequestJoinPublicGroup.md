@@ -1,9 +1,9 @@
-# リクエストを拒否するapi
+# パブリックグループへの参加リクエストの承認
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/_takos/v2/reject`
+- **URLパス**: `/_takos/v2/publicGroup/acceptRequestJoin`
 
 ### ヘッダー
 
@@ -26,17 +26,9 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>, domain="<ド�
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `requestId` | string | リクエストID                   |
-| `type`      | string | リクエストの種類（`"reject"`） |
-
-**例**:
-
-```json
-{
-  "requestId": "1234567890abcdef@takos.jp",
-  "type": "accept"
-}
-```
+| `groupId`   | string | グループのid                   |
+| `userId`    | string | ユーザーのid                   |
+| `type`      | string | リクエストの種類（`"acceptRequestJoinPublicGroup"`）  |
 
 ### レスポンス
 

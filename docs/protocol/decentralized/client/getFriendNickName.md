@@ -1,20 +1,30 @@
 # friendのnickNameを取得する
 
-type: `getFriendNickName`
+### エンドポイント情報
 
-### request value: 
+- **HTTPメソッド**: GET
+- **URLパス**: `_takos/v2/friend/nickName`
 
-```ts
-{
-    userId: string;
-}
-```
+### パラメーター
+
+| 名前     | 型     | 説明     |
+| -------- | ------ | -------- |
+| `userId` | string | ユーザー |
 
 ### レスポンス
 
+レスポンスコード: 200
+
 ```ts
 {
-    status: boolean;
-    nickName: string;
+  nickName: string;
+}
+```
+
+レスポンスコード: 400
+
+```ts
+{
+  error: string;
 }
 ```

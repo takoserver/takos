@@ -1,9 +1,9 @@
-# リクエストを拒否するapi
+# グループ名の変更
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/_takos/v2/reject`
+- **URLパス**: `/_takos/v2/group/name`
 
 ### ヘッダー
 
@@ -26,17 +26,9 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>, domain="<ド�
 
 | 名前        | 型     | 説明                           |
 | ----------- | ------ | ------------------------------ |
-| `requestId` | string | リクエストID                   |
-| `type`      | string | リクエストの種類（`"reject"`） |
-
-**例**:
-
-```json
-{
-  "requestId": "1234567890abcdef@takos.jp",
-  "type": "accept"
-}
-```
+| `groupId`   | string | グループのid                   |
+| `name`      | string | グループの名前 |
+| `type`      | string | アイコンの変更の種類（`changeGroupName`） |
 
 ### レスポンス
 

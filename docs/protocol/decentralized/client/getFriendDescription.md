@@ -1,9 +1,9 @@
-# friendのiconを取得する
+# friendのdescriptionを取得する
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: GET
-- **URLパス**: `_takos/v2/friend/icon`
+- **URLパス**: `_takos/v2/friend/description`
 
 ### パラメーター
 
@@ -17,7 +17,7 @@
 
 ```ts
 {
-  icon: string;
+    description: string;
 }
 ```
 

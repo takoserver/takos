@@ -1,19 +1,14 @@
 # serverの情報を取得する
 
-type: `getServerIconImage`
-
-### request value:
-
-```ts
-{}
-```
+- **HTTPメソッド**: GET
+- **URLパス**: `_takos/v2/serverIconImage`
 
 ### response
 
 ```ts
 {
-    status: boolean;
-    message: string;
-    iconImage: string;
+  status: boolean;
+  message: string;
+  iconImage: string;
 }
 ```

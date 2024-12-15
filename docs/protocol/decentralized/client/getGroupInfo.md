@@ -1,26 +1,33 @@
-# グループ招待するapi
+# グループの情報を取得する
 
-type: `inviteGroup`
+### エンドポイント情報
 
-### request value: 
+- **HTTPメソッド**: GET
+- **URLパス**: `_takos/v2/group/info`
 
-```ts
-{
-    requestId: string;
-    senderId: string;
-    receiverId: string;
-    groupId: string;
-}
-```
+### パラメーター
+
+| 名前      | 型     | 説明         |
+| --------- | ------ | ------------ |
+| `groupId` | string | グループのid |
 
 ### レスポンス
 
+レスポンスコード: 200
+
 ```ts
 {
-    status: boolean;
     groupId: string;
     groupName: string;
     userIds: string[];
     icon: string;
+}
+```
+
+レスポンスコード: 400
+
+```ts
+{
+  error: string;
 }
 ```

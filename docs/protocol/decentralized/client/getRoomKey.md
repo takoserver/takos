@@ -1,24 +1,33 @@
 # roomKeyを取得する
 
-type:`getRoomKey`
+### エンドポイント情報
 
-### request value:
+- **HTTPメソッド**: GET
+- **URLパス**: `_takos/v2/roomKey`
 
-```ts
-{
-    userId: string;
-    requesterId: string;
-    keyHash: string;
-    roomId: string;
-}
-```
+### パラメーター
+
+| 名前          | 型     | 説明                             |
+| ------------- | ------ | -------------------------------- |
+| `userId`      | string | 鍵のユーザー                     |
+| `hash`        | string | 鍵のハッシュ                     |
+| `roomId`      | string | 部屋のID                         |
+| `requesterId` | string | リクエストを送信するユーザーのID |
 
 ### レスポンス
 
+レスポンスコード: 200
+
 ```ts
 {
-    status: boolean;
-    roomKey: string;
-    signature: string;
+  roomKey: string;
+}
+```
+
+レスポンスコード: 400
+
+```ts
+{
+  error: string;
 }
 ```

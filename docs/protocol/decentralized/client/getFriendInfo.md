@@ -1,9 +1,9 @@
-# friendのiconを取得する
+# friendの情報を取得する
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: GET
-- **URLパス**: `_takos/v2/friend/icon`
+- **URLパス**: `_takos/v2/friend/info`
 
 ### パラメーター
 
@@ -18,6 +18,7 @@
 ```ts
 {
   icon: string;
+  nickName: string;
 }
 ```
 

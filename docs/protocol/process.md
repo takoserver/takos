@@ -8,16 +8,17 @@
 
 `accept` apiを利用してリクエストを受け入れることにより、friend登録が完了する。
 
-`reject` apiを利用してリクエストを拒否することにより、friend登録がキャンセルされる。
+`reject`
+apiを利用してリクエストを拒否することにより、friend登録がキャンセルされる。
 
 ## groupへの招待
 
-`inviteGroup` apiを利用して、groupに招待する。
-frindであることが前提。
+`inviteGroup` apiを利用して、groupに招待する。 frindであることが前提。
 
 `accept` apiを利用して招待を受け入れることにより、groupに参加する。
 
-`reject` apiを利用して招待を拒否することにより、groupへの参加がキャンセルされる。
+`reject`
+apiを利用して招待を拒否することにより、groupへの参加がキャンセルされる。
 
 ## groupからの脱退
 
@@ -77,11 +78,5 @@ friendとgroupの違いは、暗号化しないことでNotEncryptedMessageの�
 
 `accept` apiを利用して参加申請を受け入れることにより、publicGroupに参加する。
 
-`reject` apiを利用して参加申請を拒否することにより、publicGroupへの参加がキャンセルされる。
-
-## textCall
-
-`textCall` apiを利用して、リクエストを送信する。リクエストにはcallIdが含まれる。
-
-callIdを利用してリクエスト元サーバーのwebsocketに接続し、textCallを開始する。
-
+`reject`
+apiを利用して参加申請を拒否することにより、publicGroupへの参加がキャンセルされる。

@@ -1,19 +1,16 @@
 # serverの情報を取得する
 
-type: `getServerBackgroundImage`
+### エンドポイント
 
-### request value:
-
-```ts
-{}
-```
+- **HTTPメソッド**: GET
+- **URLパス**: `_takos/v2/serverBackgroundImage`
 
 ### response
 
 ```ts
 {
-    status: boolean;
-    message: string;
-    backgroundImage: string;
+  status: boolean;
+  message: string;
+  backgroundImage: string;
 }
 ```

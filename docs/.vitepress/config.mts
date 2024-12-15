@@ -31,113 +31,122 @@ export default defineConfig({
             collapsed: true,
           },
           {
-            text: "サーバー間通信用api",
+            text: "foundation api",
             link: "/protocol/decentralized/server",
-            collapsed: true,
+            collapsed: false,
             items: [
               {
-                text: "getServerKey",
+                text: "サーバーキー取得",
                 link: "/protocol/decentralized/server/getServerKey",
               },
               {
-                text: "accept",
+                text: "requestを受諾",
                 link: "/protocol/decentralized/server/accept",
               },
               {
-                text: "reject",
+                text: "requestを拒否",
                 link: "/protocol/decentralized/server/reject",
               },
               {
-                text: "requestFriend",
-                link: "/protocol/decentralized/server/requestFriend",
+                text: "publicGroupへの参加を許可(外部ユーザー)",
+                link: "/protocol/decentralized/server/acceptRequestJoinPublicGroup",
               },
               {
-                text: "inviteGroup",
-                link: "/protocol/decentralized/server/inviteGroup",
+                text: "グループのiconを変更",
+                link: "/protocol/decentralized/server/changeGroupIcon",
               },
               {
-                text: "leaveGroup",
-                link: "/protocol/decentralized/server/leaveGroup",
+                text: "グループの名前を変更",
+                link: "/protocol/decentralized/server/changeGroupName",
               },
               {
-                text:"kickGroup",
-                link: "/protocol/decentralized/server/kickGroup",
+                text: "publicグループのメッセージを削除",
+                link: "/protocol/decentralized/server/deleteMessagePublicGroup",
               },
               {
-                text: "sendMessage",
-                link: "/protocol/decentralized/server/sendMessage",
-              },
-              {
-                text: "joinPublicGroup",
+                text: "publicグループに参加",
                 link: "/protocol/decentralized/server/joinPublicGroup",
               },
               {
-                text: "requestPublicGroup",
-                link: "/protocol/decentralized/server/requestPublicGroup",
+                text: "groupに招待する",
+                link: "/protocol/decentralized/server/inviteGroup",
               },
               {
-                text: "leavePublicGroup",
+                text: "groupからキックする",
+                link: "/protocol/decentralized/server/kickGroup",
+              },
+              {
+                text: "groupから退出する",
+                link: "/protocol/decentralized/server/leaveGroup",
+              },
+              {
+                text: "publicグループから退出する",
                 link: "/protocol/decentralized/server/leavePublicGroup",
               },
               {
-                text: "requestTextCall",
-                link: "/protocol/decentralized/server/requestTextCall",
+                text: "friend申請",
+                link: "/protocol/decentralized/server/requestFriend",
               },
-            ],
-          },
-          {
-            text: "クライアント向け標準api",
-            link: "/protocol/decentralized/client",
-            collapsed: true,
-            items: [
               {
-                text: "getMasterKey",
+                text: "publicグループへの参加をリクエスト",
+                link: "/protocol/decentralized/server/requestPublicGroup",
+              },
+              {
+                text: "メッセージを送信",
+                link: "/protocol/decentralized/server/sendMessage",
+              },
+              {
+                text: "masterキーを取得",
                 link: "/protocol/decentralized/client/getMasterKey",
               },
               {
-                text: "getIdentityKey",
-                link: "/protocol/decentralized/client/getIdentityKey",
-              },
-              {
-                text: "getAccountKey",
+                text: "accountKeyを取得",
                 link: "/protocol/decentralized/client/getAccountKey",
               },
               {
-                text: "getRoomKey",
+                text: "identityKeyを取得",
+                link: "/protocol/decentralized/client/getIdentityKey",
+              },
+              {
+                text: "roomKeyを取得",
                 link: "/protocol/decentralized/client/getRoomKey",
               },
               {
-                text: "getServerIconImage",
-                link: "/protocol/decentralized/client/getServerIconImage",
+                text: "roomKeyのmetaDataを取得",
+                link: "/protocol/decentralized/client/getRoomKeyMetaData",
               },
               {
-                text: "getServerBackgroundImage",
-                link: "/protocol/decentralized/client/getServerBackgroundImage",
-              },
-              {
-                text: "getServerInfo",
-                link: "/protocol/decentralized/client/getServerInfo",
-              },
-              {
-                text: "textCall",
-                link: "/protocol/decentralized/client/textCall",
-              },
-              {
-                text: "getMessage",
-                link: "/protocol/decentralized/client/getMessage",
-              },
-              {
-                text: "getGroupInfo",
-                link: "/protocol/decentralized/client/getGroupInfo",
-              },
-              {
-                text: "getFriendIcon",
+                text: "friendのiconを取得",
                 link: "/protocol/decentralized/client/getFriendIcon",
               },
               {
-                text:"getFriendNickName",
-                link: "/protocol/decentralized/client/getFriendNickName",
+                text: "friendの名前を取得",
+                link: "/protocol/decentralized/client/getFriendName",
               },
+              {
+                text: "friendの情報を取得する",
+                link: "/protocol/decentralized/client/getFriendInfo",
+              },
+              {
+                text: "groupのiconを取得",
+                link: "/protocol/decentralized/client/getGroupIcon",
+              },
+              {
+                text: "groupの名前を取得",
+                link: "/protocol/decentralized/client/getGroupName",
+              },
+              {
+                text: "groupの情報を取得する",
+                link: "/protocol/decentralized/client/getGroupInfo",
+              },
+              {
+                text: "messageを取得",
+                link: "/protocol/decentralized/client/getMessage",
+              },
+              {
+                text: "publicGroupのiconを取得",
+                link: ""
+              }
             ],
           },
           {

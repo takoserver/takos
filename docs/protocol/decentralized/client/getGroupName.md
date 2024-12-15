@@ -1,15 +1,15 @@
-# friendのiconを取得する
+# groupNameを取得するapi
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: GET
-- **URLパス**: `_takos/v2/friend/icon`
+- **URLパス**: `_takos/v2/group/name`
 
 ### パラメーター
 
-| 名前     | 型     | 説明     |
-| -------- | ------ | -------- |
-| `userId` | string | ユーザー |
+| 名前      | 型     | 説明     |
+| --------- | ------ | -------- |
+| `GroupId` | string | ユーザー |
 
 ### レスポンス
 
@@ -17,7 +17,7 @@
 
 ```ts
 {
-  icon: string;
+  groupName: string;
 }
 ```
 
