@@ -17,14 +17,13 @@
 Authorization: sessionid <セッションID>
 ```
 
-
 ### リクエストボディ
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| | | |
+| 名前 | 型 | 説明 |
+| ---- | -- | ---- |
+|      |    |      |
 
 ### レスポンス
 
@@ -32,9 +31,10 @@ Authorization: sessionid <セッションID>
 
 ```ts
 {
-    roomId: string;
-    roomType: string;
-}[]
+  roomId: string;
+  roomType: string;
+}
+[];
 ```
 
 レスポンスコード: 400

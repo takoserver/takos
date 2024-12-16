@@ -31,9 +31,19 @@ export default defineConfig({
             collapsed: true,
           },
           {
+            text: "処理",
+            link: "/protocol/process",
+            collapsed: false,
+          },
+          {
+            text: "rooms",
+            link: "/protocol/room",
+            collapsed: false,
+          },
+          {
             text: "foundation api",
             link: "/protocol/decentralized/server",
-            collapsed: false,
+            collapsed: true,
             items: [
               {
                 text: "サーバーキー取得",
@@ -49,7 +59,8 @@ export default defineConfig({
               },
               {
                 text: "publicGroupへの参加を許可(外部ユーザー)",
-                link: "/protocol/decentralized/server/acceptRequestJoinPublicGroup",
+                link:
+                  "/protocol/decentralized/server/acceptRequestJoinPublicGroup",
               },
               {
                 text: "グループのiconを変更",
@@ -145,20 +156,177 @@ export default defineConfig({
               },
               {
                 text: "publicGroupのiconを取得",
-                link: ""
-              }
+                link: "/protocol/decentralized/client/getPublicGroupIcon",
+              },
+              {
+                text: "publicGroupの名前を取得",
+                link: "/protocol/decentralized/client/getPublicGroupName",
+              },
+              {
+                text: "publicGroupの権限を取得",
+                link: "/protocol/decentralized/client/getPublicGroupPermission",
+              },
+              {
+                text: "publicGroupの説明を取得",
+                link:
+                  "/protocol/decentralized/client/getPublicGroupDescription",
+              },
+              {
+                text: "roomKeyを取得",
+                link: "/protocol/decentralized/client/getRoomKey",
+              },
+              {
+                text: "roomKeyのmetaDataを取得",
+                link: "/protocol/decentralized/client/getRoomKeyMetaData",
+              },
+              {
+                text: "serverのbackgroundImageを取得",
+                link: "/protocol/decentralized/client/getServerBackgroundImage",
+              },
+              {
+                text: "serverのiconを取得",
+                link: "/protocol/decentralized/client/getServerIconImage",
+              },
+              {
+                text: "serverの情報を取得",
+                link: "/protocol/decentralized/client/getServerInfo",
+              },
             ],
           },
+        ],
+      },
+      {
+        text: "takos web",
+        collapsed: true,
+        items: [
           {
-            text: "処理",
-            link: "/protocol/process",
-            collapsed: false,
+            text: "sessions",
+            link: "/takosWeb/sessions",
           },
           {
-            text: "rooms",
-            link: "/protocol/room",
-            collapsed: false,
+            text: "accept",
+            link: "/takosWeb/accept",
           },
+          {
+            text: "reject",
+            link: "/takosWeb/reject",
+          },
+          {
+            text: "descriptionを変更するapi",
+            link: "/takosWeb/changeDiscription",
+          },
+          {
+            text: "iconを変更するapi",
+            link: "/takosWeb/changeIcon",
+          },
+          {
+            text: "nickNameを変更するapi",
+            link: "/takosWeb/changeNickName",
+          },
+          {
+            text: "groupのdescriptionを変更するapi",
+            link: "/takosWeb/changeGroupDiscription",
+          },
+          {
+            text: "groupのiconを変更するapi",
+            link: "/takosWeb/changeGroupIcon",
+          },
+          {
+            text: "groupのnameを変更するapi",
+            link: "/takosWeb/changeGroupName",
+          },
+          {
+            text: "publicGroupのdescriptionを変更するapi",
+            link: "/takosWeb/changePublicGroupDescription",
+          },
+          {
+            text: "publicGroupのiconを変更するapi",
+            link: "/takosWeb/changePublicGroupIcon",
+          },
+          {
+            text: "publicGroupのnameを変更するapi",
+            link: "/takosWeb/changePublicGroupName",
+          },
+          {
+            text: "groupを作成するapi",
+            link: "/takosWeb/createGroup",
+          },
+          {
+            text: "publicGroupを作成するapi",
+            link: "/takosWeb/createPublicGroup",
+          },
+          {
+            text: "デバイスキーを取得するapi",
+            link: "/takosWeb/getDeviceKey",
+          },
+          {
+            text: "profileを取得するapi",
+            link: "/takosWeb/getProfile",
+          },
+          {
+            text: "共有されたaccountKeyを取得するapi",
+            link: "/takosWeb/getSharedAccountKey",
+          },
+          {
+            text: "talkListを取得するapi",
+            link: "/takosWeb/getTalkList",
+          },
+          {
+            text: "groupに招待するapi",
+            link: "/takosWeb/inviteGroup",
+          },
+          {
+            text: "groupからキックするapi",
+            link: "/takosWeb/kickGroup",
+          },
+          {
+            text: "publicGroupからキックするapi",
+            link: "/takosWeb/kickPublicGroup",
+          },
+          {
+            text: "publicGroupの許可されたremoteServerのドメインを設定するapi",
+            link: "/takosWeb/publicGroupAllowRemoteServer",
+          },
+          {
+            text: "publicGroupに参加することをリクエストするapi",
+            link: "/takosWeb/requestPublicGroup",
+          },
+          {
+            text: "reCAPCHAトークンを取得するapi",
+            link: "/takosWeb/reCAPCHA",
+          },
+          {
+            text: "friend申請をするapi",
+            link: "/takosWeb/requestFriend",
+          },
+          {
+            text: "publicGroupに参加するリクエストを取得するapi",
+            link: "/takosWeb/publicGroupRequests",
+          },
+          {
+            text: "requestを取得するapi",
+            link: "/takosWeb/requests",
+          },
+          {
+            text: "messageを送信するapi",
+            link: "/takosWeb/sendMessage",
+          },
+          {
+            text: "accountKeyを更新するapi",
+            link: "/takosWeb/updateAccountKey",
+          },
+          {
+            text: "identityKeyを更新するapi",
+            link: "/takosWeb/updateIdentityKey",
+          },
+          {
+            text: "roomKeyを更新するapi",
+            link: "/takosWeb/updateRoomKey",
+          },
+          {
+            text: "shareKeyを更新するapi",
+            link: "/takosWeb/updateShareKey",
+          }
         ],
       },
     ],

@@ -17,7 +17,7 @@
 
 ```ts
 {
-    description: string;
+  description: string;
 }
 ```
 

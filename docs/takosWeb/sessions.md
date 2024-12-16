@@ -9,11 +9,11 @@
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| `email` | string | メールアドレス                   |
-| `recaptchaToken` | string | reCAPTCHAのトークン                   |
-| `recapchaVersion` | string | reCAPTCHAのバージョン                   |
+| 名前              | 型     | 説明                  |
+| ----------------- | ------ | --------------------- |
+| `email`           | string | メールアドレス        |
+| `recaptchaToken`  | string | reCAPTCHAのトークン   |
+| `recapchaVersion` | string | reCAPTCHAのバージョン |
 
 ### レスポンス
 
@@ -21,7 +21,7 @@
 
 ```ts
 {
-    tempAuthCode: string;
+  tempAuthCode: string;
 }
 ```
 
@@ -42,10 +42,10 @@
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| `tempAuthCode` | string | 一時認証コード                   |
-| `checkCode` | string | メールに送られた認証コード                   |
+| 名前           | 型     | 説明                       |
+| -------------- | ------ | -------------------------- |
+| `tempAuthCode` | string | 一時認証コード             |
+| `checkCode`    | string | メールに送られた認証コード |
 
 ### レスポンス
 
@@ -53,7 +53,6 @@
 
 ```ts
 ```
-
 
 レスポンスコード: 400
 
@@ -72,11 +71,11 @@
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| `tempAuthCode` | string | 一時認証コード                   |
-| `userId` | string | ユーザID                   |
-| `password` | string | パスワード                   |
+| 名前           | 型     | 説明           |
+| -------------- | ------ | -------------- |
+| `tempAuthCode` | string | 一時認証コード |
+| `userId`       | string | ユーザID       |
+| `password`     | string | パスワード     |
 
 ### レスポンス
 
@@ -84,10 +83,9 @@
 
 ```ts
 {
-    sessionid: string;
+  sessionid: string;
 }
 ```
-
 
 レスポンスコード: 400
 
@@ -108,17 +106,17 @@
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| `nickName` | string | ニックネーム                   |
-| `icon` | string | アイコン                   |
-| `birthday` | string | 誕生日                   |
-| `masterKey` | string | マスターキー                   |
-| `identityKey` | string | 識別キー                   |
-| `identityKeySign` | string | 識別キーサイン                   |
-| `accountKey` | string | アカウントキー                   |
-| `accountKeySign` | string | アカウントキーサイン                   |
-| `sharedKey` | string | 共有キー                   |
+| 名前              | 型     | 説明                 |
+| ----------------- | ------ | -------------------- |
+| `nickName`        | string | ニックネーム         |
+| `icon`            | string | アイコン             |
+| `birthday`        | string | 誕生日               |
+| `masterKey`       | string | マスターキー         |
+| `identityKey`     | string | 識別キー             |
+| `identityKeySign` | string | 識別キーサイン       |
+| `accountKey`      | string | アカウントキー       |
+| `accountKeySign`  | string | アカウントキーサイン |
+| `sharedKey`       | string | 共有キー             |
 
 ### レスポンス
 
@@ -144,13 +142,13 @@
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| `identityKey` | string | 識別キー                   |
-| `identityKeySign` | string | 識別キーサイン                   |
-| `accountKey` | string | アカウントキー                   |
-| `accountKeySign` | string | アカウントキーサイン                   |
-| `sharedKey` | string | 共有キー                   |
+| 名前              | 型     | 説明                 |
+| ----------------- | ------ | -------------------- |
+| `identityKey`     | string | 識別キー             |
+| `identityKeySign` | string | 識別キーサイン       |
+| `accountKey`      | string | アカウントキー       |
+| `accountKeySign`  | string | アカウントキーサイン |
+| `sharedKey`       | string | 共有キー             |
 
 ### レスポンス
 
@@ -176,11 +174,11 @@
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| `userId` | string | ユーザID                   |
-| `password` | string | パスワード                   |
-| `sessionUUID` | string | セッションUUID                   |
+| 名前          | 型     | 説明           |
+| ------------- | ------ | -------------- |
+| `userId`      | string | ユーザID       |
+| `password`    | string | パスワード     |
+| `sessionUUID` | string | セッションUUID |
 
 ### レスポンス
 
@@ -188,7 +186,7 @@
 
 ```ts
 {
-    sessionid: string;
+  sessionid: string;
 }
 ```
 
@@ -209,9 +207,9 @@
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| `migrationKey` | string | マイグレーションキー                   |
+| 名前           | 型     | 説明                 |
+| -------------- | ------ | -------------------- |
+| `migrationKey` | string | マイグレーションキー |
 
 ### レスポンス
 
@@ -237,9 +235,9 @@
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| `migrateSignKey` | string | マイグレーション署名キー                   |
+| 名前             | 型     | 説明                     |
+| ---------------- | ------ | ------------------------ |
+| `migrateSignKey` | string | マイグレーション署名キー |
 
 ### レスポンス
 
@@ -265,10 +263,10 @@
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| `migrateData` | string | マイグレーションデータ                   |
-| `migrateSign` | string | マイグレーション署名                   |
+| 名前          | 型     | 説明                   |
+| ------------- | ------ | ---------------------- |
+| `migrateData` | string | マイグレーションデータ |
+| `migrateSign` | string | マイグレーション署名   |
 
 ### レスポンス
 
@@ -294,9 +292,9 @@
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| | | |
+| 名前 | 型 | 説明 |
+| ---- | -- | ---- |
+|      |    |      |
 
 ### レスポンス
 

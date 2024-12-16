@@ -17,23 +17,21 @@
 Authorization: sessionid <セッションID>
 ```
 
-
 ### リクエストボディ
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| `accountKey` | string | アカウントキー                   |
-| `signature` | string | 署名                   |
-| `encryptedAccountKey` | { sessionUUID: string, accountKey: string }[] | 暗号化されたアカウントキー                   |
+| 名前                  | 型                                            | 説明                       |
+| --------------------- | --------------------------------------------- | -------------------------- |
+| `accountKey`          | string                                        | アカウントキー             |
+| `signature`           | string                                        | 署名                       |
+| `encryptedAccountKey` | { sessionUUID: string, accountKey: string }[] | 暗号化されたアカウントキー |
 
 ### レスポンス
 
 レスポンスコード: 200
 
 ```ts
-
 ```
 
 レスポンスコード: 400

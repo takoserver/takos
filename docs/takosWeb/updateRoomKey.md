@@ -17,24 +17,22 @@
 Authorization: sessionid <セッションID>
 ```
 
-
 ### リクエストボディ
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| `roomId` | string | 部屋ID                   |
-| `encryptedRoomKey` | { userId: string, roomKey: string }[] | 暗号化された部屋鍵 |
-| `roomKeyMetaData` | string | 部屋鍵のメタデータ                   |
-| `roomKeyMetaDataSign` | string | 部屋鍵のメタデータの署名                   |
+| 名前                  | 型                                    | 説明                     |
+| --------------------- | ------------------------------------- | ------------------------ |
+| `roomId`              | string                                | 部屋ID                   |
+| `encryptedRoomKey`    | { userId: string, roomKey: string }[] | 暗号化された部屋鍵       |
+| `roomKeyMetaData`     | string                                | 部屋鍵のメタデータ       |
+| `roomKeyMetaDataSign` | string                                | 部屋鍵のメタデータの署名 |
 
 ### レスポンス
 
 レスポンスコード: 200
 
 ```ts
-
 ```
 
 レスポンスコード: 400

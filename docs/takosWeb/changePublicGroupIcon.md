@@ -17,14 +17,13 @@
 Authorization: sessionid <セッションID>
 ```
 
-
 ### リクエストボディ
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| `icon` | string | icon base64       |
+| 名前   | 型     | 説明        |
+| ------ | ------ | ----------- |
+| `icon` | string | icon base64 |
 
 ### レスポンス
 
@@ -42,4 +41,3 @@ Authorization: sessionid <セッションID>
   error: string;
 }
 ```
-
