@@ -13,70 +13,82 @@ apiを利用してリクエストを拒否することにより、friend登録�
 
 ## groupへの招待
 
-`inviteGroup` apiを利用して、groupに招待する。 frindであることが前提。
+`invite`apiを利用してgroupのホストサーバーに招待を送信する。
 
-`accept` apiを利用して招待を受け入れることにより、groupに参加する。
+ホストサーバーは`noticeInvite`apiを利用して招待されたユーザーに通知を送信する。
 
-`reject`
-apiを利用して招待を拒否することにより、groupへの参加がキャンセルされる。
+招待されたユーザーは`accept`apiを利用してホストサーバーに招待を受け入れることにより、groupに参加することができる。
 
-## groupからの脱退
+`reject`apiを利用して招待を拒否することにより、groupへの参加をキャンセルすることができる。
 
-`leaveGroup` apiを利用して、groupから脱退する。
+acceptした場合、ホストサーバーは`noticeJoinGroup`apiを利用してgroupに参加しているサーバーに通知を送信する。
 
-グループに参加している全てのサーバーに脱退したことをapiで通知する。
+## groupへのkick
+※リーダーが権限を与えた場合のみ利用可能
 
-## groupでのkick
+`kick`apiを利用してgroupのホストサーバーにkickリクエストを送信する。
 
-`kickGroup` apiを利用して、groupからkickする。
+ホストサーバーは`noticeKick`apiを利用してkickされたユーザーに通知を送信する。
 
-グループに参加している全てのサーバーにkickしたことをapiで通知する。
+## groupのiconを変更する
+※リーダーが権限を与えた場合のみ利用可能
 
-## groupの削除
+`changeGroupIcon`apiを利用してgroupのiconを変更する。
 
-`deleteGroup` apiを利用して、groupを削除したことを通知する。
+`noticeChangeGroupIcon`apiを利用してgroupに参加しているサーバーに通知を送信する。
 
-グループに参加している全てのサーバーに削除したことをapiで通知する。
+## groupのnameを変更する
+※リーダーが権限を与えた場合のみ利用可能
 
-## friendのチャット
+`changeGroupName`apiを利用してgroupのnameを変更する。
 
-`sendFriendMessage` apiを利用して、friendに対してメッセージを送信する。
+`noticeChangeGroupName`apiを利用してgroupに参加しているサーバーに通知を送信する。
 
-idのみ送信し、メッセージはクライアントが各サーバーに対して直接getする。
+## groupのdescriptionを変更する
+※リーダーが権限を与えた場合のみ利用可能
 
-## groupでのチャット
+`changeGroupDescription`apiを利用してgroupのdescriptionを変更する。
 
-`sendGroupMessage` apiを利用して、メッセージを送信する。
+`noticeChangeGroupDescription`apiを利用してgroupに参加しているサーバーに通知を送信する。
 
-メッセージのidを参加している全てのサーバーに送信する。
+## groupから退出する
 
-groupとpublicGroupは外部サーバーの数が1000を超える場合、新たなサーバーのユーザーは参加できない。
+`leaveGroup`apiを利用してgroupのホストサーバーに退出リクエストを送信する。
 
-## publicGroupでのチャット
+ホストサーバーは`noticeLeaveGroup`apiを利用してgroupに参加しているサーバーに通知を送信する。
 
-`sendPublicGroupMessage` apiを利用して、メッセージを送信する。
+##  groupに参加しているユーザーを取得する
 
-メッセージのidを参加している全てのサーバーに送信する。
+### ホストサーバーがオンラインの場合
 
-friendとgroupの違いは、暗号化しないことでNotEncryptedMessageのみを送信することができる。
+`getGroupMembers`apiを利用してgroupに参加しているユーザーを取得する。
 
-## friendの削除
+### ホストサーバーがオフラインの場合
 
-`deleteFriend` apiを利用して、friendを削除する。
+自サーバーに保存されているgroupの情報を利用してgroupに参加しているユーザーを取得する。
 
-## publicGroupへの参加
+## public groupへの参加をリクエスト
 
-`joinPublicGroup` apiを利用して、publicGroupに参加する。
+`requestJoinPublicGroup`apiを利用してpublic groupのホストサーバーに参加リクエストを送信する。
 
-## publicGroupからの脱退
+`accept`apiを利用してリクエストを受け入れることにより、public groupに参加することができる。
 
-`leavePublicGroup` apiを利用して、publicGroupから脱退する。
+`reject`apiを利用してリクエストを拒否することにより、public groupへの参加をキャンセルすることができる。
 
-## publicGroupの参加申請
+## public groupへ参加する
+(自由にさんかできる設定で且つ、すでに同じサーバーのユーザーが参加している場合)
 
-`requestPublicGroup` apiを利用して、publicGroupに参加申請する。
+`joinPublicGroup`apiを利用してpublic groupに参加する。
 
-`accept` apiを利用して参加申請を受け入れることにより、publicGroupに参加する。
+## public groupから退出する
 
-`reject`
-apiを利用して参加申請を拒否することにより、publicGroupへの参加がキャンセルされる。
+`leavePublicGroup`apiを利用してpublic groupのホストサーバーに退出リクエストを送信する。
+
+# groupでの会話を行う
+
+メッセージを送信する場合は、`sendMessage`apiを利用して参加しているすべてのサーバーにメッセージを送信する。
+
+# public groupでの会話を行う
+
+メッセージを送信する場合は、`sendPublicMessage`apiを利用して参加しているすべてのサーバーにメッセージを送信する。
+
