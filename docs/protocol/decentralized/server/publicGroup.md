@@ -1,5 +1,39 @@
 # publicGroupのホストサーバーに他のサーバーが利用するAPI
 
+## groupのメッセージを削除
+
+### エンドポイント情報
+
+- **HTTPメソッド**: POST
+- **URLパス**: `/_takos/v2/publicGroup/delete`
+
+### ヘッダー
+
+| 名前            | 型     | 説明                                       |
+| --------------- | ------ | ------------------------------------------ |
+| `Authorization` | string | 認証情報を含むヘッダー（以下の形式で指定） |
+
+**`Authorization`ヘッダーの形式**:
+
+```
+Authorization: Signature sign="<署名>", Expires="<有効期限>"
+```
+
+- `sign`: リクエストボディの署名
+- `Expiry`: 鍵の有効期限
+
+### リクエストボディ
+
+リクエストのボディは、JSON形式で以下の内容を含みます。
+
+| 名前         | 型     | 説明                                |
+| ------------ | ------ | ----------------------------------- |
+| `messageId`  | string | メッセージのid                       |
+| `groupId`    | string | グループのid                        |
+| `userId`     | string | メッセージを送ったユーザー          |
+| `type`       | string | リクエストの種類（`"deleteMessage"`） |
+| `eventId`   | string | イベントID(uuid v7)                     |
+
 ## publicGroupに参加を申請するAPI
 
 ### エンドポイント情報
@@ -1180,3 +1214,36 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
   error: string;
 }
 ```
+
+## groupのメッセージを削除を通知
+
+### エンドポイント情報
+
+- **HTTPメソッド**: POST
+- **URLパス**: `/_takos/v2/publicGroup/notice/delete`
+
+### ヘッダー
+
+| 名前            | 型     | 説明                                       |
+| --------------- | ------ | ------------------------------------------ |
+| `Authorization` | string | 認証情報を含むヘッダー（以下の形式で指定） |
+
+**`Authorization`ヘッダーの形式**:
+
+```
+Authorization: Signature sign="<署名>", Expires="<有効期限>"
+```
+
+- `sign`: リクエストボディの署名
+- `Expiry`: 鍵の有効期限
+
+### リクエストボディ
+
+リクエストのボディは、JSON形式で以下の内容を含みます。
+
+| 名前         | 型     | 説明                                |
+| ------------ | ------ | ----------------------------------- |
+| `messageId`  | string | メッセージのid                       |
+| `groupId`    | string | グループのid                        |
+| `type`       | string | リクエストの種類（`"deleteMessage"`） |
+| `eventId`   | string | イベントID(uuid v7)                     |

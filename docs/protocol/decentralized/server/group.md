@@ -1,5 +1,58 @@
 # groupのホストサーバーに他のサーバーが利用するAPI
 
+## groupのメッセージを削除
+
+### エンドポイント情報
+
+- **HTTPメソッド**: POST
+- **URLパス**: `/_takos/v2/group/delete`
+
+### ヘッダー
+
+| 名前            | 型     | 説明                                       |
+| --------------- | ------ | ------------------------------------------ |
+| `Authorization` | string | 認証情報を含むヘッダー（以下の形式で指定） |
+
+**`Authorization`ヘッダーの形式**:
+
+```
+Authorization: Signature sign="<署名>", Expires="<有効期限>"
+```
+
+- `sign`: リクエストボディの署名
+- `Expiry`: 鍵の有効期限
+
+### リクエストボディ
+
+リクエストのボディは、JSON形式で以下の内容を含みます。
+
+| 名前         | 型     | 説明                                |
+| ------------ | ------ | ----------------------------------- |
+| `messageId`  | string | メッセージのid                       |
+| `groupId`    | string | グループのid                        |
+| `userId`     | string | メッセージを送ったユーザー          |
+| `type`       | string | リクエストの種類（`"deleteMessage"`） |
+| `eventId`   | string | イベントID(uuid v7)                     |
+
+### レスポンス
+
+レスポンスコード: 200
+
+```ts
+{
+  requestId: string;
+}
+```
+
+レスポンスコード: 400
+
+```ts
+{
+  error: string;
+}
+```
+
+
 ## groupへの招待
 
 ### エンドポイント情報
@@ -485,7 +538,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/_takos/v2/group/noticeJoin`
+- **URLパス**: `/_takos/v2/group/notice/join`
 
 ### ヘッダー
 
@@ -535,7 +588,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/_takos/v2/group/noticeLeave`
+- **URLパス**: `/_takos/v2/group/notice/leave`
 
 ### ヘッダー
 
@@ -585,7 +638,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/_takos/v2/group/noticeKick`
+- **URLパス**: `/_takos/v2/group/notice/kick`
 
 ### ヘッダー
 
@@ -635,7 +688,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/_takos/v2/group/noticeAddRole`
+- **URLパス**: `/_takos/v2/group/notice/role/add`
 
 ### ヘッダー
 
@@ -687,7 +740,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/_takos/v2/group/noticeDeleteRole`
+- **URLパス**: `/_takos/v2/group/notice/role/delete`
 
 ### ヘッダー
 
@@ -737,7 +790,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/_takos/v2/group/noticeEditRole`
+- **URLパス**: `/_takos/v2/group/notice/role/edit`
 
 ### ヘッダー
 
@@ -788,7 +841,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/_takos/v2/group/noticeChangeRole`
+- **URLパス**: `/_takos/v2/group/notice/user`
 
 ### ヘッダー
 
@@ -839,7 +892,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/_takos/v2/group/noticeAddChannel`
+- **URLパス**: `/_takos/v2/group/notice/channel/add`
 
 ### ヘッダー
 
@@ -890,7 +943,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/_takos/v2/group/noticeDeleteChannel`
+- **URLパス**: `/_takos/v2/group/notice/channel/delete`
 
 ### ヘッダー
 
@@ -939,7 +992,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/_takos/v2/group/noticeEditChannel`
+- **URLパス**: `/_takos/v2/group/notice/channel/edit`
 
 ### ヘッダー
 
@@ -985,12 +1038,45 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 }
 ```
 
+## groupのメッセージを削除
+
+### エンドポイント情報
+
+- **HTTPメソッド**: POST
+- **URLパス**: `/_takos/v2/group/notice/delete`
+
+### ヘッダー
+
+| 名前            | 型     | 説明                                       |
+| --------------- | ------ | ------------------------------------------ |
+| `Authorization` | string | 認証情報を含むヘッダー（以下の形式で指定） |
+
+**`Authorization`ヘッダーの形式**:
+
+```
+Authorization: Signature sign="<署名>", Expires="<有効期限>"
+```
+
+- `sign`: リクエストボディの署名
+- `Expiry`: 鍵の有効期限
+
+### リクエストボディ
+
+リクエストのボディは、JSON形式で以下の内容を含みます。
+
+| 名前         | 型     | 説明                                |
+| ------------ | ------ | ----------------------------------- |
+| `messageId`  | string | メッセージのid                       |
+| `groupId`    | string | グループのid                        |
+| `type`       | string | リクエストの種類（`"noticeDeleteMessage"`） |
+| `eventId`   | string | イベントID(uuid v7)                     |
+
 ## 招待されたことを通知
 
 ### エンドポイント情報
 
 - **HTTPメソッド**: POST
-- **URLパス**: `/_takos/v2/group/noticeInvite`
+- **URLパス**: `/_takos/v2/group/notice/invite`
 
 ### ヘッダー
 
