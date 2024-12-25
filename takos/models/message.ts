@@ -1,25 +1,25 @@
 import mongoose from "mongoose";
 
-const messageSchema= new mongoose.Schema({
+const messageSchema = new mongoose.Schema({
+  roomId: {
+    type: String,
+    required: true,
+  },
+  userName: {
+    type: String,
+    required: true,
+  },
   messageid: {
     type: String,
     required: true,
   },
-  isLocal: {
+  isEncrypted: {
     type: Boolean,
     required: true,
   },
-  userid: {
-    type: String,
+  isSigned: {
+    type: Boolean,
     required: true,
-  },
-  type: {
-    type: String,
-    required: true,
-    enum: ["friend", "group"],
-  },
-  roomid: {
-    type: String,
   },
   message: {
     type: String,
@@ -27,17 +27,11 @@ const messageSchema= new mongoose.Schema({
   sign: {
     type: String,
   },
-  timestamp: {
-    type: Date,
-    default: Date.now,
-    required: true,
-  },
-  read: {
-    type: Array,
-  },
-  roomKeyHash: {
-    type: String,
-  },
+  sendedServer: {
+    type: Boolean,
+  }
 });
 
-export default mongoose.model("Message", messageSchema);
+const Message = mongoose.model("message", messageSchema);
+
+export default Message;

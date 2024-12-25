@@ -1,3 +1,5 @@
-import { start } from "./index.ts";
+import { Hono } from "hono";
 
-start();
+const app = new Hono();
+
+export default app;

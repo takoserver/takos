@@ -1,4 +1,3 @@
-// index.ts
-//write your .env file
-import Takos from "@/index.ts";
-Takos();
+import { start } from "./index.ts";
+
+start();

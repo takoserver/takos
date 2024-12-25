@@ -1422,4 +1422,3 @@ export function isValidMessage(message: string): boolean {
       return false;
   }
 }
-

@@ -18,7 +18,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>, domain="<ド�
 ```
 
 - `sign`: リクエストボディの署名
-- `Expiry`: 署名の有効期限
+- `Expiry`: 鍵の有効期限
 
 ### リクエストボディ
 
@@ -29,6 +29,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>, domain="<ド�
 | `groupId` | string | グループのid                                         |
 | `icon`    | string | グループのアイコンのbase64エンコードされた画像データ |
 | `type`    | string | アイコンの変更の種類（`changeGroupIcon`）            |
+| `eventId`   | string | イベントID(uuid v7)                     |
 
 ### レスポンス
 

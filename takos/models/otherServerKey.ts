@@ -9,11 +9,6 @@ const serverKeySchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  timestamp: {
-    type: Date,
-    default: Date.now(),
-    required: true,
-  },
   expire: {
     type: Date,
     default: Date.now() + 1000 * 60 * 60 * 24 * 30,
@@ -23,5 +18,4 @@ const serverKeySchema = new mongoose.Schema({
 });
 
 const serverKey = mongoose.model("otherServerKey", serverKeySchema);
-
 export default serverKey;

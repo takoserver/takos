@@ -18,7 +18,9 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>, domain="<ド�
 ```
 
 - `sign`: リクエストボディの署名
-- `Expiry`: 署名の有効期限
+- `Expiry`: 鍵の有効期限
+
+同じ有効期限の
 
 ### リクエストボディ
 
@@ -28,15 +30,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>, domain="<ド�
 | ----------- | ------ | ------------------------------ |
 | `requestId` | string | リクエストID                   |
 | `type`      | string | リクエストの種類（`"accept"`） |
-
-**例**:
-
-```json
-{
-  "requestId": "1234567890abcdef@takos.jp",
-  "type": "accept"
-}
-```
+| `eventId`   | string | イベントID(uuid v7)                     |
 
 ### レスポンス
 

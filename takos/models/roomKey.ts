@@ -1,47 +1,31 @@
 import mongoose from "mongoose";
 
-const roomKeySchema = new mongoose.Schema({
-  id: {
-    type: String,
-    required: true,
-  },
+const keyShareDataSchema = new mongoose.Schema({
   userName: {
     type: String,
     required: true,
   },
-  roomid: {
+  roomId: {
     type: String,
     required: true,
   },
-  roomType: {
+  hash: {
     type: String,
     required: true,
-    enum: ["friend", "group"],
   },
-  encryptedRoomKey: {
+  encrtypedRoomKey: {
     type: Array,
-  },
-  sessionid: {
-    type: String,
-    required: true,
   },
   timestamp: {
     type: Date,
     default: Date.now,
-    required: true,
   },
-  roomKeySign: {
-    type: String,
-    required: true,
-  },
-  metaData: {
-    type: String,
-    required: true,
-  },
-  metaDataSign: {
-    type: String,
-    required: true,
+  updateTime: {
+    type: Date,
+    expires: 60 * 60 * 24 * 14,
   },
 });
 
-export default mongoose.model("RoomKey", roomKeySchema);
+const KeyShareData = mongoose.model("roomKey", keyShareDataSchema);
+
+export default KeyShareData;

@@ -1,30 +1,68 @@
-// index.ts
-import v2 from "./v2/index.ts";
 import { Hono } from "hono";
+import v2 from "./v2/index.ts";
+import { serveStatic } from "hono/serve-static";
+import { hc } from "hono/client";
+import { cors } from "hono/cors";
 import mongoose from "mongoose";
-import { load } from "@std/dotenv";
-const env = await load();
-(async () => {
-  try {
-    await Deno.stat("./files/");
-  } catch (e) {
-    await Deno.mkdir("./files/");
-    await Deno.mkdir("./files/userIcon");
-    return;
-  }
-  try {
-    await Deno.stat("./files/userIcon");
-  } catch (e) {
-    await Deno.mkdir("./files/userIcon");
-  }
-  return;
-})();
+import env from "./utils/env.ts";
+import serverList from "./models/serverList.ts";
+import serverKey from "./models/serverKey.ts";
+import { generateServerKey } from "@takos/takos-encrypt-ink";
+const app = new Hono();
+app.route("/takos/v2", v2).use(
+  "/*",
+  serveStatic({
+    root: "./",
+    getContent: async (path, c) => {
+      try {
+        const file = await Deno.readFile(`./html/${path}`);
+        return new Response(file, {
+          headers: {
+            "Content-Type": "text/html",
+          },
+        });
+      } catch (e) {
+        return null;
+      }
+    },
+  }),
+);
 
-function start() {
-  const port = env["PORT"];
-  mongoose.connect(env["MONGO_URI"]);
-  const app = new Hono().basePath("/takos");
-  app.route("/v2", v2);
-  Deno.serve({ port: Number(port) }, app.fetch);
+app.post("/takos/ping", (c) => {
+  return c.json({ pong: true });
+});
+
+export function start() {
+  mongoose.connect(env["MONGO_URI"]).then(() => {
+    console.log("Connected to MongoDB");
+    serverList.findOne(
+      { serverDomain: env["DOMAIN"] },
+    ).then((result) => {
+      if (!result) {
+        serverList.create({ serverDomain: env["DOMAIN"] });
+      }
+    });
+    serverKey.findOne({}).sort({ _id: -1 }).then((result) => {
+      let generateKey = false;
+      if (!result) {
+        generateKey = true;
+      } else {
+        const now = new Date();
+        if (new Date(result.expire) < now) {
+          generateKey = true;
+        }
+      }
+      if (generateKey) {
+        const Key = generateServerKey();
+        serverKey.create({
+          public: Key.public,
+          private: Key.private,
+        });
+      }
+    });
+    const port = Number(env["PORT"]);
+    Deno.serve({
+      port,
+    }, app.fetch);
+  });
 }
-export default start;

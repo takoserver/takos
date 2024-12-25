@@ -91,4 +91,3 @@ acceptした場合、ホストサーバーは`noticeJoinGroup`apiを利用して
 # public groupでの会話を行う
 
 メッセージを送信する場合は、`sendPublicMessage`apiを利用して参加しているすべてのサーバーにメッセージを送信する。
-

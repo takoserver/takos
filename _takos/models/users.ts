@@ -1,10 +1,5 @@
 import mongoose from "mongoose";
-import type {
-  AccountKeyPub,
-  deviceKeyPub,
-  IdentityKeyPub,
-  MasterKeyPub,
-} from "takosEncryptInk";
+
 const userSchema = new mongoose.Schema({
   userName: {
     type: String,
@@ -22,6 +17,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  icon: {
+    type: String,
+  },
   email: {
     type: String,
     required: true,
@@ -38,10 +36,13 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  age: {
-    type: Number,
+  birthday: {
+    type: Date,
   },
   timestamp: { type: Date, default: Date.now },
+  masterKey: {
+    type: String,
+  },
 });
-const User = mongoose.model("user", userSchema);
+const User = mongoose.model("users", userSchema);
 export default User;

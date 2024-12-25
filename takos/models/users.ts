@@ -43,6 +43,12 @@ const userSchema = new mongoose.Schema({
   masterKey: {
     type: String,
   },
+  accountKey: {
+    type: String,
+  },
+  accountKeySign: {
+    type: String,
+  },
 });
 const User = mongoose.model("users", userSchema);
 export default User;

@@ -1,58 +1,204 @@
-// books.ts
 import { Hono } from "hono";
-import ping from "@/v2/client/ping.ts";
-import bgimage from "@/v2/client/bgimage.ts";
-import temp from "@/v2/client/sessions/registers/temp.ts";
-import check from "@/v2/client/sessions/registers/check.ts";
-import recaptcha from "@/v2/client/recaptcha.ts";
-import auth from "@/v2/client/sessions/registers/auth.ts";
-import icon from "@/v2/client/profile/icon.ts";
-import userName from "@/v2/client/profile/userName.ts";
-import profile from "@/v2/client/profile/profile.ts";
-import nickName from "@/v2/client/profile/nickName.ts";
-import login from "@/v2/client/sessions/login.ts";
-import logout from "@/v2/client/sessions/logout.ts";
-import setup from "@/v2/client/sessions/registers/setup.ts";
-import keys from "./profile/keys.ts";
-import ws from "@/v2/client/ws/ws.ts";
-import sessionKey from "@/v2/client/sessions/key.ts";
-import friendAccept from "@/v2/client/friends/accept.ts";
-import friendRequest from "@/v2/client/friends/request.ts";
-import friendsReqList from "@/v2/client/friends/requestList.ts";
-import iconUser from "@/v2/client/users/icon.ts";
-import list from "@/v2/client/list.ts";
-import usersKey from "@/v2/client/users/keys.ts";
-import resetKey from "@/v2/client/profile/resetKey.ts";
-import talkData from "@/v2/client/talk/data.ts";
-import talkSend from "@/v2/client/talk/send.ts";
-import talkInfo from "@/v2/client/talk/info.ts";
-import AllowKey from "@/v2/client/users/allowKey.ts";
+import { array, z } from "zod";
+import { Singlend } from "@evex/singlend";
+import registers from "./register.ts";
+import login from "./login.ts";
+import sessionsFunction from "./sessionFunction.ts";
 const app = new Hono();
-app.route("/ping", ping);
-app.route("/bgimage", bgimage);
-app.route("/sessions/registers/temp", temp);
-app.route("/sessions/registers/check", check);
-app.route("/sessions/registers/auth", auth);
-app.route("/recaptcha", recaptcha);
-app.route("/profile/icon", icon);
-app.route("/profile/userName", userName);
-app.route("/profile/nickName", nickName);
-app.route("/profile", profile);
-app.route("/sessions/login", login);
-app.route("/sessions/logout", logout);
-app.route("/sessions/registers/setup", setup);
-app.route("/profile/keys", keys);
+const singlend = new Singlend();
+import env from "../../utils/env.ts";
+import { arrayBufferToBase64 } from "../../utils/buffers.ts";
+import { cors } from "hono/cors";
+import ws from "./websocket/ws.ts";
+import User from "../../models/users.ts";
+import IdentityKey from "../../models/Identitykeys.ts";
+import AccountKey from "../../models/accountKey.ts";
+
+singlend.mount(registers);
+
+singlend.on(
+  "getRecapchaV2",
+  z.object({}),
+  (_query, ok, _error) => {
+    return ok({
+      siteKey: env["RECAPCHA_V2_SITE_KEY"],
+    });
+  },
+);
+
+singlend.on(
+  "getMasterKey",
+  z.object({
+    userName: z.string(),
+  }),
+  async (query, ok, error) => {
+    const user = await User.findOne({ userName: query.userName });
+    if (!user) {
+      return error({ error: "user not found" });
+    }
+    return ok({ masterKey: user.masterKey });
+  },
+);
+singlend.on(
+  "getIdentiyKey",
+  z.object({
+    userName: z.string(),
+    hash: z.string(),
+  }),
+  async (query, ok, error) => {
+    const user = await User.findOne({ userName: query.userName });
+    if (!user) {
+      return error({ error: "user not found" });
+    }
+    const key = await IdentityKey.findOne({
+      userName: query.userName,
+      hash: query.hash,
+    });
+    if (!key) {
+      return error({ error: "key not found" });
+    }
+    return ok({
+      identityKey: key!.identityKey,
+      idenSign: key!.sign,
+    });
+  },
+);
+singlend.on(
+  "getAccountKey",
+  z.object({
+    userName: z.string(),
+    hash: z.string(),
+  }),
+  async (query, ok, error) => {
+    const user = await User.findOne({ userName: query.userName });
+    if (!user) {
+      return error({ error: "user not found" });
+    }
+    const key = await AccountKey.findOne({
+      userName: query.userName,
+      hash: query.hash,
+    });
+    if (!key) {
+      return error({ error: "key not found" });
+    }
+    return ok({
+      accountKey: key!.accoutKey,
+      sign: key!.sign,
+    });
+  },
+);
+singlend.on(
+  "getAccountKeyLatest",
+  z.object({
+    userName: z.string(),
+  }),
+  async (query, ok, error) => {
+    const user = await User.findOne({ userName: query.userName });
+    if (!user) {
+      return error({ error: "user not found" });
+    }
+    const key = await AccountKey.findOne({
+      userName: query.userName,
+    }).sort({ timestamp: -1 });
+    if (!key) {
+      return error({ error: "key not found" });
+    }
+    return ok({
+      accountKey: key!.accoutKey,
+      accSign: key!.sign,
+    });
+  },
+);
+
+singlend.on(
+  "getRecapchaV3",
+  z.object({}),
+  (_query, ok, _error) => {
+    return ok({ siteKey: env["RECAPCHA_V3_SITE_KEY"] });
+  },
+);
+
+singlend.on(
+  "getServerBackgroundImage",
+  z.object({}),
+  async (_query, ok, error) => {
+    try {
+      // ./backgroundImages/にある画像すべてを取得
+      const dirPath = "./backgroundImages";
+      const result = await readRandomImageFromDir(dirPath).catch(console.error);
+      if (!result) {
+        return error({ error: "faild to load image" });
+      }
+      return ok("data:image/jpg;base64," + arrayBufferToBase64(result));
+    } catch (e) {
+      console.log(e);
+      return error({ error: "faild to load image" });
+    }
+  },
+);
+
+singlend.on(
+  "getServerIconImage",
+  z.object({}),
+  async (_query, ok, error) => {
+    try {
+      const iconBinary = await Deno.readFile("./icon.jpg");
+      return ok("data:image/jpg;base64," + arrayBufferToBase64(iconBinary));
+    } catch (e) {
+      console.log(e);
+      return error({ error: "faild to load image" });
+    }
+  },
+);
+
+singlend.on(
+  "getServerInfo",
+  z.object({}),
+  (_query, ok, _error) => {
+    return ok({
+      serverDescription: env["explain"],
+    });
+  },
+);
+singlend.mount(login);
+singlend.mount(sessionsFunction);
+app.use(
+  "/",
+  cors(
+    {
+      origin: "*",
+      allowMethods: ["GET", "POST", "PUT", "DELETE"],
+    },
+  ),
+);
+app.post("/", singlend.handler());
 app.route("/ws", ws);
-app.route("/sessions/key", sessionKey);
-app.route("/friends/accept", friendAccept);
-app.route("/friends/request", friendRequest);
-app.route("/friends/requestList", friendsReqList);
-app.route("/users/icon", iconUser);
-app.route("/list", list);
-app.route("/users/keys", usersKey);
-app.route("/profile/resetKey", resetKey);
-app.route("/talk/data", talkData);
-app.route("/talk/send", talkSend);
-app.route("/talk/info", talkInfo);
-app.route("/keys/allowKey", AllowKey);
+
 export default app;
+
+// ランダムに数値を生成する関数
+function getRandomInt(max: number): number {
+  return Math.floor(Math.random() * max);
+}
+
+// 指定されたディレクトリからランダムな画像ファイルを読み込む関数
+async function readRandomImageFromDir(dir: string) {
+  const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+  const files: string[] = [];
+  for await (const dirEntry of Deno.readDir(dir)) {
+    if (
+      dirEntry.isFile &&
+      imageExtensions.some((ext) => dirEntry.name.toLowerCase().endsWith(ext))
+    ) {
+      files.push(dirEntry.name);
+    }
+  }
+  if (files.length === 0) {
+    throw new Error("ディレクトリに画像ファイルがありません。");
+  }
+
+  const randomIndex = getRandomInt(files.length);
+  const randomFile = `${dir}/${files[randomIndex]}`;
+  const imageData = await Deno.readFile(randomFile);
+  return imageData;
+}
