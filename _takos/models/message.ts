@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const messageSchema= new mongoose.Schema({
+const messageSchema = new mongoose.Schema({
   messageid: {
     type: String,
     required: true,

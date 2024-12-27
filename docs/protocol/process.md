@@ -24,6 +24,7 @@ apiを利用してリクエストを拒否することにより、friend登録�
 acceptした場合、ホストサーバーは`noticeJoinGroup`apiを利用してgroupに参加しているサーバーに通知を送信する。
 
 ## groupへのkick
+
 ※リーダーが権限を与えた場合のみ利用可能
 
 `kick`apiを利用してgroupのホストサーバーにkickリクエストを送信する。
@@ -31,6 +32,7 @@ acceptした場合、ホストサーバーは`noticeJoinGroup`apiを利用して
 ホストサーバーは`noticeKick`apiを利用してkickされたユーザーに通知を送信する。
 
 ## groupのiconを変更する
+
 ※リーダーが権限を与えた場合のみ利用可能
 
 `changeGroupIcon`apiを利用してgroupのiconを変更する。
@@ -38,6 +40,7 @@ acceptした場合、ホストサーバーは`noticeJoinGroup`apiを利用して
 `noticeChangeGroupIcon`apiを利用してgroupに参加しているサーバーに通知を送信する。
 
 ## groupのnameを変更する
+
 ※リーダーが権限を与えた場合のみ利用可能
 
 `changeGroupName`apiを利用してgroupのnameを変更する。
@@ -45,6 +48,7 @@ acceptした場合、ホストサーバーは`noticeJoinGroup`apiを利用して
 `noticeChangeGroupName`apiを利用してgroupに参加しているサーバーに通知を送信する。
 
 ## groupのdescriptionを変更する
+
 ※リーダーが権限を与えた場合のみ利用可能
 
 `changeGroupDescription`apiを利用してgroupのdescriptionを変更する。
@@ -57,7 +61,7 @@ acceptした場合、ホストサーバーは`noticeJoinGroup`apiを利用して
 
 ホストサーバーは`noticeLeaveGroup`apiを利用してgroupに参加しているサーバーに通知を送信する。
 
-##  groupに参加しているユーザーを取得する
+## groupに参加しているユーザーを取得する
 
 ### ホストサーバーがオンラインの場合
 
@@ -69,20 +73,25 @@ acceptした場合、ホストサーバーは`noticeJoinGroup`apiを利用して
 
 ## public groupへの参加をリクエスト
 
-`requestJoinPublicGroup`apiを利用してpublic groupのホストサーバーに参加リクエストを送信する。
+`requestJoinPublicGroup`apiを利用してpublic
+groupのホストサーバーに参加リクエストを送信する。
 
-`accept`apiを利用してリクエストを受け入れることにより、public groupに参加することができる。
+`accept`apiを利用してリクエストを受け入れることにより、public
+groupに参加することができる。
 
-`reject`apiを利用してリクエストを拒否することにより、public groupへの参加をキャンセルすることができる。
+`reject`apiを利用してリクエストを拒否することにより、public
+groupへの参加をキャンセルすることができる。
 
 ## public groupへ参加する
+
 (自由にさんかできる設定で且つ、すでに同じサーバーのユーザーが参加している場合)
 
 `joinPublicGroup`apiを利用してpublic groupに参加する。
 
 ## public groupから退出する
 
-`leavePublicGroup`apiを利用してpublic groupのホストサーバーに退出リクエストを送信する。
+`leavePublicGroup`apiを利用してpublic
+groupのホストサーバーに退出リクエストを送信する。
 
 # groupでの会話を行う
 

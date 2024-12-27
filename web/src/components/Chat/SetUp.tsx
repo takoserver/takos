@@ -68,7 +68,7 @@ export function SetUp() {
                         {
                           privateKey: masterKey.privateKey,
                           publicKey: masterKey.publicKey,
-                        }
+                        },
                       );
                       if (!identityKey) {
                         throw new Error("identityKey is not generated");

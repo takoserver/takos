@@ -65,11 +65,11 @@ singlend.group(
           encryptedAccountKey: {
             $elemMatch: {
               0: value.sessionInfo.sessionUUID,
-            }
+            },
           },
           deriveredSession: {
-            $ne: value.sessionInfo.sessionid
-          }
+            $ne: value.sessionInfo.sessionid,
+          },
         });
         return ok({
           setuped: value.userInfo.setup,
@@ -84,7 +84,7 @@ singlend.group(
     singlend.on(
       "getShareData",
       z.object({
-       hash: z.string(),
+        hash: z.string(),
       }),
       async (query, value, ok, error) => {
         console.log("getAccountKey");
@@ -100,7 +100,7 @@ singlend.group(
           accountKeyPublic: sbareAccountKey.accoutKey,
         });
       },
-    )
+    );
     singlend.on(
       "setUp",
       z.object({
@@ -211,7 +211,7 @@ singlend.group(
         );
         return ok("ok");
       },
-    )
+    );
     singlend.on(
       "resetMasterKey",
       z.object({
@@ -539,7 +539,7 @@ singlend.group(
         ) {
           return error("error", 400);
         }
-        const encryptedAccountKey: [string,string][] = []
+        const encryptedAccountKey: [string, string][] = [];
         for (const data of query.sharedData) {
           const sessionUUID = data[0];
           const encryptedAccountKeyValue = data[1];
@@ -549,10 +549,10 @@ singlend.group(
           if (!await Session.findOne({ sessionUUID })) {
             return error("error2", 400);
           }
-          if(!isValidEncryptedAccountKey(encryptedAccountKeyValue)) {
+          if (!isValidEncryptedAccountKey(encryptedAccountKeyValue)) {
             return error("error3", 400);
           }
-         encryptedAccountKey.push([sessionUUID, encryptedAccountKeyValue]);
+          encryptedAccountKey.push([sessionUUID, encryptedAccountKeyValue]);
         }
         await AccountKey.create({
           userName: value.userInfo.userName,
@@ -560,7 +560,7 @@ singlend.group(
           sign: query.accSign,
           hash: await keyHash(query.accountKeyPublic),
           encryptedAccountKey: encryptedAccountKey,
-        })
+        });
         return ok("ok");
       },
     );
@@ -847,33 +847,41 @@ singlend.group(
       }),
       async (query, value, ok, error) => {
         if (!value.userInfo.masterKey) return error("error1", 400);
-        if(query.roomType !== "group" && query.roomType !== "friend") {
+        if (query.roomType !== "group" && query.roomType !== "friend") {
           return error("error2", 400);
         }
         console.log(JSON.parse(query.sign).keyHash);
         const idenKey = await IdentityKey.findOne({
           userName: value.userInfo.userName,
           sessionid: value.sessionInfo.sessionid,
-          hash: JSON.parse(query.sign).keyHash
+          hash: JSON.parse(query.sign).keyHash,
         });
-        if(!idenKey) {
+        if (!idenKey) {
           return error("error3", 400);
         }
-        if(!verifyIdentityKey(idenKey.identityKey, query.metaDataSign, query.metaData)) {
+        if (
+          !verifyIdentityKey(
+            idenKey.identityKey,
+            query.metaDataSign,
+            query.metaData,
+          )
+        ) {
           return error("error4", 400);
         }
-        if(query.roomType === "friend") {
+        if (query.roomType === "friend") {
           const nameInfo = query.roomid.split("-");
-          if(nameInfo.length !== 2) {
+          if (nameInfo.length !== 2) {
             return error("error6", 400);
           }
-          if(nameInfo[0] !== value.userInfo.userName + "@" + env["DOMAIN"]) {
+          if (nameInfo[0] !== value.userInfo.userName + "@" + env["DOMAIN"]) {
             return error("erro7", 400);
           }
-          if(!await Friend.findOne({
-            userName: value.userInfo.userName + "@" + env["DOMAIN"],
-            friendId: nameInfo[1],
-          })) {
+          if (
+            !await Friend.findOne({
+              userName: value.userInfo.userName + "@" + env["DOMAIN"],
+              friendId: nameInfo[1],
+            })
+          ) {
             return error("error8", 400);
           }
           const id = uuidv7();
@@ -881,8 +889,11 @@ singlend.group(
             roomid: query.roomid,
             sessionid: value.sessionInfo.sessionid,
           }).sort({ timestamp: -1 });
-          if(!latestRoomKey) {
-            const userIds = [value.userInfo.userName + "@" + env["DOMAIN"] , nameInfo[1]];
+          if (!latestRoomKey) {
+            const userIds = [
+              value.userInfo.userName + "@" + env["DOMAIN"],
+              nameInfo[1],
+            ];
             await RoomKey.create({
               userName: value.userInfo.userName,
               roomid: query.roomid,
@@ -890,10 +901,10 @@ singlend.group(
               sessionid: value.sessionInfo.sessionid,
               id,
               encryptedRoomKey: query.encryptedKey.map((data: {
-                encryptedData: string; 
+                encryptedData: string;
                 userId: string;
               }) => {
-                if(!userIds.includes(data.userId)) {
+                if (!userIds.includes(data.userId)) {
                   throw new Error("error9");
                 }
                 userIds.splice(userIds.indexOf(data.userId), 1);
@@ -903,10 +914,16 @@ singlend.group(
               metaData: query.metaData,
               metaDataSign: query.metaDataSign,
             });
-            return ok({id});
-          } else if(new Date(latestRoomKey.timestamp).getTime() < new Date().getTime() - 1000 * 60 * 10) {
+            return ok({ id });
+          } else if (
+            new Date(latestRoomKey.timestamp).getTime() <
+              new Date().getTime() - 1000 * 60 * 10
+          ) {
             console.log("updateRoomKey");
-            const userIds = [value.userInfo.userName + "@" + env["DOMAIN"] , nameInfo[1]];
+            const userIds = [
+              value.userInfo.userName + "@" + env["DOMAIN"],
+              nameInfo[1],
+            ];
             const id = uuidv7();
             await RoomKey.create({
               userName: value.userInfo.userName,
@@ -915,10 +932,10 @@ singlend.group(
               sessionid: value.sessionInfo.sessionid,
               id,
               encryptedRoomKey: query.encryptedKey.map((data: {
-                encryptedData: string; 
+                encryptedData: string;
                 userId: string;
               }) => {
-                if(!userIds.includes(data.userId)) {
+                if (!userIds.includes(data.userId)) {
                   throw new Error("error10");
                 }
                 userIds.splice(userIds.indexOf(data.userId), 1);
@@ -928,7 +945,7 @@ singlend.group(
               metaData: query.metaData,
               metaDataSign: query.metaDataSign,
             });
-            return ok({id});
+            return ok({ id });
           } else {
             return error("error11", 400);
           }
@@ -949,15 +966,17 @@ singlend.group(
           sessionid: value.sessionInfo.sessionid,
           id: query.id,
         });
-        if(!roomKey) return error("error", 400);
+        if (!roomKey) return error("error", 400);
         return ok({
-          encryptedKey: roomKey.encryptedRoomKey.find((data) => data[0] === value.userInfo.userName + "@" + env["DOMAIN"])[1],
+          encryptedKey: roomKey.encryptedRoomKey.find((data) =>
+            data[0] === value.userInfo.userName + "@" + env["DOMAIN"]
+          )[1],
           sign: roomKey.roomKeySign,
           metaData: roomKey.metaData,
           metaDataSign: roomKey.metaDataSign,
         });
-      }
-    )
+      },
+    );
     singlend.on(
       "sendMessage",
       z.object({
@@ -967,25 +986,30 @@ singlend.group(
         sign: z.string(),
       }),
       async (query, value, ok, error) => {
-        if(query.roomType !== "group" && query.roomType !== "friend") {
+        if (query.roomType !== "group" && query.roomType !== "friend") {
           return error("error1", 400);
         }
-        if(query.roomType === "friend") {
+        if (query.roomType === "friend") {
           const nameInfo = query.roomid.split("-");
-          if(nameInfo.length !== 2) {
+          if (nameInfo.length !== 2) {
             return error("error2", 400);
           }
-          if(nameInfo[0] !== value.userInfo.userName + "@" + env["DOMAIN"]) {
+          if (nameInfo[0] !== value.userInfo.userName + "@" + env["DOMAIN"]) {
             return error("error3", 400);
           }
-          if(!await Friend.findOne({
-            userName: value.userInfo.userName + "@" + env["DOMAIN"],
-            friendId: nameInfo[1],
-          })) {
+          if (
+            !await Friend.findOne({
+              userName: value.userInfo.userName + "@" + env["DOMAIN"],
+              friendId: nameInfo[1],
+            })
+          ) {
             return error("error4", 400);
           }
           const presedMessage = JSON.parse(query.message);
-          if(new Date(presedMessage.timestamp).getTime() > new Date().getTime() + 1000 * 60 * 1) {
+          if (
+            new Date(presedMessage.timestamp).getTime() >
+              new Date().getTime() + 1000 * 60 * 1
+          ) {
             return error("error5", 400);
           }
           const presedSign = JSON.parse(query.sign);
@@ -994,17 +1018,19 @@ singlend.group(
             sessionid: value.sessionInfo.sessionid,
             hash: presedSign.keyHash,
           });
-          if(!idenKey) {
+          if (!idenKey) {
             return error("error6", 400);
           }
-            if(!verifyIdentityKey(idenKey.identityKey, query.sign, query.message)) {
-              return error("error7", 400);
-            }
-          if(!isValidMessage(query.message)) {
+          if (
+            !verifyIdentityKey(idenKey.identityKey, query.sign, query.message)
+          ) {
+            return error("error7", 400);
+          }
+          if (!isValidMessage(query.message)) {
             return error("error8", 400);
           }
-          const messageid = uuidv7() + "@" + env["DOMAIN"]
-          if(splitUserName(nameInfo[1]).domain !== env["DOMAIN"]) {
+          const messageid = uuidv7() + "@" + env["DOMAIN"];
+          if (splitUserName(nameInfo[1]).domain !== env["DOMAIN"]) {
             const requestRemoteServer = await requesterServer(
               splitUserName(nameInfo[1]).domain,
               "sendMessage",
@@ -1016,7 +1042,7 @@ singlend.group(
               }),
             );
             console.log(requestRemoteServer);
-            if(!requestRemoteServer.status) {
+            if (!requestRemoteServer.status) {
               return error("error9", 400);
             }
           }
@@ -1034,8 +1060,8 @@ singlend.group(
           return ok("ok");
         }
         return error("error9", 400);
-      }
-    )
+      },
+    );
     singlend.on(
       "getMessages",
       z.object({
@@ -1045,25 +1071,27 @@ singlend.group(
         since: z.string().optional(),
       }),
       async (query, value, ok, error) => {
-        if(query.roomType !== "group" && query.roomType !== "friend") {
+        if (query.roomType !== "group" && query.roomType !== "friend") {
           return error("error1", 400);
         }
-        if(query.roomType === "friend") {
+        if (query.roomType === "friend") {
           const nameInfo = query.roomid.split("-");
-          if(nameInfo.length !== 2) {
+          if (nameInfo.length !== 2) {
             return error("error2", 400);
           }
-          if(nameInfo[0] !== value.userInfo.userName + "@" + env["DOMAIN"]) {
+          if (nameInfo[0] !== value.userInfo.userName + "@" + env["DOMAIN"]) {
             return error("error3", 400);
           }
-          if(!await Friend.findOne({
-            userName: value.userInfo.userName + "@" + env["DOMAIN"],
-            friendId: nameInfo[1],
-          })) {
+          if (
+            !await Friend.findOne({
+              userName: value.userInfo.userName + "@" + env["DOMAIN"],
+              friendId: nameInfo[1],
+            })
+          ) {
             return error("error4", 400);
           }
-          let messages
-          if(query.since) {
+          let messages;
+          if (query.since) {
             messages = await Message.find({
               type: "friend",
               roomid: query.roomid,
@@ -1076,25 +1104,32 @@ singlend.group(
             }).sort({ timestamp: 1 }).limit(query.limit);
           }
           const remoteMessages = messages.filter((data) => !data.isLocal);
-          const localMessagesResult = messages.filter((data) => data.isLocal).map((data) => {
-            return {
-              message: data.message,
-              sign: data.sign,
-              timestamp: data.timestamp,
-              read: data.read,
-              roomKeyHash: data.roomKeyHash,
-            }
-          })
-          if(remoteMessages.length === 0) {
+          const localMessagesResult = messages.filter((data) => data.isLocal)
+            .map((data) => {
+              return {
+                message: data.message,
+                sign: data.sign,
+                timestamp: data.timestamp,
+                read: data.read,
+                roomKeyHash: data.roomKeyHash,
+              };
+            });
+          if (remoteMessages.length === 0) {
             return ok({
               messages: localMessagesResult,
             });
           }
-          const remoteMessagesResponse = await multiFetchClient(remoteMessages.map((data) => {
-            return [splitUserName(data.roomid!.split("-")[1]).domain, "getMessage", JSON.stringify({
-              messageid: data.messageid,
-            })]
-          }))
+          const remoteMessagesResponse = await multiFetchClient(
+            remoteMessages.map((data) => {
+              return [
+                splitUserName(data.roomid!.split("-")[1]).domain,
+                "getMessage",
+                JSON.stringify({
+                  messageid: data.messageid,
+                }),
+              ];
+            }),
+          );
           const remoteMessagesResult = remoteMessagesResponse.map((data) => {
             return {
               message: data.message,
@@ -1102,23 +1137,29 @@ singlend.group(
               timestamp: data.timestamp, // ここを追加
               read: data.read,
               roomKeyHash: data.roomKeyHash,
-            }
+            };
           });
           return ok({
-            messages: localMessagesResult.concat(remoteMessagesResult).sort((a, b) => {
-              return a.timestamp > b.timestamp ? 1 : -1;
-            }),
+            messages: localMessagesResult.concat(remoteMessagesResult).sort(
+              (a, b) => {
+                return a.timestamp > b.timestamp ? 1 : -1;
+              },
+            ),
           });
         }
         return error("error5", 400);
-      }
-    )
+      },
+    );
     return singlend;
   },
 );
 
-export async function multiFetchClient(data: [string, string, string][]): Promise<any[]> {
-  const promises = data.map(([param1, param2,param3]) => requesterServer(param1, param2, param3));
+export async function multiFetchClient(
+  data: [string, string, string][],
+): Promise<any[]> {
+  const promises = data.map(([param1, param2, param3]) =>
+    requesterServer(param1, param2, param3)
+  );
   const results = await Promise.all(promises);
   return results;
 }
@@ -1141,8 +1182,8 @@ async function resizeImage(icon: string) {
 function isValidMetaData(data: string, shareUser: number) {
   // y = 119x+73
   const keyLength = 119 * shareUser + 73;
-  if(data.length !== keyLength) {
-    console.log(data.length, keyLength)
+  if (data.length !== keyLength) {
+    console.log(data.length, keyLength);
     return false;
   }
   return true;

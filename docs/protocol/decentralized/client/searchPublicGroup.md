@@ -3,8 +3,8 @@
 - **HTTPメソッド**: GET
 - **URLパス**: `_takos/v2/publicGroup/search`
 
-| 名前     | 型     | 説明            |
-| -------- | ------ | --------------- |
+| 名前    | 型     | 説明            |
+| ------- | ------ | --------------- |
 | `query` | string | publicGroupのid |
 
 ### response
@@ -15,5 +15,6 @@
   groupName: string;
   groupDescription: string;
   groupIconImage: string;
-}[]
+}
+[];
 ```

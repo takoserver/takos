@@ -21,8 +21,15 @@ const sessionSchema = new mongoose.Schema({
   sessionUUID: {
     type: String,
   },
+  shareKey: {
+    type: String,
+  },
+  shareKeySign: {
+    type: String,
+  },
 });
 
 const Session = mongoose.model("sessions", sessionSchema);
 
+export { sessionSchema };
 export default Session;

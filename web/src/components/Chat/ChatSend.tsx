@@ -1,4 +1,8 @@
-import { deviceKeyState, inputMessageState, isValidInputState } from "../../utils/state";
+import {
+  deviceKeyState,
+  inputMessageState,
+  isValidInputState,
+} from "../../utils/state";
 import { useAtom } from "solid-jotai";
 import { createSignal } from "solid-js";
 import { roomKeyState, selectedRoomState } from "../../utils/roomState";
@@ -12,17 +16,19 @@ function ChatSend() {
   const [selectedRoom, setSelectedRoom] = useAtom(selectedRoomState);
   const [deviceKey] = useAtom(deviceKeyState);
   const sendHandler = async () => {
-    if(roomKey().length === 0) return;
+    if (roomKey().length === 0) return;
     const message = inputMessage();
     setInputMessage("");
     const myLatestRoomKeyArray = roomKey().filter((room) => {
-      return room.userId === localStorageEditor.get("userName") + "@" + localStorageEditor.get("server");
+      return room.userId ===
+        localStorageEditor.get("userName") + "@" +
+          localStorageEditor.get("server");
     });
     if (!myLatestRoomKeyArray) return;
     myLatestRoomKeyArray.sort((a, b) => {
       return JSON.parse(a.key).timestamp - JSON.parse(b.key).timestamp;
     });
-    const myLatestRoomKey = myLatestRoomKeyArray[0]
+    const myLatestRoomKey = myLatestRoomKeyArray[0];
     const latestIdentityKey = await getLatestIdentityKey(deviceKey() as string);
     const encryptedMessage = await encryptMessage(
       {
@@ -30,7 +36,7 @@ function ChatSend() {
         content: message,
         channel: "main",
         timestamp: new Date().getTime(),
-        isLarge: false
+        isLarge: false,
       },
       myLatestRoomKey.key,
       {
@@ -38,14 +44,18 @@ function ChatSend() {
         pubKeyHash: latestIdentityKey?.hash as string,
       },
       selectedRoom()?.roomid as string,
-    )
-    const res = await requester(localStorageEditor.get("server") as string, "sendMessage", {
-      roomid: selectedRoom()?.roomid,
-      roomType: selectedRoom()?.type,
-      message: encryptedMessage?.message,
-      sign: encryptedMessage?.sign as string,
-      sessionid: localStorageEditor.get("sessionid"),
-    })
+    );
+    const res = await requester(
+      localStorageEditor.get("server") as string,
+      "sendMessage",
+      {
+        roomid: selectedRoom()?.roomid,
+        roomType: selectedRoom()?.type,
+        message: encryptedMessage?.message,
+        sign: encryptedMessage?.sign as string,
+        sessionid: localStorageEditor.get("sessionid"),
+      },
+    );
     if (res.status !== 200) {
       console.error("failed to send message");
       return;

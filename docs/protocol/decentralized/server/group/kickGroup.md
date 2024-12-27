@@ -30,7 +30,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 | `receiverId` | string | リクエストを送られるユーザー      |
 | `groupId`    | string | グループのid                      |
 | `type`       | string | リクエストの種類（`"kickGroup"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| `eventId`    | string | イベントID(uuid v7)               |
 
 ### レスポンス
 

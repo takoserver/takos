@@ -10,19 +10,14 @@ const keyShareDataSchema = new mongoose.Schema({
     required: true,
   },
   encryptedAccountKey: {
-    type: Array,
-  },
-  deriveredSession: {
-    type: Array,
-    default: [],
-  },
-  updateTime: {
-    type: Date,
-    expires: 60 * 60 * 24 * 14,
+    type: String,
   },
   timestamp: {
     type: Date,
     default: Date.now,
+  },
+  sessionid: {
+    type: String,
   },
 });
 

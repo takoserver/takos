@@ -26,13 +26,13 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                                |
-| ------------ | ------ | ----------------------------------- |
-| `messageId`  | string | メッセージのid                       |
-| `groupId`    | string | グループのid                        |
-| `userId`     | string | メッセージを送ったユーザー          |
-| `type`       | string | リクエストの種類（`"deleteMessage"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| 名前        | 型     | 説明                                  |
+| ----------- | ------ | ------------------------------------- |
+| `messageId` | string | メッセージのid                        |
+| `groupId`   | string | グループのid                          |
+| `userId`    | string | メッセージを送ったユーザー            |
+| `type`      | string | リクエストの種類（`"deleteMessage"`） |
+| `eventId`   | string | イベントID(uuid v7)                   |
 
 ### レスポンス
 
@@ -51,7 +51,6 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
   error: string;
 }
 ```
-
 
 ## groupへの招待
 
@@ -85,7 +84,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 | `receiverId` | string | リクエストを送られるユーザー        |
 | `groupId`    | string | グループのid                        |
 | `type`       | string | リクエストの種類（`"inviteGroup"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| `eventId`    | string | イベントID(uuid v7)                 |
 
 ### レスポンス
 
@@ -132,14 +131,12 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前        | 型     | 説明                           |
-| ----------- | ------ | ------------------------------ |
-| `userId`    | string | 承諾したユーザー       |
-| `groupId`   | string | グループのid                   |
-| `type`      | string | リクエストの種類（`"acceptGroupInvite"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
-
-
+| 名前      | 型     | 説明                                      |
+| --------- | ------ | ----------------------------------------- |
+| `userId`  | string | 承諾したユーザー                          |
+| `groupId` | string | グループのid                              |
+| `type`    | string | リクエストの種類（`"acceptGroupInvite"`） |
+| `eventId` | string | イベントID(uuid v7)                       |
 
 ## groupからキック
 
@@ -173,7 +170,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 | `receiverId` | string | リクエストを送られるユーザー      |
 | `groupId`    | string | グループのid                      |
 | `type`       | string | リクエストの種類（`"kickGroup"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| `eventId`    | string | イベントID(uuid v7)               |
 
 ### レスポンス
 
@@ -225,7 +222,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 | `groupId` | string | グループのid                       |
 | `userId`  | string | リクエストを送るユーザー           |
 | `type`    | string | リクエストの種類（`"leaveGroup"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| `eventId` | string | イベントID(uuid v7)                |
 
 ### レスポンス
 
@@ -270,15 +267,15 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                              |
-| ------------ | ------ | --------------------------------- |
-| `senderId`   | string | リクエストを送るユーザー          |
-| `groupId`    | string | グループのid                      |
-| `roleId`     | string | ロールのid                        |
-| `name`       | string | ロールの名前                      |
-| `permission` | string[] | ロールの権限                      |
-| `type`       | string | リクエストの種類（`"addRole"`）   |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| 名前         | 型       | 説明                            |
+| ------------ | -------- | ------------------------------- |
+| `senderId`   | string   | リクエストを送るユーザー        |
+| `groupId`    | string   | グループのid                    |
+| `roleId`     | string   | ロールのid                      |
+| `name`       | string   | ロールの名前                    |
+| `permission` | string[] | ロールの権限                    |
+| `type`       | string   | リクエストの種類（`"addRole"`） |
+| `eventId`    | string   | イベントID(uuid v7)             |
 
 ## groupのroleの削除
 
@@ -306,13 +303,13 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                              |
-| ------------ | ------ | --------------------------------- |
-| `senderId`   | string | リクエストを送るユーザー          |
-| `groupId`    | string | グループのid                      |
-| `roleId`     | string | ロールのid                        |
-| `type`       | string | リクエストの種類（`"deleteRole"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| 名前       | 型     | 説明                               |
+| ---------- | ------ | ---------------------------------- |
+| `senderId` | string | リクエストを送るユーザー           |
+| `groupId`  | string | グループのid                       |
+| `roleId`   | string | ロールのid                         |
+| `type`     | string | リクエストの種類（`"deleteRole"`） |
+| `eventId`  | string | イベントID(uuid v7)                |
 
 ## groupのroleの編集
 
@@ -340,15 +337,15 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                              |
-| ------------ | ------ | --------------------------------- |
-| `senderId`   | string | リクエストを送るユーザー          |
-| `groupId`    | string | グループのid                      |
-| `roleId`     | string | ロールのid                        |
-| `name`       | string | ロールの名前                      |
-| `permission` | string[] | ロールの権限                      |
-| `type`       | string | リクエストの種類（`"editRole"`）  |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| 名前         | 型       | 説明                             |
+| ------------ | -------- | -------------------------------- |
+| `senderId`   | string   | リクエストを送るユーザー         |
+| `groupId`    | string   | グループのid                     |
+| `roleId`     | string   | ロールのid                       |
+| `name`       | string   | ロールの名前                     |
+| `permission` | string[] | ロールの権限                     |
+| `type`       | string   | リクエストの種類（`"editRole"`） |
+| `eventId`    | string   | イベントID(uuid v7)              |
 
 ## userのroleの変更
 
@@ -376,15 +373,15 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                              |
-| ------------ | ------ | --------------------------------- |
-| `senderId`   | string | リクエストを送るユーザー          |
-| `groupId`    | string | グループのid                      |
-| `type`       | string | リクエストの種類（`"changeGroupRole"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
-| `userId`     | string | ユーザーのid                      |
-| `roleId`     | string | ロールのid                        |
-| `change`     | string | 変更の種類（`"add"`または`"remove"`） |
+| 名前       | 型     | 説明                                    |
+| ---------- | ------ | --------------------------------------- |
+| `senderId` | string | リクエストを送るユーザー                |
+| `groupId`  | string | グループのid                            |
+| `type`     | string | リクエストの種類（`"changeGroupRole"`） |
+| `eventId`  | string | イベントID(uuid v7)                     |
+| `userId`   | string | ユーザーのid                            |
+| `roleId`   | string | ロールのid                              |
+| `change`   | string | 変更の種類（`"add"`または`"remove"`）   |
 
 ## groupのchannelの追加
 
@@ -412,15 +409,15 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                              |
-| ------------ | ------ | --------------------------------- |
-| `senderId`   | string | リクエストを送るユーザー          |
-| `groupId`    | string | グループのid                      |
-| `type`       | string | リクエストの種類（`"changeGroupRole"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
-| `channelId`  | string | チャンネルのid                    |
-| `name`       | string | チャンネルの名前                  |
-| `roles`       | string[] | チャンネルの権限                  |
+| 名前        | 型       | 説明                                    |
+| ----------- | -------- | --------------------------------------- |
+| `senderId`  | string   | リクエストを送るユーザー                |
+| `groupId`   | string   | グループのid                            |
+| `type`      | string   | リクエストの種類（`"changeGroupRole"`） |
+| `eventId`   | string   | イベントID(uuid v7)                     |
+| `channelId` | string   | チャンネルのid                          |
+| `name`      | string   | チャンネルの名前                        |
+| `roles`     | string[] | チャンネルの権限                        |
 
 ## groupのchannelの削除
 
@@ -448,13 +445,13 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                              |
-| ------------ | ------ | --------------------------------- |
-| `senderId`   | string | リクエストを送るユーザー          |
-| `groupId`    | string | グループのid                      |
-| `type`       | string | リクエストの種類（`"changeGroupRole"`） |
+| 名前        | 型     | 説明                                    |
+| ----------- | ------ | --------------------------------------- |
+| `senderId`  | string | リクエストを送るユーザー                |
+| `groupId`   | string | グループのid                            |
+| `type`      | string | リクエストの種類（`"changeGroupRole"`） |
 | `eventId`   | string | イベントID(uuid v7)                     |
-| `channelId`  | string | チャンネルのid                    |
+| `channelId` | string | チャンネルのid                          |
 
 ## groupのchannelの編集
 
@@ -482,15 +479,15 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                              |
-| ------------ | ------ | --------------------------------- |
-| `senderId`   | string | リクエストを送るユーザー          |
-| `groupId`    | string | グループのid                      |
-| `type`       | string | リクエストの種類（`"changeGroupRole"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
-| `channelId`  | string | チャンネルのid                    |
-| `name`       | string | チャンネルの名前                  |
-| `roles`       | string[] | チャンネルの権限                  |
+| 名前        | 型       | 説明                                    |
+| ----------- | -------- | --------------------------------------- |
+| `senderId`  | string   | リクエストを送るユーザー                |
+| `groupId`   | string   | グループのid                            |
+| `type`      | string   | リクエストの種類（`"changeGroupRole"`） |
+| `eventId`   | string   | イベントID(uuid v7)                     |
+| `channelId` | string   | チャンネルのid                          |
+| `name`      | string   | チャンネルの名前                        |
+| `roles`     | string[] | チャンネルの権限                        |
 
 ## groupのmemberとroleとchannelを取得
 
@@ -503,9 +500,9 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                              |
-| ------------ | ------ | --------------------------------- |
-| `groupId`    | string | グループのid                      |
+| 名前      | 型     | 説明         |
+| --------- | ------ | ------------ |
+| `groupId` | string | グループのid |
 
 ### レスポンス
 
@@ -529,7 +526,6 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
   }[];
 }
 ```
-
 
 # groupのホストサーバーから他のサーバーに通知するAPI
 
@@ -559,12 +555,12 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                                |
-| ------------ | ------ | ----------------------------------- |
-| `userId`     | string | 参加したユーザー                    |
-| `groupId`    | string | グループのid                        |
-| `type`       | string | リクエストの種類（`"noticeJoinGroup"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| 名前      | 型     | 説明                                    |
+| --------- | ------ | --------------------------------------- |
+| `userId`  | string | 参加したユーザー                        |
+| `groupId` | string | グループのid                            |
+| `type`    | string | リクエストの種類（`"noticeJoinGroup"`） |
+| `eventId` | string | イベントID(uuid v7)                     |
 
 ### レスポンス
 
@@ -609,12 +605,12 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                                |
-| ------------ | ------ | ----------------------------------- |
-| `userId`     | string | 参加したユーザー                    |
-| `groupId`    | string | グループのid                        |
-| `type`       | string | リクエストの種類（`"noticeLeaveGroup"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| 名前      | 型     | 説明                                     |
+| --------- | ------ | ---------------------------------------- |
+| `userId`  | string | 参加したユーザー                         |
+| `groupId` | string | グループのid                             |
+| `type`    | string | リクエストの種類（`"noticeLeaveGroup"`） |
+| `eventId` | string | イベントID(uuid v7)                      |
 
 ### レスポンス
 
@@ -659,12 +655,12 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                                |
-| ------------ | ------ | ----------------------------------- |
-| `userId`     | string | 参加したユーザー                    |
-| `groupId`    | string | グループのid                        |
-| `type`       | string | リクエストの種類（`"noticeKickGroup"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| 名前      | 型     | 説明                                    |
+| --------- | ------ | --------------------------------------- |
+| `userId`  | string | 参加したユーザー                        |
+| `groupId` | string | グループのid                            |
+| `type`    | string | リクエストの種類（`"noticeKickGroup"`） |
+| `eventId` | string | イベントID(uuid v7)                     |
 
 ### レスポンス
 
@@ -709,14 +705,14 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                                |
-| ------------ | ------ | ----------------------------------- |
-| `groupId`    | string | グループのid                        |
-| `roleId`     | string | ロールのid                          |
-| `name`       | string | ロールの名前                        |
-| `permission` | string[] | ロールの権限                        |
-| `type`       | string | リクエストの種類（`"noticeAddRoleGroup"`） |
-| `eventId`    | string | イベントID(uuid v7)                 |
+| 名前         | 型       | 説明                                       |
+| ------------ | -------- | ------------------------------------------ |
+| `groupId`    | string   | グループのid                               |
+| `roleId`     | string   | ロールのid                                 |
+| `name`       | string   | ロールの名前                               |
+| `permission` | string[] | ロールの権限                               |
+| `type`       | string   | リクエストの種類（`"noticeAddRoleGroup"`） |
+| `eventId`    | string   | イベントID(uuid v7)                        |
 
 ### レスポンス
 
@@ -761,12 +757,12 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                                |
-| ------------ | ------ | ----------------------------------- |
-| `groupId`    | string | グループのid                        |
-| `roleId`     | string | ロールのid                          |
-| `type`       | string | リクエストの種類（`"noticeDeleteRoleGroup"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| 名前      | 型     | 説明                                          |
+| --------- | ------ | --------------------------------------------- |
+| `groupId` | string | グループのid                                  |
+| `roleId`  | string | ロールのid                                    |
+| `type`    | string | リクエストの種類（`"noticeDeleteRoleGroup"`） |
+| `eventId` | string | イベントID(uuid v7)                           |
 
 ### レスポンス
 
@@ -811,13 +807,13 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                                |
-| ------------ | ------ | ----------------------------------- |
-| `groupId`    | string | グループのid                        |
-| `roleId`     | string | ロールのid                          |
-| `name`       | string | ロールの名前                        |
-| `permission` | string[] | ロールの権限                        |
-| `type`       | string | リクエストの種類（`"noticeEditRoleGroup"`） |
+| 名前         | 型       | 説明                                        |
+| ------------ | -------- | ------------------------------------------- |
+| `groupId`    | string   | グループのid                                |
+| `roleId`     | string   | ロールのid                                  |
+| `name`       | string   | ロールの名前                                |
+| `permission` | string[] | ロールの権限                                |
+| `type`       | string   | リクエストの種類（`"noticeEditRoleGroup"`） |
 
 ### レスポンス
 
@@ -862,13 +858,13 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                                |
-| ------------ | ------ | ----------------------------------- |
-| `groupId`    | string | グループのid                        |
-| `userId`     | string | ユーザーのid                        |
-| `roleId`     | string | ロールのid                          |
-| `change`     | string | 変更の種類（`"add"`または`"remove"`） |
-| `type`       | string | リクエストの種類（`"noticeChangeRoleGroup"`） |
+| 名前      | 型     | 説明                                          |
+| --------- | ------ | --------------------------------------------- |
+| `groupId` | string | グループのid                                  |
+| `userId`  | string | ユーザーのid                                  |
+| `roleId`  | string | ロールのid                                    |
+| `change`  | string | 変更の種類（`"add"`または`"remove"`）         |
+| `type`    | string | リクエストの種類（`"noticeChangeRoleGroup"`） |
 
 ### レスポンス
 
@@ -913,13 +909,13 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                                |
-| ------------ | ------ | ----------------------------------- |
-| `groupId`    | string | グループのid                        |
-| `channelId`  | string | チャンネルのid                      |
-| `name`       | string | チャンネルの名前                    |
-| `roles`      | string[] | チャンネルの権限                    |
-| `type`       | string | リクエストの種類（`"noticeAddChannelGroup"`） |
+| 名前        | 型       | 説明                                          |
+| ----------- | -------- | --------------------------------------------- |
+| `groupId`   | string   | グループのid                                  |
+| `channelId` | string   | チャンネルのid                                |
+| `name`      | string   | チャンネルの名前                              |
+| `roles`     | string[] | チャンネルの権限                              |
+| `type`      | string   | リクエストの種類（`"noticeAddChannelGroup"`） |
 
 ### レスポンス
 
@@ -964,11 +960,11 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                                |
-| ------------ | ------ | ----------------------------------- |
-| `groupId`    | string | グループのid                        |
-| `channelId`  | string | チャンネルのid                      |
-| `type`       | string | リクエストの種類（`"noticeDeleteChannelGroup"`） |
+| 名前        | 型     | 説明                                             |
+| ----------- | ------ | ------------------------------------------------ |
+| `groupId`   | string | グループのid                                     |
+| `channelId` | string | チャンネルのid                                   |
+| `type`      | string | リクエストの種類（`"noticeDeleteChannelGroup"`） |
 
 ### レスポンス
 
@@ -1013,13 +1009,13 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                                |
-| ------------ | ------ | ----------------------------------- |
-| `groupId`    | string | グループのid                        |
-| `channelId`  | string | チャンネルのid                      |
-| `name`       | string | チャンネルの名前                    |
-| `roles`      | string[] | チャンネルの権限                    |
-| `type`       | string | リクエストの種類（`"noticeEditChannelGroup"`） |
+| 名前        | 型       | 説明                                           |
+| ----------- | -------- | ---------------------------------------------- |
+| `groupId`   | string   | グループのid                                   |
+| `channelId` | string   | チャンネルのid                                 |
+| `name`      | string   | チャンネルの名前                               |
+| `roles`     | string[] | チャンネルの権限                               |
+| `type`      | string   | リクエストの種類（`"noticeEditChannelGroup"`） |
 
 ### レスポンス
 
@@ -1064,12 +1060,12 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                                |
-| ------------ | ------ | ----------------------------------- |
-| `messageId`  | string | メッセージのid                       |
-| `groupId`    | string | グループのid                        |
-| `type`       | string | リクエストの種類（`"noticeDeleteMessage"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| 名前        | 型     | 説明                                        |
+| ----------- | ------ | ------------------------------------------- |
+| `messageId` | string | メッセージのid                              |
+| `groupId`   | string | グループのid                                |
+| `type`      | string | リクエストの種類（`"noticeDeleteMessage"`） |
+| `eventId`   | string | イベントID(uuid v7)                         |
 
 ## 招待されたことを通知
 
@@ -1097,13 +1093,13 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 
 リクエストのボディは、JSON形式で以下の内容を含みます。
 
-| 名前         | 型     | 説明                                |
-| ------------ | ------ | ----------------------------------- |
-| `senderId`   | string | リクエストを送るユーザー            |
-| `receiverId` | string | リクエストを送られるユーザー        |
-| `groupId`    | string | グループのid                        |
+| 名前         | 型     | 説明                                      |
+| ------------ | ------ | ----------------------------------------- |
+| `senderId`   | string | リクエストを送るユーザー                  |
+| `receiverId` | string | リクエストを送られるユーザー              |
+| `groupId`    | string | グループのid                              |
 | `type`       | string | リクエストの種類（`"noticeInviteGroup"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| `eventId`    | string | イベントID(uuid v7)                       |
 
 ### レスポンス
 

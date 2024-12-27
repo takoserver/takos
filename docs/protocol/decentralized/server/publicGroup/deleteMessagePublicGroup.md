@@ -29,7 +29,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>, domain="<ド�
 | `groupId`   | string | グループのid                                         |
 | `messageId` | string | メッセージのid                                       |
 | `type`      | string | メッセージの削除の種類（`deleteMessagePublicGroup`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| `eventId`   | string | イベントID(uuid v7)                                  |
 
 ### レスポンス
 

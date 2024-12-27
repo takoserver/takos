@@ -29,7 +29,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>, domain="<ド�
 | `senderId`  | string | リクエストを送るユーザー     |
 | `roomId`    | string | リクエストを送られるユーザー |
 | `messageId` | string | メッセージのid               |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| `eventId`   | string | イベントID(uuid v7)          |
 
 ### レスポンス
 

@@ -8,9 +8,18 @@ import {
   pageState,
   talkListState,
 } from "../../utils/state";
-import { isSelectRoomState, selectedRoomState, roomKeyState } from "../../utils/roomState";
+import {
+  isSelectRoomState,
+  roomKeyState,
+  selectedRoomState,
+} from "../../utils/roomState";
 import { Home } from "./home";
-import { clearDB, createTakosDB, isValidLatestAccountKey, localStorageEditor } from "../../utils/idb";
+import {
+  clearDB,
+  createTakosDB,
+  isValidLatestAccountKey,
+  localStorageEditor,
+} from "../../utils/idb";
 import { requester } from "../../utils/requester";
 import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "../popUpFrame";
 import { createEffect, createSignal } from "solid-js";
@@ -105,7 +114,8 @@ function TalkList() {
     setSelectedRoom({
       type: "friend",
       roomName: talk.roomName,
-      roomid: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server") + "-" + talk.roomName,
+      roomid: localStorageEditor.get("userName") + "@" +
+        localStorageEditor.get("server") + "-" + talk.roomName,
     });
     setIsSelectRoom(true);
     const latestRoomKeyhash = await db.getAll("latestRoomkeyHash");
@@ -196,64 +206,88 @@ function TalkList() {
         console.error("Failed to encrypt room key");
         return;
       }
-      if(!isValidLatestAccountKey(talk.roomName, friendAccountKeyJson.accountKey)) {
+      if (
+        !isValidLatestAccountKey(talk.roomName, friendAccountKeyJson.accountKey)
+      ) {
         console.error("Invalid account key");
         return;
       }
       const res = await requester(domain() as string, "updateRoomKey", {
-        roomid: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server") + "-" + talk.roomName,
+        roomid: localStorageEditor.get("userName") + "@" +
+          localStorageEditor.get("server") + "-" + talk.roomName,
         metaData: encryptedRoomKey.metadata,
         metaDataSign: encryptedRoomKey.metadataSign,
         roomType: "friend",
         encryptedKey: encryptedRoomKey.encryptedData,
         sign: encryptedRoomKey.sign,
         sessionid: localStorage.getItem("sessionid"),
-      })
+      });
       if (res.status !== 200) {
         console.error("Failed to update room key");
         return;
       }
       const json = await res.json();
       await db.put("latestRoomkeyHash", {
-        key: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server") + "-" + talk.roomName,
+        key: localStorageEditor.get("userName") + "@" +
+          localStorageEditor.get("server") + "-" + talk.roomName,
         timestamp: JSON.parse(roomKey).timestamp,
-        id: json.id
+        id: json.id,
       });
       setRoomKeyState([
         {
-          userId: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server"),
+          userId: localStorageEditor.get("userName") + "@" +
+            localStorageEditor.get("server"),
           key: roomKey,
           metaData: encryptedRoomKey.metadata,
           id: json.id,
-        }
+        },
       ]);
     } else {
-      const latestid = latestRoomKeyhash.sort((a, b) => a.timestamp - b.timestamp)[0].id;
-      const encryptedRoomKey = await requester(domain() as string, "getRoomKey", {
-        id: latestid,
-        sessionid: localStorage.getItem("sessionid"),
-        roomid: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server") + "-" + talk.roomName,
-      }).then((res) => res.json());
+      const latestid = latestRoomKeyhash.sort((a, b) =>
+        a.timestamp - b.timestamp
+      )[0].id;
+      const encryptedRoomKey = await requester(
+        domain() as string,
+        "getRoomKey",
+        {
+          id: latestid,
+          sessionid: localStorage.getItem("sessionid"),
+          roomid: localStorageEditor.get("userName") + "@" +
+            localStorageEditor.get("server") + "-" + talk.roomName,
+        },
+      ).then((res) => res.json());
       if (!encryptedRoomKey) {
         console.error("Failed to get room key");
         return;
       }
-      const encryptedAccountKey = await db.get("accountKeys", JSON.parse(encryptedRoomKey.encryptedKey).keyHash);
+      const encryptedAccountKey = await db.get(
+        "accountKeys",
+        JSON.parse(encryptedRoomKey.encryptedKey).keyHash,
+      );
       if (!encryptedAccountKey) {
         console.error("Failed to get account key");
         return;
       }
-      const accountKey = await decryptDataDeviceKey(deviceKey()!, encryptedAccountKey.encryptedKey);
+      const accountKey = await decryptDataDeviceKey(
+        deviceKey()!,
+        encryptedAccountKey.encryptedKey,
+      );
       if (!accountKey) {
         console.error("Failed to decrypt account key");
         return;
       }
-      const decryptedRoomKey = await decryptDataAccountKey(accountKey, encryptedRoomKey.encryptedKey);
+      const decryptedRoomKey = await decryptDataAccountKey(
+        accountKey,
+        encryptedRoomKey.encryptedKey,
+      );
       if (!decryptedRoomKey) {
         console.error("Failed to decrypt room key");
         return;
-      };
-      const identityKeyEncrypted = await db.get("identityKeys", JSON.parse(encryptedRoomKey.metaDataSign).keyHash);
+      }
+      const identityKeyEncrypted = await db.get(
+        "identityKeys",
+        JSON.parse(encryptedRoomKey.metaDataSign).keyHash,
+      );
       if (!identityKeyEncrypted) {
         console.error("Failed to get identity key");
         return;
@@ -263,26 +297,37 @@ function TalkList() {
         hash: JSON.parse(encryptedRoomKey.metaDataSign).keyHash,
         userName: localStorageEditor.get("userName"),
       }).then((res) => res.json());
-      if (await keyHash(identityKey.identityKey) !== JSON.parse(encryptedRoomKey.metaDataSign).keyHash) {
+      if (
+        await keyHash(identityKey.identityKey) !==
+          JSON.parse(encryptedRoomKey.metaDataSign).keyHash
+      ) {
         console.error("Failed to get identity key");
         return;
       }
 
-      if (!verifyIdentityKey(identityKey.identityKey, encryptedRoomKey.metaDataSign, encryptedRoomKey.metaData)) {
+      if (
+        !verifyIdentityKey(
+          identityKey.identityKey,
+          encryptedRoomKey.metaDataSign,
+          encryptedRoomKey.metaData,
+        )
+      ) {
         console.error("Failed to verify identity key");
         return;
       }
       setRoomKeyState([
         {
-          userId: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server"),
+          userId: localStorageEditor.get("userName") + "@" +
+            localStorageEditor.get("server"),
           key: decryptedRoomKey,
           metaData: encryptedRoomKey.metadata,
           id: latestid,
-        }
+        },
       ]);
     }
     const messages = await requester(domain() as string, "getMessages", {
-      roomid: localStorageEditor.get("userName") + "@" + localStorageEditor.get("server") + "-" + talk.roomName,
+      roomid: localStorageEditor.get("userName") + "@" +
+        localStorageEditor.get("server") + "-" + talk.roomName,
       roomType: "friend",
       sessionid: localStorage.getItem("sessionid"),
       limit: 100,
@@ -614,14 +659,14 @@ function Setting() {
               if (!masterKey) return;
               console.log(masterKeyValue);
               //@ts-ignore
-              if(!masterKeyValue) return;
+              if (!masterKeyValue) return;
               const acccountKey = await generateAccountKey(
                 {
                   //@ts-ignore
                   privateKey: masterKeyValue.privateKey,
                   //@ts-ignore
                   publicKey: masterKeyValue.publicKey,
-                }
+                },
               );
               if (!acccountKey) return;
               const encryptedAccountKeyDeviceKey = await encryptDataDeviceKey(

@@ -326,7 +326,7 @@ export default defineConfig({
           {
             text: "shareKeyを更新するapi",
             link: "/takosWeb/updateShareKey",
-          }
+          },
         ],
       },
     ],

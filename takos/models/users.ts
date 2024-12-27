@@ -36,9 +36,6 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  birthday: {
-    type: Date,
-  },
   timestamp: { type: Date, default: Date.now },
   masterKey: {
     type: String,
@@ -51,4 +48,5 @@ const userSchema = new mongoose.Schema({
   },
 });
 const User = mongoose.model("users", userSchema);
+export { userSchema };
 export default User;

@@ -29,7 +29,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>"
 | `groupId` | string | グループのid                       |
 | `userId`  | string | リクエストを送るユーザー           |
 | `type`    | string | リクエストの種類（`"leaveGroup"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| `eventId` | string | イベントID(uuid v7)                |
 
 ### レスポンス
 

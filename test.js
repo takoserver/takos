@@ -1,4 +1,4 @@
-import Decimal from 'npm:decimal.js';
+import Decimal from "npm:decimal.js";
 
 Decimal.set({ precision: 5000 });
 
@@ -9,7 +9,9 @@ function calculatePiRamanujan(iterations) {
 
   for (let k = 0; k < iterations; k++) {
     const numerator = factorialDecimal(4 * k).times(1103 + 26390 * k);
-    const denominator = factorialDecimal(k).pow(4).times(new Decimal(396).pow(4 * k));
+    const denominator = factorialDecimal(k).pow(4).times(
+      new Decimal(396).pow(4 * k),
+    );
     sum = sum.plus(numerator.div(denominator));
   }
 

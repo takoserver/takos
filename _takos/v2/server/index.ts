@@ -358,7 +358,7 @@ singlend.group(
             return error("error", 400);
           }
           const messageuuidDomain = splitUserName(request.messageid).domain;
-          if(value.serverDomain !== messageuuidDomain){
+          if (value.serverDomain !== messageuuidDomain) {
             return error("error", 400);
           }
           await Message.findOne({
@@ -392,7 +392,7 @@ singlend.group(
           roomType: "friend" | "group";
         } = value.request;
         console.log("messageid", request.messageid);
-        if(value.serverDomain !== splitUserName(request.requester).domain){
+        if (value.serverDomain !== splitUserName(request.requester).domain) {
           return error("error", 400);
         }
         if (request.roomType === "friend") {
@@ -407,7 +407,7 @@ singlend.group(
             return error("error", 400);
           }
           const messageuuidDomain = splitUserName(request.messageid).domain;
-          if(env["DOMAIN"] !== messageuuidDomain){
+          if (env["DOMAIN"] !== messageuuidDomain) {
             return error("error", 400);
           }
           const message = await Message.findOne({

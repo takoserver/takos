@@ -1,4 +1,8 @@
-import { decryptDataDeviceKey, isValidAccountKeyPublic, keyHash } from "@takos/takos-encrypt-ink";
+import {
+  decryptDataDeviceKey,
+  isValidAccountKeyPublic,
+  keyHash,
+} from "@takos/takos-encrypt-ink";
 import { DBSchema, IDBPDatabase, openDB } from "idb";
 export interface TakosDB extends DBSchema {
   shareKeys: {
@@ -97,22 +101,24 @@ export async function getIdentityKey(
   return await decryptDataDeviceKey(deviceKey, data.encryptedKey);
 }
 
-export async function getLatestIdentityKey(deviceKey: string): Promise<{
-  private: string;
-  hash: string;
-} | null> {
+export async function getLatestIdentityKey(deviceKey: string): Promise<
+  {
+    private: string;
+    hash: string;
+  } | null
+> {
   const db = await createTakosDB();
   const data = await db.getAll("identityKeys");
   if (!data) return null;
   const decrypted = await decryptDataDeviceKey(
     deviceKey,
-    data.sort((a, b) => b.timestamp - a.timestamp)[0].encryptedKey
-  )
+    data.sort((a, b) => b.timestamp - a.timestamp)[0].encryptedKey,
+  );
   if (!decrypted) return null;
   return {
     private: decrypted,
-    hash: data.sort((a, b) => b.timestamp - a.timestamp)[0].key
-  }
+    hash: data.sort((a, b) => b.timestamp - a.timestamp)[0].key,
+  };
 }
 
 type LocalStorageKey =
@@ -142,13 +148,13 @@ export async function clearDB() {
 
 export async function isValidLatestAccountKey(
   userId: string,
-  key: string, 
+  key: string,
 ): Promise<boolean> {
-  if(!userId || !key) return false;
-  if(!isValidAccountKeyPublic(key)) return false;
+  if (!userId || !key) return false;
+  if (!isValidAccountKeyPublic(key)) return false;
   const db = await createTakosDB();
   const data = await db.get("latestAccountKeyHash", userId);
-  if(!data) {
+  if (!data) {
     await db.put("latestAccountKeyHash", {
       key: userId,
       hash: await keyHash(key),
@@ -156,8 +162,8 @@ export async function isValidLatestAccountKey(
     });
     return true;
   }
-  if(data.hash === await keyHash(key)) return true;
-  if(new Date(data.timestamp) < new Date(JSON.parse(key).timestamp)) {
+  if (data.hash === await keyHash(key)) return true;
+  if (new Date(data.timestamp) < new Date(JSON.parse(key).timestamp)) {
     await db.put("latestAccountKeyHash", {
       key: userId,
       hash: await keyHash(key),

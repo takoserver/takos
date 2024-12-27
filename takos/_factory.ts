@@ -7,3 +7,5 @@ type Env = {
 const app = new Hono<{ Bindings: Env }>();
 
 export default app;
+
+export type { Env };

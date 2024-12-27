@@ -29,7 +29,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>, domain="<ド�
 | `groupId` | string | グループのid                                         |
 | `icon`    | string | グループのアイコンのbase64エンコードされた画像データ |
 | `type`    | string | アイコンの変更の種類（`changeGroupIcon`）            |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| `eventId` | string | イベントID(uuid v7)                                  |
 
 ### レスポンス
 

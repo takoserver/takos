@@ -30,7 +30,7 @@ Authorization: Signature sign="<署名>", Expires="<有効期限>, domain="<ド�
 | `groupId` | string | グループのid                                         |
 | `userId`  | string | ユーザーのid                                         |
 | `type`    | string | リクエストの種類（`"acceptRequestJoinPublicGroup"`） |
-| `eventId`   | string | イベントID(uuid v7)                     |
+| `eventId` | string | イベントID(uuid v7)                                  |
 
 ### レスポンス
 

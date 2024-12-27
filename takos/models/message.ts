@@ -29,7 +29,7 @@ const messageSchema = new mongoose.Schema({
   },
   sendedServer: {
     type: Boolean,
-  }
+  },
 });
 
 const Message = mongoose.model("message", messageSchema);
