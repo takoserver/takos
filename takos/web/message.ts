@@ -7,6 +7,7 @@ import { isValidMessage } from "@takos/takos-encrypt-ink";
 import Message from "../models/message.ts";
 import { uuidv7 } from "npm:uuidv7@^1.0.2";
 import { fff } from "../utils/foundationReq.ts";
+import publish from "../utils/redisClient.ts";
 const env = await load();
 
 app.post("send",
@@ -33,15 +34,25 @@ app.post("send",
             return c.json({ message: "Invalid message" }, 400);
         }
         const messageid = uuidv7() + "@" + env["domain"];
+        const timestamp = new Date();
         await Message.create({
             userName: user.userName + "@" + env["domain"],
-            timestamp: new Date(),
+            timestamp,
             roomId,
             messageid,
             isEncrypted: true,
             isSigned: true,
             message,
             sign,
+        })
+        publish({
+            type: "message",
+            users: [user.userName + "@" + env["domain"], roomId],
+            data: JSON.stringify({
+                messageid,
+                timestamp,
+                userName: user.userName + "@" + env["domain"],
+            }),
         })
         if(roomId.split("@")[1] !== env["domain"]) {
             const res = await fff(

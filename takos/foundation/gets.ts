@@ -282,7 +282,7 @@ app.get("message", async (c) => {
     return c.json({ message: "Unauthorized" }, 401);
   }
   const message = await Message.findOne({
-    messageId,
+    messageid: messageId,
   });
   if (!message) {
     return c.json({ message: "Unauthorized" }, 401);
@@ -300,32 +300,34 @@ app.get("roomKey", async (c) => {
   const roomId = c.req.query("roomId");
   const hash = c.req.query("hash");
   const requesterId = c.req.query("requesterId");
-
   if (!userId || !roomId || !hash || !requesterId) {
     return c.json({ message: "Unauthorized" }, 401);
   }
   const userInfo = await User.findOne({
-    userId,
+    userName: userId.split("@")[0],
   });
   if (!userInfo) {
     return c.json({ message: "Unauthorized" }, 401);
   }
   const roomKey = await RoomKey.findOne({
-    userId,
-    roomId,
+    userName: userId.split("@")[0],
+    roomId: {
+      $in: [roomId, requesterId],
+    },
     hash,
   });
   if (!roomKey) {
+
     return c.json({ message: "Unauthorized" }, 401);
   }
-  const requestersKey = roomKey.encrtypedRoomKey.find((key: any) =>
-    key.userId === requesterId
+  const requestersKey = roomKey.encrtypedRoomKey.find((key) =>
+    key[0] === requesterId
   );
   if (!requestersKey) {
     return c.json({ message: "Unauthorized" }, 401);
   }
   return c.json({
-    roomKey: requestersKey.key,
+    roomKey: requestersKey[1]
   });
 });
 

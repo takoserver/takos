@@ -15,25 +15,6 @@ import {
   talkListState,
   webSocketState,
 } from "../utils/state";
-import {
-  migrateKeyPrivateState,
-  migrateRequestPage,
-  migrateSessionid,
-  migrateSignKeyPublicState,
-  showMigrateRequest,
-} from "../utils/migrateState";
-import { requester } from "../utils/requester";
-import { createTakosDB, localStorageEditor } from "../utils/idb";
-import { uuidv7 } from "uuidv7";
-import {
-  decryptDataDeviceKey,
-  decryptDataShareKey,
-  encryptDataDeviceKey,
-  isValidkeyPairEncrypt,
-  keyHash,
-  signMasterKey,
-  verifyMasterKey,
-} from "@takos/takos-encrypt-ink";
 import { createWebsocket } from "../utils/ws";
 export function Loading() {
   return (
@@ -151,7 +132,9 @@ export function Load() {
         });
     }
     setTalkListState(talkList);
-    setLoad(true);
+    createWebsocket(() => {
+      setLoad(true);
+    })
   }
   loadSession();
   return <></>;

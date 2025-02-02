@@ -57,11 +57,21 @@ app.post(
         console.log("Unauthorized");
         return c.json({ message: "Unauthorized" }, 401);
       }
+      const timestamp = new Date();
       await Message.create({
         roomId: roomId,
         messageid: messageId,
         userName: senderId,
-        timestamp: new Date(),
+        timestamp: timestamp,
+      })
+      publish({
+        type: "message",
+        users: [roomId],
+        data: JSON.stringify({
+          messageid: messageId,
+          timestamp,
+          userName: senderId,
+        }),
       })
       return c.json({ message: "success" });
     }
@@ -69,6 +79,7 @@ app.post(
 );
 
 import { cors } from "hono/cors";
+import publish from "../utils/redisClient.ts";
 app.use(cors(
   {
     origin: "*",

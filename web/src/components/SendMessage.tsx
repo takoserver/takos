@@ -1,6 +1,12 @@
 const ChatSendMessage = ({ time, message, isPrimary, isSendPrimary }: {
   time: string;
-  message: string;
+  message: () => {
+    verified: boolean;
+    encrypted: boolean;
+    content: string;
+    type: string;
+    timestamp: string;
+  }
   isPrimary: boolean;
   isSendPrimary: boolean;
 }) => {
@@ -16,7 +22,7 @@ const ChatSendMessage = ({ time, message, isPrimary, isSendPrimary }: {
         <div class="c-talk-chat-right">
           <div class="c-talk-chat-msg">
             <p class="">
-              {convertLineBreak(message)}
+              {convertLineBreak(message().content)}
             </p>
           </div>
         </div>
@@ -25,6 +31,7 @@ const ChatSendMessage = ({ time, message, isPrimary, isSendPrimary }: {
   );
 };
 export default ChatSendMessage;
+
 function convertTime(time: string | number | Date) {
   const date = new Date(time);
   const hours = date.getHours();

@@ -18,11 +18,15 @@ async function subscribeMessage(channel: string | string[]) {
             data: string;
         } = JSON.parse(message);
         if(data.type === "message") {
+            console.log(data)
             const { users, data: message } = data
             users.forEach(user => {
                 const ws = sessions.get(user)
                 if(ws) {
-                    ws.send(message)
+                    ws.send(JSON.stringify({
+                        type: "message",
+                        data: message
+                    }))
                 }
             })
         }
@@ -34,19 +38,22 @@ await subscribeMessage(redisch);
 app.get(
     '/',
     upgradeWebSocket((c) => {
-      const user = c.get('user')
-      const sessions = c.get('sessions')
-      if (!user || !sessions) {
-        throw new Error('Unauthorized')
-      }
       return {
         onClose: () => {
+            const user = c.get('user')
             sessions.delete(user.userName)
         },
-        onOpen: (ws) => {
-            sessions.set(user.userName, ws)
+        onOpen: (evt,ws) => {
+            const user = c.get('user')
+            if (!user) {
+                ws.close()
+                return
+            }
+            sessions.set(user.userName + "@" + env["domain"], ws)
         }
       }
     })
 )
 
+
+export default app

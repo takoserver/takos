@@ -167,7 +167,7 @@ function ChatSend() {
             class="p-talk-chat-send__dummy"
             aria-hidden="true"
           >
-            {inputMessage().split("\n").map((row, index) => (
+            {inputMessage().split("\n").map((row) => (
               <>
                 {row}
                 <br />

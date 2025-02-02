@@ -6,58 +6,72 @@ import {
 import { useAtom } from "solid-jotai";
 import ChatSendMessage from "./SendMessage.tsx"
 import ChatOtherMessage from "./OtherMessage.tsx";
+import { getMessage } from "../utils/getMessage.ts";
+import { createEffect, createSignal } from "solid-js";
 
 const myuserName = localStorage.getItem("userName") + "@" + (document.location.hostname)
 
 function ChatTalkMain() {
   const [messageList] = useAtom(messageListState);
-  const [messageValue] = useAtom(messageValueState);
   return (
     <>
-      <div class="pl-2">
-        {messageList().map((message) => {
-          let value = messageValue().find((value) => value[0] === message.messageid)
-          if(!value) {
-            value = [message.messageid, {
-              userId: message.userName,
-              message: "取得に失敗しました",
-              type: "text",
-              timestamp: message.timestamp,
-              isEncrypted: false,
-              isSigned: false,
-            }]
-          }
-          return (
-            <>
-            {message.userName === myuserName && (
+        <div class="pl-2">
+          <div class="overflow-y-auto">
+          {messageList().map((message) => {
+            return (
               <>
-                <ChatSendMessage
-                    time={message.timestamp}
-                    message={value[1].message}
-                    isPrimary={true}
-                    isSendPrimary={true}
-                />
+              <Message messageid={message.messageid} myMessage={message.userName === myuserName} time={message.timestamp} userName={message.userName} />
               </>
-            )}
-
-            {message.userName !== myuserName && (
-              <>
-                <ChatOtherMessage
-                    time={message.timestamp}
-                    message={value[1].message}
-                    isPrimary={true}
-                    isSendPrimary={true}
-                    name={message.userName}
-                />
-              </>
-            )}
-            </>
-          );
-        })}
-      </div>
+            );
+          })}
+          </div>
+        </div>
     </>
   );
 }
+
+import { onMount } from "solid-js";
+
+function Message({ messageid, myMessage, time, userName }: { messageid: string, myMessage: boolean, time: string, userName: string }) {
+  const [messageValue, setMessageValue] = createSignal<{
+    verified: boolean;
+    encrypted: boolean;
+    content: string;
+    type: string;
+    timestamp: string;
+  }>({ verified: false, encrypted: false, content: "読み込み中", type: "text", timestamp: time });
+  onMount(async () => {
+    try {
+      const value = await getMessage(messageid);
+      console.log(value);
+      setMessageValue(value);
+    } catch (e) {
+      setMessageValue({ verified: false, encrypted: false, content: "読み込みエラー", type: "text", timestamp: time });
+      console.log("error", e);
+    }
+  });
+  return (
+    <>
+      {myMessage &&
+        <ChatSendMessage
+          time={time}
+          message={messageValue}
+          isPrimary={true}
+          isSendPrimary={true}
+        />
+      }
+      {!myMessage &&
+        <ChatOtherMessage
+          name={userName}
+          time={time}
+          message={messageValue}
+          isPrimary={true}
+        />
+      }
+    </>
+  );
+}
+
 
 function ChatTalk() {
   const [isChoiceUser] = useAtom(isSelectRoomState);

@@ -2,7 +2,18 @@ import { atom, useAtom } from "solid-jotai";
 import { createEffect, createSignal } from "solid-js";
 
 const ChatOtherMessage = (
-  { name, time, message, isPrimary }: any,
+  { name, time, message, isPrimary }: {
+    name: string;
+    time: string | number | Date;
+    message: () => {
+      verified: boolean;
+      encrypted: boolean;
+      content: string;
+      type: string;
+      timestamp: string;
+    }
+    isPrimary: boolean;
+  }
 ) => {
   const isPrimaryClass = isPrimary
     ? "c-talk-chat other primary"
@@ -27,8 +38,8 @@ const ChatOtherMessage = (
     const nickName = data.nickName
     setIcon(icon)
     setNickName(nickName)
-    setFreindInfo([name,{icon,nickName}])
   })
+  console.log(message().type)
   return (
     <li class={isPrimaryClass}>
       <div class="c-talk-chat-box mb-1">
@@ -49,7 +60,7 @@ const ChatOtherMessage = (
           )}
           <div class="c-talk-chat-msg">
             <p>
-              {convertLineBreak(message)}
+              {convertLineBreak(message().content)}
             </p>
           </div>
         </div>
