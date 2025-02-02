@@ -8,9 +8,9 @@ import serverKey from "../models/serverKeys.ts";
 import { cors } from "hono/cors";
 app.use(cors(
   {
-      origin: "*",
-  }
-))
+    origin: "*",
+  },
+));
 
 app.get("accountKey", async (c) => {
   const userName = c.req.query("userName");

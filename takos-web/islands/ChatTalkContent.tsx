@@ -1,6 +1,5 @@
 import ChatDate from "../components/ChatDate.tsx";
 import ChatSendMessage from "../components/SendMessage.tsx";
-import ChatOtherMessage from "../components/OtherMessage.tsx";
 import { AppStateType } from "../util/types.ts";
 import { splitUserName } from "../util/takosClient.ts";
 import { editScrollAddLatestMessage } from "../util/messageDOM.ts";
@@ -16,6 +15,7 @@ function ChatTalkMain({ state }: { state: AppStateType }) {
   return (
     <>
       <div class="pl-2">
+
       </div>
     </>
   );

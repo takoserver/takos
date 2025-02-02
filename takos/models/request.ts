@@ -29,7 +29,7 @@ const requestSchema = new mongoose.Schema({
     type: String,
     default: uuidv7(),
     required: true,
-  }
+  },
 });
 
 export default mongoose.model("Request", requestSchema);

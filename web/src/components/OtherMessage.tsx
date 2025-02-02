@@ -1,17 +1,42 @@
+import { atom, useAtom } from "solid-jotai";
+import { createEffect, createSignal } from "solid-js";
+
 const ChatOtherMessage = (
-  { name, time, message, isPrimary, nickName }: any,
+  { name, time, message, isPrimary }: any,
 ) => {
   const isPrimaryClass = isPrimary
     ? "c-talk-chat other primary"
     : "c-talk-chat other subsequent";
+  
+  const [friendInfo,setFreindInfo] = useAtom(friendInfoState)
+  const [icon,setIcon] = createSignal("")
+  const [nickName,setNickName] = createSignal("")
+  createEffect(async () => {
+    if(friendInfo().find((value) => value[0] === name)) {
+      const data = friendInfo().find((value) => value[0] === name)
+
+      if(data) {
+        setIcon(data[1].icon)
+        setNickName(data[1].nickName)
+      }
+    }
+    const iconURL = `https://${name.split("@")[1]}/_takos/v2/friend/info?userName=${name.split("@")[0]}`
+    const res = await fetch(iconURL)
+    const data = await res.json()
+    const icon = "data:image/png;base64," + data.icon
+    const nickName = data.nickName
+    setIcon(icon)
+    setNickName(nickName)
+    setFreindInfo([name,{icon,nickName}])
+  })
   return (
     <li class={isPrimaryClass}>
       <div class="c-talk-chat-box mb-1">
         {isPrimary && (
           <div class="c-talk-chat-icon">
             <img
-              src=""
-              alt=""
+              src={icon()}
+              alt="image"
               class="rounded-full text-white dark:text-black"
             />
           </div>
@@ -19,7 +44,7 @@ const ChatOtherMessage = (
         <div class="c-talk-chat-right">
           {isPrimary && (
             <div class="c-talk-chat-name">
-              <p>{nickName}</p>
+              <p>{nickName()}</p>
             </div>
           )}
           <div class="c-talk-chat-msg">
@@ -57,3 +82,8 @@ function convertTime(time: string | number | Date) {
   return `${ampm} ${zeroPaddingHour}:${zeroPaddingMinutes}`;
 }
 export default ChatOtherMessage;
+
+const friendInfoState = atom<[string,{
+  icon: string
+  nickName: string
+}][]>([])

@@ -4,7 +4,7 @@ export const selectedRoomState = atom<
   {
     roomName: string;
     roomid: string;
-    type: "room" | "friend";
+    type: "group" | "friend";
   } | null
 >();
 
@@ -15,5 +15,5 @@ export const roomKeyState = atom<{
   metaData: string;
   id: string;
 }[]>([]);
-
-export const myLatestRoomKeyState = atom<string | null>(null);
+export const selectedChannelState = atom<string | null>(null);
+export const nickNameState = atom<string | null>("選択してください");

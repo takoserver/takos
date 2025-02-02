@@ -7,6 +7,7 @@ import { ChangeURL } from "./components/ChangeURL.tsx";
 import { Register } from "./register/index.tsx";
 import { Chat } from "./components/Chat.tsx";
 import { createEffect } from "solid-js";
+import { CreateIdentityKeyPopUp } from "./components/CreateIdentityKeyPopUp.tsx";
 function App(
   { page }: { page?: "home" | "talk" | "friend" | "setting" | "notification" },
 ) {
@@ -20,6 +21,7 @@ function App(
   return (
     <>
       {!load() && <Loading />}
+      <CreateIdentityKeyPopUp />
       <Css />
       <ChangeURL></ChangeURL>
       <Load></Load>

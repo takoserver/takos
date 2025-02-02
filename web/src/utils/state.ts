@@ -8,18 +8,11 @@ export const userIdState = atom<string | null>();
 export const webSocketState = atom<WebSocket | null>();
 export const pageState = atom<string>();
 export const inputMessageState = atom<string>("");
-export const MasterKeyState = atom<
-  {
-    public: string;
-    private: string;
-  } | null
->();
 export const setDefaultServerState = atom<boolean>(setting.setDefaultServer);
 export const defaultServerState = atom<string>(setting.domain);
 export const exproleServerState = atom<{
   domain: string;
 }[]>(setting.servers);
-
 export const IdentityKeyAndAccountKeyState = atom<
   [string, string, {
     identityKey: {
@@ -65,3 +58,18 @@ export const talkListState = atom<{
   type: "group" | "friend";
   roomid: string;
 }[]>();
+
+export const messageValueState = atom<[string, {
+  userId: string;
+  message: string;
+  type: "text" | "image";
+  timestamp: string;
+  isEncrypted: boolean;
+  isSigned: boolean;
+}][]>([]);
+
+export const messageListState = atom<{
+  userName: string;
+  messageid: string;
+  timestamp: string;
+}[]>([]);

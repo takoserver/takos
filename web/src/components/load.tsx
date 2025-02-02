@@ -8,7 +8,6 @@ import {
   IdentityKeyAndAccountKeyState,
   loadState,
   loginState,
-  MasterKeyState,
   nicknameState,
   notificationState,
   sessionidState,
@@ -118,42 +117,38 @@ export function Load() {
     if (session.deviceKey) {
       setDeviceKey(session.deviceKey);
     }
-    if(session.requests) {
-          session.requests.forEach((request: any) => {
-            setnotificationState((r) => [...r, {
-              id: request.id,
-              type: request.type,
-              sender: request.sender,
-              query: request.query,
-              timestamp: request.timestamp,
-            }]);
-          });
+    if (session.requests) {
+      session.requests.forEach((request: any) => {
+        setnotificationState((r) => [...r, {
+          id: request.id,
+          type: request.type,
+          sender: request.sender,
+          query: request.query,
+          timestamp: request.timestamp,
+        }]);
+      });
     }
-    const talkList:{
+    const talkList: {
       timestamp: string;
       latestMessage: string;
       type: "group" | "friend";
       roomid: string;
-  }[] = []
-    for(const talk of session.friendInfo) {
-      if(talk[1] == null) {
+    }[] = [];
+    for (const talk of session.friendInfo) {
         talkList.push({
           timestamp: "nodata",
           latestMessage: "",
           type: "friend",
           roomid: talk[0],
         });
-      }
     }
-    for(const talk of session.groupInfo) {
-      if(talk[1] == null) {
+    for (const talk of session.groupInfo) {
         talkList.push({
           timestamp: "nodata",
           latestMessage: "",
           type: "group",
           roomid: talk[0],
         });
-      }
     }
     setTalkListState(talkList);
     setLoad(true);

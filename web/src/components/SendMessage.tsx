@@ -1,5 +1,4 @@
-const ChatSendMessage = ({ isRead, time, message, isPrimary, isSendPrimary }: {
-  isRead: boolean;
+const ChatSendMessage = ({ time, message, isPrimary, isSendPrimary }: {
   time: string;
   message: string;
   isPrimary: boolean;
@@ -12,7 +11,6 @@ const ChatSendMessage = ({ isRead, time, message, isPrimary, isSendPrimary }: {
     <li class={isPrimaryClass}>
       <div class="c-talk-chat-box mb-[3px]">
         <div class="c-talk-chat-date">
-          {isRead && <p>既読</p>}
           <p>{convertTime(time)}</p>
         </div>
         <div class="c-talk-chat-right">
@@ -40,8 +38,8 @@ function convertTime(time: string | number | Date) {
 //preactで動作する改行を反映させるために、改行コードをbrタグに変換する関数
 function convertLineBreak(message: string | null | undefined) {
   if (message === null || message === undefined) return;
-  return message.split("\n").map((line, index) => (
-    <span key={index}>
+  return message.split("\n").map((line) => (
+    <span>
       {line}
       <br />
     </span>

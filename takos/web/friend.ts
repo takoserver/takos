@@ -48,112 +48,121 @@ app.post(
       return c.json({ message: "Already friend" }, 400);
     }
     if (domain !== env["domain"]) {
-        const result = await fff("_takos/v2/friend/request", JSON.stringify({
-            senderId: user.userName + "@" + env["domain"],
-            receiverId: userName,
-            type: "friendRequest",
-            eventId: uuidv7(),
-        }), [domain]);
-        if(!Array.isArray(result) || result[0].status !== 200) {
-            console.log(result);
-            return c.json({ message: "Invalid userName" }, 400);
-        }
-        const res = await result[0].json();
-        if(res.error) {
-            return c.json({ message: "Invalid userName" }, 400);
-        }
-        await Request.create({
-            type: "friend",
-            sender: user.userName + "@" + env["domain"],
-            receiver: userName,
-            local: false,
-            query: {},
-        })
-        return c.json({ message: "Request sent" });
+      const result = await fff(
+        "_takos/v2/friend/request",
+        JSON.stringify({
+          senderId: user.userName + "@" + env["domain"],
+          receiverId: userName,
+          type: "friendRequest",
+          eventId: uuidv7(),
+        }),
+        [domain],
+      );
+      if (!Array.isArray(result) || result[0].status !== 200) {
+        console.log(result);
+        return c.json({ message: "Invalid userName" }, 400);
+      }
+      const res = await result[0].json();
+      if (res.error) {
+        return c.json({ message: "Invalid userName" }, 400);
+      }
+      await Request.create({
+        type: "friend",
+        sender: user.userName + "@" + env["domain"],
+        receiver: userName,
+        local: false,
+        query: {},
+      });
+      return c.json({ message: "Request sent" });
     }
-    if(domain === env["domain"]) {
-        await Request.create({
-            type: "friend",
-            sender: user.userName + "@" + env["domain"],
-            receiver: userName,
-            local: true,
-            query: {},
-        })
+    if (domain === env["domain"]) {
+      await Request.create({
+        type: "friend",
+        sender: user.userName + "@" + env["domain"],
+        receiver: userName,
+        local: true,
+        query: {},
+      });
     }
   },
 );
 
 app.get(
-    "/request",
-    async (c) => {
-        const user = c.get("user");
-        if (!user) {
-            return c.json({ message: "Unauthorized" }, 401);
-        }
-        const limit = c.req.query("limit");
-        const befor = c.req.query("befor");
-        if(limit && befor) {
-            const requests = await Request.find({
-                receiver: user.userName + "@" + env["domain"],
-                timestamp: { $lt: new Date(befor) },
-            }).sort({ timestamp: -1 }).limit(Number(limit));
-            return c.json({ requests });
-        }
-        const requests = await Request.find({
-            receiver: user.userName + "@" + env["domain"],
-        }).sort({ timestamp: -1 }).limit(limit ? Number(limit) : 10);
-        return c.json({ requests });
-    },
-)
+  "/request",
+  async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const limit = c.req.query("limit");
+    const befor = c.req.query("befor");
+    if (limit && befor) {
+      const requests = await Request.find({
+        receiver: user.userName + "@" + env["domain"],
+        timestamp: { $lt: new Date(befor) },
+      }).sort({ timestamp: -1 }).limit(Number(limit));
+      return c.json({ requests });
+    }
+    const requests = await Request.find({
+      receiver: user.userName + "@" + env["domain"],
+    }).sort({ timestamp: -1 }).limit(limit ? Number(limit) : 10);
+    return c.json({ requests });
+  },
+);
 
 app.post(
-    "/accept",
-    zValidator(
-        "json",
-        z.object({
-            id: z.string(),
-        }),
-    ),
-    async (c) => {
-        const user = c.get("user");
-        if (!user) {
-            return c.json({ message: "Unauthorized" }, 401);
-        }
-        const { id } = c.req.valid("json");
-        const request = await Request.findOne({
-            id: id,
-            receiver: user.userName + "@" + env["domain"],
-        });
-        if (!request) {
-            return c.json({ message: "Invalid request" }, 400);
-        }
-        if(request.type === "friend") {
-            if(request.local) {
-                if(await friends.findOne({
-                    userName: request.sender,
-                    friendName: request.receiver,
-                })) {
-                    return c.json({ message: "Already friend" }, 400);
-                }
-                const res = await fff("_takos/v2/friend/accept", JSON.stringify({
-                    senderId: request.sender,
-                    receiverId: request.receiver,
-                    type: "friendAccept",
-                    eventId: uuidv7(),
-                }), [request.sender.split("@")[1]]);
-                if(!Array.isArray(res) || res[0].status !== 200) {
-                    return c.json({ message: "Invalid request" }, 400);
-                }
-                await friends.create({
-                    userName: request.sender,
-                    friendId: request.receiver,
-                });
-                await Request.deleteOne({ id: id });
-                return c.json({ message: "Request accepted" });
-            }
-        }
-        
+  "/accept",
+  zValidator(
+    "json",
+    z.object({
+      id: z.string(),
+    }),
+  ),
+  async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
     }
-)
+    const { id } = c.req.valid("json");
+    const request = await Request.findOne({
+      id: id,
+      receiver: user.userName + "@" + env["domain"],
+    });
+    if (!request) {
+      return c.json({ message: "Invalid request" }, 400);
+    }
+    if (request.type === "friend") {
+      if (request.local) {
+        if (
+          await friends.findOne({
+            userName: request.sender,
+            friendName: request.receiver,
+          })
+        ) {
+          return c.json({ message: "Already friend" }, 400);
+        }
+        const res = await fff(
+          "_takos/v2/friend/accept",
+          JSON.stringify({
+            senderId: request.sender,
+            receiverId: request.receiver,
+            type: "friendAccept",
+            eventId: uuidv7(),
+          }),
+          [request.sender.split("@")[1]],
+        );
+        if (!Array.isArray(res) || res[0].status !== 200) {
+          return c.json({ message: "Invalid request" }, 400);
+        }
+        await friends.create({
+          userName: request.receiver,
+          friendId: request.sender,
+        });
+        await Request.deleteOne({ id: id });
+        return c.json({ message: "Request accepted" });
+      }
+    }
+  },
+);
 
 export default app;

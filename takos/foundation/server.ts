@@ -20,22 +20,23 @@ import {
   base64ToArrayBuffer,
 } from "https://jsr.io/@takos/takos-encrypt-ink/5.3.2/utils/buffers.ts";
 import { resizeImageTo256x256 } from "../web/sessions.ts";
-/*
+
 app.post(
-  "sendMessage",
+  "/message/send",
   zValidator(
     "json",
     z.object({
       senderId: z.string(),
       roomId: z.string(),
       messageId: z.string(),
+      roomType: z.string(),
       eventId: z.string(),
       type: z.string(),
     }).strict(),
   ),
   async (c) => {
-    const { senderId, roomId, messageId, type } = c.req.valid("json");
-    if (type !== "message") {
+    const { senderId, roomId, messageId, type, roomType } = c.req.valid("json");
+    if (type !== "sendMessage") {
       return c.json({ message: "Invalid type" }, 400);
     }
     const domain = c.get("domain");
@@ -43,53 +44,36 @@ app.post(
     if (domain !== userDomain) {
       return c.json({ message: "Unauthorized" }, 401);
     }
-    const groupRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}@.+$/i;
-    const friendRegex = /^[^@]+@[^@]+-[^@]+@[^@]+$/;
-
-    if (groupRegex.test(roomId)) {
-      const isGroupMember = await (async () => {
-        const group = await Group.findOne({
-          groupId: roomId,
-          members: senderId,
-        });
-        return Boolean(
-          group
-        );
-      })();
-      if (!isGroupMember) {
+    if(roomType == "friend") {
+      const friend = await friends.findOne({
+        userName: roomId,
+        friendId: senderId,
+      });
+      if (!friend) {
+        console.log("Unauthorized");
         return c.json({ message: "Unauthorized" }, 401);
       }
-    } else if (friendRegex.test(roomId)) {
-      const isFriend = await (async () => {
-        const friendName = roomId.split("-")[1];
-        const friend = await friends.findOne({
-          userName: friendName,
-          friends: senderId,
-        });
-        return Boolean(friend);
-      })();
-      if (!isFriend) {
+      if(messageId.split("@")[1] !== domain) {
+        console.log("Unauthorized");
         return c.json({ message: "Unauthorized" }, 401);
       }
-    } else {
-      return c.json({ message: "Invalid roomId format" }, 400);
+      await Message.create({
+        roomId: roomId,
+        messageid: messageId,
+        userName: senderId,
+        timestamp: new Date(),
+      })
+      return c.json({ message: "success" });
     }
-    await Message.create({
-      userName: senderId,
-      roomId: roomId,
-      messageid: messageId,
-    });
-    return c.json({ message: "success" });
-  },
+  }
 );
-*/
-import { cors } from "hono/cors"
+
+import { cors } from "hono/cors";
 app.use(cors(
-    {
-        origin: "*",
-    }
-))
+  {
+    origin: "*",
+  },
+));
 
 app.get("/tako", (c) => {
   return c.json({ message: "tako" });
@@ -155,7 +139,7 @@ app.post(
     }).strict(),
   ),
   async (c) => {
-    const { senderId,receiverId, type } = c.req.valid("json");
+    const { senderId, receiverId, type } = c.req.valid("json");
     if (type !== "friendAccept") {
       return c.json({ message: "Invalid type" }, 400);
     }
@@ -171,18 +155,20 @@ app.post(
     if (!requestRes) {
       return c.json({ message: "Request not found" }, 404);
     }
-    if(await friends.findOne({
-      userName: requestRes.sender,
-      friends: requestRes.receiver
-    })) {
+    if (
+      await friends.findOne({
+        userName: requestRes.sender,
+        friends: requestRes.receiver,
+      })
+    ) {
       return c.json({ message: "Already friend" }, 400);
     }
     await friends.create({
       userName: requestRes.sender,
-      friendId: requestRes.receiver
+      friendId: requestRes.receiver,
     });
     await request.deleteOne({
-      id: requestRes.id
+      id: requestRes.id,
     });
     return c.json({ message: "success" });
   },

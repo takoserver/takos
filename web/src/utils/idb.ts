@@ -29,12 +29,13 @@ export interface TakosDB extends DBSchema {
       timestamp: number;
     };
   };
-  latestRoomkeyHash: {
+  RoomKeys: {
     key: string;
     value: {
-      key: string; //roomId
+      key: string; //hash
+      encryptedKey: string;
       timestamp: number;
-      id: string;
+      roomid: string;
     };
   };
   allowKeys: {
@@ -46,37 +47,39 @@ export interface TakosDB extends DBSchema {
       latest: boolean;
     };
   };
-  latestAccountKeyHash: {
-    key: string; //userId
-    value: {
-      key: string; //userId
-      hash: string;
-      timestamp: number;
-    };
-  };
 }
 
 export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
-  return openDB<TakosDB>("takos-db", 12, {
+  return openDB<TakosDB>("takos-db", 14, {
     upgrade(db) {
-      db.createObjectStore("shareKeys", {
-        keyPath: "key",
-      });
-      db.createObjectStore("identityKeys", {
-        keyPath: "key",
-      });
-      db.createObjectStore("accountKeys", {
-        keyPath: "key",
-      });
-      db.createObjectStore("latestRoomkeyHash", {
-        keyPath: "key",
-      });
-      db.createObjectStore("allowKeys", {
-        keyPath: "key",
-      });
-      db.createObjectStore("latestAccountKeyHash", {
-        keyPath: "key",
-      });
+      if (!db.objectStoreNames.contains("shareKeys")) {
+        db.createObjectStore("shareKeys", { keyPath: "key" });
+      }
+      if (!db.objectStoreNames.contains("identityKeys")) {
+        db.createObjectStore("identityKeys", { keyPath: "key" });
+      }
+      if (!db.objectStoreNames.contains("accountKeys")) {
+        db.createObjectStore("accountKeys", { keyPath: "key" });
+      }
+      if (!db.objectStoreNames.contains("RoomKeys")) {
+        db.createObjectStore("RoomKeys", { keyPath: "key" });
+      }
+      if (!db.objectStoreNames.contains("allowKeys")) {
+        db.createObjectStore("allowKeys", { keyPath: "key" });
+      }
+      // 許可されたobjectStoreのみ残し、その他を削除
+      const allowedStores = [
+        "shareKeys",
+        "identityKeys",
+        "accountKeys",
+        "RoomKeys",
+        "allowKeys",
+      ];
+      for (const storeName of Array.from(db.objectStoreNames)) {
+        if (!allowedStores.includes(storeName)) {
+          db.deleteObjectStore(storeName);
+        }
+      }
     },
   });
 }
@@ -143,33 +146,5 @@ export async function clearDB() {
   db.clear("identityKeys");
   db.clear("accountKeys");
   db.clear("shareKeys");
-  db.clear("latestRoomkeyHash");
-}
-
-export async function isValidLatestAccountKey(
-  userId: string,
-  key: string,
-): Promise<boolean> {
-  if (!userId || !key) return false;
-  if (!isValidAccountKeyPublic(key)) return false;
-  const db = await createTakosDB();
-  const data = await db.get("latestAccountKeyHash", userId);
-  if (!data) {
-    await db.put("latestAccountKeyHash", {
-      key: userId,
-      hash: await keyHash(key),
-      timestamp: JSON.parse(key).timestamp,
-    });
-    return true;
-  }
-  if (data.hash === await keyHash(key)) return true;
-  if (new Date(data.timestamp) < new Date(JSON.parse(key).timestamp)) {
-    await db.put("latestAccountKeyHash", {
-      key: userId,
-      hash: await keyHash(key),
-      timestamp: JSON.parse(key).timestamp,
-    });
-    return true;
-  }
-  return false;
+  db.clear("RoomKeys");
 }

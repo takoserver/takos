@@ -4,8 +4,6 @@ import { load } from "@std/dotenv";
 
 const env = await load();
 
-
-
 export async function fff(
   path: string,
   body: string,
@@ -26,7 +24,8 @@ export async function fff(
     throw new Error("Server key expiration date is missing or invalid.");
   }
 
-  const authorizationHeader = `Signature sign="${sign.trim()}",expires="${expires}",domain="${domain}"`;
+  const authorizationHeader =
+    `Signature sign="${sign.trim()}",expires="${expires}",domain="${domain}"`;
 
   const responsArray = [];
   for (const domain of domains) {

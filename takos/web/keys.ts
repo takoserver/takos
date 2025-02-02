@@ -10,6 +10,11 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import Session from "../models/sessions.ts";
 import IdentityKey from "../models/identityKey.ts";
+import RoomKey from "../models/roomKey.ts";
+import friends from "../models/friends.ts";
+import { load } from "@std/dotenv";
+
+const env = await load();
 
 app.get("deviceKey", (c) => {
   const session = c.get("session");
@@ -146,5 +151,50 @@ app.post(
     return c.json({ message: "success" });
   },
 );
+
+app.post("roomKey",
+  zValidator(
+    "json",
+    z.object({
+      roomId: z.string(),
+      encryptedRoomKeys: z.array(z.tuple([z.string(), z.string()])),
+      hash: z.string(),
+      metaData: z.string(),
+      sign: z.string(),
+      type: z.string(),
+    })
+  ),
+  async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const session = c.get("session");
+    if (!session) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { roomId, encryptedRoomKeys, hash, metaData, sign, type } = c.req.valid("json");
+   if(type === "friend") {
+      if(await RoomKey.findOne({ hash })) {
+        return c.json({ message: "Already exists" }, 400);
+      }
+      if(!await friends.findOne({ userName: user.userName + "@" + env["domain"], friendId: roomId })) {
+        console.log(user.userName + "@" + env["domain"], roomId);
+        return c.json({ message: "Unauthorized" }, 401);
+      }
+      if(encryptedRoomKeys.length !== 2) {
+        return c.json({ message: "Invalid room key" }, 400);
+      }
+      await RoomKey.create({
+        userName: user.userName,
+        roomId,
+        hash,
+        encrtypedRoomKey: encryptedRoomKeys,
+        metaData,
+        sign,
+      });
+   }
+    return c.json({ message: "success" });
+});
 
 export default app;

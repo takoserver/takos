@@ -191,7 +191,7 @@ app.post(
     setCookie(c, "sessionid", sessionid, {
       httpOnly: true,
       sameSite: "Lax",
-      maxAge: 2147483647
+      maxAge: 2147483647,
     });
     return c.json({ sessionid: sessionid });
   },
@@ -478,34 +478,34 @@ app.get(
       });
     }
     const requests = await request.find({
-        receiver: userInfo.userName + "@" + env["domain"],
+      receiver: userInfo.userName + "@" + env["domain"],
     }).sort({ timestamp: -1 }).limit(100);
     const friends = await Friends.find({
-        userName: userInfo.userName + "@" + env["domain"],
+      userName: userInfo.userName + "@" + env["domain"],
     });
     const friendList = friends.map((f) => f.friendId);
 
     const groups = await Member.find({
-        userId: userInfo.userName + "@" + env["domain"],
+      userId: userInfo.userName + "@" + env["domain"],
     });
 
-    const groupList = groups.map((g) => g.groupId)
+    const groupList = groups.map((g) => g.groupId);
     const groupListSet = new Set(groupList);
     const groupListUnique = Array.from(groupListSet);
 
-    const groupInfo = await Promise.all(groupListUnique.map( async (g) => {
+    const groupInfo = await Promise.all(groupListUnique.map(async (g) => {
       const latestMessage = await Message.findOne({
         roomId: g,
       }).sort({ timestamp: -1 });
       return [g, latestMessage];
-    }))
+    }));
 
-    const friendInfo = await Promise.all(friendList.map( async (f) => {
+    const friendInfo = await Promise.all(friendList.map(async (f) => {
       const latestMessage = await Message.findOne({
         roomId: f,
       }).sort({ timestamp: -1 });
       return [f, latestMessage];
-    }))
+    }));
 
     return c.json({
       login: true,

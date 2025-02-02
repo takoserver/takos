@@ -1,11 +1,16 @@
-import { selectedRoomState } from "../utils/roomState";
 import { createEffect } from "solid-js";
 import { createSignal } from "solid-js";
 import { useAtom } from "solid-jotai";
 import { requester } from "../utils/requester";
 import { domainState } from "../utils/state";
+import {
+  isSelectRoomState,
+  nickNameState,
+  roomKeyState,
+  selectedRoomState,
+} from "../utils/roomState";
 export default function ChatTalkTitleContent() {
-  const [nickName, setNickName] = createSignal("選択してください");
+  const [nickName, setNickName] = useAtom(nickNameState);
   const [domain] = useAtom(domainState);
   const [selectedRoom] = useAtom(selectedRoomState);
   createEffect(async () => {
@@ -19,7 +24,7 @@ export default function ChatTalkTitleContent() {
       if (nickNameResponse.status) {
         return setNickName((await nickNameResponse.json()).nickName);
       }
-    } else if (selectedRoom() && selectedRoom()?.type === "room") {
+    } else if (selectedRoom() && selectedRoom()?.type === "group") {
       return setNickName(selectedRoom()?.roomName || "");
     }
   });

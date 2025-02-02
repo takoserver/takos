@@ -15,11 +15,9 @@ const messageSchema = new mongoose.Schema({
   },
   isEncrypted: {
     type: Boolean,
-    required: true,
   },
   isSigned: {
     type: Boolean,
-    required: true,
   },
   message: {
     type: String,

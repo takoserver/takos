@@ -28,7 +28,7 @@ export const authorizationMiddleware = async (
   if (!sign || !expires || !domain) {
     return c.json({ error: "Invalid Authorization header" }, 401);
   }
-  
+
   const pubKey = await remoteServerKey.findOne({
     domain,
     expire: new Date(expires),
@@ -47,7 +47,7 @@ export const authorizationMiddleware = async (
     const verify = verifyData(
       bodyText,
       sign,
-      serverKeyData.serverKey
+      serverKeyData.serverKey,
     );
     await remoteServerKey.create({
       domain,
