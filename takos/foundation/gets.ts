@@ -156,6 +156,7 @@ app.get("group/info", async (c) => {
     type: "private",
   });
   if (!group) {
+    console.log(groupId);
     return c.json({ message: "Unauthorized" }, 401);
   }
   return c.json({
@@ -317,7 +318,6 @@ app.get("roomKey", async (c) => {
     hash,
   });
   if (!roomKey) {
-
     return c.json({ message: "Unauthorized" }, 401);
   }
   const requestersKey = roomKey.encrtypedRoomKey.find((key) =>
@@ -327,7 +327,7 @@ app.get("roomKey", async (c) => {
     return c.json({ message: "Unauthorized" }, 401);
   }
   return c.json({
-    roomKey: requestersKey[1]
+    roomKey: requestersKey[1],
   });
 });
 

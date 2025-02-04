@@ -195,11 +195,24 @@ function SelectedServer() {
                   if (data.messages) {
                     return (
                       <ChatOtherMessage
-                        message={data.messages}
-                        userName={data.userName}
+                        message={() => {
+                          return [
+                            [
+                              "a",
+                              {
+                                verified: false,
+                                encrypted: false,
+                                content: data.messages,
+                                type: "text",
+                                timestamp: Date.now().toString(),
+                              },
+                            ],
+                          ];
+                        }}
+                        messageid={"a"}
+                        name={data.userName}
                         time={Date.now().toString()}
                         isPrimary={true}
-                        iconPath={iconPath}
                       />
                     );
                   }

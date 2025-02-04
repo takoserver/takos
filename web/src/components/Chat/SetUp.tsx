@@ -62,7 +62,7 @@ export function SetUp() {
                     const reader = new FileReader();
                     reader.onload = async () => {
                       const arrayBuffer = reader.result as ArrayBuffer;
-                      const base64 = arrayBufferToBase64(arrayBuffer);
+                      const base64 = arrayBufferToBase64(arrayBuffer)
                       const masterKey = generateMasterKey();
                       const sessionUUID = localStorage.getItem("sessionUUID");
                       if (!sessionUUID) {

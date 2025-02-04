@@ -1,12 +1,13 @@
-const ChatSendMessage = ({ time, message, isPrimary, isSendPrimary }: {
+const ChatSendMessage = ({ time, message, isPrimary, isSendPrimary, messageid }: {
   time: string;
-  message: () => {
+  message: () => [string, {
     verified: boolean;
     encrypted: boolean;
     content: string;
     type: string;
     timestamp: string;
-  }
+}][]
+  messageid: string;
   isPrimary: boolean;
   isSendPrimary: boolean;
 }) => {
@@ -22,7 +23,10 @@ const ChatSendMessage = ({ time, message, isPrimary, isSendPrimary }: {
         <div class="c-talk-chat-right">
           <div class="c-talk-chat-msg">
             <p class="">
-              {convertLineBreak(message().content)}
+            {(() => {
+                const foundMessage = message().find((value) => value[0] === messageid)
+                return foundMessage ? convertLineBreak(foundMessage[1].content) : null;
+              })()}
             </p>
           </div>
         </div>

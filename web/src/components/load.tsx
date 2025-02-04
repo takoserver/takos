@@ -80,6 +80,8 @@ export function Load() {
     }
     if (session.login) {
       setLogin(true);
+    } else {
+      setLogin(false);
     }
     if (session.setup) {
       const icon = await fetch(
@@ -115,7 +117,8 @@ export function Load() {
       type: "group" | "friend";
       roomid: string;
     }[] = [];
-    for (const talk of session.friendInfo) {
+    if(session.friendInfo) {
+      for (const talk of session.friendInfo) {
         talkList.push({
           timestamp: "nodata",
           latestMessage: "",
@@ -123,7 +126,9 @@ export function Load() {
           roomid: talk[0],
         });
     }
-    for (const talk of session.groupInfo) {
+    }
+    if(session.groupInfo) {
+      for (const talk of session.groupInfo) {
         talkList.push({
           timestamp: "nodata",
           latestMessage: "",
@@ -131,10 +136,17 @@ export function Load() {
           roomid: talk[0],
         });
     }
+    }
     setTalkListState(talkList);
-    createWebsocket(() => {
+    if(session.login) {
+      createWebsocket(() => {
+        setLoad(true);
+      })
+      return
+    } else {
       setLoad(true);
-    })
+    }
+
   }
   loadSession();
   return <></>;

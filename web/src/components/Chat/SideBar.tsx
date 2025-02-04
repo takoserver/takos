@@ -94,6 +94,69 @@ function TalkListFriend({
   );
 }
 
+function TalkGroupFriend({
+  latestMessage,
+  roomid,
+}: {
+  timestamp: string;
+  latestMessage: string;
+  type: "group" | "friend";
+  roomid: string;
+}) {
+  const [nickName, setNickName] = createSignal("");
+  const [icon, setIcon] = createSignal("");
+  const [roomNickName, setRoomNickName] = useAtom(nickNameState);
+  createEffect(async () => {
+    const groupInfo = await fetch(
+      `https://${roomid.split("@")[1]}/_takos/v2/group/info?groupId=` +
+        roomid,
+    );
+    const resJson = await groupInfo.json();
+    setNickName(resJson.nickName);
+    setIcon(resJson.icon);
+  });
+  const setRoomKeyState = useSetAtom(roomKeyState);
+  const setSelectedRoom = useSetAtom(selectedRoomState);
+  const setIsSelectRoom = useSetAtom(isSelectRoomState);
+  const setMessageList = useSetAtom(messageListState);
+  const handelSelectRoomFriend = async (talk: any) => {
+    /**
+    setIsSelectRoom(true);
+    setSelectedRoom(talk);
+    setRoomNickName(nickName());
+    if(talk.type === "friend") {
+      const messages = await fetch("/api/v2/message/friend/" + talk.roomid)
+      const messagesJson = (((await messages.json()).messages) as {
+        userName: string;
+        messageid: string;
+        timestamp: string;
+      }[]).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      setMessageList(messagesJson);
+    } */
+  }
+  return (
+    <div
+      class="flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-[#282828]"
+      onClick={async () => {
+        handelSelectRoomFriend({ roomid, latestMessage, type: "friend" });
+      }}
+    >
+      <img
+        src={"data:image/png;base64," + icon()}
+        alt="icon"
+        class="w-12 h-12 rounded-full object-cover"
+      />
+      <div>
+        <div class="font-semibold text-lg">
+          {nickName()}
+        </div>
+        <div class="text-xs text-gray-400">{roomid}</div>
+        <div class="text-sm text-gray-500">{latestMessage}</div>
+      </div>
+    </div>
+  );
+}
+
 function TalkList() {
   const [talkList] = useAtom(talkListState);
   const [domain] = useAtom(domainState);
@@ -110,6 +173,16 @@ function TalkList() {
         if (talk.type === "friend") {
           return (
             <TalkListFriend
+              timestamp={talk.timestamp}
+              latestMessage={talk.latestMessage}
+              type={talk.type}
+              roomid={talk.roomid}
+            />
+          );
+        }
+        if (talk.type === "group") {
+          return (
+            <TalkGroupFriend
               timestamp={talk.timestamp}
               latestMessage={talk.latestMessage}
               type={talk.type}

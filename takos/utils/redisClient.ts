@@ -9,9 +9,9 @@ const pubClient = redis.createClient({
 await pubClient.connect();
 
 function publish(data: {
-    type: string;
-    users: string[];
-    data: string;
+  type: string;
+  users: string[];
+  data: string;
 }) {
   pubClient.publish(redisChannel, JSON.stringify(data));
 }

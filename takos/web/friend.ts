@@ -83,6 +83,7 @@ app.post(
         local: true,
         query: {},
       });
+      return c.json({ message: "Request sent" });
     }
   },
 );
@@ -132,7 +133,7 @@ app.post(
       return c.json({ message: "Invalid request" }, 400);
     }
     if (request.type === "friend") {
-      if (request.local) {
+      if (!request.local) {
         if (
           await friends.findOne({
             userName: request.sender,
@@ -154,6 +155,13 @@ app.post(
         if (!Array.isArray(res) || res[0].status !== 200) {
           return c.json({ message: "Invalid request" }, 400);
         }
+        await friends.create({
+          userName: request.receiver,
+          friendId: request.sender,
+        });
+        await Request.deleteOne({ id: id });
+        return c.json({ message: "Request accepted" });
+      } else {
         await friends.create({
           userName: request.receiver,
           friendId: request.sender,

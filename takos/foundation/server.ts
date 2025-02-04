@@ -20,6 +20,8 @@ import {
   base64ToArrayBuffer,
 } from "https://jsr.io/@takos/takos-encrypt-ink/5.3.2/utils/buffers.ts";
 import { resizeImageTo256x256 } from "../web/sessions.ts";
+import { load } from "@std/dotenv";
+const env = await load();
 
 app.post(
   "/message/send",
@@ -44,7 +46,7 @@ app.post(
     if (domain !== userDomain) {
       return c.json({ message: "Unauthorized" }, 401);
     }
-    if(roomType == "friend") {
+    if (roomType == "friend") {
       const friend = await friends.findOne({
         userName: roomId,
         friendId: senderId,
@@ -53,7 +55,7 @@ app.post(
         console.log("Unauthorized");
         return c.json({ message: "Unauthorized" }, 401);
       }
-      if(messageId.split("@")[1] !== domain) {
+      if (messageId.split("@")[1] !== domain) {
         console.log("Unauthorized");
         return c.json({ message: "Unauthorized" }, 401);
       }
@@ -63,19 +65,21 @@ app.post(
         messageid: messageId,
         userName: senderId,
         timestamp: timestamp,
-      })
+      });
       publish({
         type: "message",
         users: [roomId],
         data: JSON.stringify({
           messageid: messageId,
           timestamp,
+          tintin: "tintin",
           userName: senderId,
+          roomid: senderId,
         }),
-      })
+      });
       return c.json({ message: "success" });
     }
-  }
+  },
 );
 
 import { cors } from "hono/cors";
@@ -131,7 +135,7 @@ app.post(
       type: "friend",
       sender: senderId,
       receiver: receiverId,
-      local: true,
+      local: false,
       query: {},
     });
     return c.json({ message: "success" });
@@ -938,6 +942,57 @@ app.post(
       },
     });
     return c.json({ message: "success" });
+  },
+);
+
+app.post(
+  "group/invite/notification",
+  zValidator(
+    "json",
+    z.object({
+      groupId: z.string(),
+      userId: z.string(),
+      type: z.string(),
+      eventId: z.string(),
+      inviteUserId: z.string(),
+    }).strict(),
+  ),
+  async (c) => {
+    const {
+      groupId,
+      userId,
+      type,
+      inviteUserId,
+    } = c.req.valid("json");
+    if (type !== `inviteNotification`) {
+      return c.json({ message: "Invalid type" }, 400);
+    }
+    const domain = c.get("domain");
+    const userDomain = userId.split("@")[1];
+    if (domain !== userDomain) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    if (env["domain"] !== inviteUserId.split("@")[1]) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    if (
+      await friends.findOne({
+        userName: inviteUserId,
+        friendId: userId,
+      })
+    ) {
+      return c.json({ message: "Already friend" }, 400);
+    }
+    if (
+      await request.findOne({
+        sender: userId,
+        receiver: inviteUserId,
+        type: "groupInvite",
+        query: groupId,
+      })
+    ) {
+      return c.json({ message: "Already requested" }, 400);
+    }
   },
 );
 

@@ -43,6 +43,7 @@ singlend.on(
       return error({ error: "password is required" });
     }
     if (query.email) {
+      console.log("email");
       const user = await User.findOne({ email: query.email });
       if (!user) {
         return error({ error: "user not found" });

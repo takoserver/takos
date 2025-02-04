@@ -152,7 +152,8 @@ app.post(
   },
 );
 
-app.post("roomKey",
+app.post(
+  "roomKey",
   zValidator(
     "json",
     z.object({
@@ -162,7 +163,7 @@ app.post("roomKey",
       metaData: z.string(),
       sign: z.string(),
       type: z.string(),
-    })
+    }),
   ),
   async (c) => {
     const user = c.get("user");
@@ -173,16 +174,22 @@ app.post("roomKey",
     if (!session) {
       return c.json({ message: "Unauthorized" }, 401);
     }
-    const { roomId, encryptedRoomKeys, hash, metaData, sign, type } = c.req.valid("json");
-   if(type === "friend") {
-      if(await RoomKey.findOne({ hash })) {
+    const { roomId, encryptedRoomKeys, hash, metaData, sign, type } = c.req
+      .valid("json");
+    if (type === "friend") {
+      if (await RoomKey.findOne({ hash })) {
         return c.json({ message: "Already exists" }, 400);
       }
-      if(!await friends.findOne({ userName: user.userName + "@" + env["domain"], friendId: roomId })) {
+      if (
+        !await friends.findOne({
+          userName: user.userName + "@" + env["domain"],
+          friendId: roomId,
+        })
+      ) {
         console.log(user.userName + "@" + env["domain"], roomId);
         return c.json({ message: "Unauthorized" }, 401);
       }
-      if(encryptedRoomKeys.length !== 2) {
+      if (encryptedRoomKeys.length !== 2) {
         return c.json({ message: "Invalid room key" }, 400);
       }
       await RoomKey.create({
@@ -193,8 +200,9 @@ app.post("roomKey",
         metaData,
         sign,
       });
-   }
+    }
     return c.json({ message: "success" });
-});
+  },
+);
 
 export default app;

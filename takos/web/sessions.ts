@@ -191,7 +191,7 @@ app.post(
     setCookie(c, "sessionid", sessionid, {
       httpOnly: true,
       sameSite: "Lax",
-      maxAge: 2147483647,
+      maxAge: 34560000,
     });
     return c.json({ sessionid: sessionid });
   },

@@ -1,5 +1,6 @@
 import { pageState } from "../../utils/state";
 import { useAtom } from "solid-jotai";
+import { shoowGroupPopUp } from "../../components/CreateGroup";
 export default function talkListHeader() {
   const [page] = useAtom(pageState);
   return (
@@ -29,7 +30,17 @@ export default function talkListHeader() {
   );
 }
 function OneTitle() {
-  return <h1 class="p-talk-list-title">トーク</h1>;
+  const [_showGroupPopUp, setShowGroupPopUp] = useAtom(shoowGroupPopUp);
+  return <div class="flex">
+    <h1 class="p-talk-list-title">トーク</h1>
+    <button
+    onClick={() => {
+      setShowGroupPopUp(true);
+    }}
+    >
+    group追加ボタン
+    </button>
+  </div>
 }
 function OneValue() {
   return (

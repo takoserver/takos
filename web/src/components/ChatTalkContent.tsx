@@ -13,19 +13,23 @@ const myuserName = localStorage.getItem("userName") + "@" + (document.location.h
 
 function ChatTalkMain() {
   const [messageList] = useAtom(messageListState);
+  const list = messageList();
   return (
     <>
-        <div class="pl-2">
-          <div class="overflow-y-auto">
-          {messageList().map((message) => {
-            return (
-              <>
-              <Message messageid={message.messageid} myMessage={message.userName === myuserName} time={message.timestamp} userName={message.userName} />
-              </>
-            );
-          })}
-          </div>
-        </div>
+      <div class="pl-2" id="chatList">
+        {list.map((message) => {
+          return (
+            <>
+              <Message
+                messageid={message.messageid}
+                myMessage={message.userName === myuserName}
+                time={message.timestamp}
+                userName={message.userName}
+              />
+            </>
+          );
+        })}
+      </div>
     </>
   );
 }
@@ -33,41 +37,57 @@ function ChatTalkMain() {
 import { onMount } from "solid-js";
 
 function Message({ messageid, myMessage, time, userName }: { messageid: string, myMessage: boolean, time: string, userName: string }) {
-  const [messageValue, setMessageValue] = createSignal<{
-    verified: boolean;
-    encrypted: boolean;
-    content: string;
-    type: string;
-    timestamp: string;
-  }>({ verified: false, encrypted: false, content: "読み込み中", type: "text", timestamp: time });
+  const [messageValue, setMessageValue] = useAtom(messageValueState);
+  const [loaded, setLoaded] = createSignal(false);
   onMount(async () => {
-    try {
-      const value = await getMessage(messageid);
-      console.log(value);
-      setMessageValue(value);
-    } catch (e) {
-      setMessageValue({ verified: false, encrypted: false, content: "読み込みエラー", type: "text", timestamp: time });
-      console.log("error", e);
+    const foundMessage = messageValue().find((val) => val[0] === messageid);
+    if (!foundMessage) {
+      try {
+        const message = await getMessage(messageid, userName);
+        setMessageValue((prev) => [...prev, [messageid, message]]);
+      } catch (e) {
+        setMessageValue((prev) => [
+          ...prev,
+          [
+            messageid,
+            {
+              verified: false,
+              encrypted: true,
+              content: "メッセージの取得に失敗しました",
+              type: "error",
+              timestamp: new Date().toISOString(),
+            },
+          ],
+        ]);
+      }
     }
+    setLoaded(true);
   });
+  
   return (
     <>
-      {myMessage &&
-        <ChatSendMessage
-          time={time}
-          message={messageValue}
-          isPrimary={true}
-          isSendPrimary={true}
-        />
-      }
-      {!myMessage &&
-        <ChatOtherMessage
-          name={userName}
-          time={time}
-          message={messageValue}
-          isPrimary={true}
-        />
-      }
+      {loaded() && (
+        <>
+          {myMessage && (
+            <ChatSendMessage
+              time={time}
+              message={messageValue}
+              messageid={messageid}
+              isPrimary={true}
+              isSendPrimary={true}
+            />
+          )}
+          {!myMessage && (
+            <ChatOtherMessage
+              name={userName}
+              time={time}
+              messageid={messageid}
+              message={messageValue}
+              isPrimary={true}
+            />
+          )}
+        </>
+      )}
     </>
   );
 }

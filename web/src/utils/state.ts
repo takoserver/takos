@@ -60,12 +60,11 @@ export const talkListState = atom<{
 }[]>();
 
 export const messageValueState = atom<[string, {
-  userId: string;
-  message: string;
-  type: "text" | "image";
+  verified: boolean;
+  encrypted: boolean;
+  content: string;
+  type: string;
   timestamp: string;
-  isEncrypted: boolean;
-  isSigned: boolean;
 }][]>([]);
 
 export const messageListState = atom<{

@@ -12,10 +12,12 @@ import {
   messageListState,
   messageValueState,
 } from "../utils/state.ts"
+import { selectedRoomState } from "./roomState.ts";
 
 export function createWebsocket(loadedFn: () => void) {
   createRoot(() => {
     const [domain] = useAtom(domainState);
+    const [selectedRoom] = useAtom(selectedRoomState);
     const [sessionId] = useAtom(sessionidState);
     const [webSocket, setWebsocket] = useAtom(webSocketState);
     const setMessageList = useSetAtom(messageListState);
@@ -41,9 +43,9 @@ export function createWebsocket(loadedFn: () => void) {
         switch (data.type) {
           case "message": {
             const messageData = JSON.parse(data.data);
-            setMessageList((prev) => [...prev, messageData].sort((a, b) => {
-              return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-          }));
+            if(selectedRoom()?.roomid === messageData.roomid) {
+              setMessageList((prev) => [...prev, messageData]);
+            }
           }
         }
       };
