@@ -179,56 +179,18 @@ function TalkGroup({
     }[] = resOrderJson.orders;
     const owner = resOrderJson.owner;
     const defaultChannelId = resOrderJson.defaultChannelId;
-    const groupInfos: {
-      members: {
-        userId: string;
-        role: string[];
-      }[];
-      channels: {
-        order: number;
-        name: string;
-        groupId: string;
-        id: any;
-        category: string | null | undefined;
-      }[];
-      roles: {
-        id: any;
-        name: string;
-        groupId: string;
-        color: string;
-        permissions: string[];
-      }[];
-      categories: {
-        id: any;
-        name: string;
-        groupId: string;
-        order: number;
-      }[];
-      categoriesPermissions: {
-        groupId: string;
-        permissions: string[];
-        categoryId: string;
-        roleId: string;
-      }[];
-      channelsPermissions: {
-        groupId: string;
-        permissions: string[];
-        roleId: string;
-        channelId: string;
-        inheritCategoryPermissions: boolean;
-      }[];
-    } = await groupInfo.json();
+    const groupInfos= await groupInfo.json();
     // groupInfos に order を追加
-    groupInfos.channels = groupInfos.channels.map((channel) => {
+    groupInfos.channels = groupInfos.channels.map((channel: { id: string; }) => {
       const orderEntry = orders.find((o) => o.id === channel.id);
       return orderEntry ? { ...channel, order: orderEntry.order } : channel;
     });
-    groupInfos.categories = groupInfos.categories.map((category) => {
+    groupInfos.categories = groupInfos.categories.map((category: { id: string; }) => {
       const orderEntry = orders.find((o) => o.id === category.id);
       return orderEntry ? { ...category, order: orderEntry.order } : category;
     });
-    groupInfos.channels.sort((a, b) => a.order - b.order);
-    groupInfos.categories.sort((a, b) => a.order - b.order);
+    groupInfos.channels.sort((a: { order: number; }, b: { order: number; }) => a.order - b.order);
+    groupInfos.categories.sort((a: { order: number; }, b: { order: number; }) => a.order - b.order);
     setGroupChannel(groupInfos);
     const messages = await fetch(
       "/api/v2/message/group/" + talk.roomid + "/" + defaultChannelId,
