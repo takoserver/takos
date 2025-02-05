@@ -39,8 +39,8 @@ export function Chat() {
                   <div class="p-1 h-full">
                     <ChatTalkTitle />
                   </div>
-                  <ChatTalkTitleContent />
                 </div>
+                <ChatTalkTitleContent />
                 <div class="mt-[54px]"></div>
                 <ChatTalkContent />
               </div>
