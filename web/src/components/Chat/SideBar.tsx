@@ -1,13 +1,13 @@
-import { useAtom, useSetAtom } from "solid-jotai";
+import { atom, useAtom, useSetAtom } from "solid-jotai";
 import {
   deviceKeyState,
   domainState,
   IdentityKeyAndAccountKeyState,
+  messageListState,
+  messageValueState,
   notificationState,
   pageState,
   talkListState,
-  messageListState,
-  messageValueState
 } from "../../utils/state";
 import {
   isSelectRoomState,
@@ -61,13 +61,15 @@ function TalkListFriend({
     setIsSelectRoom(true);
     setSelectedRoom(talk);
     setRoomNickName(nickName());
-    if(talk.type === "friend") {
-      const messages = await fetch("/api/v2/message/friend/" + talk.roomid)
+    if (talk.type === "friend") {
+      const messages = await fetch("/api/v2/message/friend/" + talk.roomid);
       const messagesJson = (((await messages.json()).messages) as {
         userName: string;
         messageid: string;
         timestamp: string;
-      }[]).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      }[]).sort((a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
       setMessageList(messagesJson);
     }
   };
@@ -94,7 +96,48 @@ function TalkListFriend({
   );
 }
 
-function TalkGroupFriend({
+export const groupChannelState = atom<{
+  members: {
+    userId: string;
+    role: string[];
+  }[];
+  channels: {
+    type: string;
+    name: string;
+    groupId: string;
+    id: any;
+    category: string | null | undefined;
+    order: number;
+  }[];
+  roles: {
+    id: any;
+    name: string;
+    groupId: string;
+    color: string;
+    permissions: string[];
+  }[];
+  categories: {
+    id: any;
+    name: string;
+    groupId: string;
+    order: number;
+  }[];
+  categoriesPermissions: {
+    groupId: string;
+    permissions: string[];
+    categoryId: string;
+    roleId: string;
+  }[];
+  channelsPermissions: {
+    groupId: string;
+    permissions: string[];
+    roleId: string;
+    channelId: string;
+    inheritCategoryPermissions: boolean;
+  }[];
+}>();
+
+function TalkGroup({
   latestMessage,
   roomid,
 }: {
@@ -106,13 +149,14 @@ function TalkGroupFriend({
   const [nickName, setNickName] = createSignal("");
   const [icon, setIcon] = createSignal("");
   const [roomNickName, setRoomNickName] = useAtom(nickNameState);
+  const [groupChannel, setGroupChannel] = useAtom(groupChannelState);
   createEffect(async () => {
     const groupInfo = await fetch(
       `https://${roomid.split("@")[1]}/_takos/v2/group/info?groupId=` +
         roomid,
     );
     const resJson = await groupInfo.json();
-    setNickName(resJson.nickName);
+    setNickName(resJson.groupName);
     setIcon(resJson.icon);
   });
   const setRoomKeyState = useSetAtom(roomKeyState);
@@ -120,25 +164,92 @@ function TalkGroupFriend({
   const setIsSelectRoom = useSetAtom(isSelectRoomState);
   const setMessageList = useSetAtom(messageListState);
   const handelSelectRoomFriend = async (talk: any) => {
-    /**
+    const groupInfo = await fetch(
+      `https://${roomid.split("@")[1]}/api/v2/group/info?groupId=` +
+        roomid,
+    );
+    const groupOrder = await fetch(
+      `https://${roomid.split("@")[1]}/_takos/v2/group/data?groupId=` +
+        roomid,
+    );
+    const resOrderJson = await groupOrder.json();
+    const orders: {
+      id: string;
+      order: number;
+    }[] = resOrderJson.orders;
+    const owner = resOrderJson.owner;
+    const defaultChannelId = resOrderJson.defaultChannelId;
+    const groupInfos: {
+      members: {
+        userId: string;
+        role: string[];
+      }[];
+      channels: {
+        order: number;
+        name: string;
+        groupId: string;
+        id: any;
+        category: string | null | undefined;
+      }[];
+      roles: {
+        id: any;
+        name: string;
+        groupId: string;
+        color: string;
+        permissions: string[];
+      }[];
+      categories: {
+        id: any;
+        name: string;
+        groupId: string;
+        order: number;
+      }[];
+      categoriesPermissions: {
+        groupId: string;
+        permissions: string[];
+        categoryId: string;
+        roleId: string;
+      }[];
+      channelsPermissions: {
+        groupId: string;
+        permissions: string[];
+        roleId: string;
+        channelId: string;
+        inheritCategoryPermissions: boolean;
+      }[];
+    } = await groupInfo.json();
+    // groupInfos に order を追加
+    groupInfos.channels = groupInfos.channels.map((channel) => {
+      const orderEntry = orders.find((o) => o.id === channel.id);
+      return orderEntry ? { ...channel, order: orderEntry.order } : channel;
+    });
+    groupInfos.categories = groupInfos.categories.map((category) => {
+      const orderEntry = orders.find((o) => o.id === category.id);
+      return orderEntry ? { ...category, order: orderEntry.order } : category;
+    });
+    groupInfos.channels.sort((a, b) => a.order - b.order);
+    groupInfos.categories.sort((a, b) => a.order - b.order);
+    setGroupChannel(groupInfos);
+    const messages = await fetch(
+      "/api/v2/message/group/" + talk.roomid + "/" + defaultChannelId,
+    );
+    const messagesJson = (((await messages.json()).messages) as {
+      userName: string;
+      messageid: string;
+      timestamp: string;
+    }[]).sort((a, b) =>
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    setMessageList(messagesJson);
     setIsSelectRoom(true);
     setSelectedRoom(talk);
     setRoomNickName(nickName());
-    if(talk.type === "friend") {
-      const messages = await fetch("/api/v2/message/friend/" + talk.roomid)
-      const messagesJson = (((await messages.json()).messages) as {
-        userName: string;
-        messageid: string;
-        timestamp: string;
-      }[]).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-      setMessageList(messagesJson);
-    } */
-  }
+  };
   return (
     <div
       class="flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-[#282828]"
       onClick={async () => {
-        handelSelectRoomFriend({ roomid, latestMessage, type: "friend" });
+        handelSelectRoomFriend({ roomid, latestMessage, type: "group" });
       }}
     >
       <img
@@ -175,17 +286,17 @@ function TalkList() {
             <TalkListFriend
               timestamp={talk.timestamp}
               latestMessage={talk.latestMessage}
-              type={talk.type}
+              type={"friend"}
               roomid={talk.roomid}
             />
           );
         }
         if (talk.type === "group") {
           return (
-            <TalkGroupFriend
+            <TalkGroup
               timestamp={talk.timestamp}
               latestMessage={talk.latestMessage}
-              type={talk.type}
+              type={"group"}
               roomid={talk.roomid}
             />
           );
@@ -328,7 +439,6 @@ function Setting() {
     }>();
   return (
     <>
-
     </>
   );
 }

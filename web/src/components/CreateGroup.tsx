@@ -8,35 +8,43 @@ export function CreateGroupPopUp() {
   const [showGroupPopUp, setShowGroupPopUp] = useAtom(shoowGroupPopUp);
   const [groupName, setGroupName] = createSignal("");
   // groupIcon は画像のBase64文字列または null を保持
-  const [groupIcon, setGroupIcon] = createSignal<string | null>(null);
+  const [groupIcon, setGroupIcon] = createSignal<File | null>(null);
+  const [iconPreview, setIconPreview] = createSignal<string | null>(null);
 
   async function handleSaveGroup() {
-    const name = groupName();
-    const icon = arrayBufferToBase64(base64ToArrayBuffer(groupIcon()!))
-    if (!name) {
-      alert("グループ名を入力してください");
-      return;
-    }
-    if(!icon) {
+    const file = groupIcon();
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const arrayBuffer = reader.result as ArrayBuffer;
+      const icon = arrayBufferToBase64(arrayBuffer);
+      const name = groupName();
+      if (!name) {
+        alert("グループ名を入力してください");
+        return;
+      }
+      if (!icon) {
         alert("アイコンを設定してください");
         return;
-    }
-    const res = await fetch("/api/v2/group/create", {
+      }
+      console.log(icon);
+      const res = await fetch("/api/v2/group/create", {
         method: "POST",
         headers: {
-            "Content-Type": "application/json",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            name: name,
-            icon: icon,
+          name: name,
+          icon: icon,
         }),
-    });
-    if (res.status !== 200) {
+      });
+      if (res.status !== 200) {
         alert("グループ作成に失敗しました");
         return;
-    }
-    alert("グループを作成しました");
-    setShowGroupPopUp(false);
+      }
+      alert("グループを作成しました");
+      setShowGroupPopUp(false);
+    };
+    reader.readAsArrayBuffer(file!);
   }
 
   return (
@@ -65,17 +73,19 @@ export function CreateGroupPopUp() {
               <div class="flex flex-col items-center space-y-4">
                 {/* アイコン表示部分（クリックで画像選択） */}
                 <label for="groupIcon" class="cursor-pointer">
-                  {groupIcon() ? (
-                    <img
-                      src={groupIcon()!}
-                      alt="グループアイコン"
-                      class="w-24 h-24 rounded-full object-cover border-2 border-gray-600"
-                    />
-                  ) : (
-                    <div class="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 border-2 border-gray-600">
-                      アイコン
-                    </div>
-                  )}
+                  {groupIcon()
+                    ? (
+                      <img
+                        src={iconPreview()!}
+                        alt="グループアイコン"
+                        class="w-24 h-24 rounded-full object-cover border-2 border-gray-600"
+                      />
+                    )
+                    : (
+                      <div class="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 border-2 border-gray-600">
+                        アイコン
+                      </div>
+                    )}
                 </label>
                 <input
                   id="groupIcon"
@@ -85,11 +95,11 @@ export function CreateGroupPopUp() {
                   onChange={(e) => {
                     const file = e.currentTarget.files?.[0];
                     if (file) {
+                      setGroupIcon(file);
                       const reader = new FileReader();
                       reader.onload = () => {
-                        console.log(reader.result);
-                        setGroupIcon(reader.result as string);
-                      }
+                        setIconPreview(reader.result as string);
+                      };
                       reader.readAsDataURL(file);
                     } else {
                       setGroupIcon(null);

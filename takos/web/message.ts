@@ -8,6 +8,7 @@ import Message from "../models/message.ts";
 import { uuidv7 } from "npm:uuidv7@^1.0.2";
 import { fff } from "../utils/foundationReq.ts";
 import publish from "../utils/redisClient.ts";
+import { Member } from "../models/groups.ts";
 const env = await load();
 
 app.post(
@@ -150,5 +151,48 @@ app.get("friend/:roomId", async (c) => {
   messages.splice(limit);
   return c.json({ messages });
 });
+
+app.get("group/:roomId/:channelId", async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const roomId = c.req.param("roomId");
+    const channelId = c.req.param("channelId");
+    const limit = Number(c.req.query("limit")) || 50;
+    const bfore = c.req.query("before");
+    if(!Member.findOne({
+        groupId: roomId,
+        userId: user.userName + "@" + env["domain"],
+    })) {
+        return c.json({ message: "Unauthorized" }, 401);
+    }
+    if (!bfore) {
+        const messages = await Message.find({
+            roomId,
+            channelId,
+        }, { messageid: 1, timestamp: 1, userName: 1, _id: 0 }).limit(limit).sort({
+            timestamp: -1,
+        });
+        return c.json({ messages });
+    }
+    const beforeMessageId = await Message.findOne({
+        roomId,
+        channelId,
+        timestamp: { $lt: new Date(bfore) },
+    }).sort({ timestamp: -1 });
+    if (!beforeMessageId) {
+        return c.json({ error: "Invalid before" }, 400);
+    }
+    const beforemessageTime = beforeMessageId.timestamp;
+    const messages = await Message.find({
+        roomId,
+        channelId,
+        timestamp: { $lt: beforemessageTime },
+    }, { messageid: 1, timestamp: 1, userName: 1, _id: 0 }).limit(limit).sort({
+        timestamp: -1,
+    });
+    return c.json({ messages });
+  });
 
 export default app;

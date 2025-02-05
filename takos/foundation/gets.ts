@@ -1,6 +1,6 @@
 import app from "../_factory.ts";
 import User from "../models/users.ts";
-import { Group } from "../models/groups.ts";
+import { Category, Channels, Group } from "../models/groups.ts";
 import IdentityKey from "../models/identityKey.ts";
 import Message from "../models/message.ts";
 import RoomKey from "../models/roomKey.ts";
@@ -164,6 +164,36 @@ app.get("group/info", async (c) => {
     icon: group.groupIcon,
     groupName: group.groupName,
   });
+});
+
+app.get("group/data", async (c) => {
+  const groupId = c.req.query("groupId");
+  if (!groupId) {
+    return c.json({ message: "Unauthorized" }, 401);
+  }
+  const group = await Group.findOne({
+    groupId,
+    type: "private",
+  });
+  if (!group) {
+    return c.json({ message: "Unauthorized" }, 401);
+  }
+  const channels = await Channels.find({ groupId });
+  const categories = await Category.find({ groupId });
+
+  // channels と categories を1つの配列にまとめる
+  const items = [...channels, ...categories] as Array<{ id: string; order: number }>;
+  // order プロパティでソート
+  const sortedItems = items.sort((a, b) => a.order - b.order);
+
+  const orders = sortedItems.map((item) => {
+    return {
+      id: item.id,
+      order: item.order,
+    };
+  });
+  return c.json({ orders,      owner: group.owner,
+    defaultChannelId: group.defaultChannelId, });
 });
 
 app.get("publicGroup/description", async (c) => {

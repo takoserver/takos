@@ -31,16 +31,18 @@ export default function talkListHeader() {
 }
 function OneTitle() {
   const [_showGroupPopUp, setShowGroupPopUp] = useAtom(shoowGroupPopUp);
-  return <div class="flex">
-    <h1 class="p-talk-list-title">トーク</h1>
-    <button
-    onClick={() => {
-      setShowGroupPopUp(true);
-    }}
-    >
-    group追加ボタン
-    </button>
-  </div>
+  return (
+    <div class="flex">
+      <h1 class="p-talk-list-title">トーク</h1>
+      <button
+        onClick={() => {
+          setShowGroupPopUp(true);
+        }}
+      >
+        group追加ボタン
+      </button>
+    </div>
+  );
 }
 function OneValue() {
   return (

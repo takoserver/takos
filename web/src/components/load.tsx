@@ -117,7 +117,7 @@ export function Load() {
       type: "group" | "friend";
       roomid: string;
     }[] = [];
-    if(session.friendInfo) {
+    if (session.friendInfo) {
       for (const talk of session.friendInfo) {
         talkList.push({
           timestamp: "nodata",
@@ -125,9 +125,9 @@ export function Load() {
           type: "friend",
           roomid: talk[0],
         });
+      }
     }
-    }
-    if(session.groupInfo) {
+    if (session.groupInfo) {
       for (const talk of session.groupInfo) {
         talkList.push({
           timestamp: "nodata",
@@ -135,18 +135,17 @@ export function Load() {
           type: "group",
           roomid: talk[0],
         });
-    }
+      }
     }
     setTalkListState(talkList);
-    if(session.login) {
+    if (session.login) {
       createWebsocket(() => {
         setLoad(true);
-      })
-      return
+      });
+      return;
     } else {
       setLoad(true);
     }
-
   }
   loadSession();
   return <></>;

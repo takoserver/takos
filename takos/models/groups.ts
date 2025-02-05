@@ -33,7 +33,7 @@ const groupSchema = new mongoose.Schema({
   },
   allowJoin: { type: Boolean },
   beforeEventId: { type: String },
-  //自分のサーバーのgroupか
+  defaultChannelId: { type: String, required: true },
   isOwner: { type: Boolean, required: true },
 });
 
@@ -48,6 +48,7 @@ const channelSchema = new mongoose.Schema({
   name: { type: String, required: true },
   id: { type: String, required: true },
   category: { type: String },
+  order: { type: Number, required: true },
 });
 
 const channelPermissionSchema = new mongoose.Schema({
@@ -75,6 +76,7 @@ const categorySchema = new mongoose.Schema({
   groupId: { type: String, required: true },
   name: { type: String, required: true },
   id: { type: String, required: true },
+  order: { type: Number, required: true },
   permissions: {
     type: [String],
     default: [],

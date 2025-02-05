@@ -8,10 +8,7 @@ import {
 } from "./state";
 import { createEffect, createRoot } from "solid-js";
 
-import { 
-  messageListState,
-  messageValueState,
-} from "../utils/state.ts"
+import { messageListState, messageValueState } from "../utils/state.ts";
 import { selectedRoomState } from "./roomState.ts";
 
 export function createWebsocket(loadedFn: () => void) {
@@ -43,7 +40,7 @@ export function createWebsocket(loadedFn: () => void) {
         switch (data.type) {
           case "message": {
             const messageData = JSON.parse(data.data);
-            if(selectedRoom()?.roomid === messageData.roomid) {
+            if (selectedRoom()?.roomid === messageData.roomid) {
               setMessageList((prev) => [...prev, messageData]);
             }
           }
