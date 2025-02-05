@@ -3,25 +3,23 @@
 layout: home
 
 hero:
-  name: "takos api document"
-  text: 次世代のLINE
-  tagline: Trustworthy Alternative Knowledge-sharing Open-source System
-  image:
-    src: /logo.png
-    alt: log
+  name: "takos protocol document"
+  text: "takos!!"
+  tagline: My great project tagline
   actions:
     - theme: brand
-      text: Get Start
-      link: /welcome
+      text: Markdown Examples
+      link: /markdown-examples
     - theme: alt
-      text: tako's jp
-      link: https://takos.jp
+      text: API Examples
+      link: /api-examples
 
 features:
-  - title: シンプルなUI
-    details: 使いやすいUIで、誰でも簡単に使えます。
-  - title: 非中央集権
-    details: あなたのデータはあなたのサーバーに保存されるため、プライバシーとセキュリティが保護されます。 また、災害時のリスク分散にも役立ちます。
-  - title: 耐量子暗号によるE2EE暗号
-    details: 量子コンピューターによる暗号解読を防ぐために、耐量子暗号を採用しています。
+  - title: Feature A
+    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
+  - title: Feature B
+    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
+  - title: Feature C
+    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
 ---
+
