@@ -221,7 +221,7 @@ function ChannelSideBar() {
                               channelCompornent({
                                 name: child.name,
                                 id: child.id,
-                              })
+                              }),
                           );
                           return channelCategory({
                             name: channel.name,

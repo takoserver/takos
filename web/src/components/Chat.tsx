@@ -8,9 +8,11 @@ import ChatTalkTitle from "./ChatTalkTitle.tsx";
 import ChatTalkContent from "./ChatTalkContent.tsx";
 import ChatTalkTitleContent from "./ChatTalkTitleContent.tsx";
 import { isSelectRoomState } from "../utils/roomState.ts";
-import { useAtom } from "solid-jotai";
+import { atom, useAtom } from "solid-jotai";
+export const openConfig = atom(false);
 export function Chat() {
   const [isSelectRoom] = useAtom(isSelectRoomState);
+  const [open, setOpen] = useAtom(openConfig);
   return (
     <>
       <ChatHeader />
@@ -39,8 +41,18 @@ export function Chat() {
                   <div class="p-1 h-full">
                     <ChatTalkTitle />
                   </div>
+                  <ChatTalkTitleContent />
+                  {!open() && isSelectRoom() && (
+                    <div
+                      class="absolute right-7 cursor-pointer hover:scale-105 transition-transform duration-200"
+                      onClick={() => setOpen(true)}
+                    >
+                      <span class="block w-7 h-0.5 bg-white mb-[5px]"></span>
+                      <span class="block w-7 h-0.5 bg-white mb-[5px]"></span>
+                      <span class="block w-7 h-0.5 bg-white"></span>
+                    </div>
+                  )}
                 </div>
-                <ChatTalkTitleContent />
                 <div class="mt-[54px]"></div>
                 <ChatTalkContent />
               </div>

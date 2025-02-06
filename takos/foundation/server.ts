@@ -1644,7 +1644,7 @@ app.post(
 );
 
 app.post(
-  "group/inivte/leave",
+  "group/leave",
   zValidator(
     "json",
     z.object({

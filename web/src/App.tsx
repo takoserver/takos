@@ -9,12 +9,15 @@ import { Chat } from "./components/Chat.tsx";
 import { createEffect } from "solid-js";
 import { CreateIdentityKeyPopUp } from "./components/CreateIdentityKeyPopUp.tsx";
 import { CreateGroupPopUp } from "./components/CreateGroup.tsx";
+import { SettingRoom } from "./components/SettingRoom.tsx";
+
 function App(
   { page }: { page?: "home" | "talk" | "friend" | "setting" | "notification" },
 ) {
   const [load] = useAtom(loadState);
   const [login] = useAtom(loginState);
   const [_page, setPageState] = useAtom(pageState);
+
   setPageState(page || "talk");
   createEffect(() => {
     console.log(load(), login());
@@ -23,6 +26,7 @@ function App(
     <>
       {!load() && <Loading />}
       <CreateIdentityKeyPopUp />
+      <SettingRoom />
       <CreateGroupPopUp />
       <Css />
       <ChangeURL></ChangeURL>

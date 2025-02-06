@@ -182,7 +182,9 @@ app.get("group/data", async (c) => {
   const categories = await Category.find({ groupId });
 
   // channels と categories を1つの配列にまとめる
-  const items = [...channels, ...categories] as Array<{ id: string; order: number }>;
+  const items = [...channels, ...categories] as Array<
+    { id: string; order: number }
+  >;
   // order プロパティでソート
   const sortedItems = items.sort((a, b) => a.order - b.order);
 
@@ -192,8 +194,11 @@ app.get("group/data", async (c) => {
       order: item.order,
     };
   });
-  return c.json({ orders,      owner: group.owner,
-    defaultChannelId: group.defaultChannelId, });
+  return c.json({
+    orders,
+    owner: group.owner,
+    defaultChannelId: group.defaultChannelId,
+  });
 });
 
 app.get("publicGroup/description", async (c) => {

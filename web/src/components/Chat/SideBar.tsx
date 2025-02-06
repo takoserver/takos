@@ -179,18 +179,24 @@ function TalkGroup({
     }[] = resOrderJson.orders;
     const owner = resOrderJson.owner;
     const defaultChannelId = resOrderJson.defaultChannelId;
-    const groupInfos= await groupInfo.json();
+    const groupInfos = await groupInfo.json();
     // groupInfos に order を追加
-    groupInfos.channels = groupInfos.channels.map((channel: { id: string; }) => {
+    groupInfos.channels = groupInfos.channels.map((channel: { id: string }) => {
       const orderEntry = orders.find((o) => o.id === channel.id);
       return orderEntry ? { ...channel, order: orderEntry.order } : channel;
     });
-    groupInfos.categories = groupInfos.categories.map((category: { id: string; }) => {
-      const orderEntry = orders.find((o) => o.id === category.id);
-      return orderEntry ? { ...category, order: orderEntry.order } : category;
-    });
-    groupInfos.channels.sort((a: { order: number; }, b: { order: number; }) => a.order - b.order);
-    groupInfos.categories.sort((a: { order: number; }, b: { order: number; }) => a.order - b.order);
+    groupInfos.categories = groupInfos.categories.map(
+      (category: { id: string }) => {
+        const orderEntry = orders.find((o) => o.id === category.id);
+        return orderEntry ? { ...category, order: orderEntry.order } : category;
+      },
+    );
+    groupInfos.channels.sort((a: { order: number }, b: { order: number }) =>
+      a.order - b.order
+    );
+    groupInfos.categories.sort((a: { order: number }, b: { order: number }) =>
+      a.order - b.order
+    );
     setGroupChannel(groupInfos);
     const messages = await fetch(
       "/api/v2/message/group/" + talk.roomid + "/" + defaultChannelId,

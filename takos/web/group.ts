@@ -107,46 +107,47 @@ app.get(
       };
     });
     const roles = (await Roles.find({
-        groupId: group.groupId,
-      })).map((role) => {
-        return {
-            id: role.id,
-            name: role.name,
-            groupId: role.groupId,
-            color: role.color,
-            permissions: role.permissions,
-        }
-      })
+      groupId: group.groupId,
+    })).map((role) => {
+      return {
+        id: role.id,
+        name: role.name,
+        groupId: role.groupId,
+        color: role.color,
+        permissions: role.permissions,
+      };
+    });
     const categories = (await Category.find({
-        groupId: group.groupId,
-      })).map((category) => {
-        return {
-            id: category.id,
-            name: category.name,
-            groupId: category.groupId,
-        };
+      groupId: group.groupId,
+    })).map((category) => {
+      return {
+        id: category.id,
+        name: category.name,
+        groupId: category.groupId,
+      };
     });
     const categoriesPermissions = (await CategoryPermissions.find({
-        groupId: group.groupId,
-      })).map((categoryPermissions) => {
-        return {
-            groupId: categoryPermissions.groupId,
-            permissions: categoryPermissions.permissions,
-            categoryId: categoryPermissions.categoryId,
-            roleId: categoryPermissions.roleId,
-        }}
-    )
+      groupId: group.groupId,
+    })).map((categoryPermissions) => {
+      return {
+        groupId: categoryPermissions.groupId,
+        permissions: categoryPermissions.permissions,
+        categoryId: categoryPermissions.categoryId,
+        roleId: categoryPermissions.roleId,
+      };
+    });
     const channelsPermissions = (await ChannelPermissions.find({
-        groupId: group.groupId,
-      })).map((channelPermissions) => {
-        return {
-            groupId: channelPermissions.groupId,
-            permissions: channelPermissions.permissions,
-            roleId: channelPermissions.roleId,
-            channelId: channelPermissions.channelId,
-            inheritCategoryPermissions: channelPermissions.inheritCategoryPermissions,
-        }}
-    )
+      groupId: group.groupId,
+    })).map((channelPermissions) => {
+      return {
+        groupId: channelPermissions.groupId,
+        permissions: channelPermissions.permissions,
+        roleId: channelPermissions.roleId,
+        channelId: channelPermissions.channelId,
+        inheritCategoryPermissions:
+          channelPermissions.inheritCategoryPermissions,
+      };
+    });
     return c.json({
       members,
       channels,
@@ -156,4 +157,8 @@ app.get(
       channelsPermissions,
     });
   },
-);
+)
+
+app.post(
+  "invite",
+)
