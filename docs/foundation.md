@@ -1,0 +1,615 @@
+# Foundation api
+
+takosサーバーではfoundation apiを試用して相互に通信します。
+takosサーバーはこれらのapiを試用して、メッセージをリアルタイムで共有します。
+
+API は、各サーバー間の HTTPS リクエストを使用して実装されます。これらの HTTPS リクエストは、TLS トランスポート層での公開キー署名と、HTTP 層での HTTP 認証ヘッダー内の公開キー署名を使用して強力に認証されます。
+
+## サーバー実装
+
+### `GET` /_takos/v1/version
+
+サーバーの実装名とバージョンを取得します。
+
+レート制限: なし
+認証: なし
+
+### リクエスト
+
+リクエストパラメータまたはリクエスト本文がありません。
+
+
+
+### レスポンス
+
+| 状態 | 説明 |
+| --- | --- |
+| 200 | 実装バージョン |
+
+#### 200
+
+```json
+{
+  "version": "1.0.0",
+  "name": "takos"
+}
+```
+
+### `GET` /_takos/v1/key/server
+
+サーバーの公開鍵を取得します。
+
+サーバーの公開された署名キーを取得します。
+
+レート制限: なし
+認証: なし
+
+#### リクエスト
+
+`query`
+
+| パラメータ | 説明 |
+| --- | --- |
+| `expires` | キーの有効期限 |
+
+#### レスポンス
+
+| 状態 | 説明 |
+| --- | --- |
+| 200 | サーバーの公開鍵 |
+
+#### 200
+
+```json
+{
+  "key": "PUBLIC_KEY",
+}
+```
+
+### `GET` /_takos/v1/key/server/{`serverName`}
+
+他のサーバーの公開鍵を取得します。
+
+レート制限: なし
+認証: なし
+
+#### リクエスト
+
+`query`
+
+| パラメータ | 説明 |
+| --- | --- |
+| `expires` | キーの有効期限 |
+| `serverName` | サーバー名(domain) |
+
+#### レスポンス
+
+| 状態 | 説明 |
+| --- | --- |
+| 200 | サーバーの公開鍵 |
+
+#### 200
+
+```json
+{
+  "key": "PUBLIC_KEY",
+}
+```
+
+## 認証
+
+サーバーによって行われるすべてのHTTPリクエストは、公開鍵署名を使用して認証されます。bodyの署名は、`Authorization`ヘッダーに含まれ、`X-Takos-Signature`ヘッダーに含まれます。
+
+### `Authorization` ヘッダー
+
+`Authorization` ヘッダーは、公開鍵署名を含むベアラートークンです。
+
+```Authorization
+Authorization: X-Takos-Signature sign="<署名>", Expires="<有効期限>, origin="<ドメイン>"
+```
+
+example:
+
+```json
+{
+    "method": "POST",
+    "path": "path(example)",
+    "body": "body(example)",
+    "Content-Type": "application/json",
+    "Authorization": "X-Takos-Signature sign=\"<署名>\", Expires=\"<有効期限>\", origin=\"<ドメイン>\""
+}
+```
+
+Authorization ヘッダーの形式は、 RFC 9110 のセクション 11.4で規定されています。
+
+origin: 送信サーバーのサーバー名
+expires: 有効期限
+sign: 署名
+
+### レスポンス認証
+
+応答は TLS サーバー証明書によって認証されます。
+
+### `POST` /_takos/v1/event/{`eventName`}
+
+イベントを送信します。
+
+レート制限: あり
+認証: あり
+
+#### リクエスト
+
+`body`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `event` | `string` | イベント名 |
+| `eventId` | `string` | イベントID |
+| `payload` | `object` | イベントデータ |
+
+`payload` は、イベントデータを含むオブジェクトです。
+
+#### レスポンス
+
+レスポンスの内容はありません。
+成功かどうかは、HTTP ステータスコードで判断します。
+
+## Events
+
+### t.friend.request
+
+友達リクエストを送信します。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `friendId` | `string` | 友達ID |
+
+### t.friend.request.cancel
+
+友達リクエストをキャンセルします。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `friendId` | `string` | 友達ID |
+
+### t.friend.accept
+
+友達リクエストを受け入れます。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `friendId` | `string` | 友達ID |
+
+### t.friend.remove
+
+友達を削除します。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `friendId` | `string` | 友達ID |
+
+### t.message.send
+
+メッセージを送信します。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `messageId` | `string` | メッセージID |
+| `roomId` | `string` | ルームID |
+| `roomType` | `friend or group or publicGroup` | ルームタイプ |
+| `channelId` | `string` | チャンネルID |
+
+### t.group.invite
+
+グループに招待します。
+privateのみ
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `inviteUserId` | `string` | 招待ユーザーID |
+
+### t.group.invite.accept
+
+グループ招待を受け入れます。
+privateのみ
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+
+### t.group.invite.remove
+
+グループ招待を削除します。
+privateのみ
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `groupId` | `string` | グループID |
+| `userId` | `string` | ユーザーID |
+| `inviteUserId` | `string` | 招待ユーザーID |
+
+### t.friend.group.invite
+
+友達にグループに招待されたことを通知します。
+privateのみ
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `inviteUserId` | `string` | 招待ユーザーID |
+
+
+### t.group.leave
+
+グループを退出します。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+
+### t.group.channel.create
+
+グループチャンネルを作成/上書きします。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `channelId` | `string` | チャンネルID |
+| `channelName` | `string` | チャンネル名 |
+| `category` | `string or undefind` | カテゴリー |
+| `permission` | `object[]` | 権限 |
+
+`object`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `permission` | `string[]` | 権限 |
+
+### t.group.channel.remove
+
+グループチャンネルを削除します。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `channelId` | `string` | チャンネルID |
+
+### t.group.category.create
+
+グループカテゴリーを作成/上書きします。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `categoryId` | `string` | カテゴリーID |
+| `categoryName` | `string` | カテゴリー名 |
+| `permission` | `object[]` | 権限 |
+
+`object`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `permission` | `string[]` | 権限 |
+
+### t.group.category.remove
+
+グループカテゴリーを削除します。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `categoryId` | `string` | カテゴリーID |
+
+### t.group.role.create
+
+グループロールを作成/上書きします。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `roleId` | `string` | ロールID |
+| `roleName` | `string` | ロール名 |
+| `permission` | `string[]` | 権限 |
+| `color` | `string` | カラーコード |
+
+### t.group.role.remove
+
+グループロールを削除します。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `roleId` | `string` | ロールID |
+
+### t.group.role.assign
+
+グループロールを割り当てます。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `roleId` | `string` | ロールID |
+| `assignUserId` | `string` | 割り当てユーザーID |
+
+### t.group.role.unassign
+
+グループロールを割り当て解除します。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `roleId` | `string` | ロールID |
+| `assignUserId` | `string` | 割り当てユーザーID |
+
+### t.group.user.join.request
+
+グループに参加リクエストを送信します。
+publicGroupのみ
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+
+### t.group.user.join.accept
+
+グループ参加リクエストを受け入れます。
+publicGroupのみ
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `requestUserId` | `string` | リクエストユーザーID |
+
+### t.group.user.join.remove
+
+グループ参加リクエストを削除します。
+publicGroupのみ
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `requestUserId` | `string` | リクエストユーザーID |
+
+### t.group.user.join.cancel
+
+グループ参加リクエストをキャンセルします。
+publicGroupのみ
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+
+### t.group.user.kick
+
+グループからユーザーをキックします。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `kickUserId` | `string` | キックユーザーID |
+
+### t.group.user.ban
+
+グループからユーザーをBANします。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `banUserId` | `string` | BANユーザーID |
+
+### t.group.user.unban
+
+グループからユーザーのBANを解除します。
+
+`payload`
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `userId` | `string` | ユーザーID |
+| `groupId` | `string` | グループID |
+| `banUserId` | `string` | BANユーザーID |
+
+
+### t.sync.user.add
+
+ユーザーの追加情報を共有するイベント。
+
+`payload`
+
+| パラメータ  | 型     | 説明                   |
+| ----------- | ------ | ---------------------- |
+| `groupId`  | string | グループID             |
+| `userId`    | string | ユーザーID             |
+| `beforeEventId` | string | 前のイベントID |
+
+### t.sync.user.remove
+
+ユーザーの削除情報を共有するイベント。
+
+`payload`
+
+| パラメータ  | 型     | 説明                   |
+| ----------- | ------ | ---------------------- |
+| `groupId`  | string | グループID             |
+| `userId`    | string | ユーザーID             |
+| `beforeEventId` | string | 前のイベントID |
+
+### t.sync.role.add
+
+ロールの追加情報を共有するイベント。
+
+`payload`
+
+| パラメータ  | 型     | 説明                   |
+| ----------- | ------ | ---------------------- |
+| `groupId`  | string | グループID             |
+| `roleId`    | string | ロールID               |
+| `roleName`  | string | ロール名               |
+| `permissions` | string[] | 権限リスト |
+| `color`     | string | カラーコード           |
+| `beforeEventId` | string | 前のイベントID |
+
+### t.sync.role.remove
+
+ロールの削除情報を共有するイベント。
+
+`payload`
+
+| パラメータ  | 型     | 説明                   |
+| ----------- | ------ | ---------------------- |
+| `groupId`  | string | グループID             |
+| `roleId`    | string | ロールID               |
+| `beforeEventId` | string | 前のイベントID |
+
+### t.sync.role.assign
+
+ロールの割り当て情報を共有するイベント。
+
+`payload`
+
+| パラメータ  | 型     | 説明                   |
+| ----------- | ------ | ---------------------- |
+| `groupId`  | string | グループID             |
+| `roleId`    | string | ロールID               |
+| `assignUserId` | string | 割り当てユーザーID   |
+| `beforeEventId` | string | 前のイベントID |
+
+### t.sync.role.unassign
+
+ロールの割り当て解除情報を共有するイベント。
+
+`payload`
+
+| パラメータ  | 型     | 説明                   |
+| ----------- | ------ | ---------------------- |
+| `groupId`  | string | グループID             |
+| `roleId`    | string | ロールID               |
+| `assignUserId` | string | 割り当てユーザーID   |
+| `beforeEventId` | string | 前のイベントID |
+
+### t.sync.channel.add
+
+チャンネルの追加情報を共有するイベント。
+
+`payload`
+
+| パラメータ  | 型     | 説明                   |
+| ----------- | ------ | ---------------------- |
+| `groupId`  | string | グループID             |
+| `channelId` | string | チャンネルID           |
+| `channelName` | string | チャンネル名         |
+| `category`  | string | カテゴリー             |
+| `permissions` | string[] | 権限リスト |
+| `beforeEventId` | string | 前のイベントID |
+
+### t.sync.channel.remove
+
+チャンネルの削除情報を共有するイベント。
+
+`payload`
+
+| パラメータ  | 型     | 説明                   |
+| ----------- | ------ | ---------------------- |
+| `groupId`  | string | グループID             |
+| `channelId` | string | チャンネルID           |
+| `beforeEventId` | string | 前のイベントID |
+
+### t.sync.category.add
+
+カテゴリーの追加情報を共有するイベント。
+
+`payload`
+
+| パラメータ  | 型     | 説明                   |
+| ----------- | ------ | ---------------------- |
+| `groupId`  | string | グループID             |
+| `categoryId` | string | カテゴリーID           |
+| `categoryName` | string | カテゴリー名         |
+| `permissions` | string[] | 権限リスト |
+| `beforeEventId` | string | 前のイベントID |
+
+### t.sync.category.remove
+
+カテゴリーの削除情報を共有するイベント。
+
+`payload`
+
+| パラメータ  | 型     | 説明                   |
+| ----------- | ------ | ---------------------- |
+| `groupId`  | string | グループID             |
+| `categoryId` | string | カテゴリーID           |
+| `beforeEventId` | string | 前のイベントID |

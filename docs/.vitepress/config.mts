@@ -13,10 +13,11 @@ export default defineConfig({
 
     sidebar: [
       {
-        text: "Examples",
+        text: "takos",
         items: [
-          { text: "Markdown Examples", link: "/markdown-examples" },
-          { text: "Runtime API Examples", link: "/api-examples" },
+          { text: "Takos Specification", link: "/main" },
+          { text: "Foundation API", link: "/foundation" },
+          { text: "crypto", link: "/crypto" },
         ],
       },
     ],
