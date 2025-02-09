@@ -613,3 +613,141 @@ publicGroupのみ
 | `groupId`  | string | グループID             |
 | `categoryId` | string | カテゴリーID           |
 | `beforeEventId` | string | 前のイベントID |
+
+
+## データの取得
+
+### `GET` /_takos/v1/user/{`key`}/{`userId`}
+
+ユーザーのデータを取得します。
+
+レート制限: なし
+認証: なし
+
+keys
+- icon - ユーザーアイコン
+- nickName - ニックネーム
+- description - ユーザーの説明
+
+#### リクエスト
+
+`params`
+
+| パラメータ | 説明 |
+| --- | --- |
+| `userId` | ユーザーID |
+
+#### レスポンス
+
+| 状態 | 説明 |
+| --- | --- |
+| 200 | |
+
+#### 200
+
+```
+{
+  `key`: `data`,
+}
+```
+
+### `GET` /_takos/v1/group/{`key`}/{`groupId`}
+
+グループのデータを取得します。
+
+レート制限: なし
+認証: なし
+
+keys
+- icon - グループアイコン
+- name - グループ名
+- description - グループの説明
+
+#### リクエスト
+
+`params`
+
+| パラメータ | 説明 |
+| --- | --- |
+| `groupId` | グループID |
+
+#### レスポンス
+
+| 状態 | 説明 |
+| --- | --- |
+| 200 | |
+
+#### 200
+
+```
+{
+  `key`: `data`,
+}
+```
+
+### `GET` /_takos/v1/key/{`kind`}
+
+ユーザーの鍵を取得するエンドポイントです。  
+**リクエスト**はクエリパラメーターにて送信します。
+
+#### クエリパラメーター
+
+| パラメーター      | 型      | 説明 |
+| ------------- | ------ | --- |
+| `userId`      | string | ユーザーID。必須。 |
+| `hash`        | string | `identityKey` と `roomKey` の場合に必須となるハッシュ値。 |
+| `roomid`      | string | `roomKey` の場合に必要なルームID。 |
+| `targetUserId`| string | `roomKey` の場合に必要な相手のユーザーID。 |
+
+#### レスポンス
+
+| 状態 | 説明 |
+| --- | --- |
+| 200 | 鍵が正常に取得できた場合 |
+
+#### 200 のレスポンス例
+
+```json
+{
+  "key": "data",
+  "signature": "signature" // ※ identityKey, roomKey の場合のみ
+}
+```
+
+### `GET` /_takos/v1/group/search
+
+グループを検索するエンドポイントです。
+
+#### クエリパラメーター
+
+| パラメーター      | 型      | 説明 |
+| ------------- | ------ | --- |
+| `query`        | string | キーワード |
+| `limit`        | number | 取得する最大数 |
+
+#### レスポンス
+
+| 状態 | 説明 |
+| --- | --- |
+| 200 | 検索結果 |
+
+#### 200 のレスポンス例
+
+```
+{
+  "groups": string[]
+}
+```
+
+### `GET` /_takos/v1/server/{`item`}
+
+サーバーのデータを取得します。
+
+レート制限: なし
+認証: なし
+
+items
+- name - サーバー名
+- description - サーバーの説明
+- icon - サーバーアイコン
+- version - サーバーバージョン
