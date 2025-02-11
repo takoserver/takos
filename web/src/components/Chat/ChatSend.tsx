@@ -9,6 +9,7 @@ import { selectedRoomState } from "../../utils/roomState";
 import { decryptDataDeviceKey, encryptDataDeviceKey, encryptMessage, encryptRoomKeyWithAccountKeys, generateRoomkey, keyHash, verifyMasterKey } from "@takos/takos-encrypt-ink";
 import { createTakosDB, getLatestIdentityKey, localStorageEditor } from "../../utils/idb";
 import { shoowIdentityKeyPopUp } from "../CreateIdentityKeyPopUp";
+const userId = localStorage.getItem("userName") + "@" + new URL(window.location.href).hostname;
 function ChatSend() {
   const [inputMessage, setInputMessage] = useAtom(inputMessageState);
   const [isValidInput, setIsValidInput] = useAtom(isValidInputState);
@@ -43,8 +44,8 @@ function ChatSend() {
         if (!uuid) return;
         const roomKey = await generateRoomkey(uuid);
         if (!roomKey) return;
-        const friendMasterKeyRes = await fetch(`https://${selectedRoom()?.roomid.split("@")[1]}/_takos/v2/masterKey?userName=${selectedRoom()?.roomid.split("@")[0]}`)
-        const frinedAccountKeyRes = await fetch(`https://${selectedRoom()?.roomid.split("@")[1]}/_takos/v2/accountKey?userName=${selectedRoom()?.roomid.split("@")[0]}`)
+        const friendMasterKeyRes = await fetch(`https://${selectedRoom()?.roomid.split("@")[1]}/_takos/v1/key/masterKey?userId=${selectedRoom()?.roomid}`)
+        const frinedAccountKeyRes = await fetch(`https://${selectedRoom()?.roomid.split("@")[1]}/_takos/v1/key/accountKey?userId=${selectedRoom()?.roomid}`)
         if (friendMasterKeyRes.status !== 200) {
           alert("友達のサーバーがダウンしているか、一方的に友達解除されました")
           return;
@@ -53,8 +54,8 @@ function ChatSend() {
           alert("友達のサーバーがダウンしているか、一方的に友達解除されました")
           return;
         }
-        const friendMasterKey = (await friendMasterKeyRes.json()).masterKey
-        const { accountKey: friendAccountKey, signature: friendAccountKeySign }= (await frinedAccountKeyRes.json())
+        const friendMasterKey = (await friendMasterKeyRes.json()).key
+        const { key: friendAccountKey, signature: friendAccountKeySign }= (await frinedAccountKeyRes.json())
         const allowKeys = (await db.getAll("allowKeys")).filter((k) => k.userId == selectedRoom()?.roomid && k.latest)[0]
         if(allowKeys && allowKeys.key !== await keyHash(friendMasterKey)) {
           const friendId = selectedRoom()?.roomid
@@ -76,11 +77,11 @@ function ChatSend() {
         if (!decryptMasterKey) return;
         const encryptedAccountKey = (await db.getAll("accountKeys")).sort((a, b) => b.timestamp - a.timestamp)[0]
         if (!encryptedAccountKey) return;
-        const accountKeySign = await fetch("./_takos/v2/accountKey?userName=" + localStorage.getItem("userName"))
+        const accountKeySign = await fetch("./_takos/v1/key/accountKey?userId=" + userId)
         if (accountKeySign.status !== 200) return;
         const accountKeySignJson = await accountKeySign.json()
-        if(await keyHash(accountKeySignJson.accountKey) !== encryptedAccountKey.key) return;
-        if(!verifyMasterKey(JSON.parse(decryptMasterKey).publicKey, accountKeySignJson.signature, accountKeySignJson.accountKey)) return;
+        if(await keyHash(accountKeySignJson.key) !== encryptedAccountKey.key) return;
+        if(!verifyMasterKey(JSON.parse(decryptMasterKey).publicKey, accountKeySignJson.signature, accountKeySignJson.key)) return;
         //ドメインを取得 現在のサイトの
         const domain = new URL(window.location.href).hostname
         const encrypted = await encryptRoomKeyWithAccountKeys([{
@@ -90,7 +91,7 @@ function ChatSend() {
           userId: selectedRoom()?.roomid as string, 
         }, {
           masterKey: JSON.parse(decryptMasterKey).publicKey,
-          accountKey: accountKeySignJson.accountKey,
+          accountKey: accountKeySignJson.key,
           accountKeySign: accountKeySignJson.signature,
           userId: localStorage.getItem("userName") as string + "@" + domain,
         }], roomKey,decryptIdentityKey, identityKey[0].key)

@@ -45,11 +45,20 @@ function Message(
 ) {
   const [messageValue, setMessageValue] = useAtom(messageValueState);
   const [loaded, setLoaded] = createSignal(false);
+  const [sellectedRoom] = useAtom(selectedRoomState);
   onMount(async () => {
     const foundMessage = messageValue().find((val) => val[0] === messageid);
     if (!foundMessage) {
       try {
-        const message = await getMessage(messageid, userName);
+        const type = sellectedRoom()?.type;
+        const roomId = sellectedRoom()?.roomid;
+        if(!type || !roomId) return;
+        const message = await getMessage({
+          messageid,
+          type,
+          roomId,
+          senderId: userName,
+        });
         setMessageValue((prev) => [...prev, [messageid, message]]);
       } catch (e) {
         setMessageValue((prev) => [

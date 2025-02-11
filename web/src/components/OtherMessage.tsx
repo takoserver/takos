@@ -36,13 +36,8 @@ const ChatOtherMessage = (
       }
       return;
     }
-    const iconURL = `https://${
-      name.split("@")[1]
-    }/_takos/v2/friend/info?userName=${name.split("@")[0]}`;
-    const res = await fetch(iconURL);
-    const data = await res.json();
-    const icon = "data:image/png;base64," + data.icon;
-    const nickName = data.nickName;
+    const icon = "data:image/png;base64,"+ (await (await fetch(`https://${name.split("@")[1]}/_takos/v1/user/icon/${name}`)).json()).icon
+    const nickName = (await (await fetch(`https://${name.split("@")[1]}/_takos/v1/user/nickName/${name}`)).json()).nickName
     setIcon(icon);
     setNickName(nickName);
     setFreindInfo((prev) => [...prev, [name, { icon, nickName }]]);

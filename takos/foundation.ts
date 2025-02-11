@@ -22,13 +22,11 @@ export const authorizationMiddleware = async (
   }
   //const authHeader = `sign="AAAAAAACw4QFx8p",expires="2025-02-25T21:59:12.769Z",domain="dev2.takos.jp"`
   const sign = authHeader.match(/sign="(.+?)"/)?.[1];
-  const expires = authHeader.match(/expires="(.+?)"/)?.[1];
-  const domain = authHeader.match(/domain="(.+?)"/)?.[1];
-
+  const expires = authHeader.match(/expire="(.+?)"/)?.[1];
+  const domain = authHeader.match(/origin="(.+?)"/)?.[1];
   if (!sign || !expires || !domain) {
     return c.json({ error: "Invalid Authorization header" }, 401);
   }
-
   const pubKey = await remoteServerKey.findOne({
     domain,
     expire: new Date(expires),
@@ -37,7 +35,7 @@ export const authorizationMiddleware = async (
   console.log("pubKey", !!pubKey);
   if (!pubKey) {
     const serverKeyRes = await fetch(
-      `https://${domain}/_takos/v2/serverKey?expire=${expires}`,
+      `https://${domain}/_takos/v1/key/server?expire=${expires}`,
     );
     if (serverKeyRes.status !== 200) {
       return c.json({ error: "Invalid Authorization" }, 401);

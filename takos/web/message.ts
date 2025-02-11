@@ -64,14 +64,15 @@ app.post(
       });
       if (roomId.split("@")[1] !== env["domain"]) {
         const res = await fff(
-          "_takos/v2/message/send",
           JSON.stringify({
-            senderId: user.userName + "@" + env["domain"],
-            roomId,
-            messageId: messageid,
-            roomType: "friend",
+            event: "t.message.send",
             eventId: uuidv7(),
-            type: "sendMessage",
+            payload: {
+              userId: user.userName + "@" + env["domain"],
+              messageId: messageid,
+              roomId: roomId,
+              roomType: "friend",
+            }
           }),
           [roomId.split("@")[1]],
         ) as [Response] | { error: string };

@@ -1,11 +1,11 @@
 import { signData } from "@takos/takos-encrypt-ink";
 import serverKey from "../models/serverKeys.ts";
 import { load } from "@std/dotenv";
+import { Context } from "hono";
 
 const env = await load();
 
 export async function fff(
-  path: string,
   body: string,
   domains: string[],
 ): Promise<Response[] | { error: string }> {
@@ -25,11 +25,11 @@ export async function fff(
   }
 
   const authorizationHeader =
-    `Signature sign="${sign.trim()}",expires="${expires}",domain="${domain}"`;
+    `Signature sign="${sign.trim()}",expire="${expires}",origin="${domain}"`;
 
   const responsArray = [];
   for (const domain of domains) {
-    const res = fetch(`https://${domain}/${path}`, {
+    const res = fetch(`https://${domain}/_takos/v1/event`, {
       method: "POST",
       headers: {
         Authorization: authorizationHeader,

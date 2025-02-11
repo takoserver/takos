@@ -9,14 +9,14 @@ export function SettingRoom() {
   const [selected, setSelected] = createSignal<false | string>(false);
   const [friendList, setFriendList] = createSignal([]);
   createEffect(() => {
-    if(selected() === "invite"){
+    if (selected() === "invite") {
       async function getFriendList() {
         const res = await (await fetch("/api/v2/friend/list", {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          })).json();
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })).json();
         setFriendList(res);
       }
       getFriendList();
@@ -66,8 +66,9 @@ export function SettingRoom() {
                     </div>
 
                     {/* 招待アイコン */}
-                    <div class="flex flex-col items-center hover:scale-105 transition-transform duration-200 cursor-pointer"
-                    onClick={() => setSelected("invite")}
+                    <div
+                      class="flex flex-col items-center hover:scale-105 transition-transform duration-200 cursor-pointer"
+                      onClick={() => setSelected("invite")}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -106,44 +107,48 @@ export function SettingRoom() {
                   </>
                 )}
                 {selected() === "invite" && (
-                <>
-                {/*戻るボタン*/}
-                <div class="flex flex-col w-full">
-                <div class="flex items-center cursor-pointer mb-4" onClick={() => setSelected(false)}>
-                    {"戻る"}
-                </div>
-                    {/* 検索バー */}
-                    <div class="w-full">
-                    <input
-                        type="text"
-                        class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black"
-                        placeholder="招待するユーザー名を入力してください"
-                    />
+                  <>
+                    {/*戻るボタン*/}
+                    <div class="flex flex-col w-full">
+                      <div
+                        class="flex items-center cursor-pointer mb-4"
+                        onClick={() => setSelected(false)}
+                      >
+                        {"戻る"}
+                      </div>
+                      {/* 検索バー */}
+                      <div class="w-full">
+                        <input
+                          type="text"
+                          class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black"
+                          placeholder="招待するユーザー名を入力してください"
+                        />
+                      </div>
+                      {/* 招待リスト */}
+                      <div class="mt-4 w-full">
+                        <For each={friendList()}>
+                          {(friend) => (
+                            <div class="p-2 border rounded mb-2 flex justify-between items-center">
+                              <span class="text-white">{friend}</span>
+                              <button
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
+                                onClick={() => {
+                                }}
+                              >
+                                招待
+                              </button>
+                            </div>
+                          )}
+                        </For>
+                        <Show when={friendList().length === 0}>
+                          <div class="text-gray-400">
+                            招待可能なユーザーが見つかりません
+                          </div>
+                        </Show>
+                      </div>
                     </div>
-                    {/* 招待リスト */}
-                    <div class="mt-4 w-full">
-                    <For each={friendList()}>
-                        {(friend) => (
-                        <div class="p-2 border rounded mb-2 flex justify-between items-center">
-                            <span class="text-white">{friend}</span>
-                            <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
-                            onClick={() => {
-                                
-                            }}
-                            >
-                            招待
-                            </button>
-                        </div>
-                        )}
-                    </For>
-                    <Show when={friendList().length === 0}>
-                        <div class="text-gray-400">招待可能なユーザーが見つかりません</div>
-                    </Show>
-                    </div>
-                </div>
-                </>
+                  </>
                 )}
-
               </div>
             </div>
           </div>

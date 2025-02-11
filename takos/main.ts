@@ -25,8 +25,8 @@ appClient.route("server", server);
 appClient.route("message", message);
 appClient.route("group", groups);
 appClient.route("ws", ws);
-appServer.route("v2", gets);
-appServer.route("v2", foundationApi);
+appServer.route("v1", gets);
+appServer.route("v1", foundationApi);
 app.route("_takos", appServer);
 app.route("api/v2", appClient);
 

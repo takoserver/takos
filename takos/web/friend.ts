@@ -49,12 +49,13 @@ app.post(
     }
     if (domain !== env["domain"]) {
       const result = await fff(
-        "_takos/v2/friend/request",
         JSON.stringify({
-          senderId: user.userName + "@" + env["domain"],
-          receiverId: userName,
-          type: "friendRequest",
+          event: "t.friend.request",
           eventId: uuidv7(),
+          payload: {
+            userId: user.userName + "@" + env["domain"],
+            friendId: userName,
+          },
         }),
         [domain],
       );
@@ -143,12 +144,13 @@ app.post(
           return c.json({ message: "Already friend" }, 400);
         }
         const res = await fff(
-          "_takos/v2/friend/accept",
           JSON.stringify({
-            senderId: request.sender,
-            receiverId: request.receiver,
-            type: "friendAccept",
+            event: "t.friend.accept",
             eventId: uuidv7(),
+            payload: {
+              userId: request.receiver,
+              friendId: request.sender,
+            }
           }),
           [request.sender.split("@")[1]],
         );
@@ -180,7 +182,7 @@ app.get("/list", async (c) => {
     return c.json({ message: "Unauthorized" }, 401);
   }
   let friendsList;
-  if(befor) {
+  if (befor) {
     friendsList = await friends.find({
       userName: user.userName + "@" + env["domain"],
       timestamp: { $lt: new Date(befor) },

@@ -50,6 +50,8 @@ export function Loading() {
   );
 }
 
+const userName = localStorage.getItem("userName") + "@" + new URL(window.location.href).hostname;
+
 export function Load() {
   const [load, setLoad] = useAtom(loadState);
   const [login, setLogin] = useAtom(loginState);
@@ -85,7 +87,7 @@ export function Load() {
     }
     if (session.setup) {
       const icon = await fetch(
-        "_takos/v2/friend/icon?userName=" + localStorage.getItem("userName"),
+        "_takos/v1/user/icon/" + userName,
         {
           method: "GET",
           headers: {

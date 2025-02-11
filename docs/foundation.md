@@ -3,7 +3,9 @@
 takosサーバーではfoundation apiを試用して相互に通信します。
 takosサーバーはこれらのapiを試用して、メッセージをリアルタイムで共有します。
 
-API は、各サーバー間の HTTPS リクエストを使用して実装されます。これらの HTTPS リクエストは、TLS トランスポート層での公開キー署名と、HTTP 層での HTTP 認証ヘッダー内の公開キー署名を使用して強力に認証されます。
+API は、各サーバー間の HTTPS リクエストを使用して実装されます。これらの HTTPS
+リクエストは、TLS トランスポート層での公開キー署名と、HTTP 層での HTTP
+認証ヘッダー内の公開キー署名を使用して強力に認証されます。
 
 ## サーバー実装
 
@@ -11,20 +13,17 @@ API は、各サーバー間の HTTPS リクエストを使用して実装され
 
 サーバーの実装名とバージョンを取得します。
 
-レート制限: なし
-認証: なし
+レート制限: なし 認証: なし
 
 ### リクエスト
 
 リクエストパラメータまたはリクエスト本文がありません。
 
-
-
 ### レスポンス
 
-| 状態 | 説明 |
-| --- | --- |
-| 200 | 実装バージョン |
+| 状態 | 説明           |
+| ---- | -------------- |
+| 200  | 実装バージョン |
 
 #### 200
 
@@ -41,28 +40,27 @@ API は、各サーバー間の HTTPS リクエストを使用して実装され
 
 サーバーの公開された署名キーを取得します。
 
-レート制限: なし
-認証: なし
+レート制限: なし 認証: なし
 
 #### リクエスト
 
 `query`
 
-| パラメータ | 説明 |
-| --- | --- |
-| `expires` | キーの有効期限 |
+| パラメータ | 説明           |
+| ---------- | -------------- |
+| `expire`   | キーの有効期限 |
 
 #### レスポンス
 
-| 状態 | 説明 |
-| --- | --- |
-| 200 | サーバーの公開鍵 |
+| 状態 | 説明             |
+| ---- | ---------------- |
+| 200  | サーバーの公開鍵 |
 
 #### 200
 
 ```json
 {
-  "key": "PUBLIC_KEY",
+  "key": "PUBLIC_KEY"
 }
 ```
 
@@ -70,29 +68,28 @@ API は、各サーバー間の HTTPS リクエストを使用して実装され
 
 他のサーバーの公開鍵を取得します。
 
-レート制限: なし
-認証: なし
+レート制限: なし 認証: なし
 
 #### リクエスト
 
 `query`
 
-| パラメータ | 説明 |
-| --- | --- |
-| `expires` | キーの有効期限 |
+| パラメータ   | 説明               |
+| ------------ | ------------------ |
+| `expires`    | キーの有効期限     |
 | `serverName` | サーバー名(domain) |
 
 #### レスポンス
 
-| 状態 | 説明 |
-| --- | --- |
-| 200 | サーバーの公開鍵 |
+| 状態 | 説明             |
+| ---- | ---------------- |
+| 200  | サーバーの公開鍵 |
 
 #### 200
 
 ```json
 {
-  "key": "PUBLIC_KEY",
+  "key": "PUBLIC_KEY"
 }
 ```
 
@@ -112,47 +109,44 @@ example:
 
 ```json
 {
-    "method": "POST",
-    "path": "path(example)",
-    "body": "body(example)",
-    "Content-Type": "application/json",
-    "Authorization": "X-Takos-Signature sign=\"<署名>\", Expires=\"<有効期限>\", origin=\"<ドメイン>\""
+  "method": "POST",
+  "path": "path(example)",
+  "body": "body(example)",
+  "Content-Type": "application/json",
+  "Authorization": "X-Takos-Signature sign=\"<署名>\", Expires=\"<有効期限>\", origin=\"<ドメイン>\""
 }
 ```
 
 Authorization ヘッダーの形式は、 RFC 9110 のセクション 11.4で規定されています。
 
-origin: 送信サーバーのサーバー名
-expires: 有効期限
-sign: 署名
+origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 
 ### レスポンス認証
 
 応答は TLS サーバー証明書によって認証されます。
 
-### `POST` /_takos/v1/event/{`eventName`}
+### `POST` /_takos/v1/event/
 
 イベントを送信します。
 
-レート制限: あり
-認証: あり
+レート制限: あり 認証: あり
 
 #### リクエスト
 
 `body`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `event` | `string` | イベント名 |
-| `eventId` | `string` | イベントID |
-| `payload` | `object` | イベントデータ |
+| パラメータ | 型       | 説明           |
+| ---------- | -------- | -------------- |
+| `event`    | `string` | イベント名     |
+| `eventId`  | `string` | イベントID     |
+| `payload`  | `object` | イベントデータ |
 
 `payload` は、イベントデータを含むオブジェクトです。
 
 #### レスポンス
 
-レスポンスの内容はありません。
-成功かどうかは、HTTP ステータスコードで判断します。
+レスポンスの内容はありません。 成功かどうかは、HTTP
+ステータスコードで判断します。
 
 ## Events
 
@@ -162,21 +156,21 @@ sign: 署名
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `friendId` | `string` | 友達ID |
+| パラメータ | 型       | 説明       |
+| ---------- | -------- | ---------- |
+| `userId`   | `string` | ユーザーID |
+| `friendId` | `string` | 友達ID     |
 
-### t.friend.request.cancel
+### t.friend.cancel
 
 友達リクエストをキャンセルします。
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `friendId` | `string` | 友達ID |
+| パラメータ | 型       | 説明       |
+| ---------- | -------- | ---------- |
+| `userId`   | `string` | ユーザーID |
+| `friendId` | `string` | 友達ID     |
 
 ### t.friend.accept
 
@@ -184,10 +178,10 @@ sign: 署名
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `friendId` | `string` | 友達ID |
+| パラメータ | 型       | 説明       |
+| ---------- | -------- | ---------- |
+| `userId`   | `string` | ユーザーID |
+| `friendId` | `string` | 友達ID     |
 
 ### t.friend.remove
 
@@ -195,10 +189,10 @@ sign: 署名
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `friendId` | `string` | 友達ID |
+| パラメータ | 型       | 説明       |
+| ---------- | -------- | ---------- |
+| `userId`   | `string` | ユーザーID |
+| `friendId` | `string` | 友達ID     |
 
 ### t.message.send
 
@@ -206,65 +200,60 @@ sign: 署名
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `messageId` | `string` | メッセージID |
-| `roomId` | `string` | ルームID |
-| `roomType` | `friend or group or publicGroup` | ルームタイプ |
-| `channelId` | `string` | チャンネルID |
+| パラメータ  | 型                               | 説明         |
+| ----------- | -------------------------------- | ------------ |
+| `userId`    | `string`                         | ユーザーID   |
+| `messageId` | `string`                         | メッセージID |
+| `roomId`    | `string`                         | ルームID     |
+| `roomType`  | `friend or group or publicGroup` | ルームタイプ |
+| `channelId` | `string`                         | チャンネルID |
 
 ### t.group.invite
 
-グループに招待します。
-privateのみ
+グループに招待します。 privateのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
+| パラメータ     | 型       | 説明           |
+| -------------- | -------- | -------------- |
+| `userId`       | `string` | ユーザーID     |
+| `groupId`      | `string` | グループID     |
 | `inviteUserId` | `string` | 招待ユーザーID |
 
 ### t.group.invite.accept
 
-グループ招待を受け入れます。
-privateのみ
+グループ招待を受け入れます。 privateのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
+| パラメータ | 型       | 説明       |
+| ---------- | -------- | ---------- |
+| `userId`   | `string` | ユーザーID |
+| `groupId`  | `string` | グループID |
 
 ### t.group.invite.remove
 
-グループ招待を削除します。
-privateのみ
+グループ招待を削除します。 privateのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `groupId` | `string` | グループID |
-| `userId` | `string` | ユーザーID |
+| パラメータ     | 型       | 説明           |
+| -------------- | -------- | -------------- |
+| `groupId`      | `string` | グループID     |
+| `userId`       | `string` | ユーザーID     |
 | `inviteUserId` | `string` | 招待ユーザーID |
 
 ### t.friend.group.invite
 
-友達にグループに招待されたことを通知します。
-privateのみ
+友達にグループに招待されたことを通知します。 privateのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
+| パラメータ     | 型       | 説明           |
+| -------------- | -------- | -------------- |
+| `userId`       | `string` | ユーザーID     |
+| `groupId`      | `string` | グループID     |
 | `inviteUserId` | `string` | 招待ユーザーID |
-
 
 ### t.group.leave
 
@@ -272,10 +261,10 @@ privateのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
+| パラメータ | 型       | 説明       |
+| ---------- | -------- | ---------- |
+| `userId`   | `string` | ユーザーID |
+| `groupId`  | `string` | グループID |
 
 ### t.group.channel.create
 
@@ -283,21 +272,22 @@ privateのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
-| `channelId` | `string` | チャンネルID |
-| `channelName` | `string` | チャンネル名 |
-| `category` | `string or undefind` | カテゴリー |
-| `permission` | `object[]` | 権限 |
+| パラメータ    | 型                   | 説明         |
+| ------------- | -------------------- | ------------ |
+| `userId`      | `string`             | ユーザーID   |
+| `groupId`     | `string`             | グループID   |
+| `channelId`   | `string`             | チャンネルID |
+| `channelName` | `string`             | チャンネル名 |
+| `category`    | `string or undefind` | カテゴリー   |
+| `permission`  | `object[]`           | 権限         |
+| `order`       | `number`             | オーダー     |
 
 `object`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `permission` | `string[]` | 権限 |
+| パラメータ   | 型         | 説明       |
+| ------------ | ---------- | ---------- |
+| `userId`     | `string`   | ユーザーID |
+| `permission` | `string[]` | 権限       |
 
 ### t.group.channel.remove
 
@@ -305,10 +295,10 @@ privateのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
+| パラメータ  | 型       | 説明         |
+| ----------- | -------- | ------------ |
+| `userId`    | `string` | ユーザーID   |
+| `groupId`   | `string` | グループID   |
 | `channelId` | `string` | チャンネルID |
 
 ### t.group.category.create
@@ -317,20 +307,21 @@ privateのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
-| `categoryId` | `string` | カテゴリーID |
-| `categoryName` | `string` | カテゴリー名 |
-| `permission` | `object[]` | 権限 |
+| パラメータ     | 型         | 説明         |
+| -------------- | ---------- | ------------ |
+| `userId`       | `string`   | ユーザーID   |
+| `groupId`      | `string`   | グループID   |
+| `categoryId`   | `string`   | カテゴリーID |
+| `categoryName` | `string`   | カテゴリー名 |
+| `permission`   | `object[]` | 権限         |
+| `order`       | `number`             | オーダー     |
 
 `object`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `permission` | `string[]` | 権限 |
+| パラメータ   | 型         | 説明       |
+| ------------ | ---------- | ---------- |
+| `userId`     | `string`   | ユーザーID |
+| `permission` | `string[]` | 権限       |
 
 ### t.group.category.remove
 
@@ -338,10 +329,10 @@ privateのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
+| パラメータ   | 型       | 説明         |
+| ------------ | -------- | ------------ |
+| `userId`     | `string` | ユーザーID   |
+| `groupId`    | `string` | グループID   |
 | `categoryId` | `string` | カテゴリーID |
 
 ### t.group.role.create
@@ -350,14 +341,14 @@ privateのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
-| `roleId` | `string` | ロールID |
-| `roleName` | `string` | ロール名 |
-| `permission` | `string[]` | 権限 |
-| `color` | `string` | カラーコード |
+| パラメータ   | 型         | 説明         |
+| ------------ | ---------- | ------------ |
+| `userId`     | `string`   | ユーザーID   |
+| `groupId`    | `string`   | グループID   |
+| `roleId`     | `string`   | ロールID     |
+| `roleName`   | `string`   | ロール名     |
+| `permission` | `string[]` | 権限         |
+| `color`      | `string`   | カラーコード |
 
 ### t.group.role.remove
 
@@ -365,11 +356,11 @@ privateのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
-| `roleId` | `string` | ロールID |
+| パラメータ | 型       | 説明       |
+| ---------- | -------- | ---------- |
+| `userId`   | `string` | ユーザーID |
+| `groupId`  | `string` | グループID |
+| `roleId`   | `string` | ロールID   |
 
 ### t.group.role.assign
 
@@ -377,11 +368,11 @@ privateのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
-| `roleId` | `string` | ロールID |
+| パラメータ     | 型       | 説明               |
+| -------------- | -------- | ------------------ |
+| `userId`       | `string` | ユーザーID         |
+| `groupId`      | `string` | グループID         |
+| `roleId`       | `string` | ロールID           |
 | `assignUserId` | `string` | 割り当てユーザーID |
 
 ### t.group.role.unassign
@@ -390,62 +381,58 @@ privateのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
-| `roleId` | `string` | ロールID |
+| パラメータ     | 型       | 説明               |
+| -------------- | -------- | ------------------ |
+| `userId`       | `string` | ユーザーID         |
+| `groupId`      | `string` | グループID         |
+| `roleId`       | `string` | ロールID           |
 | `assignUserId` | `string` | 割り当てユーザーID |
 
 ### t.group.user.join.request
 
-グループに参加リクエストを送信します。
-publicGroupのみ
+グループに参加リクエストを送信します。 publicGroupのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
+| パラメータ | 型       | 説明       |
+| ---------- | -------- | ---------- |
+| `userId`   | `string` | ユーザーID |
+| `groupId`  | `string` | グループID |
 
 ### t.group.user.join.accept
 
-グループ参加リクエストを受け入れます。
-publicGroupのみ
+グループ参加リクエストを受け入れます。 publicGroupのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
+| パラメータ      | 型       | 説明                 |
+| --------------- | -------- | -------------------- |
+| `userId`        | `string` | ユーザーID           |
+| `groupId`       | `string` | グループID           |
 | `requestUserId` | `string` | リクエストユーザーID |
 
 ### t.group.user.join.remove
 
-グループ参加リクエストを削除します。
-publicGroupのみ
+グループ参加リクエストを削除します。 publicGroupのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
+| パラメータ      | 型       | 説明                 |
+| --------------- | -------- | -------------------- |
+| `userId`        | `string` | ユーザーID           |
+| `groupId`       | `string` | グループID           |
 | `requestUserId` | `string` | リクエストユーザーID |
 
 ### t.group.user.join.cancel
 
-グループ参加リクエストをキャンセルします。
-publicGroupのみ
+グループ参加リクエストをキャンセルします。 publicGroupのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
+| パラメータ | 型       | 説明       |
+| ---------- | -------- | ---------- |
+| `userId`   | `string` | ユーザーID |
+| `groupId`  | `string` | グループID |
 
 ### t.group.user.kick
 
@@ -453,10 +440,10 @@ publicGroupのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
+| パラメータ   | 型       | 説明             |
+| ------------ | -------- | ---------------- |
+| `userId`     | `string` | ユーザーID       |
+| `groupId`    | `string` | グループID       |
 | `kickUserId` | `string` | キックユーザーID |
 
 ### t.group.user.ban
@@ -465,10 +452,10 @@ publicGroupのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
+| パラメータ  | 型       | 説明          |
+| ----------- | -------- | ------------- |
+| `userId`    | `string` | ユーザーID    |
+| `groupId`   | `string` | グループID    |
 | `banUserId` | `string` | BANユーザーID |
 
 ### t.group.user.unban
@@ -477,12 +464,11 @@ publicGroupのみ
 
 `payload`
 
-| パラメータ | 型 | 説明 |
-| --- | --- | --- |
-| `userId` | `string` | ユーザーID |
-| `groupId` | `string` | グループID |
+| パラメータ  | 型       | 説明          |
+| ----------- | -------- | ------------- |
+| `userId`    | `string` | ユーザーID    |
+| `groupId`   | `string` | グループID    |
 | `banUserId` | `string` | BANユーザーID |
-
 
 ### t.sync.user.add
 
@@ -490,10 +476,10 @@ publicGroupのみ
 
 `payload`
 
-| パラメータ  | 型     | 説明                   |
-| ----------- | ------ | ---------------------- |
-| `groupId`  | string | グループID             |
-| `userId`    | string | ユーザーID             |
+| パラメータ      | 型     | 説明           |
+| --------------- | ------ | -------------- |
+| `groupId`       | string | グループID     |
+| `userId`        | string | ユーザーID     |
 | `beforeEventId` | string | 前のイベントID |
 
 ### t.sync.user.remove
@@ -502,10 +488,10 @@ publicGroupのみ
 
 `payload`
 
-| パラメータ  | 型     | 説明                   |
-| ----------- | ------ | ---------------------- |
-| `groupId`  | string | グループID             |
-| `userId`    | string | ユーザーID             |
+| パラメータ      | 型     | 説明           |
+| --------------- | ------ | -------------- |
+| `groupId`       | string | グループID     |
+| `userId`        | string | ユーザーID     |
 | `beforeEventId` | string | 前のイベントID |
 
 ### t.sync.role.add
@@ -514,14 +500,14 @@ publicGroupのみ
 
 `payload`
 
-| パラメータ  | 型     | 説明                   |
-| ----------- | ------ | ---------------------- |
-| `groupId`  | string | グループID             |
-| `roleId`    | string | ロールID               |
-| `roleName`  | string | ロール名               |
-| `permissions` | string[] | 権限リスト |
-| `color`     | string | カラーコード           |
-| `beforeEventId` | string | 前のイベントID |
+| パラメータ      | 型       | 説明           |
+| --------------- | -------- | -------------- |
+| `groupId`       | string   | グループID     |
+| `roleId`        | string   | ロールID       |
+| `roleName`      | string   | ロール名       |
+| `permissions`   | string[] | 権限リスト     |
+| `color`         | string   | カラーコード   |
+| `beforeEventId` | string   | 前のイベントID |
 
 ### t.sync.role.remove
 
@@ -529,10 +515,10 @@ publicGroupのみ
 
 `payload`
 
-| パラメータ  | 型     | 説明                   |
-| ----------- | ------ | ---------------------- |
-| `groupId`  | string | グループID             |
-| `roleId`    | string | ロールID               |
+| パラメータ      | 型     | 説明           |
+| --------------- | ------ | -------------- |
+| `groupId`       | string | グループID     |
+| `roleId`        | string | ロールID       |
 | `beforeEventId` | string | 前のイベントID |
 
 ### t.sync.role.assign
@@ -541,12 +527,12 @@ publicGroupのみ
 
 `payload`
 
-| パラメータ  | 型     | 説明                   |
-| ----------- | ------ | ---------------------- |
-| `groupId`  | string | グループID             |
-| `roleId`    | string | ロールID               |
-| `assignUserId` | string | 割り当てユーザーID   |
-| `beforeEventId` | string | 前のイベントID |
+| パラメータ      | 型     | 説明               |
+| --------------- | ------ | ------------------ |
+| `groupId`       | string | グループID         |
+| `roleId`        | string | ロールID           |
+| `assignUserId`  | string | 割り当てユーザーID |
+| `beforeEventId` | string | 前のイベントID     |
 
 ### t.sync.role.unassign
 
@@ -554,12 +540,12 @@ publicGroupのみ
 
 `payload`
 
-| パラメータ  | 型     | 説明                   |
-| ----------- | ------ | ---------------------- |
-| `groupId`  | string | グループID             |
-| `roleId`    | string | ロールID               |
-| `assignUserId` | string | 割り当てユーザーID   |
-| `beforeEventId` | string | 前のイベントID |
+| パラメータ      | 型     | 説明               |
+| --------------- | ------ | ------------------ |
+| `groupId`       | string | グループID         |
+| `roleId`        | string | ロールID           |
+| `assignUserId`  | string | 割り当てユーザーID |
+| `beforeEventId` | string | 前のイベントID     |
 
 ### t.sync.channel.add
 
@@ -567,14 +553,14 @@ publicGroupのみ
 
 `payload`
 
-| パラメータ  | 型     | 説明                   |
-| ----------- | ------ | ---------------------- |
-| `groupId`  | string | グループID             |
-| `channelId` | string | チャンネルID           |
-| `channelName` | string | チャンネル名         |
-| `category`  | string | カテゴリー             |
-| `permissions` | string[] | 権限リスト |
-| `beforeEventId` | string | 前のイベントID |
+| パラメータ      | 型       | 説明           |
+| --------------- | -------- | -------------- |
+| `groupId`       | string   | グループID     |
+| `channelId`     | string   | チャンネルID   |
+| `channelName`   | string   | チャンネル名   |
+| `category`      | string   | カテゴリー     |
+| `permissions`   | string[] | 権限リスト     |
+| `beforeEventId` | string   | 前のイベントID |
 
 ### t.sync.channel.remove
 
@@ -582,10 +568,10 @@ publicGroupのみ
 
 `payload`
 
-| パラメータ  | 型     | 説明                   |
-| ----------- | ------ | ---------------------- |
-| `groupId`  | string | グループID             |
-| `channelId` | string | チャンネルID           |
+| パラメータ      | 型     | 説明           |
+| --------------- | ------ | -------------- |
+| `groupId`       | string | グループID     |
+| `channelId`     | string | チャンネルID   |
 | `beforeEventId` | string | 前のイベントID |
 
 ### t.sync.category.add
@@ -594,13 +580,13 @@ publicGroupのみ
 
 `payload`
 
-| パラメータ  | 型     | 説明                   |
-| ----------- | ------ | ---------------------- |
-| `groupId`  | string | グループID             |
-| `categoryId` | string | カテゴリーID           |
-| `categoryName` | string | カテゴリー名         |
-| `permissions` | string[] | 権限リスト |
-| `beforeEventId` | string | 前のイベントID |
+| パラメータ      | 型       | 説明           |
+| --------------- | -------- | -------------- |
+| `groupId`       | string   | グループID     |
+| `categoryId`    | string   | カテゴリーID   |
+| `categoryName`  | string   | カテゴリー名   |
+| `permissions`   | string[] | 権限リスト     |
+| `beforeEventId` | string   | 前のイベントID |
 
 ### t.sync.category.remove
 
@@ -608,10 +594,22 @@ publicGroupのみ
 
 `payload`
 
-| パラメータ  | 型     | 説明                   |
-| ----------- | ------ | ---------------------- |
-| `groupId`  | string | グループID             |
-| `categoryId` | string | カテゴリーID           |
+| パラメータ      | 型     | 説明           |
+| --------------- | ------ | -------------- |
+| `groupId`       | string | グループID     |
+| `categoryId`    | string | カテゴリーID   |
+| `beforeEventId` | string | 前のイベントID |
+
+### t.sync.defaultChannel
+
+デフォルトチャンネルの変更情報を共有するイベント。
+
+`payload`
+
+| パラメータ      | 型     | 説明           |
+| --------------- | ------ | -------------- |
+| `groupId`       | string | グループID     |
+| `channelId`     | string | チャンネルID   |
 | `beforeEventId` | string | 前のイベントID |
 
 
@@ -621,10 +619,10 @@ publicGroupのみ
 
 ユーザーのデータを取得します。
 
-レート制限: なし
-認証: なし
+レート制限: なし 認証: なし
 
 keys
+
 - icon - ユーザーアイコン
 - nickName - ニックネーム
 - description - ユーザーの説明
@@ -633,15 +631,15 @@ keys
 
 `params`
 
-| パラメータ | 説明 |
-| --- | --- |
-| `userId` | ユーザーID |
+| パラメータ | 説明       |
+| ---------- | ---------- |
+| `userId`   | ユーザーID |
 
 #### レスポンス
 
 | 状態 | 説明 |
-| --- | --- |
-| 200 | |
+| ---- | ---- |
+| 200  |      |
 
 #### 200
 
@@ -655,10 +653,10 @@ keys
 
 グループのデータを取得します。
 
-レート制限: なし
-認証: なし
+レート制限: なし 認証: なし
 
 keys
+
 - icon - グループアイコン
 - name - グループ名
 - description - グループの説明
@@ -667,15 +665,15 @@ keys
 
 `params`
 
-| パラメータ | 説明 |
-| --- | --- |
-| `groupId` | グループID |
+| パラメータ | 説明       |
+| ---------- | ---------- |
+| `groupId`  | グループID |
 
 #### レスポンス
 
 | 状態 | 説明 |
-| --- | --- |
-| 200 | |
+| ---- | ---- |
+| 200  |      |
 
 #### 200
 
@@ -687,30 +685,31 @@ keys
 
 ### `GET` /_takos/v1/key/{`kind`}
 
-ユーザーの鍵を取得するエンドポイントです。  
+ユーザーの鍵を取得するエンドポイントです。\
 **リクエスト**はクエリパラメーターにて送信します。
 
 #### クエリパラメーター
 
-| パラメーター      | 型      | 説明 |
-| ------------- | ------ | --- |
-| `userId`      | string | ユーザーID。必須。 |
-| `hash`        | string | `identityKey` と `roomKey` の場合に必須となるハッシュ値。 |
-| `roomid`      | string | `roomKey` の場合に必要なルームID。 |
-| `targetUserId`| string | `roomKey` の場合に必要な相手のユーザーID。 |
+| パラメーター   | 型     | 説明                                                      |
+| -------------- | ------ | --------------------------------------------------------- |
+| `userId`       | string | ユーザーID。serverKey以外必須。                           |
+| `expire`       | number | serverKeyのみ                                             |
+| `hash`         | string | `identityKey` と `roomKey` の場合に必須となるハッシュ値。 |
+| `roomId`       | string | `roomKey` の場合かつ`Group`に必要なルームID。             |
+| `targetUserId` | string | `roomKey` の場合に必要な相手のユーザーID。                |
 
 #### レスポンス
 
-| 状態 | 説明 |
-| --- | --- |
-| 200 | 鍵が正常に取得できた場合 |
+| 状態 | 説明                     |
+| ---- | ------------------------ |
+| 200  | 鍵が正常に取得できた場合 |
 
 #### 200 のレスポンス例
 
 ```json
 {
   "key": "data",
-  "signature": "signature" // ※ identityKey, roomKey の場合のみ
+  "signature": "signature"
 }
 ```
 
@@ -720,16 +719,16 @@ keys
 
 #### クエリパラメーター
 
-| パラメーター      | 型      | 説明 |
-| ------------- | ------ | --- |
-| `query`        | string | キーワード |
-| `limit`        | number | 取得する最大数 |
+| パラメーター | 型     | 説明           |
+| ------------ | ------ | -------------- |
+| `query`      | string | キーワード     |
+| `limit`      | number | 取得する最大数 |
 
 #### レスポンス
 
-| 状態 | 説明 |
-| --- | --- |
-| 200 | 検索結果 |
+| 状態 | 説明     |
+| ---- | -------- |
+| 200  | 検索結果 |
 
 #### 200 のレスポンス例
 
@@ -743,11 +742,42 @@ keys
 
 サーバーのデータを取得します。
 
-レート制限: なし
-認証: なし
+レート制限: なし 認証: なし
 
 items
+
 - name - サーバー名
 - description - サーバーの説明
 - icon - サーバーアイコン
 - version - サーバーバージョン
+
+### `GET` /_takos/v1/message/:`messageId`
+
+メッセージのデータを取得します。
+
+レート制限: なし 認証: なし
+
+#### リクエスト
+
+`params`
+
+| パラメータ  | 説明       |
+| ----------- | ---------- |
+| `messageId` | メッセージID |
+
+#### レスポンス
+
+| 状態 | 説明 |
+| ---- | ---- |
+| 200  |      |
+
+#### 200
+
+```
+{
+  message: message.message,
+  signature: message.sign,
+  timestamp: message.timestamp,
+  userName: message.userName,
+}
+```

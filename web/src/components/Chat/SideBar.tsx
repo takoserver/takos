@@ -45,13 +45,10 @@ function TalkListFriend({
   const [icon, setIcon] = createSignal("");
   const [roomNickName, setRoomNickName] = useAtom(nickNameState);
   createEffect(async () => {
-    const friendInfo = await fetch(
-      `https://${roomid.split("@")[1]}/_takos/v2/friend/info?userName=` +
-        roomid.split("@")[0],
-    );
-    const resJson = await friendInfo.json();
-    setNickName(resJson.nickName);
-    setIcon(resJson.icon);
+    const icon = (await (await fetch(`https://${roomid.split("@")[1]}/_takos/v1/user/icon/${roomid}`)).json()).icon
+    const nickName = (await (await fetch(`https://${roomid.split("@")[1]}/_takos/v1/user/nickName/${roomid}`)).json()).nickName
+    setNickName(nickName);
+    setIcon(icon);
   });
   const setRoomKeyState = useSetAtom(roomKeyState);
   const setSelectedRoom = useSetAtom(selectedRoomState);
@@ -151,19 +148,17 @@ function TalkGroup({
   const [roomNickName, setRoomNickName] = useAtom(nickNameState);
   const [groupChannel, setGroupChannel] = useAtom(groupChannelState);
   createEffect(async () => {
-    const groupInfo = await fetch(
-      `https://${roomid.split("@")[1]}/_takos/v2/group/info?groupId=` +
-        roomid,
-    );
-    const resJson = await groupInfo.json();
-    setNickName(resJson.groupName);
-    setIcon(resJson.icon);
+    const icon = (await (await fetch(`https://${roomid.split("@")[1]}/_takos/v1/group/icon/${roomid}`)).json()).icon
+    const nickName = (await (await fetch(`https://${roomid.split("@")[1]}/_takos/v1/group/name/${roomid}`)).json()).name
+    setNickName(nickName);
+    setIcon(icon);
   });
   const setRoomKeyState = useSetAtom(roomKeyState);
   const setSelectedRoom = useSetAtom(selectedRoomState);
   const setIsSelectRoom = useSetAtom(isSelectRoomState);
   const setMessageList = useSetAtom(messageListState);
   const handelSelectRoomFriend = async (talk: any) => {
+    /*
     const groupInfo = await fetch(
       `https://${roomid.split("@")[1]}/api/v2/group/info?groupId=` +
         roomid,
@@ -197,7 +192,7 @@ function TalkGroup({
     groupInfos.categories.sort((a: { order: number }, b: { order: number }) =>
       a.order - b.order
     );
-    setGroupChannel(groupInfos);
+    setGroupChannel(groupInfos);*/
     const messages = await fetch(
       "/api/v2/message/group/" + talk.roomid + "/" + defaultChannelId,
     );

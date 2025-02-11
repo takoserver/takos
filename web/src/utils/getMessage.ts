@@ -8,17 +8,24 @@ import {
 } from "@takos/takos-encrypt-ink";
 const userName = localStorage.getItem("userName") + "@" +
   new URL(window.location.href).hostname;
-export async function getMessage(
-  messageid: string,
-  friendId: string,
-): Promise<Message> {
+export async function getMessage({
+  messageid,
+  type,
+  roomId,
+  senderId
+}: {
+  messageid: string;
+  type: string;
+  roomId: string;
+  senderId: string;
+}): Promise<Message> {
   const [deviceKey] = useAtom(deviceKeyState);
   const deviceKeyVal = deviceKey();
   if (!deviceKeyVal) throw new Error("DeviceKey not found");
   const encryptedMessageRes = await fetch(
     `https://${
       messageid.split("@")[1]
-    }/_takos/v2/message?messageId=${messageid}`,
+    }/_takos/v1/message/${messageid}`,
   );
   if (encryptedMessageRes.status !== 200) {
     throw new Error("Unauthorized");
@@ -37,13 +44,15 @@ export async function getMessage(
   }
   let roomKey = sessionStorage.getItem("roomKey-" + roomKeyHash);
   if (!roomKey) {
-    const encryptedRoomKeyRes = await fetch(
-      `https://${messageid.split("@")[1]}/_takos/v2/roomKey?roomId=${
-        JSON.parse(encryptedMessage.message).roomid
-      }&hash=${
-        encodeURIComponent(roomKeyHash)
-      }&userId=${friendId}&requesterId=${userName}`,
-    );
+    let encryptedRoomKeyRes
+    if(type === "group") {
+      encryptedRoomKeyRes = await fetch(`https://${messageid.split("@")[1]}/_takos/v1/key/roomKey?roomId=${roomId}&targetUserId=${userName}&hash=${encodeURIComponent(roomKeyHash)}&userId=${senderId}`);
+    } else if(type === "friend") {
+      encryptedRoomKeyRes = await fetch(`https://${messageid.split("@")[1]}/_takos/v1/key/roomKey?targetUserId=${userName}&hash=${encodeURIComponent(roomKeyHash)}&userId=${senderId}`);
+    }
+    if(!encryptedRoomKeyRes) {
+      throw new Error("Unauthorized");
+    }
     if (encryptedRoomKeyRes.status !== 200) {
       throw new Error("Unauthorized");
     }
