@@ -150,7 +150,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 
 ## Events
 
-### t.friend.request
+### t.friend.request.send
 
 友達リクエストを送信します。
 
@@ -161,7 +161,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `userId`   | `string` | ユーザーID |
 | `friendId` | `string` | 友達ID     |
 
-### t.friend.cancel
+### t.friend.request.cancel
 
 友達リクエストをキャンセルします。
 
@@ -172,7 +172,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `userId`   | `string` | ユーザーID |
 | `friendId` | `string` | 友達ID     |
 
-### t.friend.accept
+### t.friend.request.accept
 
 友達リクエストを受け入れます。
 
@@ -208,7 +208,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `roomType`  | `friend or group or publicGroup` | ルームタイプ |
 | `channelId` | `string`                         | チャンネルID |
 
-### t.group.invite
+### t.group.invite.send
 
 グループに招待します。 privateのみ
 
@@ -231,7 +231,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `userId`   | `string` | ユーザーID |
 | `groupId`  | `string` | グループID |
 
-### t.group.invite.remove
+### t.group.invite.cancel
 
 グループ招待を削除します。 privateのみ
 
