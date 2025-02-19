@@ -43,8 +43,3 @@ export const authorizationMiddleware = async (
   // 次の処理へ
   await next();
 };
-
-const app = new Hono<MyEnv>();
-app.use("*", authorizationMiddleware);
-
-export default app;

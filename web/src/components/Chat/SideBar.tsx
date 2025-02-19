@@ -13,11 +13,13 @@ import {
   isSelectRoomState,
   nickNameState,
   roomKeyState,
+  selectedChannelState,
   selectedRoomState,
 } from "../../utils/roomState";
 import { Home } from "./home";
 import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "../popUpFrame";
 import { createEffect, createSignal } from "solid-js";
+import { createTakosDB } from "../../utils/idb";
 export function SideBer() {
   const [page] = useAtom(pageState);
 
@@ -45,8 +47,15 @@ function TalkListFriend({
   const [icon, setIcon] = createSignal("");
   const [roomNickName, setRoomNickName] = useAtom(nickNameState);
   createEffect(async () => {
-    const icon = (await (await fetch(`https://${roomid.split("@")[1]}/_takos/v1/user/icon/${roomid}`)).json()).icon
-    const nickName = (await (await fetch(`https://${roomid.split("@")[1]}/_takos/v1/user/nickName/${roomid}`)).json()).nickName
+    const match = roomid.match(/^m\{([^}]+)\}@(.+)$/);
+    if (!match) {
+      return
+    }
+    const friendUserName = match[1];
+    const domainFromRoom = match[2];
+    const friendUserId = friendUserName + "@" + domainFromRoom;
+    const icon = (await (await fetch(`https://${domainFromRoom}/_takos/v1/user/icon/${friendUserId}`)).json()).icon
+    const nickName = (await (await fetch(`https://${domainFromRoom}/_takos/v1/user/nickName/${friendUserId}`)).json()).nickName
     setNickName(nickName);
     setIcon(icon);
   });
@@ -86,52 +95,57 @@ function TalkListFriend({
         <div class="font-semibold text-lg">
           {nickName()}
         </div>
-        <div class="text-xs text-gray-400">{roomid}</div>
+        <div class="text-xs text-gray-400">{(() => {
+        const match = roomid.match(/^m\{([^}]+)\}@(.+)$/);
+        if (!match) {
+          return;
+        }
+        return match[1] + "@" + match[2];
+      })()!}</div>
         <div class="text-sm text-gray-500">{latestMessage}</div>
       </div>
+      {encrypted().includes((() => {
+        const match = roomid.match(/^m\{([^}]+)\}@(.+)$/);
+        if (!match) {
+          return;
+        }
+        return match[1] + "@" + match[2];
+      })()!) && (
+        <span class="ml-auto text-gray-400 flex-shrink-0">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            class="w-6 h-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 11c-2.21 0-4 1.79-4 4v1h8v-1c0-2.21-1.79-4-4-4z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 11V7a4 4 0 118 0v4"
+            />
+          </svg>
+        </span>
+      )}
     </div>
   );
 }
 
 export const groupChannelState = atom<{
-  members: {
-    userId: string;
-    role: string[];
-  }[];
-  channels: {
-    type: string;
-    name: string;
-    groupId: string;
-    id: any;
-    category: string | null | undefined;
-    order: number;
-  }[];
-  roles: {
-    id: any;
-    name: string;
-    groupId: string;
-    color: string;
-    permissions: string[];
-  }[];
-  categories: {
-    id: any;
-    name: string;
-    groupId: string;
-    order: number;
-  }[];
-  categoriesPermissions: {
-    groupId: string;
-    permissions: string[];
-    categoryId: string;
-    roleId: string;
-  }[];
-  channelsPermissions: {
-    groupId: string;
-    permissions: string[];
-    roleId: string;
-    channelId: string;
-    inheritCategoryPermissions: boolean;
-  }[];
+  members:  {
+    userId: any; role: string[] 
+}[]
+  channels: { category: string; id: string; name: string; permissions: { roleId: string; permission: string }[]; order: number }[]
+  roles: { color: string; id: string; name: string; permission: string[] }[]
+  categories: { id: string; name: string; permissions: { roleId: string; permission: string }[]; order: number }[]
+  owner: string
 }>();
 
 function TalkGroup({
@@ -148,8 +162,14 @@ function TalkGroup({
   const [roomNickName, setRoomNickName] = useAtom(nickNameState);
   const [groupChannel, setGroupChannel] = useAtom(groupChannelState);
   createEffect(async () => {
-    const icon = (await (await fetch(`https://${roomid.split("@")[1]}/_takos/v1/group/icon/${roomid}`)).json()).icon
-    const nickName = (await (await fetch(`https://${roomid.split("@")[1]}/_takos/v1/group/name/${roomid}`)).json()).name
+    const match = roomid.match(/^g\{([^}]+)\}@(.+)$/);
+    if (!match) {
+      return
+    }
+    const friendUserName = match[1];
+    const domainFromRoom = match[2];
+    const icon = (await (await fetch(`https://${domainFromRoom}/_takos/v1/group/icon/${friendUserName + "@" + domainFromRoom}`)).json()).icon
+    const nickName = (await (await fetch(`https://${domainFromRoom}/_takos/v1/group/name/${friendUserName + "@" + domainFromRoom}`)).json()).name
     setNickName(nickName);
     setIcon(icon);
   });
@@ -157,45 +177,47 @@ function TalkGroup({
   const setSelectedRoom = useSetAtom(selectedRoomState);
   const setIsSelectRoom = useSetAtom(isSelectRoomState);
   const setMessageList = useSetAtom(messageListState);
+  const setSelectedChannel = useSetAtom(selectedChannelState);
   const handelSelectRoomFriend = async (talk: any) => {
-    /*
-    const groupInfo = await fetch(
-      `https://${roomid.split("@")[1]}/api/v2/group/info?groupId=` +
-        roomid,
-    );
-    const groupOrder = await fetch(
-      `https://${roomid.split("@")[1]}/_takos/v2/group/data?groupId=` +
-        roomid,
-    );
-    const resOrderJson = await groupOrder.json();
-    const orders: {
-      id: string;
-      order: number;
-    }[] = resOrderJson.orders;
-    const owner = resOrderJson.owner;
-    const defaultChannelId = resOrderJson.defaultChannelId;
-    const groupInfos = await groupInfo.json();
-    // groupInfos に order を追加
-    groupInfos.channels = groupInfos.channels.map((channel: { id: string }) => {
-      const orderEntry = orders.find((o) => o.id === channel.id);
-      return orderEntry ? { ...channel, order: orderEntry.order } : channel;
-    });
-    groupInfos.categories = groupInfos.categories.map(
-      (category: { id: string }) => {
-        const orderEntry = orders.find((o) => o.id === category.id);
-        return orderEntry ? { ...category, order: orderEntry.order } : category;
-      },
-    );
-    groupInfos.channels.sort((a: { order: number }, b: { order: number }) =>
-      a.order - b.order
-    );
-    groupInfos.categories.sort((a: { order: number }, b: { order: number }) =>
-      a.order - b.order
-    );
-    setGroupChannel(groupInfos);*/
-    const messages = await fetch(
-      "/api/v2/message/group/" + talk.roomid + "/" + defaultChannelId,
-    );
+    const match = roomid.match(/^g\{([^}]+)\}@(.+)$/);
+    if (!match) {
+      return
+    }
+    const friendUserName = match[1];
+    const domainFromRoom = match[2];
+    const baseUrl = `https://${domainFromRoom}/_takos/v1/group`;
+    const channelsPromise = fetch(`${baseUrl}/channels/${friendUserName + "@" + domainFromRoom}`).then((res) => res.json());
+    const rolePromise = fetch(`${baseUrl}/role/${friendUserName + "@" + domainFromRoom}`).then((res) => res.json());
+    const membersPromise = fetch(`${baseUrl}/members/${friendUserName + "@" + domainFromRoom}`).then((res) => res.json());
+    const ownerPromise = fetch(`${baseUrl}/owner/${friendUserName + "@" + domainFromRoom}`).then((res) => res.json());
+    const defaultChannelPromise = fetch(`${baseUrl}/defaultChannel/${friendUserName + "@" + domainFromRoom}`).then((res) => res.json());
+    
+    const [channelsResult, roleResult, membersResult, ownerResult, defaultChannelResult] = await Promise.all([
+      channelsPromise,
+      rolePromise,
+      membersPromise,
+      ownerPromise,
+      defaultChannelPromise,
+    ]);
+    
+    const { channels, categories }: {
+      categories: { id: string; name: string; permissions: { roleId: string; permission: string }[]; order: number }[];
+      channels: { category: string; id: string; name: string; permissions: { roleId: string; permission: string }[]; order: number }[];
+    } = channelsResult.channels;
+    
+    const role: { color: string; id: string; name: string; permission: string[] }[] = roleResult.role;
+    const members: { userId: string; role: string[] }[] = membersResult.members;
+    const owner: string = ownerResult.owner;
+    const defaultChannelId = defaultChannelResult.defaultChannel;
+    
+    const messages = await fetch("/api/v2/message/group/" + talk.roomid + "/" + defaultChannelId);
+    setGroupChannel({
+      members: members,
+      channels: channels,
+      roles: role,
+      categories,
+      owner,
+    })
     const messagesJson = (((await messages.json()).messages) as {
       userName: string;
       messageid: string;
@@ -203,10 +225,13 @@ function TalkGroup({
     }[]).sort((a, b) =>
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
-    setMessageList(messagesJson);
     setIsSelectRoom(true);
     setSelectedRoom(talk);
     setRoomNickName(nickName());
+    setSelectedChannel(defaultChannelId);
+    setTimeout(() => {
+      setMessageList(messagesJson);
+    }, 10);
   };
   return (
     <div
@@ -224,12 +249,20 @@ function TalkGroup({
         <div class="font-semibold text-lg">
           {nickName()}
         </div>
-        <div class="text-xs text-gray-400">{roomid}</div>
+        <div class="text-xs text-gray-400">{(() => {
+        const match = roomid.match(/^g\{([^}]+)\}@(.+)$/);
+        if (!match) {
+          return;
+        }
+        return match[1] + "@" + match[2];
+      })()!}</div>
         <div class="text-sm text-gray-500">{latestMessage}</div>
       </div>
     </div>
   );
 }
+
+const [encrypted, setEncrypted] = createSignal<string[]>([]);
 
 function TalkList() {
   const [talkList] = useAtom(talkListState);
@@ -240,7 +273,15 @@ function TalkList() {
   const [isSelectRoom, setIsSelectRoom] = useAtom(isSelectRoomState);
   const [identityKeyAndAccountKey] = useAtom(IdentityKeyAndAccountKeyState);
   const [deviceKey] = useAtom(deviceKeyState);
-
+  createEffect(async () => {
+    const db = await createTakosDB();
+    const allowKeysData = await db.getAll("allowKeys");
+    for (const allowKey of allowKeysData) {
+      if (allowKey.latest === true) {
+        setEncrypted((prev) => [...prev, allowKey.userId]);
+      }
+    }
+  });
   return (
     <>
       {talkList()?.map((talk) => {
@@ -319,6 +360,31 @@ function Friend() {
   );
 }
 
+function Request({ title, acceptFnc, rejectFnc, body}: { title: string; acceptFnc: () => void; rejectFnc: () => void; body: string; }) {
+  return (
+    <div class="bg-[#282828] text-white p-4 rounded-lg mb-3 shadow-lg transition-transform transform border-[2px] border-white/10">
+    <div class="mb-2">
+      <div class="font-semibold text-lg mb-1">{title}</div>
+      <div class="text-sm text-gray-300">{body}</div>
+    </div>
+    <div class="mt-2 flex justify-end space-x-3">
+      <button
+        class="bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded-full shadow-sm transition-all text-[14px]"
+        onClick={acceptFnc}
+      >
+        許可
+      </button>
+      <button
+        class="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded-full shadow-sm transition-all text-[14px]"
+        onClick={rejectFnc}
+      >
+        拒否
+      </button>
+    </div>
+  </div>
+  )
+}
+
 function Notification() {
   const [notification] = useAtom(notificationState);
   const [domain] = useAtom(domainState);
@@ -327,41 +393,34 @@ function Notification() {
       {notification().map((n) => {
         if (n.type === "friend") {
           return (
-            <div class="bg-[#282828] text-white p-4 rounded-lg mb-3 shadow-lg transition-transform transform border-[2px] border-white/10">
-              <div class="mb-2">
-                <div class="font-semibold text-lg mb-1">友達</div>
-                <div class="text-sm text-gray-300">{n.sender}</div>
-              </div>
-              <div class="mt-2 flex justify-end space-x-3">
-                <button
-                  class="bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded-full shadow-sm transition-all text-[14px]"
-                  onClick={async () => {
-                    const res = await fetch("/api/v2/friend/accept", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        id: n.id,
-                      }),
-                    });
-                    console.log(res.json());
-                  }}
-                >
-                  許可
-                </button>
-                <button
-                  class="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded-full shadow-sm transition-all text-[14px]"
-                  onClick={() => {
-                    // Handle reject action
-                    console.log(`Rejected notification from ${n.sender}`);
-                  }}
-                >
-                  拒否
-                </button>
-              </div>
-            </div>
+            <Request title="友達" acceptFnc={async () => {
+              const res = await fetch("/api/v2/friend/accept", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  id: n.id,
+                }),
+              });
+              console.log(res.json());
+            }} rejectFnc={() => {}} body={n.sender} />
           );
+        } else if (n.type === "groupInvite") {
+          return (
+            <Request title="グループ招待" acceptFnc={async () => {
+              const res = await fetch("/api/v2/group/accept", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                 groupId: n.query,
+                }),
+              });
+              console.log(res.json());
+            }} rejectFnc={() => {}} body={n.query!} />
+          )
         }
       })}
     </>

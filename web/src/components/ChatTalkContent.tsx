@@ -52,7 +52,7 @@ function Message(
       try {
         const type = sellectedRoom()?.type;
         const roomId = sellectedRoom()?.roomid;
-        if(!type || !roomId) return;
+        if (!type || !roomId) return;
         const message = await getMessage({
           messageid,
           type,
@@ -61,6 +61,7 @@ function Message(
         });
         setMessageValue((prev) => [...prev, [messageid, message]]);
       } catch (e) {
+        console.log(e);
         setMessageValue((prev) => [
           ...prev,
           [
@@ -99,6 +100,7 @@ function Message(
               messageid={messageid}
               message={messageValue}
               isPrimary={true}
+              isFetch={true}
             />
           )}
         </>

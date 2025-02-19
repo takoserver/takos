@@ -5,7 +5,10 @@ import {
   verifyMasterKey,
 } from "@takos/takos-encrypt-ink";
 import shareAccountKey from "../models/shareAccountKey.ts";
-import app from "../userInfo.ts";
+import { authorizationMiddleware, MyEnv } from "../userInfo.ts";
+import { Hono } from "hono";
+const app = new Hono<MyEnv>();
+app.use("*", authorizationMiddleware);
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import Session from "../models/sessions.ts";
@@ -13,6 +16,7 @@ import IdentityKey from "../models/identityKey.ts";
 import RoomKey from "../models/roomKey.ts";
 import friends from "../models/friends.ts";
 import { load } from "@std/dotenv";
+import { Group, Member } from "../models/groups.ts";
 
 const env = await load();
 
@@ -180,13 +184,18 @@ app.post(
       if (await RoomKey.findOne({ hash })) {
         return c.json({ message: "Already exists" }, 400);
       }
+      const match = roomId.match(/^m\{([^}]+)\}@(.+)$/);
+      if (!match) {
+        return c.json({ error: "Invalid roomId format" }, 400);
+      }
+      const friendUserName = match[1];
+      const domainFromRoom = match[2];
       if (
         !await friends.findOne({
           userName: user.userName + "@" + env["domain"],
-          friendId: roomId,
+          friendId: friendUserName + "@" + domainFromRoom,
         })
       ) {
-        console.log(user.userName + "@" + env["domain"], roomId);
         return c.json({ message: "Unauthorized" }, 401);
       }
       if (encryptedRoomKeys.length !== 2) {
@@ -200,6 +209,34 @@ app.post(
         metaData,
         sign,
       });
+    }
+    if (type === "group") {
+      const match = roomId.match(/^g\{([^}]+)\}@(.+)$/);
+      if (!match) {
+        return c.json({ error: "Invalid roomId format" }, 400);
+      }
+      const friendUserName = match[1];
+      const domainFromRoom = match[2];
+      if (await RoomKey.findOne({ hash })) {
+        return c.json({ message: "Already exists" }, 400);
+      }
+      if (
+        !await Member.findOne({
+          groupId: friendUserName + "@" + domainFromRoom,
+          userId: user.userName + "@" + env["domain"],
+        })
+      ) {
+        return c.json({ message: "Unauthorized" }, 401);
+      }
+      await RoomKey.create({
+        userName: user.userName,
+        roomId,
+        hash,
+        encrtypedRoomKey: encryptedRoomKeys,
+        metaData,
+        sign,
+      });
+      return c.json({ message: "success" });
     }
     return c.json({ message: "success" });
   },

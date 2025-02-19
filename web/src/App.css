@@ -1,8 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+/*
 html {
   background-image: url("/api/v2/server/background");
   background-size: cover;
 }
+*/

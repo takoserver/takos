@@ -29,6 +29,9 @@ import { load } from "@std/dotenv";
 import Friends from "../models/friends.ts";
 import { Member } from "../models/groups.ts";
 import Message from "../models/message.ts";
+import MigrateData from "../models/migrateData.ts";
+import { uuidv7 } from "npm:uuidv7@^1.0.2";
+import publish from "../utils/redisClient.ts";
 
 const env = await load();
 
@@ -341,14 +344,11 @@ app.post(
 );
 
 app.post(
-  "/encrypt",
+  "/encrypt/request",
   zValidator(
     "json",
     z.object({
-      identityKey: z.string(),
-      identityKeySign: z.string(),
-      shareKey: z.string(),
-      shareKeySign: z.string(),
+      migrateKey: z.string(),
     }).strict(),
   ),
   zValidator(
@@ -358,38 +358,173 @@ app.post(
     }),
   ),
   async (c) => {
+    const { migrateKey } = c.req.valid("json");
     const sessionid = c.req.valid("cookie").sessionid;
-    const { identityKey, identityKeySign, shareKey, shareKeySign } = c.req
-      .valid("json");
     const session = await Session.findOne({ sessionid });
-    if (!session) {
+    if (!session || session.encrypted) {
       return c.json({ status: "error", message: "Invalid session" }, 400);
     }
-    const userInfo = await users.findOne({ userName: session.userName });
-    if (!userInfo || !userInfo.setup || !userInfo.masterKey) {
+    const user = await users.findOne({ userName: session.userName });
+    if (!user) {
+      return c.json({ status: "error", message: "Invalid user" }, 400);
+    }
+    const migrateid = uuidv7();
+    await MigrateData.create({
+      userName: user.userName,
+      migrateKey,
+      migrateid,
+      requesterSessionid: session.sessionid,
+    });
+    publish({
+      type: "migrateRequest",
+      users: [user.userName + "@" + env["domain"]],
+      data: JSON.stringify({
+        migrateid,
+        requesterSessionid: session.sessionid,
+      }),
+    });
+    return c.json({ migrateid });
+  },
+);
+
+app.post(
+  "/encrypt/accept",
+  zValidator(
+    "json",
+    z.object({
+      migrateSignKey: z.string(),
+      migrateid: z.string(),
+    }).strict(),
+  ),
+  zValidator(
+    "cookie",
+    z.object({
+      sessionid: z.string(),
+    }),
+  ),
+  async (c) => {
+    const { migrateSignKey, migrateid } = c.req.valid("json");
+    const sessionid = c.req.valid("cookie").sessionid;
+    const session = await Session.findOne({ sessionid });
+    if (!session || !session.encrypted) {
+      console.log("Invalid session");
       return c.json({ status: "error", message: "Invalid session" }, 400);
     }
-    if (!verifyMasterKey(userInfo.masterKey, identityKeySign, identityKey)) {
-      return c.json({ status: "error", message: "Invalid identityKey" }, 400);
+    const user = await users.findOne({ userName: session.userName });
+    if (!user) {
+      return c.json({ status: "error", message: "Invalid user" }, 400);
     }
-    if (!verifyMasterKey(userInfo.masterKey, shareKeySign, shareKey)) {
+    const migrateData = await MigrateData.findOne({ migrateid });
+    if (!migrateData) {
+      return c.json({ status: "error", message: "Invalid migrateid" }, 400);
+    }
+    await MigrateData.updateOne({ migrateid }, {
+      migrateSignKey,
+      accepterSessionid: session.sessionid,
+      accept: true,
+    });
+    publish({
+      type: "migrateAccept",
+      users: [user.userName + "@" + env["domain"]],
+      data: JSON.stringify({
+        migrateid,
+        requesterSessionid: migrateData.requesterSessionid,
+      }),
+    });
+    return c.json({ status: "success" });
+  },
+);
+
+app.post(
+  "/encrypt/send",
+  zValidator(
+    "json",
+    z.object({
+      migrateid: z.string(),
+      sign: z.string(),
+      data: z.string(),
+    }).strict(),
+  ),
+  zValidator(
+    "cookie",
+    z.object({
+      sessionid: z.string(),
+    }),
+  ),
+  async (c) => {
+    const { migrateid, sign, data } = c.req.valid("json");
+    const sessionid = c.req.valid("cookie").sessionid;
+    const session = await Session.findOne({ sessionid });
+    if (!session || !session.encrypted) {
+      return c.json({ status: "error", message: "Invalid session" }, 400);
+    }
+    const user = await users.findOne({ userName: session.userName });
+    if (!user) {
+      return c.json({ status: "error", message: "Invalid user" }, 400);
+    }
+    const migrateData = await MigrateData.findOne({ migrateid });
+    if (!migrateData) {
+      return c.json({ status: "error", message: "Invalid migrateid" }, 400);
+    }
+    if (!migrateData.accept) {
+      return c.json(
+        { status: "error", message: "The request is not accepted" },
+        400,
+      );
+    }
+    if (migrateData.accepterSessionid !== session.sessionid) {
+      return c.json({ status: "error", message: "Invalid session" }, 400);
+    }
+    await MigrateData.updateOne({ migrateid }, {
+      migrateData: data,
+      sign,
+      sended: true,
+    });
+    publish({
+      type: "migrateData",
+      users: [user.userName + "@" + env["domain"]],
+      data: JSON.stringify({
+        migrateid,
+        requesterSessionid: migrateData.requesterSessionid,
+      }),
+    });
+    return c.json({ status: "success" });
+  },
+);
+
+app.post(
+  "/encrypt/success",
+  zValidator(
+    "cookie",
+    z.object({
+      sessionid: z.string(),
+    }),
+  ),
+  zValidator(
+    "json",
+    z.object({
+      shareKey: z.string(),
+      shareKeySign: z.string(),
+    }),
+  ),
+  async (c) => {
+    const { shareKey, shareKeySign } = c.req.valid("json");
+    const sessionid = c.req.valid("cookie").sessionid;
+    const session = await Session.findOne({ sessionid });
+    if (!session || session.encrypted) {
+      return c.json({ status: "error", message: "Invalid session" }, 400);
+    }
+    const user = await users.findOne({ userName: session.userName });
+    if (!user || !user.masterKey) {
+      return c.json({ status: "error", message: "Invalid user" }, 400);
+    }
+    if (!verifyMasterKey(user.masterKey, shareKeySign, shareKey)) {
       return c.json({ status: "error", message: "Invalid shareKey" }, 400);
     }
-    const { sessionUuid } = JSON.parse(identityKey);
-    if (session.sessionUUID !== sessionUuid) {
-      return c.json({ status: "error", message: "Invalid sessionUUID" }, 400);
-    }
     await Session.updateOne({ sessionid }, {
-      shareKey: shareKey,
-      shareKeySign: shareKeySign,
       encrypted: true,
-    });
-    await IdentityKey.create({
-      userName: session.userName,
-      hash: await keyHash(identityKey),
-      identityKey: identityKey,
-      sign: identityKeySign,
-      masterKeyHash: await keyHash(userInfo.masterKey),
+      shareKey,
+      shareKeySign,
     });
     return c.json({ status: "success" });
   },
@@ -510,6 +645,7 @@ app.get(
     return c.json({
       login: true,
       setup: true,
+      encrypted: session.encrypted,
       deviceKey: session.deviceKey,
       requests: requests.map((r) => ({
         id: r.id,

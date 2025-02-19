@@ -31,6 +31,7 @@ import {
   generateMigrateKey,
   generateMigrateSignKey,
   generateShareKey,
+  generateShareSignKey,
   keyHash,
   signDataMigrateSignKey,
 } from "@takos/takos-encrypt-ink";
@@ -44,6 +45,7 @@ export function EncryptSession() {
   const [isOpen, setIsOpen] = createSignal(false);
   const [setted, setSetted] = createSignal(false);
   const [page, setPage] = useAtom(migrateRequestPage);
+  const [deivceKey] = useAtom(deviceKeyState);
   const [domain] = useAtom(domainState);
   const [migrateKeyPublic, setMigrateKeyPublic] = useAtom(
     migrateKeyPublicState,
@@ -60,9 +62,14 @@ export function EncryptSession() {
   const [migrateSession, setMigrateSession] = useAtom(migrateSessionid);
   const [sessionid] = useAtom(sessionidState);
   const [deviceKey] = useAtom(deviceKeyState);
+  const [encryptedSession, setEncryptedSessionState] = useAtom(
+    EncryptedSessionState,
+  );
   createEffect(() => {
-    if (!EncryptedSession() && !setted() && !setUp()) {
+    if (!EncryptedSession() && !setted() && setUp() && !EncryptedSession()) {
       setIsOpen(true);
+    } else {
+      setIsOpen(false);
     }
   });
   return (
@@ -84,18 +91,21 @@ export function EncryptSession() {
                           const migrateKey = generateMigrateKey();
                           setMigrateKeyPrivate(migrateKey.privateKey);
                           setMigrateKeyPublic(migrateKey.publickKey);
-                          const response = await requester(
-                            domain() as string,
-                            "requestMigrate",
+                          const res = await fetch(
+                            "/api/v2/sessions/encrypt/request",
                             {
-                              sessionid: sessionid(),
-                              migrateKey: migrateKey.publickKey,
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                              },
+                              body: JSON.stringify({
+                                migrateKey: migrateKey.publickKey,
+                              }),
                             },
                           );
-                          if (response.status === 200) {
+                          if (res.status === 200) {
+                            setMigrateSession((await res.json()).migrateid);
                             setPage(2);
-                            const json = await response.json();
-                            setMigrateSession(json.migrateid);
                           }
                         }}
                       >
@@ -107,64 +117,39 @@ export function EncryptSession() {
                         class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
                         onClick={async () => {
                           const masterKey = generateMasterKey();
-                          const uuid = uuidv7();
-                          const identityKey = await generateIdentityKey(
-                            uuid,
-                            {
-                              privateKey: masterKey.privateKey,
-                              publicKey: masterKey.publicKey,
-                            },
-                          );
-                          if (!identityKey) {
-                            throw new Error("identityKey is not generated");
-                          }
+                          const uuid = localStorage.getItem("sessionUUID");
+                          if (!uuid) return;
                           const accountKey = await generateAccountKey(
-                            {
-                              privateKey: masterKey.privateKey,
-                              publicKey: masterKey.publicKey,
-                            },
+                            masterKey,
                           );
-                          if (!accountKey) {
-                            throw new Error("accountKey is not generated");
-                          }
-                          const sharekey = await generateShareKey(
+                          const shareKey = await generateShareKey(
                             masterKey.privateKey,
                             uuid,
                           );
-                          if (!accountKey || !sharekey) {
-                            throw new Error(
-                              "accountKey or sharekey is not generated",
-                            );
-                          }
-                          const response = await requester(
-                            localStorageEditor.get("server") as string,
-                            "resetMasterKey",
-                            {
-                              masterKey: masterKey.publicKey,
-                              identityKey: identityKey.publickKey,
-                              accountKey: accountKey.publickKey,
-                              identityKeySign: identityKey.sign,
-                              accountKeySign: accountKey.sign,
-                              sessionUUID: uuid,
-                              shareKey: sharekey.publickKey,
-                              shareKeySign: sharekey.sign,
-                              sessionid: localStorageEditor.get("sessionid"),
+
+                          if (!accountKey || !shareKey) return;
+                          const res = await fetch("/api/v2/sessions/reset", {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
                             },
-                          );
-                          const deviceKeyS = deviceKey();
-                          if (!deviceKeyS) {
-                            throw new Error("deviceKey is not generated");
-                          }
-                          if (response.status === 200) {
+                            body: JSON.stringify({
+                              masterKey: masterKey.publicKey,
+                              accountKey: accountKey.publickKey,
+                              accountKeySign: accountKey.sign,
+                              shareKey: shareKey.publickKey,
+                              shareKeySign: shareKey.sign,
+                            }),
+                          });
+                          if (res.status === 200) {
+                            setEncryptedSessionState(true);
+                            setSetted(true);
+                            const deviceKeyS = deivceKey();
+                            if (!deviceKeyS) return;
                             const encryptedMasterKey =
                               await encryptDataDeviceKey(
                                 deviceKeyS,
                                 JSON.stringify(masterKey),
-                              );
-                            const encryptedIdentityKey =
-                              await encryptDataDeviceKey(
-                                deviceKeyS,
-                                identityKey.privateKey,
                               );
                             const encryptedAccountKey =
                               await encryptDataDeviceKey(
@@ -174,28 +159,17 @@ export function EncryptSession() {
                             const encryptedShareKey =
                               await encryptDataDeviceKey(
                                 deviceKeyS,
-                                sharekey.privateKey,
+                                shareKey.privateKey,
                               );
                             if (
                               !encryptedMasterKey ||
-                              !encryptedIdentityKey ||
-                              !encryptedAccountKey ||
-                              !encryptedShareKey
-                            ) {
-                              throw new Error("encrypted key is not generated");
-                            }
+                              !encryptedAccountKey || !encryptedShareKey
+                            ) return;
                             localStorageEditor.set(
                               "masterKey",
                               encryptedMasterKey,
                             );
-                            localStorageEditor.set("sessionuuid", uuid);
                             const db = await createTakosDB();
-                            await db.put("identityKeys", {
-                              key: await keyHash(identityKey.publickKey),
-                              encryptedKey: encryptedIdentityKey,
-                              timestamp:
-                                JSON.parse(identityKey.publickKey).timestamp,
-                            });
                             await db.put("accountKeys", {
                               key: await keyHash(accountKey.publickKey),
                               encryptedKey: encryptedAccountKey,
@@ -203,13 +177,12 @@ export function EncryptSession() {
                                 JSON.parse(accountKey.publickKey).timestamp,
                             });
                             await db.put("shareKeys", {
-                              key: await keyHash(sharekey.publickKey),
+                              key: await keyHash(shareKey.publickKey),
                               encryptedKey: encryptedShareKey,
                               timestamp:
-                                JSON.parse(sharekey.publickKey).timestamp,
+                                JSON.parse(shareKey.publickKey).timestamp,
                             });
-                            setSetted(true);
-                            setEncryptedSession(true);
+                            alert("鍵をリセットしました");
                           }
                         }}
                       >
@@ -237,170 +210,6 @@ export function EncryptSession() {
                           "hash: " + fnv1a(migratekey + migrateSignKey),
                         );
                       })()}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </PopUpFrame>
-      )}
-      <AcceptMigrateKey />
-    </>
-  );
-}
-
-export function AcceptMigrateKey() {
-  const [showMigrate, setShowMigrate] = useAtom(showMigrateRequest);
-  const pageState = atom(1);
-  const [page, setPage] = useAtom(pageState);
-  const [migrateSession] = useAtom(migrateSessionid);
-  const [migrateSignKeyPublic, setMigrateSignKeyPublic] = useAtom(
-    migrateSignKeyPublicState,
-  );
-  const [migrateKeyPublic, setMigrateKeyPublic] = useAtom(
-    migrateKeyPublicState,
-  );
-  const [domain] = useAtom(domainState);
-  const [sessionid] = useAtom(sessionidState);
-  const [migrateSignKeyPrivate, setMigrateSignKeyPrivate] = useAtom(
-    migrateSignKeyPrivateState,
-  );
-  const [deviceKey] = useAtom(deviceKeyState);
-  return (
-    <>
-      {showMigrate() && (
-        <PopUpFrame closeScript={setShowMigrate}>
-          <div class="h-full w-full flex items-center justify-center">
-            <div class="max-w-md w-full px-6">
-              <h1 class="text-2xl font-semibold text-center mb-6">
-                セッションの暗号化
-              </h1>
-              <div>
-                {page() === 1 && (
-                  <>
-                    <div class="mb-4">
-                      <button
-                        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          const migrateSignKey = generateMigrateSignKey();
-                          setMigrateSignKeyPrivate(migrateSignKey.privateKey);
-                          setMigrateSignKeyPublic(migrateSignKey.publickKey);
-                          const response = await requester(
-                            domain() as string,
-                            "acceptMigrate",
-                            {
-                              sessionid: sessionid(),
-                              migrateid: migrateSession(),
-                              migrateSignKey: migrateSignKey.publickKey,
-                            },
-                          );
-                          if (response.status === 200) {
-                            setPage(2);
-                            const json = await response.json();
-                            setMigrateKeyPublic(json.migrateKey);
-                          }
-                        }}
-                      >
-                        鍵を受け入れる
-                      </button>
-                    </div>
-                    <div>
-                      <button
-                        class="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-                        onClick={() => setShowMigrate(false)}
-                      >
-                        鍵を拒否する
-                      </button>
-                    </div>
-                  </>
-                )}
-                {page() === 2 && (
-                  <>
-                    <div class="mb-4">
-                      {/* input hash form */}
-                      <form
-                        class="space-y-4"
-                        onSubmit={async (e) => {
-                          e.preventDefault();
-                          const migrarteKey = migrateKeyPublic();
-                          const migrateSignKey = migrateSignKeyPublic();
-                          if (!migrarteKey || !migrateSignKey) return;
-                          const hash = fnv1a(migrarteKey + migrateSignKey);
-                          const hashInput = e.currentTarget.hash.value;
-                          if (hash !== Number(hashInput)) {
-                            alert("ハッシュが一致しません");
-                            return;
-                          }
-                          const encryptedMasterKey = localStorageEditor.get(
-                            "masterKey",
-                          );
-                          if (!encryptedMasterKey) return;
-                          const masterKey = await decryptDataDeviceKey(
-                            deviceKey() as string,
-                            encryptedMasterKey,
-                          );
-                          const db = await createTakosDB();
-                          const allAccountKey = await Promise.all(
-                            (await db.getAll("accountKeys")).map(
-                              async (data) => {
-                                const decrypted = await decryptDataDeviceKey(
-                                  deviceKey() as string,
-                                  data.encryptedKey,
-                                );
-                                if (!decrypted) return null;
-                                return {
-                                  key: decrypted,
-                                  hash: data.key,
-                                  timestamp: data.timestamp,
-                                };
-                              },
-                            ),
-                          );
-                          allAccountKey.filter((key) => key !== null);
-                          const migrateData = JSON.stringify({
-                            masterKey,
-                            accountKeys: allAccountKey,
-                          });
-                          const encryptedMigrateData =
-                            await encryptDataMigrateKey(
-                              migrateKeyPublic(),
-                              migrateData,
-                            );
-                          if (!encryptedMigrateData) return;
-                          const sign = signDataMigrateSignKey(
-                            migrateSignKeyPrivate(),
-                            encryptedMigrateData,
-                            await keyHash(migrateKeyPublic()),
-                          );
-                          if (!sign) return;
-                          const response = await requester(
-                            domain() as string,
-                            "sendMigrateData",
-                            {
-                              sessionid: sessionid(),
-                              migrateid: migrateSession(),
-                              migrateData: encryptedMigrateData,
-                              sign,
-                            },
-                          );
-                        }}
-                      >
-                        <input
-                          type="number"
-                          name="hash"
-                          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                          placeholder="ハッシュを入力"
-                          required
-                        />
-                        <button
-                          type="submit"
-                          class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-                        >
-                          検証
-                        </button>
-                      </form>
                     </div>
                   </>
                 )}

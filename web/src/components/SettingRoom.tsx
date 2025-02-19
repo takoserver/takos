@@ -133,6 +133,16 @@ export function SettingRoom() {
                               <button
                                 class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
                                 onClick={() => {
+                                  const res = fetch("/api/v2/group/invite", {
+                                    method: "POST",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                      groupId: selectedRoom()!.roomid,
+                                      userId: friend,
+                                    }),
+                                  });
                                 }}
                               >
                                 招待

@@ -44,12 +44,13 @@ export const sessionidState = atom<string | null>();
 
 export const iconState = atom<string | null>();
 export const nicknameState = atom<string | null>();
+export const descriptionState = atom<string | null>();
 export const birthdayState = atom<string | null>();
 export const notificationState = atom<{
   id: string;
   type: string;
   sender: string;
-  query?: object;
+  query?: string;
 }[]>([]);
 
 export const talkListState = atom<{
@@ -72,3 +73,5 @@ export const messageListState = atom<{
   messageid: string;
   timestamp: string;
 }[]>([]);
+
+export const friendsState = atom<string[]>([]);

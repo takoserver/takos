@@ -36,6 +36,7 @@ export interface TakosDB extends DBSchema {
       encryptedKey: string;
       timestamp: number;
       roomid: string;
+      metaData: string;
     };
   };
   allowKeys: {

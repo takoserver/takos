@@ -280,7 +280,6 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `channelName` | `string`             | チャンネル名 |
 | `category`    | `string or undefind` | カテゴリー   |
 | `permission`  | `object[]`           | 権限         |
-| `order`       | `number`             | オーダー     |
 
 `object`
 
@@ -314,7 +313,6 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `categoryId`   | `string`   | カテゴリーID |
 | `categoryName` | `string`   | カテゴリー名 |
 | `permission`   | `object[]` | 権限         |
-| `order`       | `number`             | オーダー     |
 
 `object`
 
@@ -470,6 +468,18 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`   | `string` | グループID    |
 | `banUserId` | `string` | BANユーザーID |
 
+### t.group.defaultChannel
+
+グループのデフォルトチャンネルを変更します。
+
+`payload`
+
+| パラメータ  | 型       | 説明         |
+| ----------- | -------- | ------------ |
+| `userId`    | `string` | ユーザーID   |
+| `groupId`   | `string` | グループID   |
+| `channelId` | `string` | チャンネルID |
+
 ### t.sync.user.add
 
 ユーザーの追加情報を共有するイベント。
@@ -504,9 +514,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | --------------- | -------- | -------------- |
 | `groupId`       | string   | グループID     |
 | `roleId`        | string   | ロールID       |
-| `roleName`      | string   | ロール名       |
 | `permissions`   | string[] | 権限リスト     |
-| `color`         | string   | カラーコード   |
 | `beforeEventId` | string   | 前のイベントID |
 
 ### t.sync.role.remove
@@ -557,7 +565,6 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | --------------- | -------- | -------------- |
 | `groupId`       | string   | グループID     |
 | `channelId`     | string   | チャンネルID   |
-| `channelName`   | string   | チャンネル名   |
 | `category`      | string   | カテゴリー     |
 | `permissions`   | string[] | 権限リスト     |
 | `beforeEventId` | string   | 前のイベントID |
@@ -584,7 +591,6 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | --------------- | -------- | -------------- |
 | `groupId`       | string   | グループID     |
 | `categoryId`    | string   | カテゴリーID   |
-| `categoryName`  | string   | カテゴリー名   |
 | `permissions`   | string[] | 権限リスト     |
 | `beforeEventId` | string   | 前のイベントID |
 
@@ -599,19 +605,6 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`       | string | グループID     |
 | `categoryId`    | string | カテゴリーID   |
 | `beforeEventId` | string | 前のイベントID |
-
-### t.sync.defaultChannel
-
-デフォルトチャンネルの変更情報を共有するイベント。
-
-`payload`
-
-| パラメータ      | 型     | 説明           |
-| --------------- | ------ | -------------- |
-| `groupId`       | string | グループID     |
-| `channelId`     | string | チャンネルID   |
-| `beforeEventId` | string | 前のイベントID |
-
 
 ## データの取得
 
@@ -660,6 +653,11 @@ keys
 - icon - グループアイコン
 - name - グループ名
 - description - グループの説明
+- channels - チャンネルとcategoryのリスト
+- role - ロールのカラーコード
+- members - メンバーのリスト
+- owner - オーナーのユーザーID
+- defaultChannel - デフォルトチャンネルID
 
 #### リクエスト
 
@@ -674,6 +672,25 @@ keys
 | 状態 | 説明 |
 | ---- | ---- |
 | 200  |      |
+
+icon: base64
+
+name: string
+
+description: string
+
+channels: { categories: { id: string; name: string; permissions: { roleId:
+string; permission: string }[]; order: number }[] channels: { category: string;
+id: string; name: string; permissions: { roleId: string; permission: string }[];
+order: number }[] }
+
+role: { color: string; id: string; name: string; permission: string[] }[]
+
+members: { id: string; role: string[] }[]
+
+owner: string
+
+defaultChannel: string
 
 #### 200
 
@@ -761,8 +778,8 @@ items
 
 `params`
 
-| パラメータ  | 説明       |
-| ----------- | ---------- |
+| パラメータ  | 説明         |
+| ----------- | ------------ |
 | `messageId` | メッセージID |
 
 #### レスポンス

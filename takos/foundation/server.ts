@@ -26,7 +26,7 @@ import publish from "../utils/redisClient.ts";
 const env = await load();
 
 app.post(
-  "/event",
+  "/",
   zValidator(
     "json",
     z.object({
@@ -111,14 +111,14 @@ app.post(
           sender: userId,
           receiver: friendId,
           type: "friend",
-        })
+        });
         if (!request2) {
           return c.json({ error: "Request not found" }, 400);
         }
         await request.deleteOne({
           sender: userId,
           receiver: friendId,
-        })
+        });
         return c.json(200);
       }
       case "t.friend.accept": {
@@ -151,7 +151,7 @@ app.post(
           sender: friendId,
           receiver: userId,
           type: "friend",
-        })
+        });
         if (!request2) {
           return c.json({ error: "Request not found" }, 400);
         }
@@ -162,7 +162,7 @@ app.post(
         await request.deleteOne({
           sender: friendId,
           receiver: userId,
-        })
+        });
         return c.json(200);
       }
       case "t.message.send": {
@@ -172,7 +172,7 @@ app.post(
           roomId: z.string(),
           roomType: z.string(),
           channelId: z.string().optional(),
-        })
+        });
         const parsedPayload = payloadSchema.safeParse(payload);
         if (!parsedPayload.success) {
           return c.json({ error: "Invalid payload" }, 400);
@@ -188,17 +188,21 @@ app.post(
         if (roomType !== "friend" && roomType !== "group") {
           return c.json({ error: "Invalid roomType" }, 400);
         }
-        if(roomType === "friend") {
+        if (roomType === "friend") {
+          const match = roomId.match(/^m\{([^}]+)\}@(.+)$/);
+          if (!match) {
+            return c.json({ error: "Invalid roomId format" }, 400);
+          }
+          const roomIdUserName = match[1];
+          const roomIdDomain = match[2];
           const friend = await friends.findOne({
-            userName: roomId,
+            userName: roomIdUserName + "@" + roomIdDomain,
             friendId: userId,
           });
           if (!friend) {
-            console.log("Unauthorized");
             return c.json({ message: "Unauthorized" }, 401);
           }
           if (messageId.split("@")[1] !== domain) {
-            console.log("Unauthorized");
             return c.json({ message: "Unauthorized" }, 401);
           }
           const timestamp = new Date();
@@ -210,19 +214,84 @@ app.post(
           });
           publish({
             type: "message",
-            users: [roomId],
+            users: [roomIdUserName + "@" + roomIdDomain],
             data: JSON.stringify({
               messageid: messageId,
               timestamp,
               userName: userId,
-              roomid: userId,
+              roomid: `m{${userId.split("@")[0]}}@${userId.split("@")[1]}`,
             }),
           });
           return c.json({ message: "success" });
         }
-        if(!channelId) {
+        if (!channelId) {
           return c.json({ error: "Invalid channelId" }, 400);
         }
+        break;
+      }
+      case "t.friend.group.invite": {
+        const payloadSchema = z.object({
+          userId: z.string().email(),
+          groupId: z.string(),
+          inviteUserId: z.string().email(),
+        });
+        const parsedPayload = payloadSchema.safeParse(payload);
+        if (!parsedPayload.success) {
+          console.log(parsedPayload.error);
+          return c.json({ error: "Invalid payload" }, 400);
+        }
+        const { userId, groupId, inviteUserId } = parsedPayload.data;
+        if (userId.split("@")[1] !== domain) {
+          return c.json({ error: "Invalid userId" }, 400);
+        }
+        if (groupId.split("@")[1] == env["domain"]) {
+          return c.json({ error: "Invalid groupId" }, 400);
+        }
+        if (
+          !await friends.findOne({ userName: inviteUserId, friendId: userId })
+        ) {
+          return c.json({ error: "Unauthorized" }, 401);
+        }
+        if (await Member.findOne({ groupId: groupId, userId: inviteUserId })) {
+          return c.json({ error: "Unauthorized" }, 401);
+        }
+        await request.create({
+          sender: userId,
+          receiver: inviteUserId,
+          type: "groupInvite",
+          query: groupId,
+          local: false,
+        });
+        return c.json(200);
+      }
+      case "t.group.invite.accept": {
+        const payloadSchema = z.object({
+          userId: z.string().email(),
+          groupId: z.string(),
+        });
+        const parsedPayload = payloadSchema.safeParse(payload);
+        if (!parsedPayload.success) {
+          return c.json({ error: "Invalid payload" }, 400);
+        }
+        const { userId, groupId } = parsedPayload.data;
+        if (userId.split("@")[1] !== domain) {
+          return c.json({ error: "Invalid userId" }, 400);
+        }
+        if (groupId.split("@")[1] !== env["domain"]) {
+          return c.json({ error: "Invalid groupId" }, 400);
+        }
+        const group = await Group.findOne({ groupId: groupId });
+        if (!group || !group.invites.includes(userId)) {
+          return c.json({ error: "Invalid groupId" }, 400);
+        }
+        await Member.create({
+          groupId: groupId,
+          userId: userId,
+        });
+        await Group.updateOne({ groupId }, {
+          $pull: { invites: userId },
+        });
+        return c.json(200);
       }
     }
     return c.json({ error: "Invalid event" }, 400);

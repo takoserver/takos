@@ -12,7 +12,7 @@ export async function getMessage({
   messageid,
   type,
   roomId,
-  senderId
+  senderId,
 }: {
   messageid: string;
   type: string;
@@ -23,9 +23,7 @@ export async function getMessage({
   const deviceKeyVal = deviceKey();
   if (!deviceKeyVal) throw new Error("DeviceKey not found");
   const encryptedMessageRes = await fetch(
-    `https://${
-      messageid.split("@")[1]
-    }/_takos/v1/message/${messageid}`,
+    `https://${messageid.split("@")[1]}/_takos/v1/message/${messageid}`,
   );
   if (encryptedMessageRes.status !== 200) {
     throw new Error("Unauthorized");
@@ -44,13 +42,25 @@ export async function getMessage({
   }
   let roomKey = sessionStorage.getItem("roomKey-" + roomKeyHash);
   if (!roomKey) {
-    let encryptedRoomKeyRes
-    if(type === "group") {
-      encryptedRoomKeyRes = await fetch(`https://${messageid.split("@")[1]}/_takos/v1/key/roomKey?roomId=${roomId}&targetUserId=${userName}&hash=${encodeURIComponent(roomKeyHash)}&userId=${senderId}`);
-    } else if(type === "friend") {
-      encryptedRoomKeyRes = await fetch(`https://${messageid.split("@")[1]}/_takos/v1/key/roomKey?targetUserId=${userName}&hash=${encodeURIComponent(roomKeyHash)}&userId=${senderId}`);
+    let encryptedRoomKeyRes;
+    if (type === "group") {
+      encryptedRoomKeyRes = await fetch(
+        `https://${
+          messageid.split("@")[1]
+        }/_takos/v1/key/roomKey?roomId=${roomId}&targetUserId=${userName}&hash=${
+          encodeURIComponent(roomKeyHash)
+        }&userId=${senderId}`,
+      );
+    } else if (type === "friend") {
+      encryptedRoomKeyRes = await fetch(
+        `https://${
+          messageid.split("@")[1]
+        }/_takos/v1/key/roomKey?targetUserId=${userName}&hash=${
+          encodeURIComponent(roomKeyHash)
+        }&userId=${senderId}`,
+      );
     }
-    if(!encryptedRoomKeyRes) {
+    if (!encryptedRoomKeyRes) {
       throw new Error("Unauthorized");
     }
     if (encryptedRoomKeyRes.status !== 200) {
@@ -67,6 +77,7 @@ export async function getMessage({
       deviceKeyVal,
       accountKey.encryptedKey,
     );
+    console.log(decryptedAccountKey === null);
     if (!decryptedAccountKey) {
       throw new Error("Failed to decrypt accountKey");
     }

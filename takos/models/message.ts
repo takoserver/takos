@@ -29,6 +29,9 @@ const messageSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  channelId: {
+    type: String,
+  },
 });
 
 const Message = mongoose.model("message", messageSchema);

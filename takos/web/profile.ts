@@ -1,4 +1,7 @@
-import app from "../userInfo.ts";
+import { authorizationMiddleware, MyEnv } from "../userInfo.ts";
+import { Hono } from "hono";
+const app = new Hono<MyEnv>();
+app.use("*", authorizationMiddleware);
 import { resizeImageTo256x256 } from "./sessions.ts";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";

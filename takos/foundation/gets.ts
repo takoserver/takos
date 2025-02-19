@@ -1,6 +1,17 @@
-import app from "../_factory.ts";
+import { Hono } from "hono";
+
+type Env = {
+  domain: string;
+  serverName: string;
+  explain: string;
+};
+
+const app = new Hono<{ Bindings: Env }>();
+
+export type { Env };
+
 import User from "../models/users.ts";
-import { Group } from "../models/groups.ts";
+import { Category, Channels, Group, Member, Roles } from "../models/groups.ts";
 import IdentityKey from "../models/identityKey.ts";
 import Message from "../models/message.ts";
 import RoomKey from "../models/roomKey.ts";
@@ -8,6 +19,7 @@ import serverKey from "../models/serverKeys.ts";
 import { load } from "@std/dotenv";
 const env = await load();
 import { cors } from "hono/cors";
+import { CategoryPermissions } from "../models/groups.ts";
 app.use(cors(
   {
     origin: "*",
@@ -81,7 +93,7 @@ app.get("/group/:key/:groupId", async (c) => {
     return c.json({ error: "Invalid request" }, 400);
   }
   const group = await Group.findOne({ groupId });
-  if (!group) {
+  if (!group || group.groupId.split("@")[1] !== env["domain"]) {
     return c.json({ error: "Invalid groupId" }, 400);
   }
   switch (key) {
@@ -94,12 +106,93 @@ app.get("/group/:key/:groupId", async (c) => {
     case "description": {
       return c.json({ description: group.groupDescription });
     }
+    case "role": {
+      const roles = await Roles.find({ groupId });
+      return c.json({
+        roles: roles.map((role) => {
+          return {
+            role: {
+              id: role.id,
+              name: role.name,
+              color: role.color,
+              permission: role.permissions,
+            },
+          };
+        }),
+      });
+    }
+    case "channels": {
+      const categories = [];
+      const categorysRaw = await Category.find({ groupId });
+      for (const category of categorysRaw) {
+        const permissionsRaw = await CategoryPermissions.find({
+          groupId,
+          categoryId: category.id,
+        });
+        const permissions = permissionsRaw.map((permission) => {
+          return {
+            roleId: permission.roleId,
+            permission: permission.permissions,
+          };
+        });
+        categories.push({
+          id: category.id,
+          name: category.name,
+          order: category.order,
+          permissions,
+        });
+      }
+      const channels = [];
+      const channelsRaw = await Channels.find({ groupId });
+      for (const channel of channelsRaw) {
+        const permissionsRaw = await CategoryPermissions.find({
+          groupId,
+          channelId: channel.id,
+        });
+        const permissions = permissionsRaw.map((permission) => {
+          return {
+            roleId: permission.roleId,
+            permission: permission.permissions,
+          };
+        });
+        channels.push({
+          id: channel.id,
+          name: channel.name,
+          order: channel.order,
+          permissions,
+        });
+      }
+      return c.json({
+        channels: {
+          categories,
+          channels,
+        },
+      });
+    }
+    case "members": {
+      const members = await Member.find({ groupId });
+      return c.json({
+        members: members.map((member) => {
+          return {
+            userId: member.userId,
+            role: member.role,
+          };
+        }),
+      });
+    }
+    case "owner": {
+      return c.json({ owner: group.owner });
+    }
+    case "defaultChannel": {
+      return c.json({ defaultChannel: group.defaultChannelId });
+    }
   }
   return c.json({ error: "Invalid request" }, 400);
 });
 
 app.get("/key/:kind", async (c) => {
   const kind = c.req.param("kind");
+  console.log("kind", kind);
   if (!kind) {
     return c.json({ error: "Invalid request1" }, 400);
   }
@@ -207,20 +300,20 @@ app.get("/group/search", async (c) => {
   });
 });
 
-app.get("/server/:item" , (c) => {
+app.get("/server/:item", (c) => {
   const item = c.req.param("item");
   switch (item) {
     case "name": {
       return c.json({ name: env["name"] });
     }
-    case "discription": {
-      return c.json({ discription: env["discription"] });
+    case "description": {
+      return c.json({ description: env["description"] });
     }
     case "icon": {
       return c.json({ icon: env["icon"] });
     }
   }
   return c.json({ error: "Invalid request" }, 400);
-})
+});
 
 export default app;

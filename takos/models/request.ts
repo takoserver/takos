@@ -15,7 +15,7 @@ const requestSchema = new mongoose.Schema({
     required: true,
   },
   query: {
-    type: Object,
+    type: String,
   },
   local: {
     type: Boolean,

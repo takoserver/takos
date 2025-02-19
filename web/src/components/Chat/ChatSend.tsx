@@ -5,145 +5,148 @@ import {
 } from "../../utils/state";
 import { useAtom } from "solid-jotai";
 import { createSignal } from "solid-js";
-import { selectedRoomState } from "../../utils/roomState";
-import { decryptDataDeviceKey, encryptDataDeviceKey, encryptMessage, encryptRoomKeyWithAccountKeys, generateRoomkey, keyHash, verifyMasterKey } from "@takos/takos-encrypt-ink";
-import { createTakosDB, getLatestIdentityKey, localStorageEditor } from "../../utils/idb";
+import { selectedChannelState, selectedRoomState } from "../../utils/roomState";
+import {
+  decryptDataDeviceKey,
+  encryptDataDeviceKey,
+  encryptMessage,
+  encryptRoomKeyWithAccountKeys,
+  generateRoomkey,
+  keyHash,
+  verifyMasterKey,
+} from "@takos/takos-encrypt-ink";
+import {
+  createTakosDB,
+  getLatestIdentityKey,
+  localStorageEditor,
+} from "../../utils/idb";
 import { shoowIdentityKeyPopUp } from "../CreateIdentityKeyPopUp";
-const userId = localStorage.getItem("userName") + "@" + new URL(window.location.href).hostname;
+import { groupChannelState } from "./SideBar";
+const userId = localStorage.getItem("userName") + "@" +
+  new URL(window.location.href).hostname;
 function ChatSend() {
   const [inputMessage, setInputMessage] = useAtom(inputMessageState);
   const [isValidInput, setIsValidInput] = useAtom(isValidInputState);
   const [selectedRoom, setSelectedRoom] = useAtom(selectedRoomState);
   const [deviceKey] = useAtom(deviceKeyState);
-  const [showIdentityKeyPopUp, setShowIdentityKeyPopUp] = useAtom(shoowIdentityKeyPopUp);
+  const [showIdentityKeyPopUp, setShowIdentityKeyPopUp] = useAtom(
+    shoowIdentityKeyPopUp,
+  );
+  const [groupChannel, setGroupChannel] = useAtom(groupChannelState);
+  const [selectedChannel] = useAtom(selectedChannelState);
   const sendHandler = async () => {
     if (!isValidInput()) return;
     const deviceKeyVal = deviceKey();
     if (!deviceKeyVal) return;
     const room = selectedRoom();
     const db = await createTakosDB();
-    const identityKey = await db.getAll("identityKeys")
-    const latestIdentityKey = identityKey.sort((a, b) => b.timestamp - a.timestamp)[0];
+    const identityKey = await db.getAll("identityKeys");
+    const latestIdentityKey =
+      identityKey.sort((a, b) => b.timestamp - a.timestamp)[0];
     if (!latestIdentityKey) {
       setShowIdentityKeyPopUp(true);
-      return
+      return;
     }
-    const decryptIdentityKey = await decryptDataDeviceKey(deviceKeyVal, latestIdentityKey.encryptedKey);
+    const decryptIdentityKey = await decryptDataDeviceKey(
+      deviceKeyVal,
+      latestIdentityKey.encryptedKey,
+    );
     if (!decryptIdentityKey) return;
     const roomKeys = await db.getAll("RoomKeys");
-    let latestRoomKey
+    const encryptedRoomKey = roomKeys.sort((a, b) => b.timestamp - a.timestamp)
+      .filter((key) => key.roomid == selectedRoom()?.roomid)[0];
+    let latestRoomKey;
     try {
-      latestRoomKey = await decryptDataDeviceKey(deviceKeyVal, (roomKeys.sort((a, b) => b.timestamp - a.timestamp).filter((key) => key.roomid == selectedRoom()?.roomid)[0]).encryptedKey)
-
+      latestRoomKey = await decryptDataDeviceKey(
+        deviceKeyVal,
+        encryptedRoomKey.encryptedKey,
+      );
     } catch (error) {
-      latestRoomKey = null
+      latestRoomKey = null;
     }
-    if (!latestRoomKey ) {
-      if(selectedRoom()?.type === "friend") {
-        const uuid = localStorage.getItem("sessionUUID")
-        if (!uuid) return;
-        const roomKey = await generateRoomkey(uuid);
-        if (!roomKey) return;
-        const friendMasterKeyRes = await fetch(`https://${selectedRoom()?.roomid.split("@")[1]}/_takos/v1/key/masterKey?userId=${selectedRoom()?.roomid}`)
-        const frinedAccountKeyRes = await fetch(`https://${selectedRoom()?.roomid.split("@")[1]}/_takos/v1/key/accountKey?userId=${selectedRoom()?.roomid}`)
-        if (friendMasterKeyRes.status !== 200) {
-          alert("友達のサーバーがダウンしているか、一方的に友達解除されました")
-          return;
-        }
-        if (frinedAccountKeyRes.status !== 200) {
-          alert("友達のサーバーがダウンしているか、一方的に友達解除されました")
-          return;
-        }
-        const friendMasterKey = (await friendMasterKeyRes.json()).key
-        const { key: friendAccountKey, signature: friendAccountKeySign }= (await frinedAccountKeyRes.json())
-        const allowKeys = (await db.getAll("allowKeys")).filter((k) => k.userId == selectedRoom()?.roomid && k.latest)[0]
-        if(allowKeys && allowKeys.key !== await keyHash(friendMasterKey)) {
-          const friendId = selectedRoom()?.roomid
-          if(!friendId) return;
-          await db.put("allowKeys", {
-            key: allowKeys.key,
-            userId: allowKeys.userId,
-            timestamp: allowKeys.timestamp,
-            latest: false,
-          });
-        }
-        if(!verifyMasterKey(friendMasterKey, friendAccountKeySign, friendAccountKey)) {
-          alert("友達のアカウントキーが不正です")
-          return;
-        }
-        const masterKey = localStorage.getItem("masterKey")
-        if (!masterKey) return;
-        const decryptMasterKey = await decryptDataDeviceKey(deviceKeyVal, masterKey);
-        if (!decryptMasterKey) return;
-        const encryptedAccountKey = (await db.getAll("accountKeys")).sort((a, b) => b.timestamp - a.timestamp)[0]
-        if (!encryptedAccountKey) return;
-        const accountKeySign = await fetch("./_takos/v1/key/accountKey?userId=" + userId)
-        if (accountKeySign.status !== 200) return;
-        const accountKeySignJson = await accountKeySign.json()
-        if(await keyHash(accountKeySignJson.key) !== encryptedAccountKey.key) return;
-        if(!verifyMasterKey(JSON.parse(decryptMasterKey).publicKey, accountKeySignJson.signature, accountKeySignJson.key)) return;
-        //ドメインを取得 現在のサイトの
-        const domain = new URL(window.location.href).hostname
-        const encrypted = await encryptRoomKeyWithAccountKeys([{
-          masterKey: friendMasterKey,
-          accountKey: friendAccountKey,
-          accountKeySign: friendAccountKeySign,
-          userId: selectedRoom()?.roomid as string, 
-        }, {
-          masterKey: JSON.parse(decryptMasterKey).publicKey,
-          accountKey: accountKeySignJson.key,
-          accountKeySign: accountKeySignJson.signature,
-          userId: localStorage.getItem("userName") as string + "@" + domain,
-        }], roomKey,decryptIdentityKey, identityKey[0].key)
-        if (!encrypted) return;
-        const res = await fetch("./api/v2/keys/roomKey", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            roomId: selectedRoom()?.roomid,
-            encryptedRoomKeys: encrypted.encryptedData.map((data) => { return [data.userId, data.encryptedData]}),
-            hash: await keyHash(roomKey),
-            metaData: encrypted.metadata,
-            sign: encrypted.sign,
-            type: "friend",
-          }),
-        })
-        if (res.status !== 200) return;
-        const roomId = selectedRoom()?.roomid
-        if (!roomId) return;
-        const encryptedRoomKey = await encryptDataDeviceKey(deviceKeyVal, roomKey)
-        if (!encryptedRoomKey) return;
-        await db.put("RoomKeys",
-          {
-            key: await keyHash(roomKey),
-            encryptedKey:  encryptedRoomKey,
-            timestamp: new Date().getTime(),
-            roomid: roomId,
-        }
-        )
-        alert("roomKeyを送信しました")
-        latestRoomKey = roomKey
+    let isReUseRoomKey = true;
+    if (selectedRoom()?.type === "group" && latestRoomKey) {
+      const beforGroupMembers = JSON.parse(encryptedRoomKey.metaData).sharedUser
+        .map((user: { userId: any }) => {
+          return user.userId;
+        });
+      const nowMembers = groupChannel()?.members.map((user) => {
+        return user.userId;
+      });
+      if (!beforGroupMembers || !nowMembers) return;
+      if (beforGroupMembers.length !== nowMembers.length) {
+        isReUseRoomKey = false;
+      }
+      for (const member of beforGroupMembers) {
+        if (!nowMembers.includes(member)) {
+          console.log("メンバーが変更されたため、新しいroomKeyを作成します");
+          isReUseRoomKey = false;
         }
       }
-    if(!latestRoomKey) return;
-    let channel
-    if (room?.type === "friend") {
-      channel = "friend"
-    } else {
-      channel = "general"
     }
-    const encrypted = await encryptMessage({
-      type: "text",
-      content: inputMessage(),
-      channel: channel,
-      timestamp: new Date().getTime(),
-      isLarge: false,
-    },latestRoomKey, {
-      privateKey: decryptIdentityKey,
-      pubKeyHash: latestIdentityKey.key,
-    }, selectedRoom()?.roomid as string)
+    if (!latestRoomKey || !isReUseRoomKey) {
+      if (selectedRoom()?.type === "friend") {
+        const roomId = selectedRoom()?.roomid;
+        if (!roomId) return;
+        const match = roomId.match(/^m\{([^}]+)\}@(.+)$/);
+        if (!match) {
+          return
+        }
+        const friendUserName = match[1];
+        const domainFromRoom = match[2];
+        
+        if (!roomId) return;
+        latestRoomKey = await createRoomKey(
+          roomId,
+          [friendUserName + "@" + domainFromRoom],
+          userId,
+          decryptIdentityKey,
+          latestIdentityKey.key,
+          deviceKeyVal,
+          "friend",
+        );
+      }
+      if (selectedRoom()?.type === "group") {
+        const friendIds = groupChannel()?.members.map((user) => {
+          return user.userId;
+        });
+        const roomId = selectedRoom()?.roomid;
+        if (!friendIds) return;
+        if (!roomId) return;
+        latestRoomKey = await createRoomKey(
+          roomId,
+          friendIds,
+          userId,
+          decryptIdentityKey,
+          latestIdentityKey.key,
+          deviceKeyVal,
+          "group",
+        );
+      }
+    }
+    if (!latestRoomKey) return;
+    let channel;
+    if (room?.type === "friend") {
+      channel = "friend";
+    } else {
+      channel = selectedChannel();
+      if (!channel) return;
+    }
+    const encrypted = await encryptMessage(
+      {
+        type: "text",
+        content: inputMessage(),
+        channel: channel,
+        timestamp: new Date().getTime(),
+        isLarge: false,
+      },
+      latestRoomKey,
+      {
+        privateKey: decryptIdentityKey,
+        pubKeyHash: latestIdentityKey.key,
+      },
+      selectedRoom()?.roomid as string,
+    );
     if (!encrypted) return;
     const res = await fetch("./api/v2/message/send", {
       method: "POST",
@@ -154,12 +157,13 @@ function ChatSend() {
         roomId: selectedRoom()?.roomid,
         message: encrypted.message,
         sign: encrypted.sign,
-        type: "friend",
+        type: room?.type,
+        channelId: channel,
       }),
-    })
+    });
     if (res.status !== 200) return;
     setInputMessage("");
-    }
+  };
   return (
     <div class="p-talk-chat-send">
       <form class="p-talk-chat-send__form">
@@ -223,3 +227,147 @@ function ChatSend() {
   );
 }
 export default ChatSend;
+
+async function createRoomKey(
+  roomId: string,
+  friendIds: string[],
+  userId: string,
+  identityKey: string,
+  idenPubkeyHash: string,
+  deviceKey: string,
+  roomType: "friend" | "group",
+) {
+  const friendKeys: {
+    masterKey: string;
+    accountKeySign: string;
+    accountKey: string;
+    userId: string;
+  }[] = [];
+  const uuid = localStorage.getItem("sessionUUID");
+  if (!uuid) return;
+  const roomKey = await generateRoomkey(uuid);
+  if (!roomKey) return;
+  const db = await createTakosDB();
+  const allowKeysData = await db.getAll("allowKeys");
+  const userIdIndex = friendIds.indexOf(userId);
+  if (userIdIndex !== -1) {
+    friendIds.splice(userIdIndex, 1);
+  }
+  for (const friendId of friendIds) {
+    const friendMasterKeyRes = await fetch(
+      `https://${
+        friendId.split("@")[1]
+      }/_takos/v1/key/masterKey?userId=${friendId}`,
+    );
+    const frinedAccountKeyRes = await fetch(
+      `https://${
+        friendId.split("@")[1]
+      }/_takos/v1/key/accountKey?userId=${friendId}`,
+    );
+    if (friendMasterKeyRes.status !== 200) {
+      console.error(
+        "友達のサーバーがダウンしているか、一方的に友達解除されました",
+      );
+      return;
+    }
+    if (frinedAccountKeyRes.status !== 200) {
+      console.error(
+        "友達のサーバーがダウンしているか、一方的に友達解除されました",
+      );
+      return;
+    }
+    const friendMasterKey = (await friendMasterKeyRes.json()).key;
+    const { key: friendAccountKey, signature: friendAccountKeySign } =
+      await frinedAccountKeyRes.json();
+    const allowKeys = allowKeysData.filter((k) =>
+      k.userId == friendId && k.latest
+    )[0];
+    if (allowKeys && allowKeys.key !== await keyHash(friendMasterKey)) {
+      if (!friendId) return;
+      await db.put("allowKeys", {
+        key: allowKeys.key,
+        userId: allowKeys.userId,
+        timestamp: allowKeys.timestamp,
+        latest: false,
+      });
+    }
+    if (
+      !verifyMasterKey(friendMasterKey, friendAccountKeySign, friendAccountKey)
+    ) {
+      console.error("友達のアカウントキーが不正です");
+      continue;
+    }
+    friendKeys.push({
+      masterKey: friendMasterKey,
+      accountKey: friendAccountKey,
+      accountKeySign: friendAccountKeySign,
+      userId: friendId,
+    });
+  }
+  const masterKey = localStorage.getItem("masterKey");
+  if (!masterKey) return;
+  const decryptMasterKey = await decryptDataDeviceKey(deviceKey, masterKey);
+  if (!decryptMasterKey) return;
+  const encryptedAccountKey =
+    (await db.getAll("accountKeys")).sort((a, b) =>
+      b.timestamp - a.timestamp
+    )[0];
+  if (!encryptedAccountKey) return;
+  console.log(userId);
+  const accountKeySign = await fetch(
+    "./_takos/v1/key/accountKey?userId=" + userId,
+  );
+  if (accountKeySign.status !== 200) return;
+  const accountKeySignJson = await accountKeySign.json();
+  if (await keyHash(accountKeySignJson.key) !== encryptedAccountKey.key) return;
+  if (
+    !verifyMasterKey(
+      JSON.parse(decryptMasterKey).publicKey,
+      accountKeySignJson.signature,
+      accountKeySignJson.key,
+    )
+  ) return;
+  //ドメインを取得 現在のサイトの
+  const domain = new URL(window.location.href).hostname;
+  friendKeys.push({
+    masterKey: JSON.parse(decryptMasterKey).publicKey,
+    accountKey: accountKeySignJson.key,
+    accountKeySign: accountKeySignJson.signature,
+    userId: userId,
+  });
+  const encrypted = await encryptRoomKeyWithAccountKeys(
+    friendKeys,
+    roomKey,
+    identityKey,
+    idenPubkeyHash,
+  );
+  if (!encrypted) return;
+  const res = await fetch("./api/v2/keys/roomKey", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      roomId: roomId,
+      encryptedRoomKeys: encrypted.encryptedData.map((data) => {
+        return [data.userId, data.encryptedData];
+      }),
+      hash: await keyHash(roomKey),
+      metaData: encrypted.metadata,
+      sign: encrypted.sign,
+      type: roomType,
+    }),
+  });
+  if (res.status !== 200) return;
+  const encryptedRoomKey = await encryptDataDeviceKey(deviceKey, roomKey);
+  if (!encryptedRoomKey) return;
+  await db.put("RoomKeys", {
+    key: await keyHash(roomKey),
+    encryptedKey: encryptedRoomKey,
+    timestamp: new Date().getTime(),
+    roomid: roomId,
+    metaData: encrypted.metadata,
+  });
+  alert("roomKeyを送信しました");
+  return roomKey;
+}

@@ -1,9 +1,11 @@
 import { useAtom, useSetAtom } from "solid-jotai";
 import {
   birthdayState,
+  descriptionState,
   deviceKeyState,
   domainState,
   EncryptedSessionState,
+  friendsState,
   iconState,
   IdentityKeyAndAccountKeyState,
   loadState,
@@ -50,7 +52,8 @@ export function Loading() {
   );
 }
 
-const userName = localStorage.getItem("userName") + "@" + new URL(window.location.href).hostname;
+const userName = localStorage.getItem("userName") + "@" +
+  new URL(window.location.href).hostname;
 
 export function Load() {
   const [load, setLoad] = useAtom(loadState);
@@ -62,14 +65,21 @@ export function Load() {
   const setIconState = useSetAtom(iconState);
   const setnotificationState = useSetAtom(notificationState);
   const setTalkListState = useSetAtom(talkListState);
+  const setEncryptedSession = useSetAtom(EncryptedSessionState);
+  const setNickName = useSetAtom(nicknameState);
+  const setIcon = useSetAtom(iconState);
+  const setDiscription = useSetAtom(descriptionState);
+  const setFriends = useSetAtom(friendsState);
   async function loadSession() {
-    const sessionData = await fetch("/api/v2/sessions/status", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    if (sessionData.status !== 200) {
+    let sessionData;
+    try {
+      sessionData = await fetch("/api/v2/sessions/status", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (error) {
       setLogin(false);
       setLoad(true);
       return;
@@ -82,6 +92,28 @@ export function Load() {
     }
     if (session.login) {
       setLogin(true);
+      fetch("/_takos/v1/user/nickName/" + userName, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }).then((res) => res.json())
+        .then((data) => {
+          if (data.nickName) {
+            setNickName(data.nickName);
+          }
+        });
+      fetch("/_takos/v1/user/description/" + userName).then((res) => res.json())
+        .then((data) => {
+          if (data.description) {
+            setDiscription(data.description);
+          }
+        });
+      fetch("/_takos/v1/user/icon/" + userName).then((res) => res.json()).then(
+        (data) => {
+          setIcon(data.icon);
+        },
+      );
     } else {
       setLogin(false);
     }
@@ -119,15 +151,22 @@ export function Load() {
       type: "group" | "friend";
       roomid: string;
     }[] = [];
+    const friends: string[] = [];
     if (session.friendInfo) {
       for (const talk of session.friendInfo) {
         talkList.push({
           timestamp: "nodata",
           latestMessage: "",
           type: "friend",
-          roomid: talk[0],
+          roomid: `m{${talk[0].split("@")[0]}}@${talk[0].split("@")[1]}`,
         });
+        friends.push(talk[0]);
       }
+    }
+    if (session.encrypted) {
+      setEncryptedSession(session.encrypted);
+    } else {
+      setEncryptedSession(false);
     }
     if (session.groupInfo) {
       for (const talk of session.groupInfo) {
@@ -135,11 +174,12 @@ export function Load() {
           timestamp: "nodata",
           latestMessage: "",
           type: "group",
-          roomid: talk[0],
+          roomid: `g{${talk[0].split("@")[0]}}@${talk[0].split("@")[1]}`,
         });
       }
     }
     setTalkListState(talkList);
+    setFriends(friends);
     if (session.login) {
       createWebsocket(() => {
         setLoad(true);

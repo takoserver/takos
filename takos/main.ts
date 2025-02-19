@@ -20,13 +20,13 @@ const appServer = new Hono();
 appClient.route("sessions", sessions);
 appClient.route("profile", profile);
 appClient.route("keys", keys);
-appClient.route("friend", friend);
+appClient.route("/friend", friend);
 appClient.route("server", server);
 appClient.route("message", message);
-appClient.route("group", groups);
+appClient.route("/group", groups);
 appClient.route("ws", ws);
 appServer.route("v1", gets);
-appServer.route("v1", foundationApi);
+appServer.route("v1/event", foundationApi);
 app.route("_takos", appServer);
 app.route("api/v2", appClient);
 

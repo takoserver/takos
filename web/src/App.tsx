@@ -10,6 +10,7 @@ import { createEffect } from "solid-js";
 import { CreateIdentityKeyPopUp } from "./components/CreateIdentityKeyPopUp.tsx";
 import { CreateGroupPopUp } from "./components/CreateGroup.tsx";
 import { SettingRoom } from "./components/SettingRoom.tsx";
+import { MigrateKey } from "./components/MigrateKeys.tsx";
 
 function App(
   { page }: { page?: "home" | "talk" | "friend" | "setting" | "notification" },
@@ -29,8 +30,9 @@ function App(
       <SettingRoom />
       <CreateGroupPopUp />
       <Css />
-      <ChangeURL></ChangeURL>
-      <Load></Load>
+      <ChangeURL />
+      <Load />
+      <MigrateKey />
       {load() && login() && <Chat />}
       {load() && !login() && <Register />}
     </>

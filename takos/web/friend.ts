@@ -5,7 +5,6 @@ import {
   verifyMasterKey,
 } from "@takos/takos-encrypt-ink";
 import shareAccountKey from "../models/shareAccountKey.ts";
-import app from "../userInfo.ts";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import Session from "../models/sessions.ts";
@@ -15,6 +14,10 @@ import friends from "../models/friends.ts";
 import { fff } from "../utils/foundationReq.ts";
 import Request from "../models/request.ts";
 import { uuidv7 } from "npm:uuidv7@^1.0.2";
+import { Hono } from "hono";
+import { authorizationMiddleware, MyEnv } from "../userInfo.ts";
+const app = new Hono<MyEnv>();
+app.use("*", authorizationMiddleware);
 
 const env = await load();
 
@@ -72,7 +75,6 @@ app.post(
         sender: user.userName + "@" + env["domain"],
         receiver: userName,
         local: false,
-        query: {},
       });
       return c.json({ message: "Request sent" });
     }
@@ -82,7 +84,6 @@ app.post(
         sender: user.userName + "@" + env["domain"],
         receiver: userName,
         local: true,
-        query: {},
       });
       return c.json({ message: "Request sent" });
     }
@@ -113,7 +114,7 @@ app.get(
 );
 
 app.post(
-  "/accept",
+  "accept",
   zValidator(
     "json",
     z.object({
@@ -150,7 +151,7 @@ app.post(
             payload: {
               userId: request.receiver,
               friendId: request.sender,
-            }
+            },
           }),
           [request.sender.split("@")[1]],
         );

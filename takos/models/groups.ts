@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { join } from "node:path";
 
 const groupSchema = new mongoose.Schema({
   groupId: { type: String, required: true },
@@ -41,6 +42,7 @@ const memberSchema = new mongoose.Schema({
   groupId: { type: String, required: true },
   userId: { type: String, required: true },
   role: { type: [String], required: true },
+  joinedAt: { type: Date, default: Date.now },
 });
 
 const channelSchema = new mongoose.Schema({
@@ -77,10 +79,6 @@ const categorySchema = new mongoose.Schema({
   name: { type: String, required: true },
   id: { type: String, required: true },
   order: { type: Number, required: true },
-  permissions: {
-    type: [String],
-    default: [],
-  },
 });
 
 const roleSchema = new mongoose.Schema({
