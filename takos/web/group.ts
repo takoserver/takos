@@ -45,7 +45,7 @@ app.post(
     }
     const { name, icon, groupid } = c.req.valid("json");
     const domain = env["domain"];
-    const id = groupid || uuidv7()
+    const id = groupid || uuidv7();
     const groupId = id + "@" + domain;
     try {
       const resizedIcon = await resizeImageTo256x256(
@@ -68,7 +68,12 @@ app.post(
       id: "general",
       name: "general",
       groupId: groupId,
-      order: 0,
+    });
+    await ChannelPermissions.create({
+      groupId,
+      channelId: "general",
+      roleId: "everyone",
+      permissions: [`SEND_MESSAGE`, `READ_MESSAGE`],
     });
     await Member.create({
       groupId,
@@ -151,6 +156,85 @@ app.post(
   },
 );
 
+async function handleLocalGroupAccept(c: any, group: any, groupId: string, currentUser: string) {
+  if (await Member.findOne({ groupId, userId: currentUser })) {
+    return c.json({ message: "Unauthorized" }, 401);
+  }
+  if (group.type !== "private") {
+    return c.json({ message: "Invalid group type" }, 400);
+  }
+  if (!group.invites.includes(currentUser)) {
+    return c.json({ message: "Invalid request" }, 400);
+  }
+  await Group.updateOne({ groupId }, { $pull: { invites: currentUser } });
+  await Member.create({ groupId, userId: currentUser, role: [] });
+  await request.deleteOne({ sender: group.owner, receiver: currentUser, type: "groupInvite" });
+  return c.json({ message: "success" });
+}
+
+/**
+ * リモートグループのデータを新規作成する
+ */
+async function createRemoteGroup(groupId: string, resJson: any) {
+  await Group.create({
+    groupId,
+    type: resJson.type,
+    owner: resJson.owner,
+    isOwner: false,
+    defaultChannelId: resJson.defaultChannel,
+    channelOrder: resJson.order,
+    order: resJson.order,
+  });
+  for (const channel of resJson.channels.channels) {
+    await Channels.create({
+      id: channel.id,
+      name: channel.name,
+      groupId,
+      order: channel.order,
+      category: channel.category,
+    });
+    for (const permission of channel.permissions) {
+      await ChannelPermissions.create({
+        groupId,
+        channelId: channel.id,
+        roleId: permission.roleId,
+        permissions: permission.permissions,
+      });
+    }
+  }
+  for (const category of resJson.channels.categories) {
+    await Category.create({
+      id: category.id,
+      name: category.name,
+      groupId,
+    });
+    for (const permission of category.permissions) {
+      await CategoryPermissions.create({
+        groupId,
+        categoryId: category.id,
+        roleId: permission.roleId,
+        permissions: permission.permissions,
+      });
+    }
+  }
+  for (const role of resJson.roles) {
+    await Roles.create({
+      groupId,
+      id: role.id,
+      name: role.name,
+      color: role.color,
+      permissions: role.permission,
+    });
+  }
+  for (const member of resJson.members) {
+    await Member.create({
+      groupId,
+      userId: member.userId,
+      role: member.role,
+    });
+  }
+}
+
 app.post(
   "accept",
   zValidator(
@@ -159,86 +243,55 @@ app.post(
       groupId: z.string(),
     }),
   ),
-  async (c) => { //group
+  async (c) => {
     const user = c.get("user");
     if (!user) {
       return c.json({ message: "Unauthorized" }, 401);
     }
     const { groupId } = c.req.valid("json");
+    const currentUser = `${user.userName}@${env["domain"]}`;
     const group = await Group.findOne({ groupId });
-    if (group) {
-      if (group!.isOwner) {
-        if (
-          await Member.findOne({
-            groupId,
-            userId: user.userName + "@" + env["domain"],
-          })
-        ) {
-          return c.json({ message: "Unauthorized" }, 401);
-        }
-        if (group.type !== "private") {
-          return c.json({ message: "Invalid group type" }, 400);
-        }
-        if (group.invites.includes(user.userName + "@" + env["domain"])) {
-          await Group.updateOne({ groupId }, {
-            $pull: { invites: user.userName + "@" + env["domain"] },
-          });
-          await Member.create({
-            groupId,
-            userId: user.userName + "@" + env["domain"],
-            role: [],
-          });
-          await request.deleteOne({
-            sender: group.owner,
-            receiver: user.userName + "@" + env["domain"],
-            type: "groupInvite",
-          });
-          return c.json({ message: "success" });
-        }
-        return c.json({ message: "Invalid request" }, 400);
+    const groupDomain = groupId.split("@")[1];
+    // ローカルグループの場合
+    if (group && group.isOwner) {
+      return await handleLocalGroupAccept(c, group, groupId, currentUser);
+    }
+    // グループが存在しない場合、またはリモートグループの場合
+    let groupData: Response | undefined;
+    if (!group) {
+      groupData = await fetch(`https://${groupDomain}/_takos/v1/group/all/${groupId}`);
+      if (groupData.status !== 200) {
+        return c.json({ message: "Error accepting group3" }, 500);
       }
     }
-    if (groupId.split("@")[1] === env["domain"]) {
-      const groupDomain = groupId.split("@")[1];
-      if (groupDomain === env["domain"]) {
-        return c.json({ message: "Invalid group" }, 400);
-      }
-      try {
-        const res = await fff(
-          JSON.stringify({
-            event: "t.group.invite.accept",
-            eventId: uuidv7(),
-            payload: {
-              groupId,
-              userId: user.userName + "@" + env["domain"],
-            },
-          }),
-          [groupDomain],
-        );
-        if (Array.isArray(res) ? res[0].status !== 200 : true) {
-          return c.json({ message: "Error accepting group" }, 500);
-        }
-        await Member.create({
-          groupId: groupId,
-          userId: user.userName + "@" + env["domain"],
-        });
-        if(!group) {
-          await Group.create({
-            groupId,
-            groupName: groupId.split("@")[0],
-            groupIcon: "",
-            type: "private",
-            owner: groupId,
-            isOwner: false,
-            defaultChannelId: "general",
-          });
-        }
-        return c.json({ message: "success" });
-      } catch (error) {
-        console.error("Error accepting group:", error);
-        return c.json({ message: "Error accepting group" }, 500);
-      }
+    // 自ドメインのグループの場合エラー
+    if (groupDomain === env["domain"]) {
+      return c.json({ message: "Invalid group" }, 400);
     }
-    return c.json({ message: "Invalid group" }, 400);
+    try {
+      const res = await fff(
+        JSON.stringify({
+          event: "t.group.invite.accept",
+          eventId: uuidv7(),
+          payload: {
+            groupId,
+            userId: currentUser,
+          },
+        }),
+        [groupDomain],
+      );
+      if (Array.isArray(res) ? res[0].status !== 200 : true) {
+        return c.json({ message: "Error accepting group2" }, 500);
+      }
+      await Member.create({ groupId, userId: currentUser });
+      if (!group && groupData) {
+        const resJson = await groupData.json();
+        await createRemoteGroup(groupId, resJson);
+      }
+      return c.json({ message: "success" });
+    } catch (error) {
+      console.error("Error accepting group:", error);
+      return c.json({ message: "Error accepting group1" }, 500);
+    }
   },
 );

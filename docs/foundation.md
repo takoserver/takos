@@ -653,11 +653,14 @@ keys
 - icon - グループアイコン
 - name - グループ名
 - description - グループの説明
-- channels - チャンネルとcategoryのリスト
-- role - ロールのカラーコード
-- members - メンバーのリスト
 - owner - オーナーのユーザーID
 - defaultChannel - デフォルトチャンネルID
+- beforeEventId: string
+- channels - チャンネルとcategoryのリスト
+- role - ロールのカラーコード
+- order - channel/カテゴリーの順番
+- members - メンバーのリスト
+- all - すべてのデータ
 
 #### リクエスト
 
@@ -673,24 +676,67 @@ keys
 | ---- | ---- |
 | 200  |      |
 
+```ts
 icon: base64
-
 name: string
-
 description: string
-
-channels: { categories: { id: string; name: string; permissions: { roleId:
-string; permission: string }[]; order: number }[] channels: { category: string;
-id: string; name: string; permissions: { roleId: string; permission: string }[];
-order: number }[] }
-
-role: { color: string; id: string; name: string; permission: string[] }[]
-
-members: { id: string; role: string[] }[]
-
 owner: string
-
 defaultChannel: string
+beforeEventId: string
+channels: { 
+  categories: { 
+    id: string; 
+    name: string; 
+    permissions: {
+      roleId: string; 
+      permission: string 
+    }[]; 
+  }[]
+  channels: { 
+    category: string;
+    id: string; 
+    name: string; 
+    permissions: { 
+      roleId: string;
+      permission: string 
+    }[];
+  }[] 
+}
+order: string[]
+role: { color: string; id: string; name: string; permission: string[] }[]
+members: { id: string; role: string[] }[]
+type: "private" | "public"
+all: {
+  icon: string;
+  name: string;
+  description: string;
+  owner: string;
+  defaultChannel: string;
+  beforeEventId: string;
+  channels: { 
+    categories: { 
+      id: string; 
+      name: string; 
+      permissions: {
+        roleId: string; 
+        permission: string[]
+      }[]; 
+    }[]
+    channels: { 
+      category: string;
+      id: string; 
+      name: string; 
+      permissions: { 
+        roleId: string;
+        permissions: string[]
+      }[];
+    }[] 
+  }
+  order: string[]
+  role: { color: string; id: string; name: string; permission: string[] }[]
+  members: { id: string; role: string[] }[]
+}
+```
 
 #### 200
 

@@ -133,13 +133,19 @@ export function SettingRoom() {
                               <button
                                 class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
                                 onClick={() => {
+                                  const match = selectedRoom()!.roomid.match(/^g\{([^}]+)\}@(.+)$/);
+                                  if (!match) {
+                                    return;
+                                  }
+                                  const friendUserName = match[1];
+                                  const domainFromRoom = match[2];
                                   const res = fetch("/api/v2/group/invite", {
                                     method: "POST",
                                     headers: {
                                       "Content-Type": "application/json",
                                     },
                                     body: JSON.stringify({
-                                      groupId: selectedRoom()!.roomid,
+                                      groupId: friendUserName + "@" + domainFromRoom,
                                       userId: friend,
                                     }),
                                   });

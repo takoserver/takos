@@ -90,11 +90,11 @@ function ChatSend() {
         if (!roomId) return;
         const match = roomId.match(/^m\{([^}]+)\}@(.+)$/);
         if (!match) {
-          return
+          return;
         }
         const friendUserName = match[1];
         const domainFromRoom = match[2];
-        
+
         if (!roomId) return;
         latestRoomKey = await createRoomKey(
           roomId,

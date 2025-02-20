@@ -126,9 +126,9 @@ app.post(
         sign,
         channelId: channelId,
       });
-      const Members = (await Member.find({ groupId: friendUserName + "@" + domainFromRoom })).map((member) =>
-        member.userId
-      );
+      const Members =
+        (await Member.find({ groupId: friendUserName + "@" + domainFromRoom }))
+          .map((member) => member.userId);
       const MembersDomain = Members.map((member) => member.split("@")[1]);
       //重複を削除
       const MembersSet = new Set(MembersDomain);
@@ -147,6 +147,7 @@ app.post(
           timestamp,
           userName: user.userName + "@" + env["domain"],
           roomid: roomId,
+          channelId: channelId,
         }),
       });
       await fff(
@@ -158,6 +159,7 @@ app.post(
             messageId: messageid,
             roomId: roomId,
             roomType: "group",
+            channelId: channelId,
           },
         }),
         MembersArray,

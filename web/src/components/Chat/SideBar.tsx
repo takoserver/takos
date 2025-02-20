@@ -49,13 +49,17 @@ function TalkListFriend({
   createEffect(async () => {
     const match = roomid.match(/^m\{([^}]+)\}@(.+)$/);
     if (!match) {
-      return
+      return;
     }
     const friendUserName = match[1];
     const domainFromRoom = match[2];
     const friendUserId = friendUserName + "@" + domainFromRoom;
-    const icon = (await (await fetch(`https://${domainFromRoom}/_takos/v1/user/icon/${friendUserId}`)).json()).icon
-    const nickName = (await (await fetch(`https://${domainFromRoom}/_takos/v1/user/nickName/${friendUserId}`)).json()).nickName
+    const icon = (await (await fetch(
+      `https://${domainFromRoom}/_takos/v1/user/icon/${friendUserId}`,
+    )).json()).icon;
+    const nickName = (await (await fetch(
+      `https://${domainFromRoom}/_takos/v1/user/nickName/${friendUserId}`,
+    )).json()).nickName;
     setNickName(nickName);
     setIcon(icon);
   });
@@ -95,22 +99,26 @@ function TalkListFriend({
         <div class="font-semibold text-lg">
           {nickName()}
         </div>
-        <div class="text-xs text-gray-400">{(() => {
-        const match = roomid.match(/^m\{([^}]+)\}@(.+)$/);
-        if (!match) {
-          return;
-        }
-        return match[1] + "@" + match[2];
-      })()!}</div>
+        <div class="text-xs text-gray-400">
+          {(() => {
+            const match = roomid.match(/^m\{([^}]+)\}@(.+)$/);
+            if (!match) {
+              return;
+            }
+            return match[1] + "@" + match[2];
+          })()!}
+        </div>
         <div class="text-sm text-gray-500">{latestMessage}</div>
       </div>
-      {encrypted().includes((() => {
-        const match = roomid.match(/^m\{([^}]+)\}@(.+)$/);
-        if (!match) {
-          return;
-        }
-        return match[1] + "@" + match[2];
-      })()!) && (
+      {encrypted().includes(
+        (() => {
+          const match = roomid.match(/^m\{([^}]+)\}@(.+)$/);
+          if (!match) {
+            return;
+          }
+          return match[1] + "@" + match[2];
+        })()!,
+      ) && (
         <span class="ml-auto text-gray-400 flex-shrink-0">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -139,13 +147,25 @@ function TalkListFriend({
 }
 
 export const groupChannelState = atom<{
-  members:  {
-    userId: any; role: string[] 
-}[]
-  channels: { category: string; id: string; name: string; permissions: { roleId: string; permission: string }[]; order: number }[]
-  roles: { color: string; id: string; name: string; permission: string[] }[]
-  categories: { id: string; name: string; permissions: { roleId: string; permission: string }[]; order: number }[]
-  owner: string
+  members: {
+    userId: any;
+    role: string[];
+  }[];
+  channels: {
+    category: string;
+    id: string;
+    name: string;
+    permissions: { roleId: string; permission: string }[];
+    order: number;
+  }[];
+  roles: { color: string; id: string; name: string; permission: string[] }[];
+  categories: {
+    id: string;
+    name: string;
+    permissions: { roleId: string; permission: string }[];
+    order: number;
+  }[];
+  owner: string;
 }>();
 
 function TalkGroup({
@@ -164,12 +184,20 @@ function TalkGroup({
   createEffect(async () => {
     const match = roomid.match(/^g\{([^}]+)\}@(.+)$/);
     if (!match) {
-      return
+      return;
     }
     const friendUserName = match[1];
     const domainFromRoom = match[2];
-    const icon = (await (await fetch(`https://${domainFromRoom}/_takos/v1/group/icon/${friendUserName + "@" + domainFromRoom}`)).json()).icon
-    const nickName = (await (await fetch(`https://${domainFromRoom}/_takos/v1/group/name/${friendUserName + "@" + domainFromRoom}`)).json()).name
+    const icon = (await (await fetch(
+      `https://${domainFromRoom}/_takos/v1/group/icon/${
+        friendUserName + "@" + domainFromRoom
+      }`,
+    )).json()).icon;
+    const nickName = (await (await fetch(
+      `https://${domainFromRoom}/_takos/v1/group/name/${
+        friendUserName + "@" + domainFromRoom
+      }`,
+    )).json()).name;
     setNickName(nickName);
     setIcon(icon);
   });
@@ -181,43 +209,77 @@ function TalkGroup({
   const handelSelectRoomFriend = async (talk: any) => {
     const match = roomid.match(/^g\{([^}]+)\}@(.+)$/);
     if (!match) {
-      return
+      return;
     }
     const friendUserName = match[1];
     const domainFromRoom = match[2];
     const baseUrl = `https://${domainFromRoom}/_takos/v1/group`;
-    const channelsPromise = fetch(`${baseUrl}/channels/${friendUserName + "@" + domainFromRoom}`).then((res) => res.json());
-    const rolePromise = fetch(`${baseUrl}/role/${friendUserName + "@" + domainFromRoom}`).then((res) => res.json());
-    const membersPromise = fetch(`${baseUrl}/members/${friendUserName + "@" + domainFromRoom}`).then((res) => res.json());
-    const ownerPromise = fetch(`${baseUrl}/owner/${friendUserName + "@" + domainFromRoom}`).then((res) => res.json());
-    const defaultChannelPromise = fetch(`${baseUrl}/defaultChannel/${friendUserName + "@" + domainFromRoom}`).then((res) => res.json());
-    
-    const [channelsResult, roleResult, membersResult, ownerResult, defaultChannelResult] = await Promise.all([
+    const channelsPromise = fetch(
+      `${baseUrl}/channels/${friendUserName + "@" + domainFromRoom}`,
+    ).then((res) => res.json());
+    const rolePromise = fetch(
+      `${baseUrl}/role/${friendUserName + "@" + domainFromRoom}`,
+    ).then((res) => res.json());
+    const membersPromise = fetch(
+      `${baseUrl}/members/${friendUserName + "@" + domainFromRoom}`,
+    ).then((res) => res.json());
+    const ownerPromise = fetch(
+      `${baseUrl}/owner/${friendUserName + "@" + domainFromRoom}`,
+    ).then((res) => res.json());
+    const defaultChannelPromise = fetch(
+      `${baseUrl}/defaultChannel/${friendUserName + "@" + domainFromRoom}`,
+    ).then((res) => res.json());
+
+    const [
+      channelsResult,
+      roleResult,
+      membersResult,
+      ownerResult,
+      defaultChannelResult,
+    ] = await Promise.all([
       channelsPromise,
       rolePromise,
       membersPromise,
       ownerPromise,
       defaultChannelPromise,
     ]);
-    
+
     const { channels, categories }: {
-      categories: { id: string; name: string; permissions: { roleId: string; permission: string }[]; order: number }[];
-      channels: { category: string; id: string; name: string; permissions: { roleId: string; permission: string }[]; order: number }[];
+      categories: {
+        id: string;
+        name: string;
+        permissions: { roleId: string; permission: string }[];
+        order: number;
+      }[];
+      channels: {
+        category: string;
+        id: string;
+        name: string;
+        permissions: { roleId: string; permission: string }[];
+        order: number;
+      }[];
     } = channelsResult.channels;
-    
-    const role: { color: string; id: string; name: string; permission: string[] }[] = roleResult.role;
+
+    const role: {
+      color: string;
+      id: string;
+      name: string;
+      permission: string[];
+    }[] = roleResult.role;
     const members: { userId: string; role: string[] }[] = membersResult.members;
     const owner: string = ownerResult.owner;
     const defaultChannelId = defaultChannelResult.defaultChannel;
-    
-    const messages = await fetch("/api/v2/message/group/" + talk.roomid + "/" + defaultChannelId);
+
+    const messages = await fetch(
+      "/api/v2/message/group/" + talk.roomid + "/" + defaultChannelId,
+    );
     setGroupChannel({
       members: members,
       channels: channels,
       roles: role,
       categories,
       owner,
-    })
+    });
     const messagesJson = (((await messages.json()).messages) as {
       userName: string;
       messageid: string;
@@ -249,13 +311,15 @@ function TalkGroup({
         <div class="font-semibold text-lg">
           {nickName()}
         </div>
-        <div class="text-xs text-gray-400">{(() => {
-        const match = roomid.match(/^g\{([^}]+)\}@(.+)$/);
-        if (!match) {
-          return;
-        }
-        return match[1] + "@" + match[2];
-      })()!}</div>
+        <div class="text-xs text-gray-400">
+          {(() => {
+            const match = roomid.match(/^g\{([^}]+)\}@(.+)$/);
+            if (!match) {
+              return;
+            }
+            return match[1] + "@" + match[2];
+          })()!}
+        </div>
         <div class="text-sm text-gray-500">{latestMessage}</div>
       </div>
     </div>
@@ -360,29 +424,36 @@ function Friend() {
   );
 }
 
-function Request({ title, acceptFnc, rejectFnc, body}: { title: string; acceptFnc: () => void; rejectFnc: () => void; body: string; }) {
+function Request(
+  { title, acceptFnc, rejectFnc, body }: {
+    title: string;
+    acceptFnc: () => void;
+    rejectFnc: () => void;
+    body: string;
+  },
+) {
   return (
     <div class="bg-[#282828] text-white p-4 rounded-lg mb-3 shadow-lg transition-transform transform border-[2px] border-white/10">
-    <div class="mb-2">
-      <div class="font-semibold text-lg mb-1">{title}</div>
-      <div class="text-sm text-gray-300">{body}</div>
+      <div class="mb-2">
+        <div class="font-semibold text-lg mb-1">{title}</div>
+        <div class="text-sm text-gray-300">{body}</div>
+      </div>
+      <div class="mt-2 flex justify-end space-x-3">
+        <button
+          class="bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded-full shadow-sm transition-all text-[14px]"
+          onClick={acceptFnc}
+        >
+          許可
+        </button>
+        <button
+          class="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded-full shadow-sm transition-all text-[14px]"
+          onClick={rejectFnc}
+        >
+          拒否
+        </button>
+      </div>
     </div>
-    <div class="mt-2 flex justify-end space-x-3">
-      <button
-        class="bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded-full shadow-sm transition-all text-[14px]"
-        onClick={acceptFnc}
-      >
-        許可
-      </button>
-      <button
-        class="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded-full shadow-sm transition-all text-[14px]"
-        onClick={rejectFnc}
-      >
-        拒否
-      </button>
-    </div>
-  </div>
-  )
+  );
 }
 
 function Notification() {
@@ -393,34 +464,44 @@ function Notification() {
       {notification().map((n) => {
         if (n.type === "friend") {
           return (
-            <Request title="友達" acceptFnc={async () => {
-              const res = await fetch("/api/v2/friend/accept", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  id: n.id,
-                }),
-              });
-              console.log(res.json());
-            }} rejectFnc={() => {}} body={n.sender} />
+            <Request
+              title="友達"
+              acceptFnc={async () => {
+                const res = await fetch("/api/v2/friend/accept", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    id: n.id,
+                  }),
+                });
+                console.log(res.json());
+              }}
+              rejectFnc={() => {}}
+              body={n.sender}
+            />
           );
         } else if (n.type === "groupInvite") {
           return (
-            <Request title="グループ招待" acceptFnc={async () => {
-              const res = await fetch("/api/v2/group/accept", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                 groupId: n.query,
-                }),
-              });
-              console.log(res.json());
-            }} rejectFnc={() => {}} body={n.query!} />
-          )
+            <Request
+              title="グループ招待"
+              acceptFnc={async () => {
+                const res = await fetch("/api/v2/group/accept", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    groupId: n.query,
+                  }),
+                });
+                console.log(res.json());
+              }}
+              rejectFnc={() => {}}
+              body={n.query!}
+            />
+          );
         }
       })}
     </>

@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { join } from "node:path";
 
 const groupSchema = new mongoose.Schema({
   groupId: { type: String, required: true },
@@ -7,10 +6,6 @@ const groupSchema = new mongoose.Schema({
   groupDescription: { type: String },
   groupIcon: { type: String },
   owner: { type: String, required: true },
-  servers: {
-    type: [String],
-    default: [],
-  },
   invites: {
     type: [String],
     default: [],
@@ -36,6 +31,7 @@ const groupSchema = new mongoose.Schema({
   beforeEventId: { type: String },
   defaultChannelId: { type: String, required: true },
   isOwner: { type: Boolean, required: true },
+  channelOrder: { type: [String], required: true, default: [] },
 });
 
 const memberSchema = new mongoose.Schema({
@@ -50,14 +46,12 @@ const channelSchema = new mongoose.Schema({
   name: { type: String, required: true },
   id: { type: String, required: true },
   category: { type: String },
-  order: { type: Number, required: true },
 });
 
 const channelPermissionSchema = new mongoose.Schema({
   groupId: { type: String, required: true },
   channelId: { type: String, required: true },
   roleId: { type: String, required: true },
-  inheritCategoryPermissions: { type: Boolean, required: true },
   permissions: {
     type: [String],
     default: [],
@@ -78,7 +72,6 @@ const categorySchema = new mongoose.Schema({
   groupId: { type: String, required: true },
   name: { type: String, required: true },
   id: { type: String, required: true },
-  order: { type: Number, required: true },
 });
 
 const roleSchema = new mongoose.Schema({

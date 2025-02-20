@@ -11,7 +11,7 @@ const app = new Hono<{ Bindings: Env }>();
 export type { Env };
 
 import User from "../models/users.ts";
-import { Category, Channels, Group, Member, Roles } from "../models/groups.ts";
+import { Category, ChannelPermissions, Channels, Group, Member, Roles } from "../models/groups.ts";
 import IdentityKey from "../models/identityKey.ts";
 import Message from "../models/message.ts";
 import RoomKey from "../models/roomKey.ts";
@@ -106,6 +106,15 @@ app.get("/group/:key/:groupId", async (c) => {
     case "description": {
       return c.json({ description: group.groupDescription });
     }
+    case "owner": {
+      return c.json({ owner: group.owner });
+    }
+    case "defaultChannel": {
+      return c.json({ defaultChannel: group.defaultChannelId });
+    }
+    case "beforeEventId": {
+      return c.json({ beforeEventId: group.beforeEventId });
+    }
     case "role": {
       const roles = await Roles.find({ groupId });
       return c.json({
@@ -132,13 +141,12 @@ app.get("/group/:key/:groupId", async (c) => {
         const permissions = permissionsRaw.map((permission) => {
           return {
             roleId: permission.roleId,
-            permission: permission.permissions,
+            permissions: permission.permissions,
           };
         });
         categories.push({
           id: category.id,
           name: category.name,
-          order: category.order,
           permissions,
         });
       }
@@ -152,13 +160,13 @@ app.get("/group/:key/:groupId", async (c) => {
         const permissions = permissionsRaw.map((permission) => {
           return {
             roleId: permission.roleId,
-            permission: permission.permissions,
+            permissions: permission.permissions,
           };
         });
         channels.push({
           id: channel.id,
           name: channel.name,
-          order: channel.order,
+          category: channel.category,
           permissions,
         });
       }
@@ -180,11 +188,80 @@ app.get("/group/:key/:groupId", async (c) => {
         }),
       });
     }
-    case "owner": {
-      return c.json({ owner: group.owner });
+    case "order": {
+      return c.json({ order: group.channelOrder });
     }
-    case "defaultChannel": {
-      return c.json({ defaultChannel: group.defaultChannelId });
+    case "type": {
+      return c.json({ type: group.type });
+    }
+    case "all": {
+      const rolesData = await Roles.find({ groupId });
+      const roles = rolesData.map((role) => ({
+        role: {
+          id: role.id,
+          name: role.name,
+          color: role.color,
+          permission: role.permissions,
+        },
+      }));
+      const categorysRaw = await Category.find({ groupId });
+      const categories = await Promise.all(
+        categorysRaw.map(async (category) => {
+          const permissionsRaw = await CategoryPermissions.find({
+            groupId,
+            categoryId: category.id,
+          });
+          const permissions = permissionsRaw.map((permission) => ({
+            roleId: permission.roleId,
+            permissions: permission.permissions,
+          }));
+          return {
+            id: category.id,
+            name: category.name,
+            permissions,
+          };
+        }),
+      );
+      const channelsRaw = await Channels.find({ groupId });
+      const channels = await Promise.all(
+        channelsRaw.map(async (channel) => {
+          const permissionsRaw = await ChannelPermissions.find({
+            groupId,
+            channelId: channel.id,
+          });
+          const permissions = permissionsRaw.map((permission) => ({
+            roleId: permission.roleId,
+            permissions: permission.permissions,
+          }));
+          return {
+            id: channel.id,
+            name: channel.name,
+            category: channel.category,
+            permissions,
+          };
+        }),
+      );
+      const membersData = await Member.find({ groupId });
+      const members = membersData.map((member) => ({
+        userId: member.userId,
+        role: member.role,
+      }));
+      return c.json({
+        icon: group.groupIcon,
+        name: group.groupName,
+        description: group.groupDescription,
+        owner: group.owner,
+        defaultChannel: group.defaultChannelId,
+        beforeEventId: group.beforeEventId,
+        roles,
+        channels: {
+          categories,
+          channels,
+        },
+        members,
+        order: group.channelOrder,
+        type: group.type
+      });
     }
   }
   return c.json({ error: "Invalid request" }, 400);

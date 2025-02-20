@@ -180,15 +180,17 @@ app.post(
         const { userId, messageId, roomId, roomType, channelId } =
           parsedPayload.data;
         if (userId.split("@")[1] !== domain) {
+          console.log("error1")
           return c.json({ error: "Invalid userId" }, 400);
         }
-        if (roomId.split("@")[1] !== env["domain"]) {
-          return c.json({ error: "Invalid roomId" }, 400);
-        }
         if (roomType !== "friend" && roomType !== "group") {
+          console.log("error3")
           return c.json({ error: "Invalid roomType" }, 400);
         }
         if (roomType === "friend") {
+          if (roomId.split("@")[1] !== env["domain"]) {
+            return c.json({ error: "Invalid roomId" }, 400);
+          }
           const match = roomId.match(/^m\{([^}]+)\}@(.+)$/);
           if (!match) {
             return c.json({ error: "Invalid roomId format" }, 400);
@@ -224,8 +226,47 @@ app.post(
           });
           return c.json({ message: "success" });
         }
-        if (!channelId) {
-          return c.json({ error: "Invalid channelId" }, 400);
+        if (roomType === "group") {
+          const match = roomId.match(/^g\{([^}]+)\}@(.+)$/);
+          if (!match) {
+            return c.json({ error: "Invalid roomId format" }, 400);
+          }
+          const roomIdUserName = match[1];
+          const roomIdDomain = match[2];
+          if (!channelId) {
+            return c.json({ error: "Invalid channelId" }, 400);
+          }
+          const permission = await getUserPermission(userId, roomIdUserName + "@" + roomIdDomain, channelId);
+          if (!permission.includes("SEND_MESSAGE")) {
+            return c.json({ message: "Unauthorized" }, 401);
+          }
+          if (messageId.split("@")[1] !== domain) {
+            return c.json({ message: "Unauthorized" }, 401);
+          }
+          const timestamp = new Date();
+          await Message.create({
+            roomId: roomId,
+            messageid: messageId,
+            userName: userId,
+            timestamp: timestamp,
+            channelId: channelId,
+          });
+          const members = ((await Member.find({
+            groupId: roomIdUserName + "@" + roomIdDomain,
+          })).map((member) => member.userId)).filter((member) => member.split("@")[1] == env["domain"]);
+          console.log(members);
+          publish({
+            type: "message",
+            users: members,
+            data: JSON.stringify({
+              messageid: messageId,
+              timestamp,
+              userName: userId,
+              roomid: `g{${roomIdUserName}}@${roomIdDomain}`,
+              channelId: channelId,
+            }),
+          });
+          return c.json({ message: "success" });
         }
         break;
       }
@@ -329,7 +370,7 @@ async function getUserPermission(
   const channelPermission = await ChannelPermissions.findOne({
     groupId: groupId,
     channelId: channelId,
-    roleId: { $in: user.role },
+    roleId: { $in: ["everyone", ...user.role] },
   });
   if (!channelPermission) {
     return [...new Set(response)];
