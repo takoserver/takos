@@ -8,6 +8,7 @@ import EventId from "./models/eventId.ts";
 export type MyEnv = {
   Variables: {
     domain: string;
+    eventId: string;
   };
   Bindings: Env;
 };
@@ -71,6 +72,7 @@ export const authorizationMiddleware = async (
     }
   }
   c.set("domain", domain);
+  c.set("eventId", eventId);
   await next();
   await EventId.create({
     eventId,

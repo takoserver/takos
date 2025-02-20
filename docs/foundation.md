@@ -480,7 +480,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`   | `string` | グループID   |
 | `channelId` | `string` | チャンネルID |
 
-### t.sync.user.add
+### t.group.sync.user.add
 
 ユーザーの追加情報を共有するイベント。
 
@@ -492,7 +492,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `userId`        | string | ユーザーID     |
 | `beforeEventId` | string | 前のイベントID |
 
-### t.sync.user.remove
+### t.group.sync.user.remove
 
 ユーザーの削除情報を共有するイベント。
 
@@ -504,32 +504,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `userId`        | string | ユーザーID     |
 | `beforeEventId` | string | 前のイベントID |
 
-### t.sync.role.add
-
-ロールの追加情報を共有するイベント。
-
-`payload`
-
-| パラメータ      | 型       | 説明           |
-| --------------- | -------- | -------------- |
-| `groupId`       | string   | グループID     |
-| `roleId`        | string   | ロールID       |
-| `permissions`   | string[] | 権限リスト     |
-| `beforeEventId` | string   | 前のイベントID |
-
-### t.sync.role.remove
-
-ロールの削除情報を共有するイベント。
-
-`payload`
-
-| パラメータ      | 型     | 説明           |
-| --------------- | ------ | -------------- |
-| `groupId`       | string | グループID     |
-| `roleId`        | string | ロールID       |
-| `beforeEventId` | string | 前のイベントID |
-
-### t.sync.role.assign
+### t.group.sync.role.assign
 
 ロールの割り当て情報を共有するイベント。
 
@@ -539,10 +514,10 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | --------------- | ------ | ------------------ |
 | `groupId`       | string | グループID         |
 | `roleId`        | string | ロールID           |
-| `assignUserId`  | string | 割り当てユーザーID |
+| `userId`  | string | 割り当てユーザーID |
 | `beforeEventId` | string | 前のイベントID     |
 
-### t.sync.role.unassign
+### t.group.sync.role.unassign
 
 ロールの割り当て解除情報を共有するイベント。
 
@@ -552,10 +527,10 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | --------------- | ------ | ------------------ |
 | `groupId`       | string | グループID         |
 | `roleId`        | string | ロールID           |
-| `assignUserId`  | string | 割り当てユーザーID |
+| `userId`  | string | 割り当てユーザーID |
 | `beforeEventId` | string | 前のイベントID     |
 
-### t.sync.channel.add
+### t.group.sync.channel.add
 
 チャンネルの追加情報を共有するイベント。
 
@@ -566,10 +541,10 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`       | string   | グループID     |
 | `channelId`     | string   | チャンネルID   |
 | `category`      | string   | カテゴリー     |
-| `permissions`   | string[] | 権限リスト     |
+| `permissions`   | { roleId: string, permissions: string[]}[] | 権限リスト     |
 | `beforeEventId` | string   | 前のイベントID |
 
-### t.sync.channel.remove
+### t.group.sync.channel.remove
 
 チャンネルの削除情報を共有するイベント。
 
@@ -581,7 +556,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `channelId`     | string | チャンネルID   |
 | `beforeEventId` | string | 前のイベントID |
 
-### t.sync.category.add
+### t.group.sync.category.add
 
 カテゴリーの追加情報を共有するイベント。
 
@@ -594,7 +569,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `permissions`   | string[] | 権限リスト     |
 | `beforeEventId` | string   | 前のイベントID |
 
-### t.sync.category.remove
+### t.group.sync.category.remove
 
 カテゴリーの削除情報を共有するイベント。
 

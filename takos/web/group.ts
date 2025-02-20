@@ -156,6 +156,34 @@ app.post(
   },
 );
 
+app.post(
+  "leave",
+  zValidator(
+    "json",
+    z.object({
+      groupId: z.string(),
+    }),
+  ),
+  async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { groupId } = c.req.valid("json");
+    const group = await Group.findOne({ groupId, owner: user.userName + "@" + env["domain"] });
+    if (!group) {
+      return c.json({ message: "Invalid groupId" }, 400);
+    }
+    if (!group.isOwner) {
+      // t.group.leave
+    }
+    await Member.deleteOne({ groupId, userId: user.userName + "@" + env["domain"] });
+
+    //t.group.sync.user.remove
+    return c.json({ message: "success" });
+  }
+)
+
 async function handleLocalGroupAccept(c: any, group: any, groupId: string, currentUser: string) {
   if (await Member.findOne({ groupId, userId: currentUser })) {
     return c.json({ message: "Unauthorized" }, 401);
@@ -233,6 +261,41 @@ async function createRemoteGroup(groupId: string, resJson: any) {
       role: member.role,
     });
   }
+}
+
+export async function handleReCreateGroup(groupId: string) {
+  const group = await Group.findOne({ groupId });
+  if (!group) {
+    return;
+  }
+  const groupDomain = groupId.split("@")[1];
+  if (group.isOwner) {
+    return;
+  }
+  //groupのデータを削除
+  await Group.deleteOne({
+    groupId,
+  });
+  await Channels.deleteMany({
+    groupId,
+  });
+  await ChannelPermissions.deleteMany({
+    groupId,
+  });
+  await Category.deleteMany({
+    groupId,
+  });
+  await CategoryPermissions.deleteMany({
+    groupId,
+  });
+  await Roles.deleteMany({
+    groupId,
+  });
+  await Member.deleteMany({
+    groupId,
+  });
+  //groupのデータを再作成
+  await createRemoteGroup(groupId, await fetch(`https://${groupDomain}/_takos/v1/group/all/${groupId}`).then((res) => res.json()));
 }
 
 app.post(
