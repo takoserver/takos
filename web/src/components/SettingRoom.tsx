@@ -87,7 +87,10 @@ export function SettingRoom() {
                       <span class="mt-1 text-sm text-white">招待</span>
                     </div>
 
-                    <div class="flex flex-col items-center hover:scale-105 transition-transform duration-200 cursor-pointer">
+                    <div
+                      class="flex flex-col items-center hover:scale-105 transition-transform duration-200 cursor-pointer"
+                      onClick={() => setSelected("leave")}
+                    >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         class="h-8 w-8"
@@ -133,7 +136,9 @@ export function SettingRoom() {
                               <button
                                 class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
                                 onClick={() => {
-                                  const match = selectedRoom()!.roomid.match(/^g\{([^}]+)\}@(.+)$/);
+                                  const match = selectedRoom()!.roomid.match(
+                                    /^g\{([^}]+)\}@(.+)$/,
+                                  );
                                   if (!match) {
                                     return;
                                   }
@@ -145,7 +150,8 @@ export function SettingRoom() {
                                       "Content-Type": "application/json",
                                     },
                                     body: JSON.stringify({
-                                      groupId: friendUserName + "@" + domainFromRoom,
+                                      groupId: friendUserName + "@" +
+                                        domainFromRoom,
                                       userId: friend,
                                     }),
                                   });
@@ -161,6 +167,51 @@ export function SettingRoom() {
                             招待可能なユーザーが見つかりません
                           </div>
                         </Show>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {selected() === "leave" && (
+                  <>
+                    {/*戻るボタン*/}
+                    <div class="flex flex-col w-full">
+                      <div
+                        class="flex items-center cursor-pointer mb-4"
+                        onClick={() => setSelected(false)}
+                      >
+                        {"戻る"}
+                      </div>
+                      {/* 招待リスト */}
+                      <div class="mt-4 w-full flex">
+                        <div class="m-auto">
+                          ほんとに退出しますか？
+                          {/* 退出ボタン */}
+                          <button
+                            class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
+                            onClick={() => {
+                              const match = selectedRoom()!.roomid.match(
+                                /^g\{([^}]+)\}@(.+)$/,
+                              );
+                              if (!match) {
+                                return;
+                              }
+                              const friendUserName = match[1];
+                              const domainFromRoom = match[2];
+                              const res = fetch("/api/v2/group/leave", {
+                                method: "POST",
+                                headers: {
+                                  "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                  groupId: friendUserName + "@" +
+                                    domainFromRoom,
+                                }),
+                              });
+                            }}
+                          >
+                            退出
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </>

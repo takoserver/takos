@@ -18,6 +18,7 @@ async function requesterServer(
     new Date(new Date(key.expire).getTime() - 24 * 60 * 60 * 1000) < new Date()
   ) {
     const newKey = generateServerKey();
+    console.log("newKey", newKey);
     key = await serverKey.create({
       public: newKey.public,
       private: newKey.private,

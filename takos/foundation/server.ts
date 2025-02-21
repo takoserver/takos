@@ -6,6 +6,7 @@ import friends from "../models/friends.ts";
 import request from "../models/request.ts";
 import { uuidv7 } from "npm:uuidv7@^1.0.2";
 import { fff } from "../utils/foundationReq.ts";
+import { type Context } from "hono";
 import {
   Category,
   CategoryPermissions,
@@ -28,19 +29,25 @@ import { handleReCreateGroup } from "../web/group.ts";
 const env = await load();
 
 class EventManager {
-  private events: Map<
+  private events = new Map<
     string,
     {
       schema: z.ZodSchema<any>;
-      handler: (c: any, payload: any) => Promise<any>;
+      handler: (c: Context, payload: any) => Promise<any>;
     }
-  > = new Map();
+  >();
 
-  add(eventName: string, schema: z.ZodSchema<any>, handler: (c: any, payload: any) => Promise<any>) {
+  add<T>(
+    eventName: string,
+    schema: z.ZodSchema<T>,
+    handler: (c: Context, payload: T) => Promise<any>,
+  ) {
     this.events.set(eventName, { schema, handler });
   }
 
-  async dispatch(c: any) {
+  async dispatch(c: Context) {
+    // deno-lint-ignore ban-ts-comment
+    //@ts-ignore
     const { event, payload } = c.req.valid("json");
     const eventDef = this.events.get(event);
     if (!eventDef) {
@@ -48,6 +55,7 @@ class EventManager {
     }
     const parsed = eventDef.schema.safeParse(payload);
     if (!parsed.success) {
+      console.log(event);
       return c.json({ error: "Invalid payload" }, 400);
     }
     return eventDef.handler(c, parsed.data);
@@ -329,6 +337,7 @@ eventManager.add(
       query: groupId,
       local: false,
     });
+
     return c.json(200);
   },
 );
@@ -344,9 +353,11 @@ eventManager.add(
     const domain = c.get("domain");
     const { userId, groupId } = payload;
     if (userId.split("@")[1] !== domain) {
+      console.log("error1");
       return c.json({ error: "Invalid userId" }, 400);
     }
     if (groupId.split("@")[1] !== env["domain"]) {
+      console.log("error2");
       return c.json({ error: "Invalid groupId" }, 400);
     }
     const group = await Group.findOne({ groupId: groupId });
@@ -357,7 +368,29 @@ eventManager.add(
       groupId: groupId,
       userId: userId,
     });
-    await Group.updateOne({ groupId }, { $pull: { invites: userId } });
+    const domains = (await Member.find({ groupId })).map((member) =>
+      member.userId.split("@")[1]
+    ).filter((domain) => domain !== env["domain"]);
+    const uniqueDomains = Array.from(new Set(domains));
+    const eventId = uuidv7();
+    const res = await fff(
+      JSON.stringify({
+        event: "t.group.sync.user.add",
+        eventId: eventId,
+        payload: {
+          groupId,
+          userId: userId,
+          beforeEventId: group.beforeEventId,
+        },
+      }),
+      uniqueDomains,
+    );
+    //@ts-ignore
+    console.log(await res[0].json());
+    await Group.updateOne({ groupId }, {
+      $pull: { invites: userId },
+      $set: { beforeEventId: eventId },
+    });
     return c.json(200);
   },
 );
@@ -367,26 +400,23 @@ eventManager.add(
   z.object({
     userId: z.string().email(),
     groupId: z.string(),
-    beforeEventId: z.string()
+    beforeEventId: z.string(),
   }),
   async (c, payload) => {
     const domain = c.get("domain");
     const eventId = c.get("eventId");
     const { userId, groupId } = payload;
-    if (userId.split("@")[1] !== domain) {
-      return c.json({ error: "Invalid userId" }, 400);
-    }
-    if (groupId.split("@")[1] !== env["domain"]) {
+    if (groupId.split("@")[1] === env["domain"]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-    if(domain === groupId.split("@")[1]) {
+    if (domain !== groupId.split("@")[1]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
     const group = await Group.findOne({
       groupId: groupId,
     });
     if (!group) {
-      return c.json({ error: "Invalid groupId" }, 400);
+      return c.json({ error: "Invalid groupId1" }, 400);
     }
     const member = await Member.findOne({
       groupId: groupId,
@@ -395,7 +425,7 @@ eventManager.add(
     if (member) {
       return c.json({ error: "Already member" }, 400);
     }
-    if(group.beforeEventId !== payload.beforeEventId) {
+    if (group.beforeEventId !== payload.beforeEventId) {
       await handleReCreateGroup(groupId);
       return c.json(200);
     }
@@ -406,27 +436,24 @@ eventManager.add(
     });
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
-  }
-)
+  },
+);
 
 eventManager.add(
   "t.group.sync.user.remove",
   z.object({
     userId: z.string().email(),
     groupId: z.string(),
-    beforeEventId: z.string()
+    beforeEventId: z.string(),
   }),
   async (c, payload) => {
     const domain = c.get("domain");
     const eventId = c.get("eventId");
     const { userId, groupId } = payload;
-    if (userId.split("@")[1] !== domain) {
-      return c.json({ error: "Invalid userId" }, 400);
-    }
-    if (groupId.split("@")[1] !== env["domain"]) {
+    if (groupId.split("@")[1] === env["domain"]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-    if(domain === groupId.split("@")[1]) {
+    if (domain !== groupId.split("@")[1]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
     const group = await Group.findOne({
@@ -442,7 +469,7 @@ eventManager.add(
     if (!member) {
       return c.json({ error: "Not member" }, 400);
     }
-    if(group.beforeEventId !== payload.beforeEventId) {
+    if (group.beforeEventId !== payload.beforeEventId) {
       await handleReCreateGroup(groupId);
       return c.json(200);
     }
@@ -452,8 +479,8 @@ eventManager.add(
     });
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
-  }
-)
+  },
+);
 
 eventManager.add(
   "t.group.sync.role.assign",
@@ -461,7 +488,7 @@ eventManager.add(
     groupId: z.string(),
     userId: z.string(),
     roleId: z.string(),
-    beforeEventId: z.string()
+    beforeEventId: z.string(),
   }),
   async (c, payload) => {
     const domain = c.get("domain");
@@ -470,7 +497,7 @@ eventManager.add(
     if (groupId.split("@")[1] !== env["domain"]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-    if(domain === groupId.split("@")[1]) {
+    if (domain === groupId.split("@")[1]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
     const group = await Group.findOne({
@@ -493,7 +520,7 @@ eventManager.add(
     if (!role) {
       return c.json({ error: "Not role" }, 400);
     }
-    if(group.beforeEventId !== payload.beforeEventId) {
+    if (group.beforeEventId !== payload.beforeEventId) {
       await handleReCreateGroup(groupId);
       return c.json(200);
     }
@@ -505,8 +532,8 @@ eventManager.add(
     });
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
-  }
-)
+  },
+);
 
 eventManager.add(
   "t.group.sync.role.unassign",
@@ -514,7 +541,7 @@ eventManager.add(
     groupId: z.string(),
     userId: z.string(),
     roleId: z.string(),
-    beforeEventId: z.string()
+    beforeEventId: z.string(),
   }),
   async (c, payload) => {
     const domain = c.get("domain");
@@ -523,7 +550,7 @@ eventManager.add(
     if (groupId.split("@")[1] !== env["domain"]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-    if(domain === groupId.split("@")[1]) {
+    if (domain === groupId.split("@")[1]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
     const group = await Group.findOne({
@@ -546,7 +573,7 @@ eventManager.add(
     if (!role) {
       return c.json({ error: "Not role" }, 400);
     }
-    if(group.beforeEventId !== payload.beforeEventId) {
+    if (group.beforeEventId !== payload.beforeEventId) {
       await handleReCreateGroup(groupId);
       return c.json(200);
     }
@@ -558,8 +585,8 @@ eventManager.add(
     });
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
-  }
-)
+  },
+);
 
 eventManager.add(
   "t.group.sync.channel.add",
@@ -569,9 +596,9 @@ eventManager.add(
     category: z.string(),
     permissions: z.array(z.object({
       roleId: z.string(),
-      permissions: z.array(z.string())
+      permissions: z.array(z.string()),
     })),
-    beforeEventId: z.string()
+    beforeEventId: z.string(),
   }),
   async (c, payload) => {
     const domain = c.get("domain");
@@ -601,10 +628,13 @@ eventManager.add(
       // 既存のチャンネルの場合は上書き更新
       await Channels.updateOne(
         { groupId: groupId, id: channelId },
-        { category: category }
+        { category: category },
       );
       // 既存の権限を削除し、新たに設定
-      await ChannelPermissions.deleteMany({ groupId: groupId, channelId: channelId });
+      await ChannelPermissions.deleteMany({
+        groupId: groupId,
+        channelId: channelId,
+      });
       for (const permission of permissions) {
         await ChannelPermissions.create({
           groupId: groupId,
@@ -631,15 +661,15 @@ eventManager.add(
     }
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
-  }
-)
+  },
+);
 
 eventManager.add(
   "t.group.sync.channel.remove",
   z.object({
     groupId: z.string(),
     channelId: z.string(),
-    beforeEventId: z.string()
+    beforeEventId: z.string(),
   }),
   async (c, payload) => {
     const domain = c.get("domain");
@@ -648,7 +678,7 @@ eventManager.add(
     if (groupId.split("@")[1] !== env["domain"]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-    if(domain === groupId.split("@")[1]) {
+    if (domain === groupId.split("@")[1]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
     const group = await Group.findOne({
@@ -664,7 +694,7 @@ eventManager.add(
     if (!channel) {
       return c.json({ error: "Not channel" }, 400);
     }
-    if(group.beforeEventId !== payload.beforeEventId) {
+    if (group.beforeEventId !== payload.beforeEventId) {
       await handleReCreateGroup(groupId);
       return c.json(200);
     }
@@ -678,8 +708,8 @@ eventManager.add(
     });
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
-  }
-)
+  },
+);
 
 eventManager.add(
   "t.group.sync.category.add",
@@ -690,9 +720,9 @@ eventManager.add(
       z.object({
         roleId: z.string(),
         permissions: z.array(z.string()),
-      })
+      }),
     ),
-    beforeEventId: z.string()
+    beforeEventId: z.string(),
   }),
   async (c, payload) => {
     const domain = c.get("domain");
@@ -705,12 +735,12 @@ eventManager.add(
     if (domain === groupId.split("@")[1]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-  
+
     const group = await Group.findOne({ groupId });
     if (!group) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-  
+
     if (group.beforeEventId !== payload.beforeEventId) {
       await handleReCreateGroup(groupId);
       return c.json(200);
@@ -740,10 +770,10 @@ eventManager.add(
         });
       }
     }
-  
+
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
-  }
+  },
 );
 
 eventManager.add(
@@ -751,7 +781,7 @@ eventManager.add(
   z.object({
     groupId: z.string(),
     categoryId: z.string(),
-    beforeEventId: z.string()
+    beforeEventId: z.string(),
   }),
   async (c, payload) => {
     const domain = c.get("domain");
@@ -764,27 +794,27 @@ eventManager.add(
     if (domain === groupId.split("@")[1]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-  
+
     const group = await Group.findOne({ groupId });
     if (!group) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-  
+
     const category = await Category.findOne({ groupId, id: categoryId });
     if (!category) {
       return c.json({ error: "Not category" }, 400);
     }
-  
+
     if (group.beforeEventId !== payload.beforeEventId) {
       await handleReCreateGroup(groupId);
       return c.json(200);
     }
-  
+
     await Category.deleteOne({ groupId, id: categoryId });
     await CategoryPermissions.deleteMany({ groupId, categoryId });
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
-  }
+  },
 );
 
 eventManager.add(
@@ -797,19 +827,20 @@ eventManager.add(
     const domain = c.get("domain");
     const { userId, groupId } = payload;
     if (userId.split("@")[1] !== domain) {
-      return c.json({ error: "Invalid userId" }, 400);
+      console.log(userId.split("@")[1], domain);
+      return c.json({ error: "Invalid userId1" }, 400);
     }
     if (groupId.split("@")[1] !== env["domain"]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-    const group = await Group.findOne({ groupId, owner: userId });
+    const group = await Group.findOne({ groupId });
     if (!group) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
     if (group.isOwner) {
       const member = await Member.findOne({ groupId: groupId, userId: userId });
-      if(member) {
-        return c.json({ error: "Owner can't leave" }, 400);
+      if (!member) {
+        return c.json({ error: "Invalid userId2" }, 400);
       }
       await Member.deleteOne({ groupId: groupId, userId: userId });
       await fff(
@@ -819,24 +850,28 @@ eventManager.add(
           payload: {
             userId: userId,
             groupId: groupId,
-            beforeEventId: group.beforeEventId
+            beforeEventId: group.beforeEventId,
           },
         }),
-        await getGroupMemberServers(groupId)
-      )
+        await getGroupMemberServers(groupId),
+      );
+      return c.json(200);
     } else {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-  }
-)
+  },
+);
 
 app.post(
   "/",
-  zValidator("json", z.object({
-    event: z.string(),
-    eventId: z.string(),
-    payload: z.object({}).passthrough(),
-  })),
+  zValidator(
+    "json",
+    z.object({
+      event: z.string(),
+      eventId: z.string(),
+      payload: z.object({}).passthrough(),
+    }),
+  ),
   async (c) => {
     try {
       return await eventManager.dispatch(c);
@@ -844,7 +879,7 @@ app.post(
       console.error(err);
       return c.json({ error: "Internal server error" }, 500);
     }
-  }
+  },
 );
 
 async function getUserPermission(

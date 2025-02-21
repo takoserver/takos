@@ -514,7 +514,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | --------------- | ------ | ------------------ |
 | `groupId`       | string | グループID         |
 | `roleId`        | string | ロールID           |
-| `userId`  | string | 割り当てユーザーID |
+| `userId`        | string | 割り当てユーザーID |
 | `beforeEventId` | string | 前のイベントID     |
 
 ### t.group.sync.role.unassign
@@ -527,7 +527,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | --------------- | ------ | ------------------ |
 | `groupId`       | string | グループID         |
 | `roleId`        | string | ロールID           |
-| `userId`  | string | 割り当てユーザーID |
+| `userId`        | string | 割り当てユーザーID |
 | `beforeEventId` | string | 前のイベントID     |
 
 ### t.group.sync.channel.add
@@ -536,13 +536,13 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 
 `payload`
 
-| パラメータ      | 型       | 説明           |
-| --------------- | -------- | -------------- |
-| `groupId`       | string   | グループID     |
-| `channelId`     | string   | チャンネルID   |
-| `category`      | string   | カテゴリー     |
+| パラメータ      | 型                                         | 説明           |
+| --------------- | ------------------------------------------ | -------------- |
+| `groupId`       | string                                     | グループID     |
+| `channelId`     | string                                     | チャンネルID   |
+| `category`      | string                                     | カテゴリー     |
 | `permissions`   | { roleId: string, permissions: string[]}[] | 権限リスト     |
-| `beforeEventId` | string   | 前のイベントID |
+| `beforeEventId` | string                                     | 前のイベントID |
 
 ### t.group.sync.channel.remove
 

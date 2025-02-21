@@ -3,7 +3,7 @@ export function PopUpFrame(
   { children, closeScript }: { children: any; closeScript: Setter<boolean> },
 ) {
   return (
-    <div class="fixed z-50 w-full h-full overflow-hidden bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-5">
+    <div class="fixed z-[99999] w-full h-full overflow-hidden bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-5">
       <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 max-w-md max-h-[320px] w-full h-full p-5 rounded-xl shadow-lg relative">
         <div class="absolute right-0 top-0 p-4">
           <span

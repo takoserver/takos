@@ -139,9 +139,13 @@ app.post(
       if (findMember !== -1) {
         MembersArray.splice(findMember, 1);
       }
+      const members = Members.filter((member) =>
+        member.split("@")[1] == env["domain"]
+      );
+      console.log(members);
       publish({
         type: "message",
-        users: Members,
+        users: members,
         data: JSON.stringify({
           messageid,
           timestamp,

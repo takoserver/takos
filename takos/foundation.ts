@@ -46,12 +46,12 @@ export const authorizationMiddleware = async (
     const verify = verifyData(
       bodyText,
       sign,
-      serverKeyData.serverKey,
+      serverKeyData.key,
     );
     await remoteServerKey.create({
       domain,
       expire: new Date(expires),
-      public: serverKeyData.serverKey,
+      public: serverKeyData.key,
     });
     if (!verify) {
       return c.json({ error: "Invalid Authorization" }, 401);
@@ -74,6 +74,7 @@ export const authorizationMiddleware = async (
   c.set("domain", domain);
   c.set("eventId", eventId);
   await next();
+  console.log(eventId);
   await EventId.create({
     eventId,
     domain,

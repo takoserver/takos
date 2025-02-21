@@ -11,7 +11,14 @@ const app = new Hono<{ Bindings: Env }>();
 export type { Env };
 
 import User from "../models/users.ts";
-import { Category, ChannelPermissions, Channels, Group, Member, Roles } from "../models/groups.ts";
+import {
+  Category,
+  ChannelPermissions,
+  Channels,
+  Group,
+  Member,
+  Roles,
+} from "../models/groups.ts";
 import IdentityKey from "../models/identityKey.ts";
 import Message from "../models/message.ts";
 import RoomKey from "../models/roomKey.ts";
@@ -260,7 +267,7 @@ app.get("/group/:key/:groupId", async (c) => {
         },
         members,
         order: group.channelOrder,
-        type: group.type
+        type: group.type,
       });
     }
   }
@@ -275,9 +282,12 @@ app.get("/key/:kind", async (c) => {
   }
   if (kind === "server") {
     const expire = c.req.query("expire");
-    const server = await serverKey.create({ expire });
+    const server = await serverKey.findOne({ expire });
+    if (!server) {
+      return c.json({ error: "Invalid expire" }, 400);
+    }
     return c.json({
-      "key": server.public,
+      key: server.public,
     });
   }
   const userId = c.req.query("userId");

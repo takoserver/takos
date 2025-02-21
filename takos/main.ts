@@ -34,6 +34,7 @@ await mongoose.connect(String(env["MONGO_URI"]));
 
 if (!await serverKey.findOne({}).sort({ expires: -1 })) {
   const key = generateServerKey();
+  console.log("newKey");
   await serverKey.create(key);
 }
 

@@ -16,6 +16,7 @@ function ChatTalkMain() {
   return (
     <>
       <div class="pl-2" id="chatList">
+      <CreateChannelModal />
         {list.map((message) => {
           return (
             <>
@@ -34,6 +35,7 @@ function ChatTalkMain() {
 }
 
 import { onMount } from "solid-js";
+import { PopUpFrame } from "./popUpFrame.tsx";
 
 function Message(
   { messageid, myMessage, time, userName }: {
@@ -133,10 +135,82 @@ function ChatTalk() {
   );
 }
 
+const [showCreateChannelModal, setShowCreateChannelModal] = createSignal(false);
+
+function CreateChannelModal() {
+  const [selectedMode, setSelectedMode] = createSignal<"category" | "channel">("category");
+  const [nameValue, setNameValue] = createSignal("");
+
+  const createEntity = () => {
+    console.log(`${selectedMode()}作成:`, nameValue());
+    setNameValue("");
+    setShowCreateChannelModal(false);
+  };
+
+  const handleSubmit = (e: Event) => {
+    e.preventDefault();
+    createEntity();
+  };
+
+  return (
+    <>
+      {showCreateChannelModal() && (
+        <PopUpFrame closeScript={setShowCreateChannelModal}>
+          <div class="p-4">
+            <h2 class="text-xl font-bold mb-4">チャンネルの作成</h2>
+            <div class="flex mb-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedMode("category");
+                  setNameValue("");
+                }}
+                class={`flex-1 p-2 rounded ${selectedMode() === "category" ? "bg-green-500 text-white" : "bg-gray-300 text-black"}`}
+              >
+                カテゴリー作成
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedMode("channel");
+                  setNameValue("");
+                }}
+                class={`flex-1 p-2 ml-2 rounded ${selectedMode() === "channel" ? "bg-blue-500 text-white" : "bg-gray-300 text-black"}`}
+              >
+                チャンネル作成
+              </button>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <input
+                type="text"
+                value={nameValue()}
+                onInput={(e) => setNameValue(e.currentTarget.value)}
+                placeholder={selectedMode() === "category" ? "カテゴリー名" : "チャンネル名"}
+                class="w-full p-2 border rounded mb-2"
+              />
+              <button
+                type="submit"
+                class={`w-full py-2 rounded ${selectedMode() === "category" ? "bg-green-500 hover:bg-green-600" : "bg-blue-500 hover:bg-blue-600"} text-white`}
+              >
+                {selectedMode() === "category" ? "カテゴリー作成" : "チャンネル作成"}
+              </button>
+            </form>
+          </div>
+        </PopUpFrame>
+      )}
+    </>
+  );
+}
+
 function ChannelSideBar() {
   const [isOpenChannel, setIsOpenChannel] = createSignal(false);
   const [isSelectRoom] = useAtom(selectedRoomState);
   const [groupChannel] = useAtom(groupChannelState);
+
+  function createChannel() {
+    setShowCreateChannelModal(true);
+  }
+
   return (
     <>
       {isSelectRoom()?.type === "group" && (
@@ -149,10 +223,10 @@ function ChannelSideBar() {
                   top: "50%",
                   left: 0,
                   transform: "translateY(-50%)",
-                  "backdrop-filter": "blur(10px)", // ここでぼかしを指定
-                  "background-color": "rgba(24, 24, 24, 0.5)", // 半透明にする
+                  "backdrop-filter": "blur(10px)",
+                  "background-color": "rgba(24, 24, 24, 0.5)",
                 }}
-                class="z-[9999] border-t border-r border-b border-solid border-gray-300 rounded-r-lg h-4/5 max-w-[400px] w-full"
+                class="z-[99] border-t border-r border-b border-solid border-gray-300 rounded-r-lg h-4/5 max-w-[400px] w-full"
               >
                 <div class="flex items-center justify-between border-b border-gray-700 px-5 py-3">
                   <h2 class="text-xl font-semibold text-white">チャンネル</h2>
@@ -169,12 +243,9 @@ function ChannelSideBar() {
                     {(() => {
                       const groupInfo = groupChannel();
                       if (!groupInfo) return <></>;
-
-                      // order順にソート
                       const sortedChannels = [...groupInfo.channels].sort(
                         (a, b) => a.order - b.order,
                       );
-
                       function channelCompornent({
                         name,
                         id,
@@ -215,18 +286,12 @@ function ChannelSideBar() {
                           </li>
                         );
                       }
-
                       return sortedChannels.map((channel) => {
-                        // 子チャンネルの場合は親内に含めるためスキップ
                         if (channel.category) return null;
-
-                        // 現在のチャンネルの子供を抽出
                         const childrenChannels = sortedChannels.filter(
                           (ch) => ch.category === channel.id,
                         );
-
                         if (childrenChannels.length > 0) {
-                          // 子チャンネルが存在するなら category として表示
                           const childrenElements = childrenChannels.map(
                             (child) =>
                               channelCompornent({
@@ -244,7 +309,6 @@ function ChannelSideBar() {
                             ),
                           });
                         } else {
-                          // 単独表示
                           return channelCompornent({
                             name: channel.name,
                             id: channel.id,
@@ -253,6 +317,15 @@ function ChannelSideBar() {
                       });
                     })()}
                   </ul>
+                  {/* チャンネル作成ボタンを追加 */}
+                  <div class="px-4 py-2">
+                    <button
+                      class="w-full text-left py-2 px-4 mt-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors shadow-sm"
+                      onClick={createChannel}
+                    >
+                      + チャンネル作成
+                    </button>
+                  </div>
                 </div>
               </div>
             </>
@@ -283,5 +356,4 @@ function ChannelSideBar() {
     </>
   );
 }
-
 export default ChatTalk;

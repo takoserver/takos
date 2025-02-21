@@ -170,21 +170,68 @@ app.post(
       return c.json({ message: "Unauthorized" }, 401);
     }
     const { groupId } = c.req.valid("json");
-    const group = await Group.findOne({ groupId, owner: user.userName + "@" + env["domain"] });
+    const group = await Group.findOne({ groupId });
     if (!group) {
       return c.json({ message: "Invalid groupId" }, 400);
     }
+    const domains = (await Member.find({ groupId })).map((member) =>
+      member.userId.split("@")[1]
+    ).filter((domain) => domain !== env["domain"]);
+    const uniqueDomains = Array.from(new Set(domains));
     if (!group.isOwner) {
-      // t.group.leave
+      const res = await fff(
+        JSON.stringify({
+          event: "t.group.leave",
+          eventId: uuidv7(),
+          payload: {
+            groupId,
+            userId: user.userName + "@" + env["domain"],
+          },
+        }),
+        [group.groupId.split("@")[1]],
+      );
+      if (!(Array.isArray(res) && res[0].status === 200)) {
+        //@ts-ignore
+        console.log(await res[0].json(), uniqueDomains);
+        return c.json({ message: "Error leaving group" }, 500);
+      }
+      await Member.deleteOne({
+        groupId,
+        userId: user.userName + "@" + env["domain"],
+      });
+      return c.json({ message: "success" });
     }
-    await Member.deleteOne({ groupId, userId: user.userName + "@" + env["domain"] });
-
-    //t.group.sync.user.remove
+    if (group.owner === user.userName + "@" + env["domain"]) {
+      return c.json({ message: "You can't leave the group" }, 400);
+    }
+    await Member.deleteOne({
+      groupId,
+      userId: user.userName + "@" + env["domain"],
+    });
+    const eventId = uuidv7();
+    const res = await fff(
+      JSON.stringify({
+        event: "t.group.sync.user.remove",
+        eventId: eventId,
+        payload: {
+          groupId,
+          userId: user.userName + "@" + env["domain"],
+          beforeEventId: group.beforeEventId,
+        },
+      }),
+      uniqueDomains,
+    );
+    await Group.updateOne({ groupId }, { $set: { beforeEventId: eventId } });
     return c.json({ message: "success" });
-  }
-)
+  },
+);
 
-async function handleLocalGroupAccept(c: any, group: any, groupId: string, currentUser: string) {
+async function handleLocalGroupAccept(
+  c: any,
+  group: any,
+  groupId: string,
+  currentUser: string,
+) {
   if (await Member.findOne({ groupId, userId: currentUser })) {
     return c.json({ message: "Unauthorized" }, 401);
   }
@@ -196,7 +243,31 @@ async function handleLocalGroupAccept(c: any, group: any, groupId: string, curre
   }
   await Group.updateOne({ groupId }, { $pull: { invites: currentUser } });
   await Member.create({ groupId, userId: currentUser, role: [] });
-  await request.deleteOne({ sender: group.owner, receiver: currentUser, type: "groupInvite" });
+  await request.deleteOne({
+    sender: group.owner,
+    receiver: currentUser,
+    type: "groupInvite",
+  });
+  const domains = (await Member.find({ groupId })).map((member) =>
+    member.userId.split("@")[1]
+  ).filter((domain) => domain !== env["domain"]);
+  const uniqueDomains = Array.from(new Set(domains));
+  const eventId = uuidv7();
+  const res = await fff(
+    JSON.stringify({
+      event: "t.group.sync.user.add",
+      eventId: eventId,
+      payload: {
+        groupId,
+        userId: currentUser,
+        beforeEventId: group.beforeEventId,
+      },
+    }),
+    uniqueDomains,
+  );
+  //@ts-ignore
+  console.log(await res[0].json());
+  await Group.updateOne({ groupId }, { $set: { beforeEventId: eventId } });
   return c.json({ message: "success" });
 }
 
@@ -295,7 +366,12 @@ export async function handleReCreateGroup(groupId: string) {
     groupId,
   });
   //groupのデータを再作成
-  await createRemoteGroup(groupId, await fetch(`https://${groupDomain}/_takos/v1/group/all/${groupId}`).then((res) => res.json()));
+  await createRemoteGroup(
+    groupId,
+    await fetch(`https://${groupDomain}/_takos/v1/group/all/${groupId}`).then((
+      res,
+    ) => res.json()),
+  );
 }
 
 app.post(
@@ -320,13 +396,6 @@ app.post(
       return await handleLocalGroupAccept(c, group, groupId, currentUser);
     }
     // グループが存在しない場合、またはリモートグループの場合
-    let groupData: Response | undefined;
-    if (!group) {
-      groupData = await fetch(`https://${groupDomain}/_takos/v1/group/all/${groupId}`);
-      if (groupData.status !== 200) {
-        return c.json({ message: "Error accepting group3" }, 500);
-      }
-    }
     // 自ドメインのグループの場合エラー
     if (groupDomain === env["domain"]) {
       return c.json({ message: "Invalid group" }, 400);
@@ -346,10 +415,15 @@ app.post(
       if (Array.isArray(res) ? res[0].status !== 200 : true) {
         return c.json({ message: "Error accepting group2" }, 500);
       }
-      await Member.create({ groupId, userId: currentUser });
-      if (!group && groupData) {
-        const resJson = await groupData.json();
-        await createRemoteGroup(groupId, resJson);
+      let groupData: Response | undefined;
+      if (!group) {
+        groupData = await fetch(
+          `https://${groupDomain}/_takos/v1/group/all/${groupId}`,
+        );
+        if (groupData.status !== 200) {
+          return c.json({ message: "Error accepting group3" }, 500);
+        }
+        await createRemoteGroup(groupId, await groupData.json());
       }
       return c.json({ message: "success" });
     } catch (error) {
