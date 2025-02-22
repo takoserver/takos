@@ -333,6 +333,21 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`    | `string` | グループID   |
 | `categoryId` | `string` | カテゴリーID |
 
+### t.group.role.create
+
+グループロールを作成/上書きします。
+
+`payload`
+
+| パラメータ   | 型         | 説明         |
+| ------------ | ---------- | ------------ |
+| `userId`     | `string`   | ユーザーID   |
+| `groupId`    | `string`   | グループID   |
+| `roleId`     | `string`   | ロールID     |
+| `roleName`   | `string`   | ロール名     |
+| `permission` | `string[]` | 権限         |
+| `color`      | `string`   | カラーコード |
+
 ### t.group.role.remove
 
 グループロールを削除します。
@@ -345,31 +360,18 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`  | `string` | グループID |
 | `roleId`   | `string` | ロールID   |
 
-### t.group.role.assign
+### t.group.user.role
 
-グループロールを割り当てます。
-
-`payload`
-
-| パラメータ     | 型       | 説明               |
-| -------------- | -------- | ------------------ |
-| `userId`       | `string` | ユーザーID         |
-| `groupId`      | `string` | グループID         |
-| `roleId`       | `string` | ロールID           |
-| `assignUserId` | `string` | 割り当てユーザーID |
-
-### t.group.role.unassign
-
-グループロールを割り当て解除します。
+グループロールを割り当てます。 (上書き)
 
 `payload`
 
-| パラメータ     | 型       | 説明               |
-| -------------- | -------- | ------------------ |
-| `userId`       | `string` | ユーザーID         |
-| `groupId`      | `string` | グループID         |
-| `roleId`       | `string` | ロールID           |
-| `assignUserId` | `string` | 割り当てユーザーID |
+| パラメータ     | 型         | 説明               |
+| -------------- | ---------- | ------------------ |
+| `userId`       | `string`   | ユーザーID         |
+| `groupId`      | `string`   | グループID         |
+| `roleId`       | `string[]` | ロールID           |
+| `assignUserId` | `string`   | 割り当てユーザーID |
 
 ### t.group.user.join.request
 
@@ -471,12 +473,12 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 
 `payload`
 
-| パラメータ      | 型     | 説明           |
-| --------------- | ------ | -------------- |
-| `groupId`       | string | グループID     |
-| `userId`        | string | ユーザーID     |
-| `role`          | string[] | ロール         |
-| `beforeEventId` | string | 前のイベントID |
+| パラメータ      | 型       | 説明           |
+| --------------- | -------- | -------------- |
+| `groupId`       | string   | グループID     |
+| `userId`        | string   | ユーザーID     |
+| `role`          | string[] | ロールID       |
+| `beforeEventId` | string   | 前のイベントID |
 
 ### t.group.sync.user.remove
 

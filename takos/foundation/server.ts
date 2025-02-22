@@ -434,7 +434,7 @@ eventManager.add(
     if (member) {
       await Member.updateOne(
         { groupId: groupId, userId: userId },
-        { role: role }
+        { role: role },
       );
       await Group.updateOne({ groupId }, { beforeEventId: eventId });
       return c.json(200);
@@ -445,6 +445,44 @@ eventManager.add(
       role: role,
     });
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
+    return c.json(200);
+  },
+);
+
+eventManager.add(
+  "t.group.invite.send",
+  z.object({
+    userId: z.string().email(),
+    groupId: z.string(),
+    inviteUserId: z.string().email(),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { userId, groupId, inviteUserId } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const group = await Group.findOne({ groupId });
+    if (!group || group.owner !== userId) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    if (await Member.findOne({ groupId: groupId, userId: inviteUserId })) {
+      return c.json({ error: "Already member" }, 400);
+    }
+    if (group.invites.includes(inviteUserId)) {
+      return c.json({ error: "Already invited" }, 400);
+    }
+    const permissions = await getUserPermission(
+          userId,
+          groupId,
+    );
+    if(!permissions || !permissions.includes("INVITE_USER")) {
+      return c.json({ message: "Unauthorized permission" }, 401);
+    }
+    await Group.updateOne({ groupId }, { $push: { invites: inviteUserId } });
     return c.json(200);
   },
 )
@@ -486,112 +524,6 @@ eventManager.add(
     await Member.deleteOne({
       groupId: groupId,
       userId: userId,
-    });
-    await Group.updateOne({ groupId }, { beforeEventId: eventId });
-    return c.json(200);
-  },
-);
-
-eventManager.add(
-  "t.group.sync.role.assign",
-  z.object({
-    groupId: z.string(),
-    userId: z.string(),
-    roleId: z.string(),
-    beforeEventId: z.string(),
-  }),
-  async (c, payload) => {
-    const domain = c.get("domain");
-    const eventId = c.get("eventId");
-    const { groupId, userId, roleId } = payload;
-    if (groupId.split("@")[1] !== env["domain"]) {
-      return c.json({ error: "Invalid groupId" }, 400);
-    }
-    if (domain === groupId.split("@")[1]) {
-      return c.json({ error: "Invalid groupId" }, 400);
-    }
-    const group = await Group.findOne({
-      groupId: groupId,
-    });
-    if (!group) {
-      return c.json({ error: "Invalid groupId" }, 400);
-    }
-    const member = await Member.findOne({
-      groupId: groupId,
-      userId: userId,
-    });
-    if (!member) {
-      return c.json({ error: "Not member" }, 400);
-    }
-    const role = await Roles.findOne({
-      groupId: groupId,
-      id: roleId,
-    });
-    if (!role) {
-      return c.json({ error: "Not role" }, 400);
-    }
-    if (group.beforeEventId !== payload.beforeEventId) {
-      await handleReCreateGroup(groupId, eventId);
-      return c.json(200);
-    }
-    await Member.updateOne({
-      groupId: groupId,
-      userId: userId,
-    }, {
-      $push: { role: roleId },
-    });
-    await Group.updateOne({ groupId }, { beforeEventId: eventId });
-    return c.json(200);
-  },
-);
-
-eventManager.add(
-  "t.group.sync.role.unassign",
-  z.object({
-    groupId: z.string(),
-    userId: z.string(),
-    roleId: z.string(),
-    beforeEventId: z.string(),
-  }),
-  async (c, payload) => {
-    const domain = c.get("domain");
-    const eventId = c.get("eventId");
-    const { groupId, userId, roleId } = payload;
-    if (groupId.split("@")[1] !== env["domain"]) {
-      return c.json({ error: "Invalid groupId" }, 400);
-    }
-    if (domain === groupId.split("@")[1]) {
-      return c.json({ error: "Invalid groupId" }, 400);
-    }
-    const group = await Group.findOne({
-      groupId: groupId,
-    });
-    if (!group) {
-      return c.json({ error: "Invalid groupId" }, 400);
-    }
-    const member = await Member.findOne({
-      groupId: groupId,
-      userId: userId,
-    });
-    if (!member) {
-      return c.json({ error: "Not member" }, 400);
-    }
-    const role = await Roles.findOne({
-      groupId: groupId,
-      id: roleId,
-    });
-    if (!role) {
-      return c.json({ error: "Not role" }, 400);
-    }
-    if (group.beforeEventId !== payload.beforeEventId) {
-      await handleReCreateGroup(groupId, eventId);
-      return c.json(200);
-    }
-    await Member.updateOne({
-      groupId: groupId,
-      userId: userId,
-    }, {
-      $pull: { role: roleId },
     });
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
@@ -753,13 +685,13 @@ eventManager.add(
     }
     const channel = await Category.findOne({
       groupId: groupId,
-      id: categoryId
+      id: categoryId,
     });
     if (group.beforeEventId !== payload.beforeEventId) {
       await handleReCreateGroup(groupId, eventId);
       return c.json(200);
     }
-    console.log(-1)
+    console.log(-1);
     if (channel) {
       await CategoryPermissions.deleteMany({
         groupId: groupId,
@@ -775,12 +707,12 @@ eventManager.add(
       }
     } else {
       // チャンネルが存在しない場合は新規作成
-      console.log(1)
+      console.log(1);
       await Category.create({
         groupId: groupId,
         id: categoryId,
       });
-      console.log(2)
+      console.log(2);
       for (const permission of permissions ?? []) {
         await CategoryPermissions.create({
           groupId: groupId,
@@ -789,13 +721,12 @@ eventManager.add(
           permissions: permission.permissions,
         });
       }
-      console.log(3)
+      console.log(3);
     }
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
   },
 );
-
 
 eventManager.add(
   "t.group.sync.category.remove",
@@ -822,7 +753,7 @@ eventManager.add(
     }
     const channel = await Category.findOne({
       groupId: groupId,
-      id: categoryId
+      id: categoryId,
     });
     if (!channel) {
       return c.json({ error: "Not channel" }, 400);
@@ -833,11 +764,11 @@ eventManager.add(
     }
     await Category.deleteOne({
       groupId: groupId,
-      id: categoryId
+      id: categoryId,
     });
     await CategoryPermissions.deleteMany({
       groupId: groupId,
-      categoryId
+      categoryId,
     });
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
@@ -876,11 +807,10 @@ eventManager.add(
     }, {
       $pull: { role: roleId },
     });
-    await Group.updateOne({ groupId }, { beforeEventId: eventId })
+    await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
   },
-)
-
+);
 
 eventManager.add(
   "t.group.leave",
@@ -926,6 +856,10 @@ eventManager.add(
     }
   },
 );
+
+eventManager.add(
+  "t.group."
+)
 
 app.post(
   "/",

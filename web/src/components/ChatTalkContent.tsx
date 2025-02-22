@@ -191,7 +191,7 @@ function CreateChannelModal() {
           name: nameValue(),
           id: uuidv7(),
           categoryId: "",
-          permissions: []
+          permissions: [],
         }),
       });
       if (!res.ok) {
@@ -480,9 +480,11 @@ function ChannelSideBar() {
                             .sort((a, b) => a.order - b.order)
                             .map((category) => {
                               const categoryChannels = groupInfo.channels
-                                .filter((channel) => channel.category === category.id)
+                                .filter((channel) =>
+                                  channel.category === category.id
+                                )
                                 .sort((a, b) => a.order - b.order);
-                      
+
                               return (
                                 <ChannelCategory
                                   name={category.name}
@@ -500,15 +502,15 @@ function ChannelSideBar() {
                                 />
                               );
                             })}
-                        {groupInfo.channels
-                          .filter((channel) => !channel.category)
-                          .sort((a, b) => a.order - b.order)
-                          .map((channel) => (
-                            <ChannelCompornent
-                              name={channel.name}
-                              id={channel.id}
-                            />
-                          ))}
+                          {groupInfo.channels
+                            .filter((channel) => !channel.category)
+                            .sort((a, b) => a.order - b.order)
+                            .map((channel) => (
+                              <ChannelCompornent
+                                name={channel.name}
+                                id={channel.id}
+                              />
+                            ))}
                         </>
                       );
                     })()}
@@ -567,15 +569,16 @@ function ChannelEditModal(props: {
   type: "channel" | "category";
 }) {
   const [groupChannel] = useAtom(groupChannelState);
-  const channelInfo =
-  props.type === "channel"
+  const channelInfo = props.type === "channel"
     ? groupChannel()?.channels?.find((channel) => channel.id === props.channel)
-    : groupChannel()?.categories?.find((category) => category.id === props.channel);
+    : groupChannel()?.categories?.find((category) =>
+      category.id === props.channel
+    );
   const [selectedRoom] = useAtom(selectedRoomState);
   const [channelName, setChannelName] = createSignal(channelInfo?.name || "");
   const [channelCategory, setChannelCategory] = createSignal(
     //@ts-ignore
-    props ? channelInfo?.category || "" : ""
+    props ? channelInfo?.category || "" : "",
   );
   // permissions の permission を string[] に変更
   const initialPermissions = channelInfo?.permissions
@@ -602,25 +605,25 @@ function ChannelEditModal(props: {
     const much = roomId?.match(/^g\{([^}]+)\}@(.+)$/);
     if (!much) return console.error("Invalid roomid");
     const groupId = much[1] + "@" + much[2];
-    if(props.type === "channel") {
-    const res = await fetch("/api/v2/group/channel/add", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        groupId: groupId,
-        name: channelName(),
-        id: props.channel,
-        categoryId: channelCategory(),
-        permissions: permissions(),
-      }),
-    });
-    if (!res.ok) {
-      console.error("Failed to edit channel");
-      return;
-    }
-    alert("チャンネルを編集しました");
+    if (props.type === "channel") {
+      const res = await fetch("/api/v2/group/channel/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          groupId: groupId,
+          name: channelName(),
+          id: props.channel,
+          categoryId: channelCategory(),
+          permissions: permissions(),
+        }),
+      });
+      if (!res.ok) {
+        console.error("Failed to edit channel");
+        return;
+      }
+      alert("チャンネルを編集しました");
     } else {
       const res = await fetch("/api/v2/group/category/add", {
         method: "POST",
@@ -689,14 +692,14 @@ function ChannelEditModal(props: {
         </div>
         {props.type === "channel" && (
           <div class="mb-4">
-          <label class="block mb-1">カテゴリー</label>
-          <input
-            type="text"
-            value={channelCategory()}
-            onChange={(e) => setChannelCategory(e.currentTarget.value)}
-            class="w-full p-2 border rounded text-black"
-          />
-        </div>
+            <label class="block mb-1">カテゴリー</label>
+            <input
+              type="text"
+              value={channelCategory()}
+              onChange={(e) => setChannelCategory(e.currentTarget.value)}
+              class="w-full p-2 border rounded text-black"
+            />
+          </div>
         )}
         <div class="mb-4">
           <label class="block mb-1">権限設定 (roleId と permission)</label>
