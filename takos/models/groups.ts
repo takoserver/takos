@@ -43,7 +43,7 @@ const memberSchema = new mongoose.Schema({
 
 const channelSchema = new mongoose.Schema({
   groupId: { type: String, required: true },
-  name: { type: String, required: true },
+  name: { type: String },
   id: { type: String, required: true },
   category: { type: String },
 });

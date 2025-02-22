@@ -18,7 +18,7 @@ permissionは everyone->role->user->category->channelの順で上書きされる
 ## サーバー全体のpermission
 
 - `ADMIN`: グループの管理者 すべての権限を持つ。
-- `MANAGE_ROLL`: ロールの管理
+- `MANAGE_ROLE`: ロールの管理
 - `MANAGE_CHANNEL`: チャンネル・categoryの管理
 - `MANAGE_USER`: ユーザーの管理
 - `INVITE_USER`: ユーザーの招待

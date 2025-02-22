@@ -154,7 +154,7 @@ function CreateChannelModal() {
       if (!match) {
         return console.error("Invalid roomid");
       }
-      const res = await fetch("/api/v2/group/category/create", {
+      const res = await fetch("/api/v2/group/category/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -164,6 +164,7 @@ function CreateChannelModal() {
           groupId: match[1] + "@" + match[2],
           name: nameValue(),
           id: uuidv7(),
+          permissions: [],
         }),
       });
       if (!res.ok) {
@@ -179,7 +180,7 @@ function CreateChannelModal() {
       if (!match) {
         return console.error("Invalid roomid");
       }
-      const res = await fetch("/api/v2/group/channel/create", {
+      const res = await fetch("/api/v2/group/channel/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -189,6 +190,8 @@ function CreateChannelModal() {
           groupId: match[1] + "@" + match[2],
           name: nameValue(),
           id: uuidv7(),
+          categoryId: "",
+          permissions: []
         }),
       });
       if (!res.ok) {
@@ -600,7 +603,7 @@ function ChannelEditModal(props: {
     if (!much) return console.error("Invalid roomid");
     const groupId = much[1] + "@" + much[2];
     if(props.type === "channel") {
-    const res = await fetch("/api/v2/group/channel/edit", {
+    const res = await fetch("/api/v2/group/channel/add", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -619,7 +622,7 @@ function ChannelEditModal(props: {
     }
     alert("チャンネルを編集しました");
     } else {
-      const res = await fetch("/api/v2/group/category/edit", {
+      const res = await fetch("/api/v2/group/category/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
