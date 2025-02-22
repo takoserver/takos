@@ -150,7 +150,29 @@ function CreateChannelModal() {
   const [sellectedRoom] = useAtom(selectedRoomState);
   const createEntity = async () => {
     if (selectedMode() === "category") {
-      // カテゴリー作成の処理を記述
+      const match = sellectedRoom()?.roomid.match(/^g\{([^}]+)\}@(.+)$/);
+      if (!match) {
+        return console.error("Invalid roomid");
+      }
+      const res = await fetch("/api/v2/group/category/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          groupId: match[1] + "@" + match[2],
+          name: nameValue(),
+          id: uuidv7(),
+        }),
+      });
+      if (!res.ok) {
+        console.error("Failed to create channel");
+        return alert("チャンネルの作成に失敗しました");
+      }
+      alert("チャンネルを作成しました");
+      setNameValue("");
+      setShowCreateChannelModal(false);
     }
     if (selectedMode() === "channel") {
       const match = sellectedRoom()?.roomid.match(/^g\{([^}]+)\}@(.+)$/);
@@ -171,6 +193,7 @@ function CreateChannelModal() {
       });
       if (!res.ok) {
         console.error("Failed to create channel");
+        return alert("チャンネルの作成に失敗しました");
       }
       alert("チャンネルを作成しました");
       setNameValue("");
@@ -372,10 +395,7 @@ function ChannelSideBar() {
                     {(() => {
                       const groupInfo = groupChannel();
                       if (!groupInfo) return <></>;
-                      const sortedChannels = [...groupInfo.channels].sort(
-                        (a, b) => a.order - b.order,
-                      );
-                      function channelCompornent({
+                      function ChannelCompornent({
                         name,
                         id,
                       }: {
@@ -427,7 +447,7 @@ function ChannelSideBar() {
                           </li>
                         );
                       }
-                      function channelCategory({
+                      function ChannelCategory({
                         name,
                         children,
                         id,
@@ -438,7 +458,7 @@ function ChannelSideBar() {
                       }) {
                         return (
                           <li
-                            class="mt-2"
+                            class="mt-2 hover:bg-gray-700"
                             onContextMenu={(e) =>
                               handleContextMenu(e, id, "category")}
                           >
@@ -451,35 +471,43 @@ function ChannelSideBar() {
                           </li>
                         );
                       }
-                      return sortedChannels.map((channel) => {
-                        if (channel.category) return null;
-                        const childrenChannels = sortedChannels.filter(
-                          (ch) => ch.category === channel.id,
-                        );
-                        if (childrenChannels.length > 0) {
-                          const childrenElements = childrenChannels.map(
-                            (child) =>
-                              channelCompornent({
-                                name: child.name,
-                                id: child.id,
-                              }),
-                          );
-                          return channelCategory({
-                            name: channel.name,
-                            id: channel.id,
-                            children: (
-                              <ul class="pl-4 mt-2">
-                                {childrenElements}
-                              </ul>
-                            ),
-                          });
-                        } else {
-                          return channelCompornent({
-                            name: channel.name,
-                            id: channel.id,
-                          });
-                        }
-                      });
+                      return (
+                        <>
+                          {groupInfo.categories
+                            .sort((a, b) => a.order - b.order)
+                            .map((category) => {
+                              const categoryChannels = groupInfo.channels
+                                .filter((channel) => channel.category === category.id)
+                                .sort((a, b) => a.order - b.order);
+                      
+                              return (
+                                <ChannelCategory
+                                  name={category.name}
+                                  id={category.id}
+                                  children={
+                                    <ul>
+                                      {categoryChannels.map((channel) => (
+                                        <ChannelCompornent
+                                          name={channel.name}
+                                          id={channel.id}
+                                        />
+                                      ))}
+                                    </ul>
+                                  }
+                                />
+                              );
+                            })}
+                        {groupInfo.channels
+                          .filter((channel) => !channel.category)
+                          .sort((a, b) => a.order - b.order)
+                          .map((channel) => (
+                            <ChannelCompornent
+                              name={channel.name}
+                              id={channel.id}
+                            />
+                          ))}
+                        </>
+                      );
                     })()}
                   </ul>
                   {/* チャンネル作成ボタンを追加 */}
@@ -519,6 +547,7 @@ function ChannelSideBar() {
           {showEditChannelModal() && (
             <ChannelEditModal
               channel={contextMenuPosition().id}
+              type={contextMenuPosition().type!}
               onClose={setShowEditChannelModal}
             />
           )}
@@ -532,15 +561,18 @@ export default ChatTalk;
 function ChannelEditModal(props: {
   channel: string;
   onClose: Setter<boolean>;
+  type: "channel" | "category";
 }) {
   const [groupChannel] = useAtom(groupChannelState);
-  const channelInfo = groupChannel()?.channels.find((ch) =>
-    ch.id === props.channel
-  );
+  const channelInfo =
+  props.type === "channel"
+    ? groupChannel()?.channels?.find((channel) => channel.id === props.channel)
+    : groupChannel()?.categories?.find((category) => category.id === props.channel);
   const [selectedRoom] = useAtom(selectedRoomState);
   const [channelName, setChannelName] = createSignal(channelInfo?.name || "");
   const [channelCategory, setChannelCategory] = createSignal(
-    channelInfo?.category || "",
+    //@ts-ignore
+    props ? channelInfo?.category || "" : ""
   );
   // permissions の permission を string[] に変更
   const initialPermissions = channelInfo?.permissions
@@ -563,15 +595,11 @@ function ChannelEditModal(props: {
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
-    console.log({
-      channelName: channelName(),
-      channelCategory: channelCategory(),
-      permissions: permissions(),
-    });
     const roomId = selectedRoom()?.roomid;
     const much = roomId?.match(/^g\{([^}]+)\}@(.+)$/);
     if (!much) return console.error("Invalid roomid");
     const groupId = much[1] + "@" + much[2];
+    if(props.type === "channel") {
     const res = await fetch("/api/v2/group/channel/edit", {
       method: "POST",
       headers: {
@@ -590,6 +618,28 @@ function ChannelEditModal(props: {
       return;
     }
     alert("チャンネルを編集しました");
+    } else {
+      const res = await fetch("/api/v2/group/category/edit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          groupId: groupId,
+          name: channelName(),
+          id: props.channel,
+          permissions: permissions().map((perm) => ({
+            roleId: perm.roleId,
+            permissions: perm.permissions,
+          })),
+        }),
+      });
+      if (!res.ok) {
+        console.error("Failed to edit category");
+        return;
+      }
+      alert("カテゴリーを編集しました");
+    }
   };
   const [collapsedStates, setCollapsedStates] = createSignal<boolean[]>(
     permissions().map(() => true),
@@ -634,7 +684,8 @@ function ChannelEditModal(props: {
             class="w-full p-2 border rounded text-black"
           />
         </div>
-        <div class="mb-4">
+        {props.type === "channel" && (
+          <div class="mb-4">
           <label class="block mb-1">カテゴリー</label>
           <input
             type="text"
@@ -643,6 +694,7 @@ function ChannelEditModal(props: {
             class="w-full p-2 border rounded text-black"
           />
         </div>
+        )}
         <div class="mb-4">
           <label class="block mb-1">権限設定 (roleId と permission)</label>
           {permissions().map((perm, index) => (

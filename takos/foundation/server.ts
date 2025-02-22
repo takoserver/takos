@@ -743,46 +743,47 @@ eventManager.add(
     if (!group) {
       return c.json({ error: "Invalid groupId2" }, 400);
     }
-    const category = await Category.findOne({
+    const channel = await Category.findOne({
       groupId: groupId,
-      id: categoryId,
+      id: categoryId
     });
     if (group.beforeEventId !== payload.beforeEventId) {
       await handleReCreateGroup(groupId);
       return c.json(200);
     }
-    if (category) {
-      // 既存のカテゴリの場合は上書き更新
-      await Category.updateOne(
-        { groupId: groupId, id: categoryId },
-        { category: categoryId },
-      );
-      // 既存の権限を削除し、新たに設定
+    console.log(-1)
+    if (channel) {
       await CategoryPermissions.deleteMany({
         groupId: groupId,
-        categoryId: categoryId
+        categoryId: categoryId,
       });
-      for (const permission of permissions) {
+      for (const permission of permissions ?? []) {
         await CategoryPermissions.create({
           groupId: groupId,
-          categoryId: categoryId
+          categoryId: categoryId,
+          roleId: permission.roleId,
+          permissions: permission.permissions,
         });
       }
     } else {
-      // カテゴリが存在しない場合は新規作成
+      // チャンネルが存在しない場合は新規作成
+      console.log(1)
       await Category.create({
         groupId: groupId,
         id: categoryId,
       });
-      for (const permission of permissions) {
+      console.log(2)
+      for (const permission of permissions ?? []) {
         await CategoryPermissions.create({
           groupId: groupId,
-          categoryId: categoryId
+          categoryId: categoryId,
+          roleId: permission.roleId,
+          permissions: permission.permissions,
         });
       }
+      console.log(3)
     }
-    await Group
-      .updateOne({ groupId }, { beforeEventId: eventId });
+    await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
   },
 );
@@ -811,12 +812,12 @@ eventManager.add(
     if (!group) {
       return c.json({ error: "Invalid groupId2" }, 400);
     }
-    const category = await Category.findOne({
+    const channel = await Category.findOne({
       groupId: groupId,
-      id: categoryId,
+      id: categoryId
     });
-    if (!category) {
-      return c.json({ error: "Not category" }, 400);
+    if (!channel) {
+      return c.json({ error: "Not channel" }, 400);
     }
     if (group.beforeEventId !== payload.beforeEventId) {
       await handleReCreateGroup(groupId);
@@ -824,14 +825,13 @@ eventManager.add(
     }
     await Category.deleteOne({
       groupId: groupId,
-      id: categoryId,
+      id: categoryId
     });
     await CategoryPermissions.deleteMany({
       groupId: groupId,
-      categoryId: categoryId
+      categoryId
     });
-    await Group
-      .updateOne({ groupId }, { beforeEventId: eventId });  
+    await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
   },
 );
