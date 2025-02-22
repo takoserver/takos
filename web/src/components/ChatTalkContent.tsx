@@ -1,10 +1,14 @@
-import { isSelectRoomState, selectedRoomState } from "../utils/roomState";
+import {
+  isSelectRoomState,
+  selectedChannelState,
+  selectedRoomState,
+} from "../utils/roomState";
 import { messageListState, messageValueState } from "../utils/state.ts";
 import { useAtom } from "solid-jotai";
 import ChatSendMessage from "./SendMessage.tsx";
 import ChatOtherMessage from "./OtherMessage.tsx";
 import { getMessage } from "../utils/getMessage.ts";
-import { createEffect, createSignal, JSX } from "solid-js";
+import { createEffect, createSignal, JSX, onCleanup, Setter } from "solid-js";
 import { groupChannelState } from "./Chat/SideBar.tsx";
 
 const myuserName = localStorage.getItem("userName") + "@" +
@@ -16,7 +20,7 @@ function ChatTalkMain() {
   return (
     <>
       <div class="pl-2" id="chatList">
-      <CreateChannelModal />
+        <CreateChannelModal />
         {list.map((message) => {
           return (
             <>
@@ -36,6 +40,7 @@ function ChatTalkMain() {
 
 import { onMount } from "solid-js";
 import { PopUpFrame } from "./popUpFrame.tsx";
+import { uuidv7 } from "uuidv7";
 
 function Message(
   { messageid, myMessage, time, userName }: {
@@ -138,13 +143,39 @@ function ChatTalk() {
 const [showCreateChannelModal, setShowCreateChannelModal] = createSignal(false);
 
 function CreateChannelModal() {
-  const [selectedMode, setSelectedMode] = createSignal<"category" | "channel">("category");
+  const [selectedMode, setSelectedMode] = createSignal<"category" | "channel">(
+    "category",
+  );
   const [nameValue, setNameValue] = createSignal("");
+  const [sellectedRoom] = useAtom(selectedRoomState);
+  const createEntity = async () => {
+    if (selectedMode() === "category") {
+      // カテゴリー作成の処理を記述
+    }
+    if (selectedMode() === "channel") {
+      const match = sellectedRoom()?.roomid.match(/^g\{([^}]+)\}@(.+)$/);
+      if (!match) {
+        return console.error("Invalid roomid");
+      }
+      const res = await fetch("/api/v2/group/channel/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-  const createEntity = () => {
-    console.log(`${selectedMode()}作成:`, nameValue());
-    setNameValue("");
-    setShowCreateChannelModal(false);
+        body: JSON.stringify({
+          groupId: match[1] + "@" + match[2],
+          name: nameValue(),
+          id: uuidv7(),
+        }),
+      });
+      if (!res.ok) {
+        console.error("Failed to create channel");
+      }
+      alert("チャンネルを作成しました");
+      setNameValue("");
+      setShowCreateChannelModal(false);
+    }
   };
 
   const handleSubmit = (e: Event) => {
@@ -165,7 +196,11 @@ function CreateChannelModal() {
                   setSelectedMode("category");
                   setNameValue("");
                 }}
-                class={`flex-1 p-2 rounded ${selectedMode() === "category" ? "bg-green-500 text-white" : "bg-gray-300 text-black"}`}
+                class={`flex-1 p-2 rounded ${
+                  selectedMode() === "category"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-300 text-black"
+                }`}
               >
                 カテゴリー作成
               </button>
@@ -175,7 +210,11 @@ function CreateChannelModal() {
                   setSelectedMode("channel");
                   setNameValue("");
                 }}
-                class={`flex-1 p-2 ml-2 rounded ${selectedMode() === "channel" ? "bg-blue-500 text-white" : "bg-gray-300 text-black"}`}
+                class={`flex-1 p-2 ml-2 rounded ${
+                  selectedMode() === "channel"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-300 text-black"
+                }`}
               >
                 チャンネル作成
               </button>
@@ -184,15 +223,24 @@ function CreateChannelModal() {
               <input
                 type="text"
                 value={nameValue()}
-                onInput={(e) => setNameValue(e.currentTarget.value)}
-                placeholder={selectedMode() === "category" ? "カテゴリー名" : "チャンネル名"}
-                class="w-full p-2 border rounded mb-2"
+                onInput={(e) =>
+                  setNameValue(e.currentTarget.value)}
+                placeholder={selectedMode() === "category"
+                  ? "カテゴリー名"
+                  : "チャンネル名"}
+                class="w-full p-2 border rounded mb-2 text-black"
               />
               <button
                 type="submit"
-                class={`w-full py-2 rounded ${selectedMode() === "category" ? "bg-green-500 hover:bg-green-600" : "bg-blue-500 hover:bg-blue-600"} text-white`}
+                class={`w-full py-2 rounded ${
+                  selectedMode() === "category"
+                    ? "bg-green-500 hover:bg-green-600"
+                    : "bg-blue-500 hover:bg-blue-600"
+                } text-white`}
               >
-                {selectedMode() === "category" ? "カテゴリー作成" : "チャンネル作成"}
+                {selectedMode() === "category"
+                  ? "カテゴリー作成"
+                  : "チャンネル作成"}
               </button>
             </form>
           </div>
@@ -201,18 +249,99 @@ function CreateChannelModal() {
     </>
   );
 }
-
+const [showEditChannelModal, setShowEditChannelModal] = createSignal(false);
+const [contextMenuPosition, setContextMenuPosition] = createSignal<
+  { x: number; y: number; type: "channel" | "category" | null; id: string }
+>({ x: 0, y: 0, type: null, id: "" });
 function ChannelSideBar() {
+  const [selectedChannel, setSelectedChannel] = useAtom(selectedChannelState);
   const [isOpenChannel, setIsOpenChannel] = createSignal(false);
   const [isSelectRoom] = useAtom(selectedRoomState);
   const [groupChannel] = useAtom(groupChannelState);
+  const [showContextMenu, setShowContextMenu] = createSignal(false);
+  const [sellectedRoom] = useAtom(selectedRoomState);
+  const [messageList, setMessageList] = useAtom(messageListState);
+  // クリックでコンテキストメニューを閉じる
+  onMount(() => {
+    const clickHandler = (e: MouseEvent) => {
+      setShowContextMenu(false);
+    };
+    document.addEventListener("click", clickHandler);
+    onCleanup(() => {
+      document.removeEventListener("click", clickHandler);
+    });
+  });
 
   function createChannel() {
     setShowCreateChannelModal(true);
   }
-
+  const handleContextMenu = (e: MouseEvent, id: string, type: string) => {
+    e.preventDefault();
+    setContextMenuPosition({
+      x: e.clientX,
+      y: e.clientY,
+      type: type as "channel" | "category",
+      id,
+    });
+    setShowContextMenu(true);
+  };
+  const handleMenuItemClick = (item: string) => {
+    console.log(item + " clicked");
+    setShowContextMenu(false);
+  };
   return (
     <>
+      {showContextMenu() && (
+        <div
+          style={{
+            position: "fixed",
+            top: contextMenuPosition().y + "px",
+            left: contextMenuPosition().x + "px",
+            "z-index": 99999,
+          }}
+          onClick={() => setShowContextMenu(false)}
+        >
+          <ul class="bg-gray-800 text-white rounded-lg shadow-lg p-2 animate-fadeIn">
+            <li
+              class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
+              onClick={() => {
+                handleMenuItemClick("編集");
+                setShowEditChannelModal(true);
+              }}
+            >
+              編集
+            </li>
+            <li
+              class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
+              onClick={async () => {
+                const match = sellectedRoom()?.roomid.match(
+                  /^g\{([^}]+)\}@(.+)$/,
+                );
+                if (!match) {
+                  return console.error("Invalid roomid");
+                }
+                const res = await fetch("/api/v2/group/channel/delete", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+
+                  body: JSON.stringify({
+                    groupId: match[1] + "@" + match[2],
+                    channelId: contextMenuPosition().id,
+                  }),
+                });
+                if (!res.ok) {
+                  console.error("Failed to create channel");
+                }
+                alert("チャンネルを削除しました");
+              }}
+            >
+              削除
+            </li>
+          </ul>
+        </div>
+      )}
       {isSelectRoom()?.type === "group" && (
         <>
           {isOpenChannel() === true && (
@@ -254,11 +383,43 @@ function ChannelSideBar() {
                         id: string;
                       }) {
                         return (
-                          <li class="hover:bg-gray-700 rounded">
+                          <li
+                            class="hover:bg-gray-700 rounded"
+                            onContextMenu={(e) =>
+                              handleContextMenu(e, id, "channel")}
+                          >
                             <button
-                              class="w-full text-left py-2 px-4 text-white hover:bg-gray-600 transition-colors"
-                              onClick={() => {
-                                // チャンネル選択時の処理を記述
+                              class={`w-full text-left py-2 px-4 text-white transition-colors ${
+                                selectedChannel() === id
+                                  ? "bg-blue-500"
+                                  : "hover:bg-gray-600"
+                              }`}
+                              onClick={async () => {
+                                setSelectedChannel(id);
+                                const match = sellectedRoom()?.roomid.match(
+                                  /^g\{([^}]+)\}@(.+)$/,
+                                );
+                                if (!match) {
+                                  return console.error("Invalid roomid");
+                                }
+                                const messages = await fetch(
+                                  "/api/v2/message/group/" +
+                                    sellectedRoom()?.roomid + "/" + id,
+                                );
+                                const messagesJson =
+                                  (((await messages.json()).messages) as {
+                                    userName: string;
+                                    messageid: string;
+                                    timestamp: string;
+                                  }[]).sort((a, b) =>
+                                    new Date(a.timestamp).getTime() -
+                                    new Date(b.timestamp).getTime()
+                                  );
+                                console.log(messagesJson);
+                                setMessageList([]);
+                                setTimeout(() => {
+                                  setMessageList(messagesJson);
+                                }, 10);
                               }}
                             >
                               {name}
@@ -268,15 +429,19 @@ function ChannelSideBar() {
                       }
                       function channelCategory({
                         name,
-                        id,
                         children,
+                        id,
                       }: {
                         name: string;
                         id: string;
                         children: JSX.Element;
                       }) {
                         return (
-                          <li class="mt-2">
+                          <li
+                            class="mt-2"
+                            onContextMenu={(e) =>
+                              handleContextMenu(e, id, "category")}
+                          >
                             <div class="px-4 py-2">
                               <span class="block text-gray-300 font-semibold">
                                 {name}
@@ -351,9 +516,233 @@ function ChannelSideBar() {
               </svg>
             </button>
           )}
+          {showEditChannelModal() && (
+            <ChannelEditModal
+              channel={contextMenuPosition().id}
+              onClose={setShowEditChannelModal}
+            />
+          )}
         </>
       )}
     </>
   );
 }
 export default ChatTalk;
+
+function ChannelEditModal(props: {
+  channel: string;
+  onClose: Setter<boolean>;
+}) {
+  const [groupChannel] = useAtom(groupChannelState);
+  const channelInfo = groupChannel()?.channels.find((ch) =>
+    ch.id === props.channel
+  );
+  const [selectedRoom] = useAtom(selectedRoomState);
+  const [channelName, setChannelName] = createSignal(channelInfo?.name || "");
+  const [channelCategory, setChannelCategory] = createSignal(
+    channelInfo?.category || "",
+  );
+  // permissions の permission を string[] に変更
+  const initialPermissions = channelInfo?.permissions
+    ? [...channelInfo.permissions]
+    : [];
+  const [permissions, setPermissions] = createSignal<
+    { roleId: string; permissions: string[] }[]
+  >(initialPermissions);
+  const handlePermissionChange = (
+    index: number,
+    field: "roleId" | "permissions",
+    value: string | string[],
+  ) => {
+    setPermissions((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const handleSubmit = async (e: Event) => {
+    e.preventDefault();
+    console.log({
+      channelName: channelName(),
+      channelCategory: channelCategory(),
+      permissions: permissions(),
+    });
+    const roomId = selectedRoom()?.roomid;
+    const much = roomId?.match(/^g\{([^}]+)\}@(.+)$/);
+    if (!much) return console.error("Invalid roomid");
+    const groupId = much[1] + "@" + much[2];
+    const res = await fetch("/api/v2/group/channel/edit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        groupId: groupId,
+        name: channelName(),
+        id: props.channel,
+        categoryId: channelCategory(),
+        permissions: permissions(),
+      }),
+    });
+    if (!res.ok) {
+      console.error("Failed to edit channel");
+      return;
+    }
+    alert("チャンネルを編集しました");
+  };
+  const [collapsedStates, setCollapsedStates] = createSignal<boolean[]>(
+    permissions().map(() => true),
+  );
+
+  const toggleCollapsed = (index: number) => {
+    const newStates = [...collapsedStates()];
+    newStates[index] = !newStates[index];
+    setCollapsedStates(newStates);
+  };
+
+  const addPermission = () => {
+    setPermissions((prev) => {
+      const updated = [...prev, { roleId: "", permissions: [] }];
+      // 新たな項目は折りたたみ状態で追加
+      setCollapsedStates(updated.map(() => true));
+      return updated;
+    });
+  };
+  const removeRole = (index: number) => {
+    setPermissions((prev) => {
+      const updated = [...prev];
+      updated.splice(index, 1);
+      return updated;
+    });
+    setCollapsedStates((prev) => {
+      const updated = [...prev];
+      updated.splice(index, 1);
+      return updated;
+    });
+  };
+  return (
+    <PopUpFrame closeScript={props.onClose}>
+      <form onSubmit={handleSubmit} class="p-4">
+        <h2 class="text-xl font-bold mb-4">チャンネル編集</h2>
+        <div class="mb-4">
+          <label class="block mb-1">チャンネル名</label>
+          <input
+            type="text"
+            value={channelName()}
+            onChange={(e) => setChannelName(e.currentTarget.value)}
+            class="w-full p-2 border rounded text-black"
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block mb-1">カテゴリー</label>
+          <input
+            type="text"
+            value={channelCategory()}
+            onChange={(e) => setChannelCategory(e.currentTarget.value)}
+            class="w-full p-2 border rounded text-black"
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block mb-1">権限設定 (roleId と permission)</label>
+          {permissions().map((perm, index) => (
+            <div class="border border-gray-300 rounded mb-2">
+              <div
+                class="flex justify-between items-center bg-gray-200 p-2 cursor-pointer text-black"
+                onClick={() => toggleCollapsed(index)}
+              >
+                <span>{perm.roleId || "新しい権限"}</span>
+                <span>{collapsedStates()[index] ? "▼" : "▲"}</span>
+              </div>
+              {!collapsedStates()[index] && (
+                <div class="p-2">
+                  <div class="flex justify-between items-center mb-2">
+                    <input
+                      type="text"
+                      value={perm.roleId}
+                      placeholder="roleId"
+                      onChange={(e) =>
+                        handlePermissionChange(
+                          index,
+                          "roleId",
+                          e.currentTarget.value,
+                        )}
+                      class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeRole(index);
+                      }}
+                      class="ml-2 bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded transition-colors duration-200"
+                    >
+                      削除
+                    </button>
+                  </div>
+                  <div class="mb-2">
+                    {[
+                      "SEND_MESSAGE",
+                      "VIEW_MESSAGE",
+                      "MENTION_USER",
+                      "MANAGE_MESSAGE",
+                    ].map((permission) => (
+                      <label class="inline-flex items-center mr-2">
+                        <input
+                          type="checkbox"
+                          checked={perm.permissions.includes(permission)}
+                          onChange={(e) => {
+                            const newPermissions = [...perm.permissions];
+                            if (e.currentTarget.checked) {
+                              if (!newPermissions.includes(permission)) {
+                                newPermissions.push(permission);
+                              }
+                            } else {
+                              const idx = newPermissions.indexOf(permission);
+                              if (idx > -1) {
+                                newPermissions.splice(idx, 1);
+                              }
+                            }
+                            handlePermissionChange(
+                              index,
+                              "permissions",
+                              newPermissions,
+                            );
+                          }}
+                          class="mr-1"
+                        />
+                        {permission}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addPermission}
+            class="mt-2 px-4 py-2 bg-gray-300 rounded"
+          >
+            + 追加
+          </button>
+        </div>
+        <div class="flex justify-end">
+          <button
+            type="button"
+            onClick={() => props.onClose(false)}
+            class="mr-2 px-4 py-2 border rounded"
+          >
+            キャンセル
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 bg-blue-500 text-white rounded"
+          >
+            保存
+          </button>
+        </div>
+      </form>
+    </PopUpFrame>
+  );
+}

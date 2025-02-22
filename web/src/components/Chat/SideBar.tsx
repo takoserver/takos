@@ -155,14 +155,14 @@ export const groupChannelState = atom<{
     category: string;
     id: string;
     name: string;
-    permissions: { roleId: string; permission: string }[];
+    permissions: { roleId: string; permissions: string[] }[];
     order: number;
   }[];
-  roles: { color: string; id: string; name: string; permission: string[] }[];
+  roles: { color: string; id: string; name: string; permissions: string[] }[];
   categories: {
     id: string;
     name: string;
-    permissions: { roleId: string; permission: string }[];
+    permissions: { roleId: string; permissions: string[] }[];
     order: number;
   }[];
   owner: string;
@@ -248,31 +248,28 @@ function TalkGroup({
       categories: {
         id: string;
         name: string;
-        permissions: { roleId: string; permission: string }[];
+        permissions: { roleId: string; permissions: string[] }[];
         order: number;
       }[];
       channels: {
         category: string;
         id: string;
         name: string;
-        permissions: { roleId: string; permission: string }[];
+        permissions: { roleId: string; permissions: string[] }[];
         order: number;
       }[];
     } = channelsResult.channels;
-
+    console.log(channels);
     const role: {
       color: string;
       id: string;
       name: string;
-      permission: string[];
+      permissions: string[];
     }[] = roleResult.role;
     const members: { userId: string; role: string[] }[] = membersResult.members;
     const owner: string = ownerResult.owner;
     const defaultChannelId = defaultChannelResult.defaultChannel;
-
-    const messages = await fetch(
-      "/api/v2/message/group/" + talk.roomid + "/" + defaultChannelId,
-    );
+    console.log(defaultChannelId);
     setGroupChannel({
       members: members,
       channels: channels,
@@ -280,6 +277,9 @@ function TalkGroup({
       categories,
       owner,
     });
+    const messages = await fetch(
+      "/api/v2/message/group/" + talk.roomid + "/" + defaultChannelId,
+    );
     const messagesJson = (((await messages.json()).messages) as {
       userName: string;
       messageid: string;

@@ -138,45 +138,43 @@ app.get("/group/:key/:groupId", async (c) => {
       });
     }
     case "channels": {
-      const categories = [];
       const categorysRaw = await Category.find({ groupId });
-      for (const category of categorysRaw) {
-        const permissionsRaw = await CategoryPermissions.find({
-          groupId,
-          categoryId: category.id,
-        });
-        const permissions = permissionsRaw.map((permission) => {
-          return {
+      const categories = await Promise.all(
+        categorysRaw.map(async (category) => {
+          const permissionsRaw = await CategoryPermissions.find({
+            groupId,
+            categoryId: category.id,
+          });
+          const permissions = permissionsRaw.map((permission) => ({
             roleId: permission.roleId,
             permissions: permission.permissions,
+          }));
+          return {
+            id: category.id,
+            name: category.name,
+            permissions,
           };
-        });
-        categories.push({
-          id: category.id,
-          name: category.name,
-          permissions,
-        });
-      }
-      const channels = [];
+        }),
+      );
       const channelsRaw = await Channels.find({ groupId });
-      for (const channel of channelsRaw) {
-        const permissionsRaw = await CategoryPermissions.find({
-          groupId,
-          channelId: channel.id,
-        });
-        const permissions = permissionsRaw.map((permission) => {
-          return {
+      const channels = await Promise.all(
+        channelsRaw.map(async (channel) => {
+          const permissionsRaw = await ChannelPermissions.find({
+            groupId,
+            channelId: channel.id,
+          });
+          const permissions = permissionsRaw.map((permission) => ({
             roleId: permission.roleId,
             permissions: permission.permissions,
+          }));
+          return {
+            id: channel.id,
+            name: channel.name,
+            category: channel.category,
+            permissions,
           };
-        });
-        channels.push({
-          id: channel.id,
-          name: channel.name,
-          category: channel.category,
-          permissions,
-        });
-      }
+        }),
+      );
       return c.json({
         channels: {
           categories,

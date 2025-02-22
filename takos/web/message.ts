@@ -11,8 +11,9 @@ import Message from "../models/message.ts";
 import { uuidv7 } from "npm:uuidv7@^1.0.2";
 import { fff } from "../utils/foundationReq.ts";
 import publish from "../utils/redisClient.ts";
-import { Member } from "../models/groups.ts";
+import { Channels, Member } from "../models/groups.ts";
 import { channel } from "node:diagnostics_channel";
+import { getUserPermission } from "../foundation/server.ts";
 const env = await load();
 
 app.post(
@@ -99,6 +100,7 @@ app.post(
       const friendUserName = match[1];
       const domainFromRoom = match[2];
       if (!channelId) return;
+      console.log(channelId);
       if (
         !await Member.findOne({
           groupId: friendUserName + "@" + domainFromRoom,
@@ -112,6 +114,20 @@ app.post(
       }
       if (!isValidMessage(message)) {
         return c.json({ message: "Invalid message" }, 400);
+      }
+
+      if (!await Channels.findOne({ id: channelId })) {
+        return c.json({ message: "Unauthorized" }, 401);
+      }
+      const permission = await getUserPermission(
+        user.userName + "@" + env["domain"],
+        friendUserName + "@" + domainFromRoom,
+        channelId,
+      );
+      if (
+        !permission.includes("SEND_MESSAGE") && !permission.includes("ADMIN")
+      ) {
+        return c.json({ message: "Unauthorized" }, 401);
       }
       const messageid = uuidv7() + "@" + env["domain"];
       const timestamp = new Date();
@@ -130,7 +146,6 @@ app.post(
         (await Member.find({ groupId: friendUserName + "@" + domainFromRoom }))
           .map((member) => member.userId);
       const MembersDomain = Members.map((member) => member.split("@")[1]);
-      //重複を削除
       const MembersSet = new Set(MembersDomain);
       const MembersArray = Array.from(MembersSet);
       const findMember = MembersArray.findIndex((member) =>

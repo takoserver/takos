@@ -266,7 +266,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `userId`   | `string` | ユーザーID |
 | `groupId`  | `string` | グループID |
 
-### t.group.channel.create
+### t.group.channel.add
 
 グループチャンネルを作成/上書きします。
 

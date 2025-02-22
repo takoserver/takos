@@ -55,7 +55,7 @@ class EventManager {
     }
     const parsed = eventDef.schema.safeParse(payload);
     if (!parsed.success) {
-      console.log(event);
+      console.log(payload);
       return c.json({ error: "Invalid payload" }, 400);
     }
     return eventDef.handler(c, parsed.data);
@@ -271,7 +271,10 @@ eventManager.add(
         roomIdUserName + "@" + roomIdDomain,
         channelId,
       );
-      if (!permission.includes("SEND_MESSAGE")) {
+      console.log(permission);
+      if (
+        !permission.includes("SEND_MESSAGE") && !permission.includes("ADMIN")
+      ) {
         return c.json({ message: "Unauthorized" }, 401);
       }
       if (messageId.split("@")[1] !== domain) {
@@ -593,28 +596,28 @@ eventManager.add(
   z.object({
     groupId: z.string(),
     channelId: z.string(),
-    category: z.string(),
+    category: z.string().optional(),
     permissions: z.array(z.object({
       roleId: z.string(),
       permissions: z.array(z.string()),
-    })),
+    })).optional(),
     beforeEventId: z.string(),
   }),
   async (c, payload) => {
     const domain = c.get("domain");
     const eventId = c.get("eventId");
     const { groupId, channelId, category, permissions } = payload;
-    if (groupId.split("@")[1] !== env["domain"]) {
+    if (groupId.split("@")[1] === env["domain"]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-    if (domain === groupId.split("@")[1]) {
-      return c.json({ error: "Invalid groupId" }, 400);
+    if (domain !== groupId.split("@")[1]) {
+      return c.json({ error: "Invalid groupId1" }, 400);
     }
     const group = await Group.findOne({
       groupId: groupId,
     });
     if (!group) {
-      return c.json({ error: "Invalid groupId" }, 400);
+      return c.json({ error: "Invalid groupId2" }, 400);
     }
     const channel = await Channels.findOne({
       groupId: groupId,
@@ -635,7 +638,7 @@ eventManager.add(
         groupId: groupId,
         channelId: channelId,
       });
-      for (const permission of permissions) {
+      for (const permission of permissions ?? []) {
         await ChannelPermissions.create({
           groupId: groupId,
           channelId: channelId,
@@ -650,7 +653,7 @@ eventManager.add(
         id: channelId,
         category: category,
       });
-      for (const permission of permissions) {
+      for (const permission of permissions ?? []) {
         await ChannelPermissions.create({
           groupId: groupId,
           channelId: channelId,
@@ -675,17 +678,17 @@ eventManager.add(
     const domain = c.get("domain");
     const eventId = c.get("eventId");
     const { groupId, channelId } = payload;
-    if (groupId.split("@")[1] !== env["domain"]) {
+    if (groupId.split("@")[1] === env["domain"]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-    if (domain === groupId.split("@")[1]) {
-      return c.json({ error: "Invalid groupId" }, 400);
+    if (domain !== groupId.split("@")[1]) {
+      return c.json({ error: "Invalid groupId1" }, 400);
     }
     const group = await Group.findOne({
       groupId: groupId,
     });
     if (!group) {
-      return c.json({ error: "Invalid groupId" }, 400);
+      return c.json({ error: "Invalid groupId2" }, 400);
     }
     const channel = await Channels.findOne({
       groupId: groupId,
@@ -728,53 +731,62 @@ eventManager.add(
     const domain = c.get("domain");
     const eventId = c.get("eventId");
     const { groupId, categoryId, permissions } = payload;
-
-    if (groupId.split("@")[1] !== env["domain"]) {
+    if (groupId.split("@")[1] === env["domain"]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-    if (domain === groupId.split("@")[1]) {
-      return c.json({ error: "Invalid groupId" }, 400);
+    if (domain !== groupId.split("@")[1]) {
+      return c.json({ error: "Invalid groupId1" }, 400);
     }
-
-    const group = await Group.findOne({ groupId });
+    const group = await Group.findOne({
+      groupId: groupId,
+    });
     if (!group) {
-      return c.json({ error: "Invalid groupId" }, 400);
+      return c.json({ error: "Invalid groupId2" }, 400);
     }
-
+    const category = await Category.findOne({
+      groupId: groupId,
+      id: categoryId,
+    });
     if (group.beforeEventId !== payload.beforeEventId) {
       await handleReCreateGroup(groupId);
       return c.json(200);
     }
-
-    const category = await Category.findOne({ groupId, id: categoryId });
     if (category) {
-      // 既存のカテゴリーの場合、権限を更新
-      await CategoryPermissions.deleteMany({ groupId, categoryId });
+      // 既存のカテゴリの場合は上書き更新
+      await Category.updateOne(
+        { groupId: groupId, id: categoryId },
+        { category: categoryId },
+      );
+      // 既存の権限を削除し、新たに設定
+      await CategoryPermissions.deleteMany({
+        groupId: groupId,
+        categoryId: categoryId
+      });
       for (const permission of permissions) {
         await CategoryPermissions.create({
-          groupId,
-          categoryId,
-          roleId: permission.roleId,
-          permissions: permission.permissions,
+          groupId: groupId,
+          categoryId: categoryId
         });
       }
     } else {
-      // カテゴリーが存在しない場合、新規作成して権限を設定
-      await Category.create({ groupId, id: categoryId });
+      // カテゴリが存在しない場合は新規作成
+      await Category.create({
+        groupId: groupId,
+        id: categoryId,
+      });
       for (const permission of permissions) {
         await CategoryPermissions.create({
-          groupId,
-          categoryId,
-          roleId: permission.roleId,
-          permissions: permission.permissions,
+          groupId: groupId,
+          categoryId: categoryId
         });
       }
     }
-
-    await Group.updateOne({ groupId }, { beforeEventId: eventId });
+    await Group
+      .updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
   },
 );
+
 
 eventManager.add(
   "t.group.sync.category.remove",
@@ -787,35 +799,43 @@ eventManager.add(
     const domain = c.get("domain");
     const eventId = c.get("eventId");
     const { groupId, categoryId } = payload;
-
-    if (groupId.split("@")[1] !== env["domain"]) {
+    if (groupId.split("@")[1] === env["domain"]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
-    if (domain === groupId.split("@")[1]) {
-      return c.json({ error: "Invalid groupId" }, 400);
+    if (domain !== groupId.split("@")[1]) {
+      return c.json({ error: "Invalid groupId1" }, 400);
     }
-
-    const group = await Group.findOne({ groupId });
+    const group = await Group.findOne({
+      groupId: groupId,
+    });
     if (!group) {
-      return c.json({ error: "Invalid groupId" }, 400);
+      return c.json({ error: "Invalid groupId2" }, 400);
     }
-
-    const category = await Category.findOne({ groupId, id: categoryId });
+    const category = await Category.findOne({
+      groupId: groupId,
+      id: categoryId,
+    });
     if (!category) {
       return c.json({ error: "Not category" }, 400);
     }
-
     if (group.beforeEventId !== payload.beforeEventId) {
       await handleReCreateGroup(groupId);
       return c.json(200);
     }
-
-    await Category.deleteOne({ groupId, id: categoryId });
-    await CategoryPermissions.deleteMany({ groupId, categoryId });
-    await Group.updateOne({ groupId }, { beforeEventId: eventId });
+    await Category.deleteOne({
+      groupId: groupId,
+      id: categoryId,
+    });
+    await CategoryPermissions.deleteMany({
+      groupId: groupId,
+      categoryId: categoryId
+    });
+    await Group
+      .updateOne({ groupId }, { beforeEventId: eventId });  
     return c.json(200);
   },
 );
+
 
 eventManager.add(
   "t.group.leave",
@@ -882,11 +902,18 @@ app.post(
   },
 );
 
-async function getUserPermission(
+export async function getUserPermission(
   userId: string,
   groupId: string,
   channelId?: string,
 ) {
+  const group = await Group.findOne({ groupId });
+  if (!group) {
+    throw new Error("Group not found");
+  }
+  if (group.owner === userId) {
+    return [`ADMIN`];
+  }
   const user = await Member.findOne({
     groupId: groupId,
     userId: userId,
@@ -909,15 +936,18 @@ async function getUserPermission(
   if (!channelId) {
     return [...new Set(response)];
   }
-  const channelPermission = await ChannelPermissions.findOne({
+  const channelPermissions = await ChannelPermissions.find({
     groupId: groupId,
     channelId: channelId,
     roleId: { $in: ["everyone", ...user.role] },
   });
-  if (!channelPermission) {
-    return [...new Set(response)];
+  console.log(channelId);
+  // channelPermissions は配列なので、各要素に対して permissions を追加する
+  if (channelPermissions && channelPermissions.length > 0) {
+    for (const cp of channelPermissions) {
+      response.push(...cp.permissions);
+    }
   }
-  response.push(...channelPermission.permissions);
   return [...new Set(response)];
 }
 
