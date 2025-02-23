@@ -1,41 +1,36 @@
-## role
+## 1. 役割（Role）
 
-権限をユーザーに付与することができる。
+- **概要**\
+  ユーザーに対して権限を付与する基本単位です。
 
-デフォルトのロール
+- **デフォルトロール**
+  - `everyone`: サーバーに参加している全ユーザーに自動的に付与されるロール。
 
-- `admin`: グループの管理者 すべての権限を持つ。
-- `member`: グループのメンバー すべてのメンバーが持つ権限。
+- **カスタムロール**
+  - `ADMIN`権限を持つユーザーが、新規ロールを作成し、権限を設定できます。
 
-デフォルトのロールは削除することはできない
+## 2. 権限の継承と上書きルール
 
-adminは内容も変更できない
+- **継承の順序（低い順から高い優先度）**
+  1. **everyone**（全体のデフォルト設定）
+  2. **role**（ロールごとの基本権限設定）
+  3. **category**（カテゴリに設定した初期値／デフォルト）
+  4. **channel**（各チャンネルでの個別設定）
 
-permissionは以下のものがある
+※ 負の権限は存在せず、categoryで出来ることはchannelでできます。
 
-permissionは everyone->role->user->category->channelの順で上書きされる
+## 3. サーバー全体の権限
 
-## サーバー全体のpermission
+- `ADMIN`: サーバー全体の完全管理権限。すべての操作が可能。
+- `MANAGE_CHANNEL`: チャンネルおよびカテゴリの作成・削除・編集。
+- `MANAGE_USER`: ユーザーの管理（例：権限の付与、退会処理など）。
+- `INVITE_USER`: ユーザー招待権限。
+- `MANAGE_SERVER`: サーバーの設定変更。
+- `VIEW_LOG`: ログの閲覧。
 
-- `ADMIN`: グループの管理者 すべての権限を持つ。
-- `MANAGE_CHANNEL`: チャンネル・categoryの管理
-- `MANAGE_USER`: ユーザーの管理
-- `INVITE_USER`: ユーザーの招待
-- `MANAGE_SERVER`: サーバーの設定変更
-- `VIEW_LOG`: ログの閲覧
+## 4. テキストチャンネルの権限
 
-## text channelのpermission
-
-- `SEND_MESSAGE`: メッセージの送信
-- `VIEW_MESSAGE`: メッセージの閲覧
-- `MENTION_USER`: ユーザーのメンション
-- `MANAGE_MESSAGE`: メッセージの管理
-
-## categoryのpermission
-
-- `VIEW_MESSAGE`: メッセージの閲覧
-- `SEND_MESSAGE`: メッセージの送信
-- `MENTION_USER`: ユーザーのメンション
-- `MANAGE_MESSAGE`: メッセージの管理
-
-MANAGE_ROLEは自身の権限よりも低いロール
+- `SEND_MESSAGE`: メッセージ送信の許可。
+- `VIEW_MESSAGE`: メッセージ閲覧の許可。
+- `MENTION_USER`: ユーザーのメンションを許可。
+- `MANAGE_MESSAGE`: メッセージの編集・削除などの管理操作を許可。

@@ -25,7 +25,13 @@ import { load } from "@std/dotenv";
 import User from "../models/users.ts";
 import publish from "../utils/redisClient.ts";
 import { group } from "node:console";
-import { handleReCreateGroup } from "../web/group.ts";
+import {
+  handleAddCategory,
+  handleAddChannel,
+  handleReCreateGroup,
+  handleRemoveCategory,
+  handleRemoveChannel,
+} from "../web/group.ts";
 const env = await load();
 
 class EventManager {
@@ -476,16 +482,16 @@ eventManager.add(
       return c.json({ error: "Already invited" }, 400);
     }
     const permissions = await getUserPermission(
-          userId,
-          groupId,
+      userId,
+      groupId,
     );
-    if(!permissions || !permissions.includes("INVITE_USER")) {
+    if (!permissions || !permissions.includes("INVITE_USER")) {
       return c.json({ message: "Unauthorized permission" }, 401);
     }
     await Group.updateOne({ groupId }, { $push: { invites: inviteUserId } });
     return c.json(200);
   },
-)
+);
 
 eventManager.add(
   "t.group.sync.user.remove",
@@ -858,8 +864,257 @@ eventManager.add(
 );
 
 eventManager.add(
-  "t.group."
-)
+  "t.group.invite.cancel",
+  z.object({
+    userId: z.string().email(),
+    groupId: z.string(),
+    inviteUserId: z.string().email(),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { userId, groupId, inviteUserId } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const group = await Group.findOne({ groupId });
+    if (!group || group.owner !== userId) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    if (await Member.findOne({ groupId: groupId, userId: inviteUserId })) {
+      return c.json({ error: "Already member" }, 400);
+    }
+    if (!group.invites.includes(inviteUserId)) {
+      return c.json({ error: "Not invited" }, 400);
+    }
+    await Group.updateOne({ groupId }, { $pull: { invites: inviteUserId } });
+    return c.json(200);
+  },
+);
+
+eventManager.add(
+  "t.group.channel.add",
+  z.object({
+    groupId: z.string(),
+    userId: z.string(),
+    channelName: z.string(),
+    channelId: z.string(),
+    categoryId: z.string(),
+    permissions: z.array(z.object({
+      roleId: z.string(),
+      permissions: z.array(z.string()),
+    })),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { groupId, userId, channelName, channelId, categoryId, permissions } =
+      payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const group = await Group.findOne({ groupId });
+    if (!group || !group.isOwner) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const permission = await getUserPermission(
+      userId,
+      groupId,
+    );
+    if (!permission) {
+      return c.json({ message: "Unauthorized1" }, 401);
+    }
+    if (
+      !permission.includes(`MANAGE_CHANNEL`) && !permission.includes(`ADMIN`)
+    ) {
+      return c.json({ message: "Unauthorized permission" }, 401);
+    }
+    if (
+      !await Member.findOne({
+        groupId,
+        userId: userId,
+      })
+    ) {
+      return c.json({ message: "Unauthorized2" }, 401);
+    }
+    if (categoryId) {
+      if (!await Category.findOne({ id: categoryId, groupId })) {
+        return c.json({ message: "Invalid categoryId" }, 400);
+      }
+    }
+    await handleAddChannel(
+      {
+        groupId,
+        name: channelName,
+        id: channelId,
+        categoryId,
+        permissions,
+        beforeEventId: group.beforeEventId!,
+      },
+    );
+    return c.json(200);
+  },
+);
+
+eventManager.add(
+  "t.group.channel.remove",
+  z.object({
+    groupId: z.string(),
+    userId: z.string(),
+    channelId: z.string(),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { groupId, userId, channelId } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const group = await Group.findOne({ groupId });
+    if (!group || !group.isOwner) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const permission = await getUserPermission(
+      userId,
+      groupId,
+    );
+    if (!permission) {
+      return c.json({ message: "Unauthorized1" }, 401);
+    }
+    if (
+      !permission.includes(`MANAGE_CHANNEL`) && !permission.includes(`ADMIN`)
+    ) {
+      return c.json({ message: "Unauthorized permission" }, 401);
+    }
+    if (
+      !await Member.findOne({
+        groupId,
+        userId: userId,
+      })
+    ) {
+      return c.json({ message: "Unauthorized2" }, 401);
+    }
+    await handleRemoveChannel({
+      groupId,
+      channelId,
+      beforeEventId: group.beforeEventId!,
+    });
+    return c.json(200);
+  },
+);
+
+eventManager.add(
+  "t,group.category.add",
+  z.object({
+    groupId: z.string(),
+    userId: z.string(),
+    categoryId: z.string(),
+    categoryName: z.string(),
+    permissions: z.array(z.object({
+      roleId: z.string(),
+      permissions: z.array(z.string()),
+    })),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { groupId, userId, categoryId, categoryName, permissions } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const group = await Group.findOne({ groupId });
+    if (!group || !group.isOwner) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const permission = await getUserPermission(
+      userId,
+      groupId,
+    );
+    if (!permission) {
+      return c.json({ message: "Unauthorized1" }, 401);
+    }
+    if (
+      !permission.includes(`MANAGE_CATEGORY`) && !permission.includes(`ADMIN`)
+    ) {
+      return c.json({ message: "Unauthorized permission" }, 401);
+    }
+    if (
+      !await Member.findOne({
+        groupId,
+        userId: userId,
+      })
+    ) {
+      return c.json({ message: "Unauthorized2" }, 401);
+    }
+    await handleAddCategory(
+      {
+        groupId,
+        id: categoryId,
+        name: categoryName,
+        permissions,
+        beforeEventId: group.beforeEventId!,
+      },
+    );
+    return c.json(200);
+  },
+);
+
+eventManager.add(
+  "t.group.category.remove",
+  z.object({
+    groupId: z.string(),
+    userId: z.string(),
+    categoryId: z.string(),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { groupId, userId, categoryId } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const group = await Group.findOne({ groupId });
+    if (!group || !group.isOwner) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const permission = await getUserPermission(
+      userId,
+      groupId,
+    );
+    if (!permission) {
+      return c.json({ message: "Unauthorized1" }, 401);
+    }
+    if (
+      !permission.includes(`MANAGE_CATEGORY`) && !permission.includes(`ADMIN`)
+    ) {
+      return c.json({ message: "Unauthorized permission" }, 401);
+    }
+    if (
+      !await Member.findOne({
+        groupId,
+        userId: userId,
+      })
+    ) {
+      return c.json({ message: "Unauthorized2" }, 401);
+    }
+    await handleRemoveCategory({
+      groupId,
+      categoryId,
+      beforeEventId: group.beforeEventId!,
+    });
+    return c.json(200);
+  },
+);
 
 app.post(
   "/",

@@ -278,15 +278,15 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`     | `string`             | グループID   |
 | `channelId`   | `string`             | チャンネルID |
 | `channelName` | `string`             | チャンネル名 |
-| `category`    | `string or undefind` | カテゴリー   |
+| `categoryId`  | `string or undefind` | カテゴリー   |
 | `permission`  | `object[]`           | 権限         |
 
 `object`
 
-| パラメータ   | 型         | 説明       |
-| ------------ | ---------- | ---------- |
-| `userId`     | `string`   | ユーザーID |
-| `permission` | `string[]` | 権限       |
+| パラメータ    | 型         | 説明       |
+| ------------- | ---------- | ---------- |
+| `userId`      | `string`   | ユーザーID |
+| `permissions` | `string[]` | 権限       |
 
 ### t.group.channel.remove
 
@@ -300,7 +300,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`   | `string` | グループID   |
 | `channelId` | `string` | チャンネルID |
 
-### t.group.category.create
+### t.group.category.add
 
 グループカテゴリーを作成/上書きします。
 
@@ -312,7 +312,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`      | `string`   | グループID   |
 | `categoryId`   | `string`   | カテゴリーID |
 | `categoryName` | `string`   | カテゴリー名 |
-| `permission`   | `object[]` | 権限         |
+| `permissions`  | `object[]` | 権限         |
 
 `object`
 

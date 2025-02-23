@@ -24,6 +24,7 @@ import { resizeImageTo256x256 } from "./sessions.ts";
 import { fff } from "../utils/foundationReq.ts";
 import request from "../models/request.ts";
 import { getUserPermission } from "../foundation/server.ts";
+import exp from "node:constants";
 
 const env = await load();
 
@@ -125,7 +126,7 @@ app.post(
       user.userName + "@" + env["domain"],
       groupId,
     );
-    if(!permissions || !permissions.includes("INVITE_USER")) {
+    if (!permissions || !permissions.includes("INVITE_USER")) {
       return c.json({ message: "Unauthorized permission" }, 401);
     }
     if (group.isOwner) {
@@ -504,33 +505,51 @@ app.post(
       return c.json({ message: "Unauthorized2" }, 401);
     }
     if (group.isOwner) {
-      await Channels.deleteOne({ id: channelId, groupId });
-      await ChannelPermissions.deleteMany({ channelId, groupId });
-      const MembersDomain = (await Member
-        .find({ groupId }))
-        .map((member) => member.userId.split("@")[1])
-        .filter((domain) => domain !== env["domain"]);
-      const uniqueDomains = Array.from(new Set(MembersDomain));
-      const eventId = uuidv7();
-      await Group.updateOne({ groupId }, { $set: { beforeEventId: eventId } });
-      await fff(
-        JSON.stringify({
-          event: "t.group.sync.channel.remove",
-          eventId: eventId,
-          payload: {
-            groupId: groupId,
-            channelId: channelId,
-            beforeEventId: group.beforeEventId,
-          },
-        }),
-        uniqueDomains,
-      );
+      await handleRemoveChannel({
+        groupId,
+        channelId,
+        beforeEventId: group.beforeEventId!,
+      });
       return c.json({ message: "success" });
     } else {
       return c.json({ message: "Unauthorized" }, 401);
     }
   },
 );
+
+export async function handleRemoveChannel(
+  {
+    groupId,
+    channelId,
+    beforeEventId,
+  }: {
+    groupId: string;
+    channelId: string;
+    beforeEventId: string;
+  },
+) {
+  await Channels.deleteOne({ id: channelId, groupId });
+  await ChannelPermissions.deleteMany({ channelId, groupId });
+  const MembersDomain = (await Member
+    .find({ groupId }))
+    .map((member) => member.userId.split("@")[1])
+    .filter((domain) => domain !== env["domain"]);
+  const uniqueDomains = Array.from(new Set(MembersDomain));
+  const eventId = uuidv7();
+  await Group.updateOne({ groupId }, { $set: { beforeEventId: eventId } });
+  await fff(
+    JSON.stringify({
+      event: "t.group.sync.channel.remove",
+      eventId: eventId,
+      payload: {
+        groupId: groupId,
+        channelId: channelId,
+        beforeEventId: beforeEventId,
+      },
+    }),
+    uniqueDomains,
+  );
+}
 
 app.post(
   "channel/add",
@@ -583,53 +602,89 @@ app.post(
       }
     }
     if (group.isOwner) {
-      const channel = await Channels.findOne({ id, groupId });
-      if (channel) {
-        //上書き
-        await Channels.updateOne({ id }, { name, category: categoryId });
-      } else {
-        await Channels.create({ id, name, groupId, category: categoryId });
-      }
-      await Channels.updateOne({ id }, { name, category: categoryId });
-      await ChannelPermissions.deleteMany({ channelId: id, groupId });
-      if (c.req.valid("json").permissions) {
-        for (const roleId of c.req.valid("json").permissions ?? []) {
-          await ChannelPermissions.create({
-            groupId,
-            channelId: id,
-            roleId: roleId.roleId,
-            permissions: roleId.permissions,
-          });
-        }
-      }
-      const MembersDomain = (await Member
-        .find({ groupId }))
-        .map((member) => member.userId.split("@")[1])
-        .filter((domain) => domain !== env["domain"]);
-      const uniqueDomains = Array.from(new Set(MembersDomain));
-      const eventId = uuidv7();
-      await Group.updateOne({ groupId }, { $set: { beforeEventId: eventId } });
-      await fff(
-        JSON.stringify({
-          event: "t.group.sync.channel.add",
-          eventId: eventId,
-          payload: {
-            groupId: groupId,
-            channelId: id,
-            name,
-            category: categoryId,
-            permissions: c.req.valid("json").permissions,
-            beforeEventId: group.beforeEventId,
-          },
-        }),
-        uniqueDomains,
-      );
+      await handleAddChannel({
+        groupId,
+        name,
+        id,
+        categoryId,
+        permissions: c.req.valid("json").permissions,
+        beforeEventId: group.beforeEventId!,
+      });
       return c.json({ message: "success" });
     } else {
-      return c.json({ message: "Unauthorized" }, 401);
+      await fff(
+        JSON.stringify({
+          event: "t.group.channel.add",
+          eventId: uuidv7(),
+          payload: {
+            groupId: groupId,
+            userId: user.userName + "@" + env["domain"],
+            channelName: name,
+            channelId: id,
+            categoryId: categoryId,
+            permissions: c.req.valid("json").permissions,
+          },
+        }),
+        [group.groupId.split("@")[1]],
+      );
+      return c.json({ message: "success" });
     }
   },
 );
+
+export async function handleAddChannel(
+  { groupId, name, id, categoryId, permissions, beforeEventId }: {
+    groupId: string;
+    name: string;
+    id: string;
+    categoryId: string;
+    permissions: { roleId: string; permissions: string[] }[];
+    beforeEventId: string;
+  },
+) {
+  const channel = await Channels.findOne({ id, groupId });
+  if (channel) {
+    //上書き
+    await Channels.updateOne({ id }, { name, category: categoryId });
+  } else {
+    await Channels.create({ id, name, groupId, category: categoryId });
+  }
+  await Channels.updateOne({ id }, { name, category: categoryId });
+  await ChannelPermissions.deleteMany({ channelId: id, groupId });
+  if (permissions) {
+    for (const roleId of permissions ?? []) {
+      await ChannelPermissions.create({
+        groupId,
+        channelId: id,
+        roleId: roleId.roleId,
+        permissions: roleId.permissions,
+      });
+    }
+  }
+  const MembersDomain = (await Member
+    .find({ groupId }))
+    .map((member) => member.userId.split("@")[1])
+    .filter((domain) => domain !== env["domain"]);
+  const uniqueDomains = Array.from(new Set(MembersDomain));
+  const eventId = uuidv7();
+  await Group.updateOne({ groupId }, { $set: { beforeEventId: eventId } });
+  await fff(
+    JSON.stringify({
+      event: "t.group.sync.channel.add",
+      eventId: eventId,
+      payload: {
+        groupId: groupId,
+        channelId: id,
+        name,
+        category: categoryId,
+        permissions: permissions,
+        beforeEventId: beforeEventId,
+      },
+    }),
+    uniqueDomains,
+  );
+  return;
+}
 
 app.post(
   "category/delete",
@@ -674,32 +729,47 @@ app.post(
       return c.json({ message: "Invalid categoryId" }, 400);
     }
     if (group.isOwner) {
-      await Category.deleteOne({ id: categoryId, groupId });
-      await CategoryPermissions.deleteMany({ categoryId, groupId });
-      const MembersDomain = (await Member.find({ groupId }))
-        .map((member) => member.userId.split("@")[1])
-        .filter((domain) => domain !== env["domain"]);
-      const uniqueDomains = Array.from(new Set(MembersDomain));
-      const eventId = uuidv7();
-      await Group.updateOne({ groupId }, { $set: { beforeEventId: eventId } });
-      await fff(
-        JSON.stringify({
-          event: "t.group.sync.category.remove",
-          eventId: eventId,
-          payload: {
-            groupId,
-            categoryId,
-            beforeEventId: group.beforeEventId,
-          },
-        }),
-        uniqueDomains,
-      );
+      await handleRemoveCategory({
+        groupId,
+        categoryId,
+        beforeEventId: group.beforeEventId!,
+      });
       return c.json({ message: "success" });
     } else {
       return c.json({ message: "Unauthorized" }, 401);
     }
   },
 );
+
+export async function handleRemoveCategory(
+  { groupId, categoryId, beforeEventId }: {
+    groupId: string;
+    categoryId: string;
+    beforeEventId: string;
+  },
+) {
+  await Category.deleteOne({ id: categoryId, groupId });
+  await CategoryPermissions.deleteMany({ categoryId, groupId });
+  const MembersDomain = (await Member
+    .find({ groupId }))
+    .map((member) => member.userId.split("@")[1])
+    .filter((domain) => domain !== env["domain"]);
+  const uniqueDomains = Array.from(new Set(MembersDomain));
+  const eventId = uuidv7();
+  await Group.updateOne({ groupId }, { $set: { beforeEventId: eventId } });
+  await fff(
+    JSON.stringify({
+      event: "t.group.sync.category.remove",
+      eventId: eventId,
+      payload: {
+        groupId,
+        categoryId,
+        beforeEventId: beforeEventId,
+      },
+    }),
+    uniqueDomains,
+  );
+}
 
 app.post(
   "category/add",
@@ -748,50 +818,69 @@ app.post(
       return c.json({ message: "Unauthorized2" }, 401);
     }
     if (group.isOwner) {
-      const category = await Category.findOne({ id, groupId });
-      if (category) {
-        await Category.updateOne({ id }, { name });
-      } else {
-        await Category.create({ id, name, groupId });
-      }
-      await Category.updateOne({ id }, { name });
-      await CategoryPermissions.deleteMany({ categoryId: id, groupId });
-      if (c.req.valid("json").permissions) {
-        for (const roleId of c.req.valid("json").permissions ?? []) {
-          await CategoryPermissions.create({
-            groupId,
-            categoryId: id,
-            roleId: roleId.roleId,
-            permissions: roleId.permissions,
-          });
-        }
-      }
-      const MembersDomain = (await Member
-        .find({ groupId }))
-        .map((member) => member.userId.split("@")[1])
-        .filter((domain) => domain !== env["domain"]);
-      const uniqueDomains = Array.from(new Set(MembersDomain));
-      const eventId = uuidv7();
-      await Group.updateOne({ groupId }, { $set: { beforeEventId: eventId } });
-      await fff(
-        JSON.stringify({
-          event: "t.group.sync.category.add",
-          eventId: eventId,
-          payload: {
-            groupId: groupId,
-            categoryId: id,
-            name,
-            permissions: c.req.valid("json").permissions,
-            beforeEventId: group.beforeEventId,
-          },
-        }),
-        uniqueDomains,
-      );
+      await handleAddCategory({
+        groupId,
+        name,
+        id,
+        permissions: c.req.valid("json").permissions,
+        beforeEventId: group.beforeEventId!,
+      });
       return c.json({ message: "success" });
     }
     return c.json({ message: "Unauthorized" }, 401);
   },
 );
+
+export async function handleAddCategory(
+  { groupId, name, id, permissions, beforeEventId }: {
+    groupId: string;
+    name: string;
+    id: string;
+    permissions: { roleId: string; permissions: string[] }[];
+    beforeEventId: string;
+  },
+) {
+  const category = await Category.findOne({ id, groupId });
+  if (category) {
+    await Category.updateOne({ id }, { name });
+  } else {
+    await Category.create({ id, name, groupId });
+  }
+  await Category.updateOne({ id }, { name });
+  await CategoryPermissions.deleteMany({ categoryId: id, groupId });
+  if (permissions) {
+    for (const roleId of permissions ?? []) {
+      await CategoryPermissions.create({
+        groupId,
+        categoryId: id,
+        roleId: roleId.roleId,
+        permissions: roleId.permissions,
+      });
+    }
+  }
+  const MembersDomain = (await Member
+    .find({ groupId }))
+    .map((member) => member.userId.split("@")[1])
+    .filter((domain) => domain !== env["domain"]);
+  const uniqueDomains = Array.from(new Set(MembersDomain));
+  const eventId = uuidv7();
+  await Group.updateOne({ groupId }, { $set: { beforeEventId: eventId } });
+  await fff(
+    JSON.stringify({
+      event: "t.group.sync.category.add",
+      eventId: eventId,
+      payload: {
+        groupId: groupId,
+        categoryId: id,
+        name,
+        permissions: permissions,
+        beforeEventId: beforeEventId,
+      },
+    }),
+    uniqueDomains,
+  );
+  return;
+}
 
 app.post(
   "role/add",
@@ -919,6 +1008,7 @@ app.post(
     }
   },
 );
+
 app.post(
   "user/role",
   zValidator(
