@@ -58,7 +58,8 @@ export function Login() {
                   }),
                 });
                 if (res.status !== 200) {
-                  alert("エラーが発生しました");
+                  const message = (await res.json()).message;
+                  alert("エラーが発生しました: " + message);
                   return;
                 }
                 localStorage.setItem("userName", userName());

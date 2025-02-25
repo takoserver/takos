@@ -85,6 +85,7 @@ app.post(
         if ("error" in res) {
           return c.json({ message: res.error }, 500);
         }
+        //@ts-ignore
         console.log(await res[0].json());
         if (res[0].status !== 200) {
           return c.json({ message: "Failed to send message" }, 500);

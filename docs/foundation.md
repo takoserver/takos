@@ -333,7 +333,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`    | `string` | グループID   |
 | `categoryId` | `string` | カテゴリーID |
 
-### t.group.role.create
+### t.group.role.add
 
 グループロールを作成/上書きします。
 
@@ -373,7 +373,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `roleId`       | `string[]` | ロールID           |
 | `assignUserId` | `string`   | 割り当てユーザーID |
 
-### t.group.user.join.request
+### t.group.join.request
 
 グループに参加リクエストを送信します。 publicGroupのみ
 
@@ -384,7 +384,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `userId`   | `string` | ユーザーID |
 | `groupId`  | `string` | グループID |
 
-### t.group.user.join.accept
+### t.group.join.accept
 
 グループ参加リクエストを受け入れます。 publicGroupのみ
 
@@ -396,7 +396,19 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`       | `string` | グループID           |
 | `requestUserId` | `string` | リクエストユーザーID |
 
-### t.group.user.join.remove
+### t.friend.group.accept
+
+友達にグループ参加リクエストを受け入れたことを通知します。 publicGroupのみ
+
+`payload`
+
+| パラメータ      | 型       | 説明                 |
+| --------------- | -------- | -------------------- |
+| `userId`        | `string` | ユーザーID           |
+| `groupId`       | `string` | グループID           |
+| `requestUserId` | `string` | リクエストユーザーID |
+
+### t.group.join.remove
 
 グループ参加リクエストを削除します。 publicGroupのみ
 
@@ -408,7 +420,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`       | `string` | グループID           |
 | `requestUserId` | `string` | リクエストユーザーID |
 
-### t.group.user.join.cancel
+### t.group.join.cancel
 
 グループ参加リクエストをキャンセルします。 publicGroupのみ
 
@@ -419,7 +431,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `userId`   | `string` | ユーザーID |
 | `groupId`  | `string` | グループID |
 
-### t.group.user.kick
+### t.group.kick
 
 グループからユーザーをキックします。
 
@@ -431,7 +443,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`    | `string` | グループID       |
 | `kickUserId` | `string` | キックユーザーID |
 
-### t.group.user.ban
+### t.group.ban
 
 グループからユーザーをBANします。
 
@@ -443,7 +455,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`   | `string` | グループID    |
 | `banUserId` | `string` | BANユーザーID |
 
-### t.group.user.unban
+### t.group.unban
 
 グループからユーザーのBANを解除します。
 
@@ -605,7 +617,7 @@ keys
 }
 ```
 
-### `GET` /_takos/v1/group/{`key`}/{`groupId`}
+### `GET` /_takos/v1/group/`key`[]/{`groupId`}
 
 グループのデータを取得します。
 

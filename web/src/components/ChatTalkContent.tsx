@@ -346,21 +346,39 @@ function ChannelSideBar() {
                 if (!match) {
                   return console.error("Invalid roomid");
                 }
-                const res = await fetch("/api/v2/group/channel/delete", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
+                if (contextMenuPosition().type === "channel") {
+                  const res = await fetch("/api/v2/group/channel/delete", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
 
-                  body: JSON.stringify({
-                    groupId: match[1] + "@" + match[2],
-                    channelId: contextMenuPosition().id,
-                  }),
-                });
-                if (!res.ok) {
-                  console.error("Failed to create channel");
+                    body: JSON.stringify({
+                      groupId: match[1] + "@" + match[2],
+                      channelId: contextMenuPosition().id,
+                    }),
+                  });
+                  if (!res.ok) {
+                    console.error("Failed to create channel");
+                  }
+                  alert("チャンネルを削除しました");
+                } else {
+                  const res = await fetch("/api/v2/group/category/delete", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+
+                    body: JSON.stringify({
+                      groupId: match[1] + "@" + match[2],
+                      categoryId: contextMenuPosition().id,
+                    }),
+                  });
+                  if (!res.ok) {
+                    console.error("Failed to create channel");
+                  }
+                  alert("カテゴリーを削除しました");
                 }
-                alert("チャンネルを削除しました");
               }}
             >
               削除

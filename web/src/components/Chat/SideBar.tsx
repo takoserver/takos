@@ -259,17 +259,15 @@ function TalkGroup({
         order: number;
       }[];
     } = channelsResult.channels;
-    console.log(channels);
     const role: {
       color: string;
       id: string;
       name: string;
       permissions: string[];
-    }[] = roleResult.role;
+    }[] = roleResult.roles;
     const members: { userId: string; role: string[] }[] = membersResult.members;
     const owner: string = ownerResult.owner;
     const defaultChannelId = defaultChannelResult.defaultChannel;
-    console.log(defaultChannelId);
     setGroupChannel({
       members: members,
       channels: channels,

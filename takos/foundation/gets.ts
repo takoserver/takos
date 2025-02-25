@@ -123,19 +123,14 @@ app.get("/group/:key/:groupId", async (c) => {
       return c.json({ beforeEventId: group.beforeEventId });
     }
     case "role": {
-      const roles = await Roles.find({ groupId });
-      return c.json({
-        roles: roles.map((role) => {
-          return {
-            role: {
-              id: role.id,
-              name: role.name,
-              color: role.color,
-              permission: role.permissions,
-            },
-          };
-        }),
-      });
+      const rolesData = await Roles.find({ groupId });
+      const roles = rolesData.map((role) => ({
+        id: role.id,
+        name: role.name,
+        color: role.color,
+        permissions: role.permissions,
+      }));
+      return c.json({ roles });
     }
     case "channels": {
       const categorysRaw = await Category.find({ groupId });
@@ -202,12 +197,10 @@ app.get("/group/:key/:groupId", async (c) => {
     case "all": {
       const rolesData = await Roles.find({ groupId });
       const roles = rolesData.map((role) => ({
-        role: {
-          id: role.id,
-          name: role.name,
-          color: role.color,
-          permission: role.permissions,
-        },
+        id: role.id,
+        name: role.name,
+        color: role.color,
+        permissions: role.permissions,
       }));
       const categorysRaw = await Category.find({ groupId });
       const categories = await Promise.all(

@@ -32,7 +32,7 @@ export function Chat() {
             </div>
           </div>
           <div class="p-talk-chat">
-            <div class="p-talk-chat-container min-h-screen">
+            <div class="p-talk-chat-container min-h-dvh">
               <div class="p-talk-chat-main overflow-y-auto h-[300px]">
                 <div
                   class={`p-talk-chat-title ${isSelectRoom() ? "" : "hidden"}`}

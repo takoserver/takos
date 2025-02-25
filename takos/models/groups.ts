@@ -85,6 +85,13 @@ const roleSchema = new mongoose.Schema({
   },
 });
 
+const joinRequestSchema = new mongoose.Schema({
+  groupId: { type: String, required: true },
+  userId: { type: String, required: true },
+});
+
+const JoinRequest = mongoose.model("joinRequest", joinRequestSchema);
+
 const Roles = mongoose.model("roles", roleSchema);
 const Category = mongoose.model("categories", categorySchema);
 const Channels = mongoose.model("channels", channelSchema);
@@ -104,6 +111,7 @@ export {
   ChannelPermissions,
   Channels,
   Group,
+  JoinRequest,
   Member,
   Roles,
 };

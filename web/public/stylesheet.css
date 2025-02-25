@@ -1,5 +1,7 @@
 html, body {
   position: relative;
+  background-image: url("/api/v2/server/background");
+  background-size: cover;
 }
 @keyframes marquee {
   0% {

@@ -169,6 +169,10 @@ app.post(
           userName: request.receiver,
           friendId: request.sender,
         });
+        await friends.create({
+          userName: request.sender,
+          friendId: request.receiver,
+        });
         await Request.deleteOne({ id: id });
         return c.json({ message: "Request accepted" });
       }

@@ -28,9 +28,12 @@ import { group } from "node:console";
 import {
   handleAddCategory,
   handleAddChannel,
+  handleAddRole,
+  handleGiveRole,
   handleReCreateGroup,
   handleRemoveCategory,
   handleRemoveChannel,
+  handleRemoveRole,
 } from "../web/group.ts";
 const env = await load();
 
@@ -396,6 +399,7 @@ eventManager.add(
       uniqueDomains,
     );
     //@ts-ignore
+    //@ts-ignore
     console.log(await res[0].json());
     await Group.updateOne({ groupId }, {
       $pull: { invites: userId },
@@ -472,7 +476,7 @@ eventManager.add(
       return c.json({ error: "Invalid groupId" }, 400);
     }
     const group = await Group.findOne({ groupId });
-    if (!group || group.owner !== userId) {
+    if (!group || !group.isOwner) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
     if (await Member.findOne({ groupId: groupId, userId: inviteUserId })) {
@@ -485,7 +489,11 @@ eventManager.add(
       userId,
       groupId,
     );
-    if (!permissions || !permissions.includes("INVITE_USER")) {
+    console.log(permissions);
+    if (
+      !permissions ||
+      !permissions.includes("INVITE_USER") && !permissions.includes("ADMIN")
+    ) {
       return c.json({ message: "Unauthorized permission" }, 401);
     }
     await Group.updateOne({ groupId }, { $push: { invites: inviteUserId } });
@@ -928,6 +936,7 @@ eventManager.add(
     if (!permission) {
       return c.json({ message: "Unauthorized1" }, 401);
     }
+    console.log(permission);
     if (
       !permission.includes(`MANAGE_CHANNEL`) && !permission.includes(`ADMIN`)
     ) {
@@ -1010,7 +1019,7 @@ eventManager.add(
 );
 
 eventManager.add(
-  "t,group.category.add",
+  "t.group.category.add",
   z.object({
     groupId: z.string(),
     userId: z.string(),
@@ -1116,6 +1125,104 @@ eventManager.add(
   },
 );
 
+eventManager.add(
+  "t.group.role.add",
+  z.object({
+    groupId: z.string(),
+    userId: z.string(),
+    roleName: z.string(),
+    roleId: z.string(),
+    color: z.string(),
+    permissions: z.array(z.string()),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { groupId, userId, roleName, roleId, color, permissions } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const group = await Group
+      .findOne({ groupId });
+    if (!group || !group.isOwner) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    return await handleAddRole({
+      groupId,
+      userId,
+      name: roleName,
+      id: roleId,
+      color,
+      permissions,
+      context: c,
+    });
+  },
+);
+
+eventManager.add(
+  "t.group.role.remove",
+  z.object({
+    groupId: z.string(),
+    userId: z.string(),
+    roleId: z.string(),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { groupId, userId, roleId } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const group = await Group
+      .findOne({ groupId });
+    if (!group || !group.isOwner) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    return await handleRemoveRole({
+      groupId,
+      userId,
+      roleId,
+      c: c,
+      beforeEventId: group.beforeEventId!,
+    });
+  },
+);
+
+eventManager.add(
+  "t.group.user.role",
+  z.object({
+    groupId: z.string(),
+    userId: z.string(),
+    assignUserId: z.string(),
+    roleId: z.array(z.string()),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { groupId, userId, assignUserId, roleId } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const group = await Group.findOne({ groupId });
+    if (!group || !group.isOwner) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    return await handleGiveRole({
+      groupId,
+      userId,
+      targetUserId: assignUserId,
+      roleId,
+      c: c,
+      beforeEventId: group.beforeEventId!,
+    });
+  },
+);
 app.post(
   "/",
   zValidator(
@@ -1157,7 +1264,7 @@ export async function getUserPermission(
   }
   const roles = await Roles.find({
     groupId: groupId,
-    id: { $in: user.role },
+    id: { $in: [...user.role, "everyone"] },
   });
   if (!roles) {
     throw new Error("Roles not found");
