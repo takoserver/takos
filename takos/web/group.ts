@@ -1506,7 +1506,7 @@ app.post(
 );
 
 app.post(
-  "user/kick",
+  "/kick",
   zValidator(
     "json",
     z.object({
@@ -1521,22 +1521,12 @@ app.post(
     }
     const { groupId, userId } = c.req.valid("json");
     if (groupId.split("@")[1] === env["domain"]) {
-      const group = await Group.findOne({ groupId });
-      if (!group) {
-        return c.json({ message: "Invalid groupId" }, 400);
-      }
-      if (
-        !await Member
-          .findOne({ groupId, userId })
-      ) {
-        return c.json({ message: "Not a member" }, 400);
-      }
-        return await handleKickUser({
-          groupId,
-          userId,
-          beforeEventId: group.beforeEventId!,
-          c: c,
-        });
+      return await handleKickUser({
+        groupId,
+        userId,
+        c: c,
+        user: user,
+      });
     } else {
       const res = await fff(
         JSON.stringify({
@@ -1561,16 +1551,31 @@ app.post(
 export async function handleKickUser({
   groupId,
   userId,
-  beforeEventId,
   c,
+  user,
 }: {
   groupId: string;
   userId: string;
-  beforeEventId: string;
   c: Context;
+  user: {
+    userName: string;
+  };
 }) {
+  const group = await Group.findOne({ groupId });
+  if (!group) {
+    return c.json({ message: "Invalid groupId" }, 400);
+  }
+  if (
+    !await Member
+      .findOne({ groupId, userId })
+  ) {
+    return c.json({ message: "Not a member" }, 400);
+  }
+  if (group.owner === userId) {
+    return c.json({ message: "Cannot ban kick" }, 400);
+  }
   const permission = await getUserPermission(
-    userId,
+    user.userName + "@" + env["domain"],
     groupId,
   );
   if (!permission) {
@@ -1598,7 +1603,7 @@ export async function handleKickUser({
       payload: {
         groupId,
         userId,
-        beforeEventId: beforeEventId,
+        beforeEventId: group.beforeEventId!,
       },
     }),
     uniqueDomains,
@@ -1607,7 +1612,7 @@ export async function handleKickUser({
 }
 
 app.post(
-  "user/ban",
+  "/ban",
   zValidator(
     "json",
     z.object({
@@ -1622,26 +1627,12 @@ app.post(
     }
     const { groupId, userId } = c.req.valid("json");
     if (groupId.split("@")[1] === env["domain"]) {
-      const group = await Group.findOne({ groupId });
-      if (!group) {
-        return c.json({ message: "Invalid groupId" }, 400);
-      }
-      if (
-        !await Member
-          .findOne({ groupId, userId })
-      ) {
-        return c.json({ message: "Not a member" }, 400);
-      }
-      if (group.isOwner) {
-        return await handleBanUser({
-          groupId,
-          userId,
-          beforeEventId: group.beforeEventId!,
-          c: c,
-        });
-      } else {
-        return c.json({ message: "Unauthorized" }, 401);
-      }
+      return await handleBanUser({
+        groupId,
+        userId,
+        c: c,
+        user: user,
+      });
     } else {
       const res = await fff(
         JSON.stringify({
@@ -1666,16 +1657,22 @@ app.post(
 export async function handleBanUser({
   groupId,
   userId,
-  beforeEventId,
   c,
+  user,
 }: {
   groupId: string;
   userId: string;
-  beforeEventId: string;
   c: Context;
+  user: {
+    userName: string;
+  };
 }) {
+  const group = await Group.findOne({ groupId });
+  if (!group) {
+    return c.json({ message: "Invalid groupId" }, 400);
+  }
   const permission = await getUserPermission(
-    userId,
+    user.userName + "@" + env["domain"],
     groupId,
   );
   if (!permission) {
@@ -1684,28 +1681,39 @@ export async function handleBanUser({
   if (!permission.includes(`ADMIN`) && !permission.includes(`MANAGE_USER`)) {
     return c.json({ message: "Unauthorized permission" }, 401);
   }
-  await Member
-    .deleteOne({ groupId, userId });
-  await Group.updateOne({ groupId }, { $push: { ban: userId } });
-  const MembersDomain = (await Member
-    .find({ groupId }))
-    .map((member) => member.userId.split("@")[1])
-    .filter((domain) => domain !== env["domain"]);
-  const uniqueDomains = Array.from(new Set(MembersDomain));
-  const eventId = uuidv7();
-  await Group.updateOne({ groupId }, { $set: { beforeEventId: eventId } });
-  await fff(
-    JSON.stringify({
-      event: "t.group.sync.user.remove",
-      eventId: eventId,
-      payload: {
-        groupId,
-        userId,
-        beforeEventId: beforeEventId,
-      },
-    }),
-    uniqueDomains,
-  );
+  if (group.owner === userId) {
+    return c.json({ message: "Cannot ban owner" }, 400);
+  }
+  if (group.ban.includes(userId)) {
+    return c.json({ message: "Already banned" }, 400);
+  }
+  if (
+    await Member
+      .findOne({ groupId, userId })
+  ) {
+    await Member
+      .deleteOne({ groupId, userId });
+    await Group.updateOne({ groupId }, { $push: { ban: userId } });
+    const MembersDomain = (await Member
+      .find({ groupId }))
+      .map((member) => member.userId.split("@")[1])
+      .filter((domain) => domain !== env["domain"]);
+    const uniqueDomains = Array.from(new Set(MembersDomain));
+    const eventId = uuidv7();
+    await Group.updateOne({ groupId }, { $set: { beforeEventId: eventId } });
+    await fff(
+      JSON.stringify({
+        event: "t.group.sync.user.remove",
+        eventId: eventId,
+        payload: {
+          groupId,
+          userId,
+          beforeEventId: group.beforeEventId!,
+        },
+      }),
+      uniqueDomains,
+    );
+  }
   return c.json({ message: "success" });
 }
 
@@ -1725,23 +1733,12 @@ app.post(
     }
     const { groupId, userId } = c.req.valid("json");
     if (groupId.split("@")[1] === env["domain"]) {
-      const group = await Group.findOne({ groupId });
-      if (!group) {
-        return c.json({ message: "Invalid groupId" }, 400);
-      }
-      if (!group.ban.includes(userId)) {
-        return c.json({ message: "Not banned" }, 400);
-      }
-      if (group.isOwner) {
-        return await handleUnbanUser({
-          groupId,
-          userId,
-          beforeEventId: group.beforeEventId!,
-          c,
-        });
-      } else {
-        return c.json({ message: "Unauthorized" }, 401);
-      }
+      return await handleUnbanUser({
+        groupId,
+        userId,
+        c,
+        user,
+      });
     } else {
       const res = await fff(
         JSON.stringify({
@@ -1763,20 +1760,28 @@ app.post(
   },
 );
 
-
 export async function handleUnbanUser({
   groupId,
   userId,
-  beforeEventId,
   c,
+  user,
 }: {
   groupId: string;
   userId: string;
-  beforeEventId: string;
   c: Context;
+  user: {
+    userName: string;
+  };
 }) {
+  const group = await Group.findOne({ groupId });
+  if (!group) {
+    return c.json({ message: "Invalid groupId" }, 400);
+  }
+  if (!group.ban.includes(userId)) {
+    return c.json({ message: "Not banned" }, 400);
+  }
   const permission = await getUserPermission(
-    userId,
+    user.userName + "@" + env["domain"],
     groupId,
   );
   if (!permission) {
@@ -1799,8 +1804,69 @@ app.post(
     }),
   ),
   async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { groupId, channelId } = c.req.valid("json");
+    if (groupId.split("@")[1] === env["domain"]) {
+      return await handleSetDefaultChannel({
+        groupId,
+        channelId,
+        c,
+      });
+    } else {
+      const res = await fff(
+        JSON.stringify({
+          event: "t.group.channel.default",
+          eventId: uuidv7(),
+          payload: {
+            groupId,
+            userId: user.userName + "@" + env["domain"],
+            channelId,
+          },
+        }),
+        [groupId.split("@")[1]],
+      );
+      if (Array.isArray(res) ? res[0].status !== 200 : true) {
+        return c.json({ message: "Error setting default channel" }, 500);
+      }
+      return c.json({ message: "success" });
+    }
   },
 );
+
+export async function handleSetDefaultChannel({
+  groupId,
+  channelId,
+  c,
+}: {
+  groupId: string;
+  channelId: string;
+  c: Context;
+}) {
+  const group = await Group.findOne({ groupId });
+  if (!group) {
+    return c.json({ message: "Invalid groupId" }, 400);
+  }
+  if (
+    !await Channels.findOne({ groupId, id: channelId })
+  ) {
+    return c.json({ message: "Invalid channelId" }, 400);
+  }
+  const permission = await getUserPermission(
+    c.get("user").userName + "@" + env["domain"],
+    groupId,
+  );
+  if (!permission) {
+    return c.json({ message: "Unauthorized1" }, 401);
+  }
+  if (!permission.includes(`ADMIN`) && !permission.includes(`MANAGE_CHANNEL`)) {
+    return c.json({ message: "Unauthorized permission" }, 401);
+  }
+  await Group.updateOne({ groupId }, { $set: { defaultChannelId: channelId } });
+  return c.json({ message: "success" });
+}
 
 app.post(
   "user/owner",
@@ -1811,7 +1877,46 @@ app.post(
       userId: z.string(),
     }),
   ),
-  async (c) => {},
+  async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { groupId, userId } = c.req.valid("json");
+    if (groupId.split("@")[1] === env["domain"]) {
+      if (userId.split("@")[1] !== env["domain"]) {
+        return c.json({ message: "Invalid userId" }, 400);
+      }
+      const group = await Group.findOne({ groupId });
+      if (!group) {
+        return c.json({ message: "Invalid groupId" }, 400);
+      }
+      if (
+        !await Member
+          .findOne({ groupId, userId })
+      ) {
+        return c.json({ message: "Not a member" }, 400);
+      }
+      if (group.owner === userId) {
+        return c.json({ message: "Already owner" }, 400);
+      }
+      await Group.updateOne({ groupId }, { $set: { owner: userId } });
+      await fff(
+        JSON.stringify({
+          event: "t.group.sync.owner",
+          eventId: uuidv7(),
+          payload: {
+            groupId,
+            userId,
+          },
+        }),
+        [userId.split("@")[1]],
+      );
+      return c.json({ message: "success" });
+    } else {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+  },
 );
 
 app.post(
@@ -1826,5 +1931,73 @@ app.post(
       })),
     }),
   ),
-  async (c) => {},
+  async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { groupId, order } = c.req.valid("json");
+    if (groupId.split("@")[1] === env["domain"]) {
+      return await handleChannelOrder({
+        groupId,
+        order,
+        c,
+      });
+    } else {
+      const res = await fff(
+        JSON.stringify({
+          event: "t.group.channel.order",
+          eventId: uuidv7(),
+          payload: {
+            groupId,
+            userId: user.userName + "@" + env["domain"],
+            order,
+          },
+        }),
+        [groupId.split("@")[1]],
+      );
+      if (Array.isArray(res) ? res[0].status !== 200 : true) {
+        return c.json({ message: "Error setting channel order" }, 500);
+      }
+      return c.json({ message: "success" });
+    }
+  },
 );
+
+export async function handleChannelOrder({
+  groupId,
+  order,
+  c,
+}: {
+  groupId: string;
+  order: { type: string; id: string }[];
+  c: Context;
+}) {
+  const group = await Group.findOne({ groupId });
+  if (!group) {
+    return c.json({ message: "Invalid groupId" }, 400);
+  }
+  const permission = await getUserPermission(
+    c.get("user").userName + "@" + env["domain"],
+    groupId,
+  );
+  if (!permission) {
+    return c.json({ message: "Unauthorized1" }, 401);
+  }
+  if (!permission.includes(`ADMIN`) && !permission.includes(`MANAGE_CHANNEL`)) {
+    return c.json({ message: "Unauthorized permission" }, 401);
+  }
+  const channels = await Channels.find({ groupId });
+  const channelIds = channels.map((channel) => channel.id);
+  if (order.length !== channelIds.length) {
+    return c.json({ message: "Invalid order" }, 400);
+  }
+  for (const o of order) {
+    if (!channelIds.includes(o.id)) {
+      return c.json({ message: "Invalid order" }, 400);
+    }
+  }
+  await Group
+    .updateOne({ groupId }, { $set: { channelOrder: order } });
+  return c.json({ message: "success" });
+}

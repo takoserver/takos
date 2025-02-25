@@ -60,6 +60,10 @@ export function SettingRoom() {
       }
     }
   });
+  const [showKickConfirm, setShowKickConfirm] = createSignal(false);
+  const [showBanConfirm, setShowBanConfirm] = createSignal(false);
+  const [showTimeoutModal, setShowTimeoutModal] = createSignal(false);
+  const [timeoutDuration, setTimeoutDuration] = createSignal(0);
   return (
     <>
       {showGroupPopUp() && isSelectRoom() && selectedRoom()!.type === "group" &&
@@ -595,9 +599,9 @@ export function SettingRoom() {
                               <div class="flex items-center justify-between mb-2">
                                 <span class="text-white">
                                   {(() => {
-                                    const role2 = groupChannel()?.roles.find(
-                                      (r) => r.id === role,
-                                    );
+                                    const role2 = groupChannel()?.roles.find((
+                                      r,
+                                    ) => r.id === role);
                                     return role2?.name || "不明なロール";
                                   })()}
                                 </span>
@@ -608,16 +612,15 @@ export function SettingRoom() {
                                       (m) => m.userId === editMember(),
                                     );
                                     if (!member) return;
-                                    const updatedRoles = member.role.filter(
-                                      (r: string) => r !== role,
-                                    );
+                                    const updatedRoles = member.role.filter((
+                                      r: string,
+                                    ) => r !== role);
                                     console.log(
                                       `Removing role ${role} from member ${editMember()}`,
                                       updatedRoles,
                                     );
-                                    // 状態更新例（必要に応じてAPI呼び出し等を実装）
-                                    setPendingMemberRoles(
-                                      (pre) => pre.filter((r) => r !== role),
+                                    setPendingMemberRoles((pre) =>
+                                      pre.filter((r) => r !== role)
                                     );
                                   }}
                                 >
@@ -626,7 +629,6 @@ export function SettingRoom() {
                               </div>
                             ))}
                           </div>
-                          {/* 変更: ロール追加ボタン */}
                           <div class="mb-4">
                             <button
                               class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded"
@@ -641,9 +643,7 @@ export function SettingRoom() {
                             <button
                               class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
                               onClick={() => {
-                                console.log(
-                                  pendingMemberRoles(),
-                                );
+                                console.log(pendingMemberRoles());
                                 const match = selectedRoom()?.roomid.match(
                                   /^g\{([^}]+)\}@(.+)$/,
                                 );
@@ -690,69 +690,143 @@ export function SettingRoom() {
                               保存
                             </button>
                           </div>
+                          <div class="flex justify-between mt-4">
+                            <button
+                              class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded"
+                              onClick={() => setShowKickConfirm(true)}
+                            >
+                              キック
+                            </button>
+                            <button
+                              class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded"
+                              onClick={() => setShowBanConfirm(true)}
+                            >
+                              バン
+                            </button>
+                            <button
+                              class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
+                              onClick={() => setShowTimeoutModal(true)}
+                            >
+                              タイムアウト
+                            </button>
+                          </div>
                         </div>
                       </PopUpFrame>
-                      {showAddRole() && (
+                      {showKickConfirm() && (
                         <PopUpFrame
                           // @ts-ignore
-                          closeScript={setShowAddRole}
+                          closeScript={setShowKickConfirm}
                         >
                           <div class="p-4">
-                            <h3 class="text-lg text-white mb-2">ロール追加</h3>
+                            <h3 class="text-lg text-white mb-2">キック確認</h3>
+                            <p class="text-white mb-4">
+                              本当にこのメンバーをキックしますか？
+                            </p>
+                            <div class="flex justify-end">
+                              <button
+                                class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+                                onClick={async () => {
+                                  const match = selectedRoom()?.roomid.match(
+                                    /^g\{([^}]+)\}@(.+)$/,
+                                  );
+                                  if (!match) return;
+
+                                  const res = await fetch(
+                                    "/api/v2/group/kick",
+                                    {
+                                      method: "POST",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                      },
+                                      body: JSON.stringify({
+                                        userId: editMember(),
+                                        groupId: match[1] + "@" + match[2],
+                                      }),
+                                    },
+                                  );
+                                }}
+                              >
+                                キック
+                              </button>
+                            </div>
+                          </div>
+                        </PopUpFrame>
+                      )}
+                      {showBanConfirm() && (
+                        <PopUpFrame
+                          // @ts-ignore
+                          closeScript={setShowBanConfirm}
+                        >
+                          <div class="p-4">
+                            <h3 class="text-lg text-white mb-2">バン確認</h3>
+                            <p class="text-white mb-4">
+                              本当にこのメンバーをバンしますか？
+                            </p>
+                            <div class="flex justify-end">
+                              <button
+                                class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+                                onClick={async () => {
+                                  const match = selectedRoom()?.roomid.match(
+                                    /^g\{([^}]+)\}@(.+)$/,
+                                  );
+                                  if (!match) return;
+
+                                  const res = await fetch(
+                                    "/api/v2/group/ban",
+                                    {
+                                      method: "POST",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                      },
+                                      body: JSON.stringify({
+                                        userId: editMember(),
+                                        groupId: match[1] + "@" + match[2],
+                                      }),
+                                    },
+                                  );
+                                }}
+                              >
+                                バン
+                              </button>
+                            </div>
+                          </div>
+                        </PopUpFrame>
+                      )}
+                      {showTimeoutModal() && (
+                        <PopUpFrame
+                          // @ts-ignore
+                          closeScript={setShowTimeoutModal}
+                        >
+                          <div class="p-4">
+                            <h3 class="text-lg text-white mb-2">
+                              タイムアウト設定
+                            </h3>
                             <div class="mb-4">
                               <label class="block text-white mb-1">
-                                追加するロールを選択してください
+                                期間 (分)
                               </label>
-                              <select
+                              <input
+                                type="number"
+                                value={timeoutDuration()}
+                                onInput={(e) =>
+                                  setTimeoutDuration(
+                                    parseInt(e.currentTarget.value),
+                                  )}
                                 class="w-full p-2 rounded text-black"
-                                onChange={(e) =>
-                                  setSelectedNewRole(e.currentTarget.value)}
-                                value={selectedNewRole()}
-                              >
-                                <option value="">選択してください</option>
-                                {(() => {
-                                  return groupChannel()
-                                    ?.roles.filter(
-                                      (r) =>
-                                        !pendingMemberRoles().includes(r.id),
-                                    )
-                                    .map((r) => (
-                                      <option value={r.id}>
-                                        {r.name}
-                                      </option>
-                                    ));
-                                })()}
-                              </select>
+                              />
                             </div>
                             <div class="flex justify-end">
                               <button
-                                class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
                                 onClick={() => {
-                                  const member = groupChannel()?.members.find(
-                                    (m) => m.userId === editMember(),
-                                  );
-                                  if (!member) return;
-                                  if (!selectedNewRole()) {
-                                    alert("ロールを選択してください");
-                                    return;
-                                  }
-                                  const updatedRoles = [
-                                    ...member.role,
-                                    selectedNewRole(),
-                                  ];
+                                  // タイムアウト処理
                                   console.log(
-                                    `Assigning role ${selectedNewRole()} to member ${editMember()}`,
-                                    updatedRoles,
+                                    `Timeout member ${editMember()} for ${timeoutDuration()} minutes`,
                                   );
-
-                                  setPendingMemberRoles(
-                                    (pre) => [...pre, selectedNewRole()],
-                                  );
-
-                                  setShowAddRole(false);
+                                  setShowTimeoutModal(false);
                                 }}
                               >
-                                追加
+                                設定
                               </button>
                             </div>
                           </div>

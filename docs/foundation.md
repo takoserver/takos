@@ -373,6 +373,25 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `roleId`       | `string[]` | ロールID           |
 | `assignUserId` | `string`   | 割り当てユーザーID |
 
+### t.group.order
+
+グループのチャンネル/カテゴリーの順番を変更します。
+
+`payload`
+
+| パラメータ | 型         | 説明       |
+| ---------- | ---------- | ---------- |
+| `userId`   | `string`   | ユーザーID |
+| `groupId`  | `string`   | グループID |
+| `order`    | `object`[] | 順番       |
+
+`object`
+
+| パラメータ | 型                    | 説明   |
+| ---------- | --------------------- | ------ |
+| `id`       | `string`              | ID     |
+| `type`     | `category or channel` | タイプ |
+
 ### t.group.join.request
 
 グループに参加リクエストを送信します。 publicGroupのみ
@@ -467,7 +486,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `groupId`   | `string` | グループID    |
 | `banUserId` | `string` | BANユーザーID |
 
-### t.group.defaultChannel
+### t.group.channel.default
 
 グループのデフォルトチャンネルを変更します。
 
@@ -478,6 +497,17 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | `userId`    | `string` | ユーザーID   |
 | `groupId`   | `string` | グループID   |
 | `channelId` | `string` | チャンネルID |
+
+### t.group.sync.owner
+
+グループのオーナーの変更情報を共有します。
+
+`payload`
+
+| パラメータ | 型       | 説明       |
+| ---------- | -------- | ---------- |
+| `userId`   | `string` | ユーザーID |
+| `groupId`  | `string` | グループID |
 
 ### t.group.sync.user.add
 

@@ -383,6 +383,38 @@ function ChannelSideBar() {
             >
               削除
             </li>
+            <li
+              class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
+              onClick={async () => {
+                const match = sellectedRoom()?.roomid.match(
+                  /^g\{([^}]+)\}@(.+)$/,
+                );
+                if (!match) {
+                  return console.error("Invalid roomid");
+                }
+                if (contextMenuPosition().type === "channel") {
+                  const res = await fetch("/api/v2/group/channel/default", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+
+                    body: JSON.stringify({
+                      groupId: match[1] + "@" + match[2],
+                      channelId: contextMenuPosition().id,
+                    }),
+                  });
+                  if (!res.ok) {
+                    return console.error("Failed to create channel");
+                  }
+                  alert("チャンネルをデフォルトに設定しました");
+                } else {
+                  alert("カテゴリーはデフォルトにできません");
+                }
+              }}
+            >
+              デフォルトに設定
+            </li>
           </ul>
         </div>
       )}
@@ -495,13 +527,11 @@ function ChannelSideBar() {
                       return (
                         <>
                           {groupInfo.categories
-                            .sort((a, b) => a.order - b.order)
                             .map((category) => {
                               const categoryChannels = groupInfo.channels
                                 .filter((channel) =>
                                   channel.category === category.id
-                                )
-                                .sort((a, b) => a.order - b.order);
+                                );
 
                               return (
                                 <ChannelCategory
@@ -522,7 +552,6 @@ function ChannelSideBar() {
                             })}
                           {groupInfo.channels
                             .filter((channel) => !channel.category)
-                            .sort((a, b) => a.order - b.order)
                             .map((channel) => (
                               <ChannelCompornent
                                 name={channel.name}
