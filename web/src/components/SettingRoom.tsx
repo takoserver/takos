@@ -80,7 +80,9 @@ export function SettingRoom() {
         }
         try {
           const res = await fetch(
-            `/_takos/v1/group/requests/${match[1] + "@" + match[2]}`,
+            `https://${match[2]}/_takos/v1/group/requests/${
+              match[1] + "@" + match[2]
+            }`,
           );
           if (res.ok) {
             const data = await res.json();
@@ -1805,7 +1807,7 @@ export function SettingRoom() {
 
                           try {
                             const res = await fetch(
-                              `/_takos/v1/group/requests/${
+                              `https://${match[2]}/_takos/v1/group/requests/${
                                 match[1] + "@" + match[2]
                               }`,
                             );

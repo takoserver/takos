@@ -13,6 +13,7 @@ import {
   ChannelPermissions,
   Channels,
   Group,
+  JoinRequest,
   Member,
   Roles,
 } from "../models/groups.ts";
@@ -26,6 +27,8 @@ import User from "../models/users.ts";
 import publish from "../utils/redisClient.ts";
 import { group } from "node:console";
 import {
+  createRemoteGroup,
+  handleAcceptJoinRequest,
   handleAddCategory,
   handleAddChannel,
   handleAddRole,
@@ -1193,6 +1196,77 @@ eventManager.add(
 );
 
 eventManager.add(
+  "t.friend.group.accept",
+  z.object({
+    userId: z.string().email(),
+    groupId: z.string(),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { userId, groupId } = payload;
+    if (userId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const requests = await JoinRequest.findOne({
+      groupId: groupId,
+      userId: userId,
+    });
+    if (!requests) {
+      return c.json({ error: "Invalid request" }, 400);
+    }
+    if (!await Group.findOne({ groupId: groupId })) {
+      const groupData = await fetch(
+        `https://${domain}/_takos/v1/group/all/${groupId}`,
+      );
+      if (groupData.status !== 200) {
+        return c.json({ message: "Error accepting group3" }, 500);
+      }
+      try {
+        await createRemoteGroup(groupId, await groupData.json());
+      } catch (err) {
+        return c.json({ message: "Error accepting group4" }, 500);
+      }
+    }
+    await Member.create({
+      groupId: groupId,
+      userId: userId,
+    });
+    await JoinRequest.deleteOne({
+      groupId: groupId,
+      userId: userId,
+    });
+    return c.json(200);
+  },
+);
+
+eventManager.add(
+  "t.group.join.accept",
+  z.object({
+    userId: z.string().email(),
+    groupId: z.string(),
+    targetUserId: z.string().email(),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { userId, groupId, targetUserId } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    return await handleAcceptJoinRequest({
+      groupId,
+      accepter:userId,
+      userId:targetUserId,
+      c: c,
+    });
+})
+
+eventManager.add(
   "t.group.user.role",
   z.object({
     groupId: z.string(),
@@ -1223,6 +1297,43 @@ eventManager.add(
     });
   },
 );
+
+eventManager.add(
+  "t.group.join.request",
+  z.object({
+    userId: z.string(),
+    groupId: z.string(),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { userId, groupId } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId1" }, 400);
+    }
+    if (await Member.findOne({ groupId: groupId, userId: userId })) {
+      return c.json({ error: "Already member" }, 400);
+    }
+    const group = await Group.findOne({ groupId });
+    if (!group) {
+      return c.json({ error: "Invalid groupId2" }, 400);
+    }
+    if (!group.isOwner) {
+      return c.json({ error: "Invalid groupId3" }, 400);
+    }
+    if (group.requests.includes(userId)) {
+      return c.json({ error: "Already requested" }, 400);
+    }
+    if (group.type === "public" && !group.allowJoin) {
+      await Group.updateOne({ groupId }, { $push: { requests: userId } });
+      return c.json(200);
+    }
+    return c.json({ error: "Invalid groupId4" }, 400);
+  },
+);
+
 app.post(
   "/",
   zValidator(

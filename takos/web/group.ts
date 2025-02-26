@@ -56,10 +56,11 @@ app.post(
       const resizedIcon = await resizeImageTo256x256(
         new Uint8Array(base64ToArrayBuffer(icon)),
       );
+      const buffer = resizedIcon.buffer;
       await Group.create({
         groupId,
         groupName: name,
-        groupIcon: arrayBufferToBase64(resizedIcon),
+        groupIcon: arrayBufferToBase64(buffer as ArrayBuffer),
         type: isPublic ? "public" : "private",
         owner: user.userName + "@" + env["domain"],
         isOwner: true,
@@ -317,7 +318,7 @@ async function handleLocalGroupAccept(
 /**
  * リモートグループのデータを新規作成する
  */
-async function createRemoteGroup(
+export async function createRemoteGroup(
   groupId: string,
   resJson: any,
   eventId?: string,
@@ -1350,59 +1351,7 @@ app.post(
     }
     const { groupId, userId } = c.req.valid("json");
     if (groupId.split("@")[1] === env["domain"]) {
-      const group = await Group.findOne({ groupId });
-      if (!group) {
-        return c.json({ message: "Invalid groupId" }, 400);
-      }
-      if (group.type == "private") {
-        return c.json({ message: "Invalid group type" }, 400);
-      }
-      if (!group.requests.includes(userId)) {
-        return c.json({ message: "Invalid request" }, 400);
-      }
-      if (userId.split("@")[1] !== env["domain"]) {
-        const eventId = uuidv7();
-        const res = await fff(
-          JSON.stringify({
-            event: "t.friend.group.accept",
-            eventId: eventId,
-            payload: {
-              groupId,
-              userId: user.userName + "@" + env["domain"],
-              requestUserId: userId,
-            },
-          }),
-          [userId.split("@")[1]],
-        );
-        if (Array.isArray(res) ? res[0].status !== 200 : true) {
-          return c.json({ message: "Error accepting group" }, 500);
-        }
-      }
-
-      await Group.updateOne({ groupId }, { $pull: { requests: userId } });
-      await Member.create({ groupId, userId, role: [] });
-
-      const domains = (await Member
-        .find({ groupId }))
-        .map((member) => member.userId.split("@")[1])
-        .filter((domain) => domain !== env["domain"]);
-      const uniqueDomains = Array.from(new Set(domains));
-      const eventId = uuidv7();
-      await fff(
-        JSON.stringify({
-          event: "t.group.sync.user.add",
-          eventId: eventId,
-          payload: {
-            groupId,
-            userId,
-            role: [],
-            beforeEventId: group.beforeEventId,
-          },
-        }),
-        uniqueDomains,
-      );
-
-      return c.json({ message: "success" });
+      return handleAcceptJoinRequest({c, groupId, userId, accepter: user.userName + "@" + env["domain"]});
     } else {
       const res = await fff(
         JSON.stringify({
@@ -1411,7 +1360,7 @@ app.post(
           payload: {
             groupId,
             userId: user.userName + "@" + env["domain"],
-            requestUserId: userId,
+            targetUserId: userId,
           },
         }),
         [groupId.split("@")[1]],
@@ -1423,6 +1372,89 @@ app.post(
     }
   },
 );
+
+export async function handleAcceptJoinRequest({
+  c,
+  groupId,
+  userId,
+  accepter
+}: {
+  c: Context;
+  groupId: string;
+  userId: string;
+  accepter: string;
+}) {
+  const group = await Group.findOne({ groupId });
+  if (!group) {
+    return c.json({ message: "Invalid groupId" }, 400);
+  }
+  if (group.type == "private") {
+    return c.json({ message: "Invalid group type" }, 400);
+  }
+  if (!group.requests.includes(userId)) {
+    return c.json({ message: "Invalid request" }, 400);
+  }
+  if(await Member
+    .findOne({ groupId, userId: userId })) {
+    return c.json({ message: "Already a member" }, 400);
+  }
+  if(!await Member
+    .findOne({ groupId, userId: accepter })) {
+    return c.json({ message: "you are not a member" }, 400);
+  }
+  const permission = await getUserPermission(
+    accepter,
+    groupId,
+  );
+  if (!permission) {
+    return c.json({ message: "Unauthorized1" }, 401);
+  }
+  if (!permission.includes(`ADMIN`) && !permission.includes(`MANAGE_USER`)) {
+    return c.json({ message: "Unauthorized permission" }, 401);
+  }
+  if (userId.split("@")[1] !== env["domain"]) {
+    const eventId = uuidv7();
+    const res = await fff(
+      JSON.stringify({
+        event: "t.friend.group.accept",
+        eventId: eventId,
+        payload: {
+          groupId,
+          userId: userId,
+        },
+      }),
+      [userId.split("@")[1]],
+    );
+    if (Array.isArray(res) ? res[0].status !== 200 : true) {
+      return c.json({ message: "Error accepting group" }, 500);
+    }
+  }
+
+  await Group.updateOne({ groupId }, { $pull: { requests: userId } });
+  await Member.create({ groupId, userId, role: [] });
+
+  const domains = (await Member
+    .find({ groupId }))
+    .map((member) => member.userId.split("@")[1])
+    .filter((domain) => domain !== env["domain"]);
+  const uniqueDomains = Array.from(new Set(domains));
+  const eventId = uuidv7();
+  await fff(
+    JSON.stringify({
+      event: "t.group.sync.user.add",
+      eventId: eventId,
+      payload: {
+        groupId,
+        userId,
+        role: [],
+        beforeEventId: group.beforeEventId,
+      },
+    }),
+    uniqueDomains,
+  );
+  return c.json({ message: "success" });
+}
+
 
 app.post(
   "join",
@@ -2113,9 +2145,9 @@ app.post(
     }
     const { groupId, icon } = c.req.valid("json");
     const resizedIcon = arrayBufferToBase64(
-      await resizeImageTo256x256(
+      (await resizeImageTo256x256(
         new Uint8Array(base64ToArrayBuffer(icon)),
-      ),
+      )).buffer as ArrayBuffer,
     );
     if (groupId.split("@")[1] === env["domain"]) {
       return await handleIcon({
@@ -2176,9 +2208,9 @@ export async function handleIcon({
       .updateOne({ groupId }, { $set: { icon } });
   } else {
     const resizedIcon = arrayBufferToBase64(
-      await resizeImageTo256x256(
+      (await resizeImageTo256x256(
         new Uint8Array(base64ToArrayBuffer(icon)),
-      ),
+      )).buffer as ArrayBuffer,
     );
     await Group
       .updateOne({ groupId }, { $set: { icon: resizedIcon } });
