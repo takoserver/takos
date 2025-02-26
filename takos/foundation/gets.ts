@@ -112,6 +112,11 @@ app.get("/group/:key/:groupId", async (c) => {
         requests: group.requests,
       });
     }
+    case "bans": {
+      return c.json({
+        bans: group.ban,
+      });
+    }
     case "name": {
       return c.json({ name: group.groupName });
     }

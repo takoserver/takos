@@ -1652,7 +1652,7 @@ app.post(
         groupId,
         userId,
         c: c,
-        user: user,
+        kikker: user.userName + "@" + env["domain"],
       });
     } else {
       const res = await fff(
@@ -1679,14 +1679,12 @@ export async function handleKickUser({
   groupId,
   userId,
   c,
-  user,
+  kikker
 }: {
   groupId: string;
   userId: string;
   c: Context;
-  user: {
-    userName: string;
-  };
+  kikker: string
 }) {
   const group = await Group.findOne({ groupId });
   if (!group) {
@@ -1702,7 +1700,7 @@ export async function handleKickUser({
     return c.json({ message: "Cannot ban kick" }, 400);
   }
   const permission = await getUserPermission(
-    user.userName + "@" + env["domain"],
+    kikker,
     groupId,
   );
   if (!permission) {
@@ -1758,7 +1756,7 @@ app.post(
         groupId,
         userId,
         c: c,
-        user: user,
+        bannner: user.userName + "@" + env["domain"],
       });
     } else {
       const res = await fff(
@@ -1785,21 +1783,19 @@ export async function handleBanUser({
   groupId,
   userId,
   c,
-  user,
+  bannner
 }: {
   groupId: string;
   userId: string;
   c: Context;
-  user: {
-    userName: string;
-  };
+  bannner: string
 }) {
   const group = await Group.findOne({ groupId });
   if (!group) {
     return c.json({ message: "Invalid groupId" }, 400);
   }
   const permission = await getUserPermission(
-    user.userName + "@" + env["domain"],
+    bannner,
     groupId,
   );
   if (!permission) {

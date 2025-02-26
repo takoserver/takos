@@ -32,7 +32,9 @@ import {
   handleAddCategory,
   handleAddChannel,
   handleAddRole,
+  handleBanUser,
   handleGiveRole,
+  handleKickUser,
   handleReCreateGroup,
   handleRemoveCategory,
   handleRemoveChannel,
@@ -1265,6 +1267,56 @@ eventManager.add(
       c: c,
     });
 })
+
+eventManager.add(
+  "t.group.kick",
+  z.object({
+    userId: z.string().email(),
+    groupId: z.string(),
+    targetUserId: z.string().email(),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { userId, groupId, targetUserId } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    return await handleKickUser({
+      groupId,
+      kikker:userId,
+      userId:targetUserId,
+      c: c,
+    })
+  }
+)
+
+eventManager.add(
+  "t.group.ban",
+  z.object({
+    userId: z.string().email(),
+    groupId: z.string(),
+    targetUserId: z.string().email(),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { userId, groupId, targetUserId } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    return await handleBanUser({
+      groupId,
+      bannner:userId,
+      userId:targetUserId,
+      c: c,
+    })
+  }
+)
 
 eventManager.add(
   "t.group.user.role",
