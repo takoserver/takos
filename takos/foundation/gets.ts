@@ -107,6 +107,11 @@ app.get("/group/:key/:groupId", async (c) => {
     case "icon": {
       return c.json({ icon: group.groupIcon });
     }
+    case "requests": {
+      return c.json({
+        requests: group.requests,
+      });
+    }
     case "name": {
       return c.json({ name: group.groupName });
     }
@@ -355,26 +360,43 @@ app.get("/key/:kind", async (c) => {
 });
 
 app.get("/group/search", async (c) => {
-  const query = c.req.param("query");
-  const limit = Number(c.req.query("limit"));
-  if (!query || !limit) {
+  const query = c.req.query("query");
+  const limit = Number(c.req.query("limit")) || 50;
+  if (!query) {
     return c.json({ error: "Invalid request" }, 400);
   }
   if (limit > 100) {
     return c.json({ error: "Invalid limit" }, 400);
   }
+  function escapeRegex(text: string) {
+    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+  }
+
+  // 使用例
+  console.log(escapeRegex(query));
+  const safeQuery = escapeRegex(query);
   const groups = await Group.find({
-    groupName: { $regex: query },
-    groupDescription: { $regex: query },
+    $or: [
+      { groupName: { $regex: safeQuery, $options: "i" } },
+      { groupDescription: { $regex: safeQuery, $options: "i" } },
+    ],
     type: "public",
   }).limit(limit);
   if (!groups) {
     return c.json({ error: "No group found" }, 404);
   }
   return c.json({
-    groups: groups.map((group) => {
-      return group.groupId;
-    }),
+    groups: await Promise.all(groups.map(async (group) => {
+      const members = await Member.find({ groupId: group.groupId });
+
+      return {
+        id: group.groupId,
+        name: group.groupName,
+        icon: group.groupIcon,
+        memberCount: members.length,
+        allowJoin: group.allowJoin,
+      };
+    })),
   });
 });
 

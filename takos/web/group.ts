@@ -40,6 +40,7 @@ app.post(
       name: z.string(),
       icon: z.string(),
       groupid: z.string().optional(),
+      isPublic: z.boolean(),
     }),
   ),
   async (c) => {
@@ -47,7 +48,7 @@ app.post(
     if (!user) {
       return c.json({ message: "Unauthorized" }, 401);
     }
-    const { name, icon, groupid } = c.req.valid("json");
+    const { name, icon, groupid, isPublic } = c.req.valid("json");
     const domain = env["domain"];
     const id = groupid || uuidv7();
     const groupId = id + "@" + domain;
@@ -59,10 +60,11 @@ app.post(
         groupId,
         groupName: name,
         groupIcon: arrayBufferToBase64(resizedIcon),
-        type: "private",
+        type: isPublic ? "public" : "private",
         owner: user.userName + "@" + env["domain"],
         isOwner: true,
         defaultChannelId: "general",
+        allowJoin: false,
       });
     } catch (error) {
       console.error("Error resizing image:", error);
@@ -1047,11 +1049,10 @@ export async function handleAddRole({
   }
   const role = await Roles.findOne({ id, groupId });
   if (role) {
-    await Roles.updateOne({ id }, { name, color, permissions });
+    await Roles.updateOne({ id, groupId }, { name, color, permissions });
   } else {
     await Roles.create({ id, name, color, permissions, groupId });
   }
-  await Roles.updateOne({ id }, { name, color, permissions });
   return c.json({ message: "success" });
 }
 
@@ -1123,6 +1124,9 @@ export async function handleRemoveRole({
   c: Context;
   beforeEventId: string;
 }) {
+  if (roleId === "everyone") {
+    return c.json({ message: "Invalid roleId" }, 400);
+  }
   const role = await Roles.findOne({ id: roleId, groupId });
   if (!role) {
     return c.json({ message: "Invalid roleId" }, 400);
@@ -1180,6 +1184,7 @@ app.post(
     if (!group) {
       return c.json({ message: "Invalid groupId" }, 400);
     }
+
     const member = await Member.findOne({
       groupId,
       userId: user.userName + "@" + env["domain"],
@@ -1269,12 +1274,11 @@ export async function handleGiveRole({
 }
 
 app.post(
-  "join/rquest",
+  "join/request",
   zValidator(
     "json",
     z.object({
       groupId: z.string(),
-      userId: z.string(),
     }),
   ),
   async (c) => {
@@ -1282,19 +1286,29 @@ app.post(
     if (!user) {
       return c.json({ message: "Unauthorized" }, 401);
     }
-    const { groupId, userId } = c.req.valid("json");
+    const { groupId } = c.req.valid("json");
     if (groupId.split("@")[1] === env["domain"]) {
       const group = await Group.findOne({ groupId });
       if (!group) {
         return c.json({ message: "Invalid groupId" }, 400);
       }
-      if (group.type !== "private") {
+      if (group.type == "private") {
         return c.json({ message: "Invalid group type" }, 400);
       }
-      if (await Member.findOne({ groupId, userId })) {
+      if (
+        await Member.findOne({
+          groupId,
+          userId: user.userName + "@" + env["domain"],
+        })
+      ) {
         return c.json({ message: "Already a member" }, 400);
       }
-      await Group.updateOne({ groupId }, { $push: { requests: userId } });
+      if (group.requests.includes(user.userName + "@" + env["domain"])) {
+        return c.json({ message: "Already requested" }, 400);
+      }
+      await Group.updateOne({ groupId }, {
+        $push: { requests: user.userName + "@" + env["domain"] },
+      });
       return c.json({ message: "success" });
     } else {
       const res = await fff(
@@ -1311,7 +1325,10 @@ app.post(
       if (Array.isArray(res) ? res[0].status !== 200 : true) {
         return c.json({ message: "Error requesting group" }, 500);
       }
-      await JoinRequest.create({ groupId, userId });
+      await JoinRequest.create({
+        groupId,
+        userId: user.userName + "@" + env["domain"],
+      });
       return c.json({ message: "success" });
     }
   },
@@ -1337,7 +1354,7 @@ app.post(
       if (!group) {
         return c.json({ message: "Invalid groupId" }, 400);
       }
-      if (group.type !== "private") {
+      if (group.type == "private") {
         return c.json({ message: "Invalid group type" }, 400);
       }
       if (!group.requests.includes(userId)) {
@@ -1401,6 +1418,84 @@ app.post(
       );
       if (Array.isArray(res) ? res[0].status !== 200 : true) {
         return c.json({ message: "Error accepting group" }, 500);
+      }
+      return c.json({ message: "success" });
+    }
+  },
+);
+
+app.post(
+  "join",
+  zValidator(
+    "json",
+    z.object({
+      groupId: z.string(),
+    }),
+  ),
+  async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { groupId } = c.req.valid("json");
+    if (groupId.split("@")[1] === env["domain"]) {
+      const group = await Group.findOne({ groupId });
+      if (!group) {
+        return c.json({ message: "Invalid groupId" }, 400);
+      }
+      if (group.type == "private") {
+        return c.json({ message: "Invalid group type" }, 400);
+      }
+      if (group.allowJoin == false) {
+        return c.json({ message: "Not allowed to join" }, 400);
+      }
+      if (
+        await Member.findOne({
+          groupId,
+          userId: user.userName + "@" + env["domain"],
+        })
+      ) {
+        return c.json({ message: "Already a member" }, 400);
+      }
+      await Member.create({
+        groupId,
+        userId: user.userName + "@" + env["domain"],
+        role: [],
+      });
+      const domains = (await Member
+        .find({ groupId }))
+        .map((member) => member.userId.split("@")[1])
+        .filter((domain) => domain !== env["domain"]);
+      const uniqueDomains = Array.from(new Set(domains));
+      const eventId = uuidv7();
+      await fff(
+        JSON.stringify({
+          event: "t.group.sync.user.add",
+          eventId: eventId,
+          payload: {
+            groupId,
+            userId: user.userName + "@" + env["domain"],
+            role: [],
+            beforeEventId: group.beforeEventId,
+          },
+        }),
+        uniqueDomains,
+      );
+      return c.json({ message: "success" });
+    } else {
+      const res = await fff(
+        JSON.stringify({
+          event: "t.group.join",
+          eventId: uuidv7(),
+          payload: {
+            groupId,
+            userId: user.userName + "@" + env["domain"],
+          },
+        }),
+        [groupId.split("@")[1]],
+      );
+      if (Array.isArray(res) ? res[0].status !== 200 : true) {
+        return c.json({ message: "Error joining group" }, 500);
       }
       return c.json({ message: "success" });
     }
@@ -1999,5 +2094,236 @@ export async function handleChannelOrder({
   }
   await Group
     .updateOne({ groupId }, { $set: { channelOrder: order } });
+  return c.json({ message: "success" });
+}
+
+app.post(
+  "icon",
+  zValidator(
+    "json",
+    z.object({
+      groupId: z.string(),
+      icon: z.string(),
+    }),
+  ),
+  async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { groupId, icon } = c.req.valid("json");
+    const resizedIcon = arrayBufferToBase64(
+      await resizeImageTo256x256(
+        new Uint8Array(base64ToArrayBuffer(icon)),
+      ),
+    );
+    if (groupId.split("@")[1] === env["domain"]) {
+      return await handleIcon({
+        groupId,
+        icon: resizedIcon,
+        c,
+        islocal: true,
+      });
+    } else {
+      const res = await fff(
+        JSON.stringify({
+          event: "t.group.icon",
+          eventId: uuidv7(),
+          payload: {
+            groupId,
+            userId: user.userName + "@" + env["domain"],
+            icon: resizedIcon,
+          },
+        }),
+        [groupId.split("@")[1]],
+      );
+      if (Array.isArray(res) ? res[0].status !== 200 : true) {
+        return c.json({ message: "Error setting icon" }, 500);
+      }
+      return c.json({ message: "success" });
+    }
+  },
+);
+
+export async function handleIcon({
+  groupId,
+  icon,
+  c,
+  islocal,
+}: {
+  groupId: string;
+  icon: string;
+  c: Context;
+  islocal: boolean;
+}) {
+  const group = await Group
+    .findOne({ groupId });
+  if (!group) {
+    return c.json({ message: "Invalid groupId" }, 400);
+  }
+  const permission = await getUserPermission(
+    c.get("user").userName + "@" + env["domain"],
+    groupId,
+  );
+  if (!permission) {
+    return c.json({ message: "Unauthorized1" }, 401);
+  }
+  if (!permission.includes(`ADMIN`) && !permission.includes(`MANAGE_GROUP`)) {
+    return c.json({ message: "Unauthorized permission" }, 401);
+  }
+  if (islocal) {
+    await Group
+      .updateOne({ groupId }, { $set: { icon } });
+  } else {
+    const resizedIcon = arrayBufferToBase64(
+      await resizeImageTo256x256(
+        new Uint8Array(base64ToArrayBuffer(icon)),
+      ),
+    );
+    await Group
+      .updateOne({ groupId }, { $set: { icon: resizedIcon } });
+  }
+  return c.json({ message: "success" });
+}
+
+app.post(
+  "description",
+  zValidator(
+    "json",
+    z.object({
+      groupId: z.string(),
+      description: z.string(),
+    }),
+  ),
+  async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { groupId, description } = c.req.valid("json");
+    if (groupId.split("@")[1] === env["domain"]) {
+      return await handleDescription({
+        groupId,
+        description,
+        c,
+      });
+    } else {
+      const res = await fff(
+        JSON.stringify({
+          event: "t.group.description",
+          eventId: uuidv7(),
+          payload: {
+            groupId,
+            userId: user.userName + "@" + env["domain"],
+            description,
+          },
+        }),
+        [groupId.split("@")[1]],
+      );
+      if (Array.isArray(res) ? res[0].status !== 200 : true) {
+        return c.json({ message: "Error setting description" }, 500);
+      }
+      return c.json({ message: "success" });
+    }
+  },
+);
+
+export async function handleDescription({
+  groupId,
+  description,
+  c,
+}: {
+  groupId: string;
+  description: string;
+  c: Context;
+}) {
+  const group = await Group
+    .findOne({ groupId });
+  if (!group) {
+    return c.json({ message: "Invalid groupId" }, 400);
+  }
+  const permission = await getUserPermission(
+    c.get("user").userName + "@" + env["domain"],
+    groupId,
+  );
+  if (!permission) {
+    return c.json({ message: "Unauthorized1" }, 401);
+  }
+  if (!permission.includes(`ADMIN`) && !permission.includes(`MANAGE_GROUP`)) {
+    return c.json({ message: "Unauthorized permission" }, 401);
+  }
+  await Group
+    .updateOne({ groupId }, { $set: { description } });
+  return c.json({ message: "success" });
+}
+
+app.post(
+  "name",
+  zValidator(
+    "json",
+    z.object({
+      groupId: z.string(),
+      name: z.string(),
+    }),
+  ),
+  async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { groupId, name } = c.req.valid("json");
+    if (groupId.split("@")[1] === env["domain"]) {
+      return await handleName({
+        groupId,
+        name,
+        c,
+      });
+    } else {
+      const res = await fff(
+        JSON.stringify({
+          event: "t.group.name",
+          eventId: uuidv7(),
+          payload: {
+            groupId,
+            userId: user.userName + "@" + env["domain"],
+            name,
+          },
+        }),
+        [groupId.split("@")[1]],
+      );
+      if (Array.isArray(res) ? res[0].status !== 200 : true) {
+        return c.json({ message: "Error setting name" }, 500);
+      }
+      return c.json({ message: "success" });
+    }
+  },
+);
+
+export async function handleName({
+  groupId,
+  name,
+  c,
+}: {
+  groupId: string;
+  name: string;
+  c: Context;
+}) {
+  const group = await Group
+    .findOne({ groupId });
+  if (!group) {
+    return c.json({ message: "Invalid groupId" }, 400);
+  }
+  const permission = await getUserPermission(
+    c.get("user").userName + "@" + env["domain"],
+    groupId,
+  );
+  if (!permission) {
+    return c.json({ message: "Unauthorized1" }, 401);
+  }
+  if (!permission.includes(`ADMIN`) && !permission.includes(`MANAGE_GROUP`)) {
+    return c.json({ message: "Unauthorized permission" }, 401);
+  }
+  await Group
+    .updateOne({ groupId }, { $set: { name } });
   return c.json({ message: "success" });
 }

@@ -25,7 +25,7 @@
 - `MANAGE_CHANNEL`: チャンネルおよびカテゴリの作成・削除・編集。
 - `MANAGE_USER`: ユーザーの管理（例：権限の付与、退会処理など）。
 - `INVITE_USER`: ユーザー招待権限。
-- `MANAGE_SERVER`: サーバーの設定変更。
+- `MANAGE_GROUP`: サーバーの設定変更。
 - `VIEW_LOG`: ログの閲覧。
 
 ## 4. テキストチャンネルの権限
