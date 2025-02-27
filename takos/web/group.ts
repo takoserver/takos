@@ -1351,7 +1351,12 @@ app.post(
     }
     const { groupId, userId } = c.req.valid("json");
     if (groupId.split("@")[1] === env["domain"]) {
-      return handleAcceptJoinRequest({c, groupId, userId, accepter: user.userName + "@" + env["domain"]});
+      return handleAcceptJoinRequest({
+        c,
+        groupId,
+        userId,
+        accepter: user.userName + "@" + env["domain"],
+      });
     } else {
       const res = await fff(
         JSON.stringify({
@@ -1377,7 +1382,7 @@ export async function handleAcceptJoinRequest({
   c,
   groupId,
   userId,
-  accepter
+  accepter,
 }: {
   c: Context;
   groupId: string;
@@ -1394,12 +1399,16 @@ export async function handleAcceptJoinRequest({
   if (!group.requests.includes(userId)) {
     return c.json({ message: "Invalid request" }, 400);
   }
-  if(await Member
-    .findOne({ groupId, userId: userId })) {
+  if (
+    await Member
+      .findOne({ groupId, userId: userId })
+  ) {
     return c.json({ message: "Already a member" }, 400);
   }
-  if(!await Member
-    .findOne({ groupId, userId: accepter })) {
+  if (
+    !await Member
+      .findOne({ groupId, userId: accepter })
+  ) {
     return c.json({ message: "you are not a member" }, 400);
   }
   const permission = await getUserPermission(
@@ -1454,7 +1463,6 @@ export async function handleAcceptJoinRequest({
   );
   return c.json({ message: "success" });
 }
-
 
 app.post(
   "join",
@@ -1679,12 +1687,12 @@ export async function handleKickUser({
   groupId,
   userId,
   c,
-  kikker
+  kikker,
 }: {
   groupId: string;
   userId: string;
   c: Context;
-  kikker: string
+  kikker: string;
 }) {
   const group = await Group.findOne({ groupId });
   if (!group) {
@@ -1783,12 +1791,12 @@ export async function handleBanUser({
   groupId,
   userId,
   c,
-  bannner
+  bannner,
 }: {
   groupId: string;
   userId: string;
   c: Context;
-  bannner: string
+  bannner: string;
 }) {
   const group = await Group.findOne({ groupId });
   if (!group) {
@@ -1841,7 +1849,7 @@ export async function handleBanUser({
 }
 
 app.post(
-  "user/unban",
+  "unban",
   zValidator(
     "json",
     z.object({
@@ -1860,7 +1868,7 @@ app.post(
         groupId,
         userId,
         c,
-        user,
+        unbanner: user.userName + "@" + env["domain"],
       });
     } else {
       const res = await fff(
@@ -1887,14 +1895,12 @@ export async function handleUnbanUser({
   groupId,
   userId,
   c,
-  user,
+  unbanner,
 }: {
   groupId: string;
   userId: string;
   c: Context;
-  user: {
-    userName: string;
-  };
+  unbanner: string;
 }) {
   const group = await Group.findOne({ groupId });
   if (!group) {
@@ -1904,7 +1910,7 @@ export async function handleUnbanUser({
     return c.json({ message: "Not banned" }, 400);
   }
   const permission = await getUserPermission(
-    user.userName + "@" + env["domain"],
+    unbanner,
     groupId,
   );
   if (!permission) {

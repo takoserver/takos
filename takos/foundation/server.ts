@@ -39,6 +39,7 @@ import {
   handleRemoveCategory,
   handleRemoveChannel,
   handleRemoveRole,
+  handleUnbanUser,
 } from "../web/group.ts";
 const env = await load();
 
@@ -1262,11 +1263,12 @@ eventManager.add(
     }
     return await handleAcceptJoinRequest({
       groupId,
-      accepter:userId,
-      userId:targetUserId,
+      accepter: userId,
+      userId: targetUserId,
       c: c,
     });
-})
+  },
+);
 
 eventManager.add(
   "t.group.kick",
@@ -1286,12 +1288,12 @@ eventManager.add(
     }
     return await handleKickUser({
       groupId,
-      kikker:userId,
-      userId:targetUserId,
+      kikker: userId,
+      userId: targetUserId,
       c: c,
-    })
-  }
-)
+    });
+  },
+);
 
 eventManager.add(
   "t.group.ban",
@@ -1311,12 +1313,37 @@ eventManager.add(
     }
     return await handleBanUser({
       groupId,
-      bannner:userId,
-      userId:targetUserId,
+      bannner: userId,
+      userId: targetUserId,
       c: c,
-    })
-  }
-)
+    });
+  },
+);
+
+eventManager.add(
+  "t.group.unban",
+  z.object({
+    userId: z.string().email(),
+    groupId: z.string(),
+    targetUserId: z.string().email(),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { userId, groupId, targetUserId } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    return await handleUnbanUser({
+      groupId,
+      userId: targetUserId,
+      c: c,
+      unbanner: userId,
+    });
+  },
+);
 
 eventManager.add(
   "t.group.user.role",

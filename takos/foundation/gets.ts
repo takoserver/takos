@@ -123,6 +123,9 @@ app.get("/group/:key/:groupId", async (c) => {
     case "description": {
       return c.json({ description: group.groupDescription });
     }
+    case "allowJoin": {
+      return c.json({ allowJoin: group.allowJoin });
+    }
     case "owner": {
       return c.json({ owner: group.owner });
     }

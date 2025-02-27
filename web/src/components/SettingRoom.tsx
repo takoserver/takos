@@ -109,12 +109,12 @@ export function SettingRoom() {
           setIsLoadingBanList(false);
           return;
         }
-        
+
         try {
           const res = await fetch(
-            `https://${match[2]}/_takos/v1/group/bans/${match[1]}@${match[2]}`
+            `https://${match[2]}/_takos/v1/group/bans/${match[1]}@${match[2]}`,
           );
-          
+
           if (res.ok) {
             const data = await res.json();
             setBannedUsers(data.bans || []);
@@ -125,10 +125,55 @@ export function SettingRoom() {
           setIsLoadingBanList(false);
         }
       };
-  
+
       fetchBannedUsers();
     }
   });
+  // 既存のcreateSignalの近くに追加
+const [groupName, setGroupName] = createSignal("");
+const [groupDescription, setGroupDescription] = createSignal("");
+const [groupIcon, setGroupIcon] = createSignal("");
+const [groupIsPrivate, setGroupIsPrivate] = createSignal(false);
+// 他のcreateEffectと同じ場所に追加
+createEffect(async () => {
+  if (selected() === "detail") {
+    const roomid = selectedRoom()?.roomid;
+    if (!roomid) {
+      return;
+    }
+    const match = roomid.match(/^g\{([^}]+)\}@(.+)$/);
+    if (!match) {
+      return;
+    }
+    const friendUserName = match[1];
+    const domainFromRoom = match[2];
+    const icon = (await (await fetch(
+      `https://${domainFromRoom}/_takos/v1/group/icon/${
+        friendUserName + "@" + domainFromRoom
+      }`,
+    )).json()).icon;
+    setGroupIcon(icon);
+    const nickName = (await (await fetch(
+      `https://${domainFromRoom}/_takos/v1/group/name/${
+        friendUserName + "@" + domainFromRoom
+      }`,
+    )).json()).name;
+    const description = (await (await fetch(
+      `https://${domainFromRoom}/_takos/v1/group/description/${
+        friendUserName + "@" + domainFromRoom
+      }`,
+    )).json()).description;
+    const allowJoin = (await (await fetch(
+      `https://${domainFromRoom}/_takos/v1/group/allowJoin/${
+        friendUserName + "@" + domainFromRoom
+      }`,
+    )).json()).allowJoin;
+    console.log(allowJoin);
+    setGroupName(nickName);
+    setGroupDescription(description);
+    setGroupIsPrivate(allowJoin);
+  }
+});
   return (
     <>
       {showGroupPopUp() && isSelectRoom() && selectedRoom()!.type === "group" &&
@@ -266,25 +311,183 @@ export function SettingRoom() {
                       <span class="text-white">参加リクエスト</span>
                     </div>
                     <div
-                    class="flex items-center p-2 rounded hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-                    onClick={() => setSelected("ban")}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="h-6 w-6 mr-3"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                      class="flex items-center p-2 rounded hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+                      onClick={() => setSelected("ban")}
                     >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                      />
-                    </svg>
-                    <span class="text-white">BANリスト</span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-6 w-6 mr-3"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                        />
+                      </svg>
+                      <span class="text-white">BANリスト</span>
+                    </div>
+                    <div
+                      class="flex items-center p-2 rounded hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+                      onClick={() => setSelected("detail")}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-6 w-6 mr-3"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span class="text-white">詳細設定</span>
+                    </div>
                   </div>
+                </>
+              )}
+              {selected() === "detail" && (
+                <>
+                  <div class="flex flex-col w-full p-4">
+                    {/* 戻るボタン */}
+                    <div
+                      class="flex items-center cursor-pointer mb-6 text-blue-400 hover:text-blue-300 transition-colors"
+                      onClick={() => setSelected(false)}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5 mr-1"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                      <span class="font-medium">戻る</span>
+                    </div>
+
+                    {/* ヘッダー */}
+                    <div class="flex justify-between items-center mb-4">
+                      <h3 class="text-xl font-bold text-white">詳細設定</h3>
+                    </div>
+
+                    {/* 説明テキスト */}
+                    <p class="text-gray-400 text-sm mb-4">
+                      グループの基本情報や参加条件などの設定を変更できます。
+                    </p>
+
+                    {/* 設定フォーム */}
+                    <div class="space-y-6">
+                      {/* グループアイコン設定 */}
+                      <div class="bg-gray-800 p-4 rounded-lg">
+                        <label class="block text-white font-medium mb-2">グループアイコン</label>
+                        <div class="flex items-center space-x-4">
+                        <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                          <img 
+                            src={"data:image/png;base64," + groupIcon()} 
+                            alt="グループアイコン" 
+                            class="w-full h-full object-cover" 
+                          />
+                        </div>
+                          <button
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors flex items-center"
+                            onClick={() => {
+                              alert("アイコンアップロード機能は準備中です");
+                            }}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              class="h-5 w-5 mr-1"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fill-rule="evenodd"
+                                d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z"
+                                clip-rule="evenodd"
+                              />
+                            </svg>
+                            アップロード
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* グループ名設定 */}
+                      <div class="bg-gray-800 p-4 rounded-lg">
+                        <label class="block text-white font-medium mb-2">グループ名</label>
+                        <input
+                          type="text"
+                          value={groupName()}
+                          onInput={(e) => setGroupName(e.currentTarget.value)}
+                          class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
+                          placeholder="グループ名を入力"
+                        />
+                      </div>
+
+                      {/* グループ説明設定 */}
+                      <div class="bg-gray-800 p-4 rounded-lg">
+                        <label class="block text-white font-medium mb-2">グループ説明</label>
+                        <textarea
+                          class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none min-h-[80px]"
+                          placeholder="グループの説明を入力（任意）"
+                          value={groupDescription()}
+                          onInput={(e) => setGroupDescription(e.currentTarget.value)}
+                        ></textarea>
+                      </div>
+
+                      {/* 参加条件設定 */}
+                      <div class="bg-gray-800 p-4 rounded-lg">
+                      <label class="block text-white font-medium mb-2">参加条件</label>
+                        <div class="space-y-2">
+                          <label class="flex items-center cursor-pointer">
+                            <input 
+                              type="radio" 
+                              name="joinType" 
+                              class="mr-2" 
+                              checked={!groupIsPrivate()} 
+                              onChange={() => setGroupIsPrivate(false)} 
+                            />
+                            <span>申請制（管理者の承認が必要）</span>
+                          </label>
+                          <label class="flex items-center cursor-pointer">
+                            <input 
+                              type="radio" 
+                              name="joinType" 
+                              class="mr-2" 
+                              checked={groupIsPrivate()} 
+                              onChange={() => setGroupIsPrivate(true)} 
+                            />
+                            <span>自由参加（誰でも参加可能）</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* 保存ボタン */}
+                      <div class="flex justify-end">
+                        <button
+                          class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-md transition-colors"
+                          onClick={async () => {
+                            // 実際の保存処理はここに実装します
+                            const match = selectedRoom()?.roomid.match(/^g\{([^}]+)\}@(.+)$/);
+                            if (!match) return;
+                            
+                            alert("変更を保存しました");
+                          }}
+                        >
+                          変更を保存
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
@@ -1817,169 +2020,67 @@ export function SettingRoom() {
                 </>
               )}
               {selected() === "ban" && (
-              <>
-                <div class="flex flex-col w-full p-4">
-                  {/* 戻るボタン */}
-                  <div
-                    class="flex items-center cursor-pointer mb-6 text-blue-400 hover:text-blue-300 transition-colors"
-                    onClick={() => setSelected(false)}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="h-5 w-5 mr-1"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    <span class="font-medium">戻る</span>
-                  </div>
-
-                  {/* ヘッダー */}
-                  <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-white">BANリスト</h3>
+                <>
+                  <div class="flex flex-col w-full p-4">
+                    {/* 戻るボタン */}
                     <div
-                      class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-sm cursor-pointer"
-                      onClick={async () => {
-                        // BANリストを再読み込み
-                        const match = selectedRoom()!.roomid.match(/^g\{([^}]+)\}@(.+)$/);
-                        if (!match) return;
-
-                        setBannedUsers([]);
-                        setIsLoadingBanList(true);
-
-                        try {
-                          const res = await fetch(
-                            `https://${match[2]}/_takos/v1/group/bans/${match[1]}@${match[2]}`
-                          );
-
-                          if (res.ok) {
-                            const data = await res.json();
-                            setBannedUsers(data.bans || []);
-                          }
-                        } catch (error) {
-                          console.error("BANリストの取得に失敗しました", error);
-                        } finally {
-                          setIsLoadingBanList(false);
-                        }
-                      }}
+                      class="flex items-center cursor-pointer mb-6 text-blue-400 hover:text-blue-300 transition-colors"
+                      onClick={() => setSelected(false)}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        class="h-4 w-4 inline-block"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                        class="h-5 w-5 mr-1"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
                       >
                         <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          fill-rule="evenodd"
+                          d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                          clip-rule="evenodd"
                         />
                       </svg>
-                      <span class="ml-1">更新</span>
+                      <span class="font-medium">戻る</span>
                     </div>
-                  </div>
 
-                  {/* 説明テキスト */}
-                  <p class="text-gray-400 text-sm mb-4">
-                    グループからBANされたユーザーの一覧です。BANを解除して再度参加を許可できます。
-                  </p>
+                    {/* ヘッダー */}
+                    <div class="flex justify-between items-center mb-4">
+                      <h3 class="text-xl font-bold text-white">BANリスト</h3>
+                      <div
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-sm cursor-pointer"
+                        onClick={async () => {
+                          // BANリストを再読み込み
+                          const match = selectedRoom()!.roomid.match(
+                            /^g\{([^}]+)\}@(.+)$/,
+                          );
+                          if (!match) return;
 
-                  {/* BANリスト */}
-                  <div class="mt-2 w-full max-h-80 overflow-y-auto pr-1 custom-scrollbar">
-                    {isLoadingBanList() ? (
-                      <div class="flex justify-center items-center py-10">
-                        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                      </div>
-                    ) : bannedUsers().length > 0 ? (
-                      <For each={bannedUsers()}>
-                        {(userId) => (
-                          <div class="bg-gray-800 rounded-lg mb-3 overflow-hidden hover:bg-gray-750 transition-colors">
-                            <div class="p-3 flex justify-between items-center">
-                              <div class="flex items-center space-x-3">
-                                {/* ユーザーアバター */}
-                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center text-white font-bold">
-                                  {userId.charAt(0).toUpperCase()}
-                                </div>
+                          setBannedUsers([]);
+                          setIsLoadingBanList(true);
 
-                                {/* ユーザー情報 */}
-                                <div class="flex flex-col">
-                                  <span class="text-white font-medium break-all">
-                                    {userId}
-                                  </span>
-                                  <span class="text-xs text-red-400">
-                                    BANされたユーザー
-                                  </span>
-                                </div>
-                              </div>
+                          try {
+                            const res = await fetch(
+                              `https://${match[2]}/_takos/v1/group/bans/${
+                                match[1]
+                              }@${match[2]}`,
+                            );
 
-                              {/* アクションボタン */}
-                              <button
-                                class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded flex items-center transition-colors"
-                                onClick={async () => {
-                                  const match = selectedRoom()!.roomid.match(/^g\{([^}]+)\}@(.+)$/);
-                                  if (!match) return;
-
-                                  if (confirm(`${userId}のBANを解除してよろしいですか？`)) {
-                                    try {
-                                      const res = await fetch("/api/v2/group/unban", {
-                                        method: "POST",
-                                        headers: {
-                                          "Content-Type": "application/json",
-                                        },
-                                        body: JSON.stringify({
-                                          groupId: match[1] + "@" + match[2],
-                                          userId: userId,
-                                        }),
-                                      });
-
-                                      if (res.ok) {
-                                        // リストから削除
-                                        setBannedUsers((prev) =>
-                                          prev.filter((id) => id !== userId)
-                                        );
-                                        alert(`${userId}のBANを解除しました`);
-                                      } else {
-                                        alert("BANの解除に失敗しました");
-                                      }
-                                    } catch (error) {
-                                      console.error("BAN解除中にエラーが発生しました", error);
-                                      alert("BAN解除中にエラーが発生しました");
-                                    }
-                                  }
-                                }}
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg" 
-                                  class="h-4 w-4 mr-1"
-                                  fill="none" 
-                                  viewBox="0 0 24 24" 
-                                  stroke="currentColor"
-                                >
-                                  <path 
-                                    stroke-linecap="round" 
-                                    stroke-linejoin="round" 
-                                    stroke-width="2" 
-                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" 
-                                  />
-                                </svg>
-                                BAN解除
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </For>
-                    ) : (
-                      <div class="flex flex-col items-center justify-center py-8 text-gray-400 bg-gray-800 rounded-lg">
+                            if (res.ok) {
+                              const data = await res.json();
+                              setBannedUsers(data.bans || []);
+                            }
+                          } catch (error) {
+                            console.error(
+                              "BANリストの取得に失敗しました",
+                              error,
+                            );
+                          } finally {
+                            setIsLoadingBanList(false);
+                          }
+                        }}
+                      >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          class="h-12 w-12 mb-2"
+                          class="h-4 w-4 inline-block"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -1988,16 +2089,149 @@ export function SettingRoom() {
                             stroke-linecap="round"
                             stroke-linejoin="round"
                             stroke-width="2"
-                            d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                           />
                         </svg>
-                        <p>現在、BANされているユーザーはいません</p>
+                        <span class="ml-1">更新</span>
                       </div>
-                    )}
+                    </div>
+
+                    {/* 説明テキスト */}
+                    <p class="text-gray-400 text-sm mb-4">
+                      グループからBANされたユーザーの一覧です。BANを解除して再度参加を許可できます。
+                    </p>
+
+                    {/* BANリスト */}
+                    <div class="mt-2 w-full max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+                      {isLoadingBanList()
+                        ? (
+                          <div class="flex justify-center items-center py-10">
+                            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500">
+                            </div>
+                          </div>
+                        )
+                        : bannedUsers().length > 0
+                        ? (
+                          <For each={bannedUsers()}>
+                            {(userId) => (
+                              <div class="bg-gray-800 rounded-lg mb-3 overflow-hidden hover:bg-gray-750 transition-colors">
+                                <div class="p-3 flex justify-between items-center">
+                                  <div class="flex items-center space-x-3">
+                                    {/* ユーザーアバター */}
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center text-white font-bold">
+                                      {userId.charAt(0).toUpperCase()}
+                                    </div>
+
+                                    {/* ユーザー情報 */}
+                                    <div class="flex flex-col">
+                                      <span class="text-white font-medium break-all">
+                                        {userId}
+                                      </span>
+                                      <span class="text-xs text-red-400">
+                                        BANされたユーザー
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* アクションボタン */}
+                                  <button
+                                    class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded flex items-center transition-colors"
+                                    onClick={async () => {
+                                      const match = selectedRoom()!.roomid
+                                        .match(/^g\{([^}]+)\}@(.+)$/);
+                                      if (!match) {
+                                        return;
+                                      }
+
+                                      if (
+                                        confirm(
+                                          `${userId}のBANを解除してよろしいですか？`,
+                                        )
+                                      ) {
+                                        try {
+                                          const res = await fetch(
+                                            "/api/v2/group/unban",
+                                            {
+                                              method: "POST",
+                                              headers: {
+                                                "Content-Type":
+                                                  "application/json",
+                                              },
+                                              body: JSON.stringify({
+                                                groupId: match[1] + "@" +
+                                                  match[2],
+                                                userId: userId,
+                                              }),
+                                            },
+                                          );
+
+                                          if (res.ok) {
+                                            // リストから削除
+                                            setBannedUsers((prev) =>
+                                              prev.filter((id) => id !== userId)
+                                            );
+                                            alert(
+                                              `${userId}のBANを解除しました`,
+                                            );
+                                          } else {
+                                            alert("BANの解除に失敗しました");
+                                          }
+                                        } catch (error) {
+                                          console.error(
+                                            "BAN解除中にエラーが発生しました",
+                                            error,
+                                          );
+                                          alert(
+                                            "BAN解除中にエラーが発生しました",
+                                          );
+                                        }
+                                      }
+                                    }}
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      class="h-4 w-4 mr-1"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                      />
+                                    </svg>
+                                    BAN解除
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </For>
+                        )
+                        : (
+                          <div class="flex flex-col items-center justify-center py-8 text-gray-400 bg-gray-800 rounded-lg">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              class="h-12 w-12 mb-2"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                              />
+                            </svg>
+                            <p>現在、BANされているユーザーはいません</p>
+                          </div>
+                        )}
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
               {selected() === "request" && (
                 <>
                   <div class="flex flex-col w-full p-4">
