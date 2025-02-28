@@ -134,6 +134,10 @@ const [groupName, setGroupName] = createSignal("");
 const [groupDescription, setGroupDescription] = createSignal("");
 const [groupIcon, setGroupIcon] = createSignal("");
 const [groupIsPrivate, setGroupIsPrivate] = createSignal(false);
+const [updatedGroupName, setUpdatedGroupName] = createSignal("");
+const [updatedGroupDescription, setUpdatedGroupDescription] = createSignal("");
+const [updatedGroupIcon, setUpdatedGroupIcon] = createSignal("");
+const [updatedGroupIsPrivate, setUpdatedGroupIsPrivate] = createSignal(false);
 // 他のcreateEffectと同じ場所に追加
 createEffect(async () => {
   if (selected() === "detail") {
@@ -172,6 +176,10 @@ createEffect(async () => {
     setGroupName(nickName);
     setGroupDescription(description);
     setGroupIsPrivate(allowJoin);
+    setUpdatedGroupName(nickName);
+    setUpdatedGroupDescription(description);
+    setUpdatedGroupIcon(icon);
+    setUpdatedGroupIsPrivate(allowJoin);
   }
 });
   return (
@@ -183,7 +191,7 @@ createEffect(async () => {
             role="dialog"
             aria-modal="true"
           >
-            <div class="bg-[#242424] rounded-lg shadow-2xl w-full max-w-md">
+            <div class="bg-[#242424] rounded-lg shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
               {/* ヘッダー */}
               <div class="flex items-center justify-between border-b border-gray-700 px-5 py-3">
                 <h2 class="text-xl font-semibold text-white">グループ設定</h2>
@@ -195,6 +203,7 @@ createEffect(async () => {
                   &times;
                 </button>
               </div>
+              <div class="overflow-y-auto custom-scrollbar flex-1">
               {!selected() && (
                 <>
                   <div class="flex justify-around items-center w-full h-full p-4">
@@ -394,7 +403,7 @@ createEffect(async () => {
                         <div class="flex items-center space-x-4">
                         <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
                           <img 
-                            src={"data:image/png;base64," + groupIcon()} 
+                            src={"data:image/png;base64," + updatedGroupIcon()} 
                             alt="グループアイコン" 
                             class="w-full h-full object-cover" 
                           />
@@ -402,7 +411,22 @@ createEffect(async () => {
                           <button
                             class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors flex items-center"
                             onClick={() => {
-                              alert("アイコンアップロード機能は準備中です");
+                              const input = document.createElement("input");
+                              input.type = "file";
+                              input.accept = "image/*";
+                              input.onchange = async (e) => {
+                                const file = (e.target as HTMLInputElement).files?.[0];
+                                if (!file) {
+                                  return;
+                                }
+                                const reader = new FileReader();
+                                reader.onload = async (e) => {
+                                  const base64 = e.target?.result as string;
+                                  setUpdatedGroupIcon(base64.split(",")[1]);
+                                };
+                                reader.readAsDataURL(file);
+                              };
+                              input.click();
                             }}
                           >
                             <svg
@@ -427,8 +451,8 @@ createEffect(async () => {
                         <label class="block text-white font-medium mb-2">グループ名</label>
                         <input
                           type="text"
-                          value={groupName()}
-                          onInput={(e) => setGroupName(e.currentTarget.value)}
+                          value={updatedGroupName()}
+                          onInput={(e) => setUpdatedGroupName(e.currentTarget.value)}
                           class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
                           placeholder="グループ名を入力"
                         />
@@ -440,8 +464,8 @@ createEffect(async () => {
                         <textarea
                           class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none min-h-[80px]"
                           placeholder="グループの説明を入力（任意）"
-                          value={groupDescription()}
-                          onInput={(e) => setGroupDescription(e.currentTarget.value)}
+                          value={updatedGroupDescription()}
+                          onInput={(e) => setUpdatedGroupDescription(e.currentTarget.value)}
                         ></textarea>
                       </div>
 
@@ -454,8 +478,8 @@ createEffect(async () => {
                               type="radio" 
                               name="joinType" 
                               class="mr-2" 
-                              checked={!groupIsPrivate()} 
-                              onChange={() => setGroupIsPrivate(false)} 
+                              checked={!updatedGroupIsPrivate()} 
+                              onChange={() => setUpdatedGroupIsPrivate(false)} 
                             />
                             <span>申請制（管理者の承認が必要）</span>
                           </label>
@@ -464,8 +488,8 @@ createEffect(async () => {
                               type="radio" 
                               name="joinType" 
                               class="mr-2" 
-                              checked={groupIsPrivate()} 
-                              onChange={() => setGroupIsPrivate(true)} 
+                              checked={updatedGroupIsPrivate()} 
+                              onChange={() => setUpdatedGroupIsPrivate(true)} 
                             />
                             <span>自由参加（誰でも参加可能）</span>
                           </label>
@@ -474,18 +498,80 @@ createEffect(async () => {
 
                       {/* 保存ボタン */}
                       <div class="flex justify-end">
-                        <button
-                          class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-md transition-colors"
-                          onClick={async () => {
-                            // 実際の保存処理はここに実装します
-                            const match = selectedRoom()?.roomid.match(/^g\{([^}]+)\}@(.+)$/);
-                            if (!match) return;
-                            
-                            alert("変更を保存しました");
-                          }}
-                        >
-                          変更を保存
-                        </button>
+                      <button
+                        class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-md transition-colors"
+                        onClick={async () => {
+                          // 実際の保存処理はここに実装します
+                          const match = selectedRoom()?.roomid.match(/^g\{([^}]+)\}@(.+)$/);
+                          if (!match) {
+                            return;
+                          }
+                          const friendUserName = match[1];
+                          const domainFromRoom = match[2];
+                          
+                          // 変更されたもののみを含む更新データを作成
+                          interface GroupUpdateData {
+                            groupId: string;
+                            name?: string;
+                            description?: string;
+                            allowJoin?: boolean;
+                            icon?: string;
+                          }
+                          
+                          // updateDataの定義を修正
+                          const updateData: GroupUpdateData = {
+                            groupId: friendUserName + "@" + domainFromRoom
+                          };
+                          
+                          // 各項目が変更されている場合のみ追加
+                          if (groupName() !== updatedGroupName()) {
+                            updateData.name = updatedGroupName();
+                          }
+                          
+                          if (groupDescription() !== updatedGroupDescription()) {
+                            updateData.description = updatedGroupDescription();
+                          }
+                          
+                          if (groupIsPrivate() !== updatedGroupIsPrivate()) {
+                            updateData.allowJoin = updatedGroupIsPrivate();
+                          }
+                          
+                          if (groupIcon() !== updatedGroupIcon()) {
+                            updateData.icon = updatedGroupIcon();
+                          }
+                          
+                          // 変更がない場合は処理を終了
+                          if (Object.keys(updateData).length <= 1) {
+                            alert("変更はありません");
+                            return;
+                          }
+                          
+                          // 更新データを送信
+                          const res = await fetch(
+                            "./api/v2/group/settings",
+                            {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                              },
+                              body: JSON.stringify(updateData),
+                            },
+                          );
+                          
+                          if (res.ok) {
+                            // 保存成功時に現在の値を更新
+                            setGroupName(updatedGroupName());
+                            setGroupDescription(updatedGroupDescription());
+                            setGroupIsPrivate(updatedGroupIsPrivate());
+                            setGroupIcon(updatedGroupIcon());
+                            alert("設定を保存しました");
+                          } else {
+                            alert("設定の保存に失敗しました");
+                          }
+                        }}
+                      >
+                        変更を保存
+                      </button>
                       </div>
                     </div>
                   </div>
@@ -2517,6 +2603,7 @@ createEffect(async () => {
                   </div>
                 </>
               )}
+              </div>
             </div>
           </div>
         )}

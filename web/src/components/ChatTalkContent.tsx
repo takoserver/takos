@@ -14,29 +14,46 @@ import { groupChannelState } from "./Chat/SideBar.tsx";
 const myuserName = localStorage.getItem("userName") + "@" +
   (document.location.hostname);
 
-function ChatTalkMain() {
-  const [messageList] = useAtom(messageListState);
-  const list = messageList();
-  return (
-    <>
-      <div class="pl-2" id="chatList">
-        <CreateChannelModal />
-        {list.map((message) => {
-          return (
-            <>
-              <Message
-                messageid={message.messageid}
-                myMessage={message.userName === myuserName}
-                time={message.timestamp}
-                userName={message.userName}
-              />
-            </>
-          );
-        })}
-      </div>
-    </>
-  );
-}
+  function ChatTalkMain() {
+    const [messageList] = useAtom(messageListState);
+    const list = messageList();
+    // chatListコンテナへの参照を作成
+    let chatListRef: HTMLDivElement | undefined;
+    
+    // メッセージリストが変更されたらスクロール処理を実行
+    createEffect(() => {
+      const messages = messageList();
+      if (messages.length && chatListRef) {
+        // 次のレンダリングサイクルでスクロール処理を実行するために setTimeout を使用
+        setTimeout(() => {
+          chatListRef?.scrollTo({
+            top: chatListRef.scrollHeight,
+            behavior: "smooth"
+          });
+        }, 100);
+      }
+    });
+  
+    return (
+      <>
+        <div id="chatList" ref={chatListRef} style={{ "overflow-y": "auto", "max-height": "calc(100vh - 150px)" }}>
+          <CreateChannelModal />
+          {list.map((message) => {
+            return (
+              <>
+                <Message
+                  messageid={message.messageid}
+                  myMessage={message.userName === myuserName}
+                  time={message.timestamp}
+                  userName={message.userName}
+                />
+              </>
+            );
+          })}
+        </div>
+      </>
+    );
+  }
 
 import { onMount } from "solid-js";
 import { PopUpFrame } from "./popUpFrame.tsx";

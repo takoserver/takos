@@ -39,6 +39,7 @@ import {
   handleRemoveCategory,
   handleRemoveChannel,
   handleRemoveRole,
+  handleSettings,
   handleUnbanUser,
 } from "../web/group.ts";
 const env = await load();
@@ -79,7 +80,6 @@ class EventManager {
 
 const eventManager = new EventManager();
 
-// t.friend.request
 eventManager.add(
   "t.friend.request",
   z.object({
@@ -123,7 +123,6 @@ eventManager.add(
   },
 );
 
-// t.friend.cancel
 eventManager.add(
   "t.friend.cancel",
   z.object({
@@ -165,7 +164,6 @@ eventManager.add(
   },
 );
 
-// t.friend.accept
 eventManager.add(
   "t.friend.accept",
   z.object({
@@ -211,7 +209,7 @@ eventManager.add(
   },
 );
 
-// t.message.send
+
 eventManager.add(
   "t.message.send",
   z.object({
@@ -420,13 +418,12 @@ eventManager.add(
   z.object({
     userId: z.string().email(),
     groupId: z.string(),
-    role: z.array(z.string()),
     beforeEventId: z.string(),
   }),
   async (c, payload) => {
     const domain = c.get("domain");
     const eventId = c.get("eventId");
-    const { userId, groupId, role } = payload;
+    const { userId, groupId } = payload;
     if (groupId.split("@")[1] === env["domain"]) {
       return c.json({ error: "Invalid groupId" }, 400);
     }
@@ -439,6 +436,9 @@ eventManager.add(
     if (!group) {
       return c.json({ error: "Invalid groupId1" }, 400);
     }
+    if(userId.split("@")[1] == env["domain"]) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
     const member = await Member.findOne({
       groupId: groupId,
       userId: userId,
@@ -448,22 +448,60 @@ eventManager.add(
       return c.json(200);
     }
     if (member) {
-      await Member.updateOne(
-        { groupId: groupId, userId: userId },
-        { role: role },
-      );
-      await Group.updateOne({ groupId }, { beforeEventId: eventId });
-      return c.json(200);
+      return c.json({ error: "Already member" }, 400);
     }
     await Member.create({
       groupId: groupId,
       userId: userId,
-      role: role,
     });
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
   },
 );
+
+eventManager.add(
+  "t.group.sync.role.assign",
+  z.object({
+    groupId: z.string(),
+    roleId: z.array(z.string()),
+    userId: z.string(),
+    beforeEventId: z.string(),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const eventId = c.get("eventId");
+    const { groupId, roleId, userId } = payload;
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    if (domain !== groupId.split("@")[1]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const group = await Group.findOne({
+      groupId: groupId,
+    });
+    if (!group) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    const member = await Member.findOne({
+      groupId: groupId,
+      userId: userId,
+    });
+    if (!member) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (group.beforeEventId !== payload.beforeEventId) {
+      await handleReCreateGroup(groupId, eventId);
+      return c.json(200);
+    }
+    await Member.updateOne(
+      { groupId: groupId, userId: userId },
+      { role: roleId },
+    );
+    await Group.updateOne({ groupId }, { beforeEventId: eventId });
+    return c.json(200);
+  },
+)
 
 eventManager.add(
   "t.group.invite.send",
@@ -1228,7 +1266,7 @@ eventManager.add(
         return c.json({ message: "Error accepting group3" }, 500);
       }
       try {
-        await createRemoteGroup(groupId, await groupData.json());
+        await createRemoteGroup(groupId, await groupData.json(),[userId]);
       } catch (err) {
         return c.json({ message: "Error accepting group4" }, 500);
       }
@@ -1344,6 +1382,37 @@ eventManager.add(
     });
   },
 );
+
+eventManager.add(
+  "t.group.settings",
+  z.object({
+    userId: z.string().email(),
+    groupId: z.string(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      allowJoin: z.boolean().optional(),
+      icon: z.string().optional(),
+  }),
+  async (c, payload) => {
+    const domain = c.get("domain");
+    const { userId, groupId, name, description, allowJoin, icon } = payload;
+    if (userId.split("@")[1] !== domain) {
+      return c.json({ error: "Invalid userId" }, 400);
+    }
+    if (groupId.split("@")[1] !== env["domain"]) {
+      return c.json({ error: "Invalid groupId" }, 400);
+    }
+    return await handleSettings({
+      groupId,
+      userId,
+      c: c,
+      name,
+      description,
+      allowJoin,
+      icon,
+    });
+  }
+)
 
 eventManager.add(
   "t.group.user.role",

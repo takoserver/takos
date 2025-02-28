@@ -25,10 +25,11 @@ app.post(
       return c.json({ message: "Unauthorized" }, 401);
     }
     const { icon } = c.req.valid("json");
-    const resizedIcon = arrayBufferToBase64(
-      await resizeImageTo256x256(new Uint8Array(base64ToArrayBuffer(icon))),
+    const resizedIcon = await resizeImageTo256x256(
+      new Uint8Array(base64ToArrayBuffer(icon)),
     );
-    await User.updateOne({ userName: user.userName }, { icon: resizedIcon });
+    const buffer = resizedIcon.buffer;
+    await User.updateOne({ userName: user.userName }, { icon: arrayBufferToBase64(buffer as ArrayBuffer) });
     return c.json({ message: "success" });
   },
 );

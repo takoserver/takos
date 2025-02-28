@@ -519,7 +519,6 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | --------------- | -------- | -------------- |
 | `groupId`       | string   | グループID     |
 | `userId`        | string   | ユーザーID     |
-| `role`          | string[] | ロールID       |
 | `beforeEventId` | string   | 前のイベントID |
 
 ### t.group.sync.user.remove
@@ -543,20 +542,7 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 | パラメータ      | 型     | 説明               |
 | --------------- | ------ | ------------------ |
 | `groupId`       | string | グループID         |
-| `roleId`        | string | ロールID           |
-| `userId`        | string | 割り当てユーザーID |
-| `beforeEventId` | string | 前のイベントID     |
-
-### t.group.sync.role.unassign
-
-ロールの割り当て解除情報を共有するイベント。
-
-`payload`
-
-| パラメータ      | 型     | 説明               |
-| --------------- | ------ | ------------------ |
-| `groupId`       | string | グループID         |
-| `roleId`        | string | ロールID           |
+| `roleId`        | string[] | ロールID           |
 | `userId`        | string | 割り当てユーザーID |
 | `beforeEventId` | string | 前のイベントID     |
 

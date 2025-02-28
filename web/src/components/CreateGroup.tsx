@@ -234,7 +234,23 @@ export function GroupFindPopUp() {
                               <button
                                 onClick={async () => {
                                   if (group.allowJoin) {
-                                    //
+                                    const res = await fetch(
+                                      `./api/v2/group/join`,
+                                      {
+                                        method: "POST",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                          groupId: group.id,
+                                        }),
+                                      },
+                                    );
+                                    if (res.status !== 200) {
+                                      alert("グループ参加に失敗しました");
+                                      return;
+                                    }
+                                    alert("グループに参加しました");
                                   } else {
                                     const res = await fetch(
                                       `./api/v2/group/join/request`,
