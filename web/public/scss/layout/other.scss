@@ -1,0 +1,15 @@
+//other.scss
+
+
+//ほかのファイルに含むことができない小さな規模のコードを入力するためのファイルです。
+
+.g-recaptcha {
+  margin-right: auto;
+  margin-left: auto;
+  text-align: center;
+  width: 300px;
+  margin-top: 20px;
+}
+.g-recaptcha-badge {
+  visibility: hidden;
+}

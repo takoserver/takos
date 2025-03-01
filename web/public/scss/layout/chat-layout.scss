@@ -3,6 +3,7 @@
 //チャット画面のレイアウトに関するファイルです。
 
 @import "../utils/_breakpoint";
+@import "../utils/_mixin";
 
 .c-talk{
   &-rooms{
@@ -93,5 +94,121 @@
         text-overflow: ellipsis;
       }
     }
+  }
+  &-chat{
+    display: flex;
+    margin-top: 3px;
+    position: relative;
+    z-index: 0;
+
+    &.self {
+      justify-content: right;
+      margin-right: 12px;
+    }
+
+    &-box{
+      max-width: 80%;
+      display: flex;
+    }
+
+    &-icon{
+      height: 36px;
+      aspect-ratio: 1 / 1;
+    }
+
+    &-name{
+      font-size: 10px;
+      font-weight: 700;
+      margin: 2px 0 2px 10px;
+    }
+
+    &-right{
+      flex-grow: 1;
+    }
+
+    &-msg{
+      position: relative;
+      padding: 6px 12px;
+      border-radius: 12px;
+      z-index: 2;
+      font-size: 15px;
+      line-height: 20px;
+      width: fit-content;
+
+      & p {
+        width: fit-content;
+        max-width: 100%;
+        word-wrap: break-word;
+        word-break: break-all;
+      }
+    }
+
+    &.primary{
+      margin-top: 10px;
+    }
+
+    &.other,&-msg{
+      background-color: #ffffff;
+      color: #000000;
+    }
+
+    &.self,&-msg{
+      background-color: #ff3b3b;
+      color: #ffffff;
+      box-shadow: 1px 1px 10px rgba(31, 38, 135, 0.1);
+    }
+
+    &.other.primary , &-msg {
+      margin-left: 10px;
+      border-radius: 2px 12px 12px;
+    }
+
+    &.other.subsequent , &-msg {
+      margin-left: 46px;
+    }
+
+    &.self.primary , &-msg {
+      border-radius: 12px 2px 12px 12px;
+    }
+
+    &-date {
+      font-size: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: end;
+      color: #7d7d86;
+      white-space: nowrap;
+      margin-bottom: 4px;
+      width: 100%;
+      margin: 20px 0 8px;
+
+      &-box{
+        padding: 3px 12px;
+        background-color: rgb(218 218 228 / 60%);
+        width: fit-content;
+        margin: 0 auto;
+        border-radius: 100px;
+        font-size: 11px;
+      }
+    }
+
+    &-date , &.other{
+      margin-left: 6px;
+      text-align: left;
+    }
+
+    &.self,&-date{
+      margin-right: 6px;
+      text-align: right;
+    }
+
+    &-main{
+      &__ul{
+        @include mq(max_tb) {
+          padding: 8px;
+        }
+      }
+    }
+
   }
 }

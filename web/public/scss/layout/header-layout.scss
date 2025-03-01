@@ -13,7 +13,7 @@
   z-index: 2;
   transition: transform 0.3s cubic-bezier(0.07, 1.05, 0.59, 0.99);
 
-  @include mq(tb) {
+  @include mq(max_tb) {
     &.is-inview {
       transform: translateY(100%);
     }
