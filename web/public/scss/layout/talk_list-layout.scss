@@ -48,7 +48,7 @@
       font-weight: 700;
     }
 
-    &-search, &-search form, input {
+    &-search &-search form input {
       display: block;
     }
 
@@ -165,7 +165,7 @@
           padding: 16px;
         }
 
-        @include mq(max_pc) {
+        @include mq(max_tb) {
           padding: 8px;
         }
       }
