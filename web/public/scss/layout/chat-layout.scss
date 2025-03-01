@@ -163,11 +163,11 @@
       border-radius: 2px 12px 12px;
     }
 
-    &.other.subsequent &-msg {
+    &.other.subsequent, &-msg {
       margin-left: 46px;
     }
 
-    &.self.primary &-msg {
+    &.self.primary, &-msg {
       border-radius: 12px 2px 12px 12px;
     }
 
@@ -192,12 +192,12 @@
       }
     }
 
-    &-date &.other{
+    &-date, &.other{
       margin-left: 6px;
       text-align: left;
     }
 
-    &.self &-date{
+    &.self, &-date{
       margin-right: 6px;
       text-align: right;
     }

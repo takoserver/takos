@@ -1,6 +1,6 @@
-//talk_list-layout.scss
+//talk-layout.scss
 
-//トークリスト画面のレイアウトを指定するファイルです。
+//トーク画面のレイアウトを指定するファイルです。
 
 @import "../utils/_breakpoint";
 @import "../utils/_mixin";
@@ -48,7 +48,7 @@
       font-weight: 700;
     }
 
-    &-search &-search form input {
+    &-search, &-search form {
       display: block;
     }
 
