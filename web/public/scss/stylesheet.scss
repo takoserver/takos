@@ -2,8 +2,8 @@
 // 詳細はREADME.MDを参照してください。
 
 //keyframes
-@import "./animation/animation.scss";
-@import "./animation/keyframes.scss";
+@import "./animation/animation.scss";　//アニメーション
+@import "./animation/keyframes.scss"; //キーフレーム
 
 //layout
 @import "./layout/common.scss"; //タグ指定されたスタイルを格納
@@ -14,6 +14,6 @@
 
 
 //utils
-@import "./utils/_breakpoint.scss";
-@import "./utils/_mixin.scss";
+@import "./utils/_breakpoint.scss"; //ブレークポイントの指定
+@import "./utils/_mixin.scss"; //mixinに関する設定
 

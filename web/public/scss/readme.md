@@ -54,3 +54,42 @@ chat-layout.scss,talk-layout.scssに含まれている内容には不可解な�
 SCSSデコーディングされているため、アンパサンドなどの画期的な記述方法が使用できます。
 
 しかし、可読性が一定程度以上失われているため、編集個所を開発者ツールで探したのちにIDEの検索機能で検索することを推奨します。
+
+
+### ブレークポイント
+
+このSCSSファイルには以下のブレークポイントが設定されています。
+
+        "sm": "screen and (min-width: 399px)",
+        "tb": "screen and (min-width: 769px)",
+        "pc": "screen and (min-width: 1053px)",
+        "max_sm": "screen and (max-width: 400px)",
+        "max_tb": "screen and (max-width: 768px)",
+        "max_pc": "screen and (max-width: 1052px)",
+
+このブレークポイントはmixinにて使用することができます。
+
+例として
+
+```scss
+.example {
+    background-color:black;
+
+    mq(max_sm) {
+        background-color:red;
+        }
+}
+```
+
+というコードはCSSにおいてのこれと等しいです。
+
+```css
+.example{
+    background-color: black;
+}
+
+@media screen and (max-width: 400px) {
+    background-color: red;
+}
+```
+
