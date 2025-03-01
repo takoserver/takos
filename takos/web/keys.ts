@@ -43,7 +43,7 @@ app.get("accountKey", async (c) => {
   if (!user) {
     return c.json({ message: "Unauthorized" }, 401);
   }
-  const accountKeyHash = c.req.param("hash");
+  const accountKeyHash = c.req.query("hash");
   if (!accountKeyHash) {
     return c.json({ message: "Unauthorized" }, 401);
   }
@@ -111,7 +111,7 @@ app.post(
     z.object({
       accountKey: z.string(),
       accountKeySign: z.string(),
-      encryptedAccountKey: z.array(z.tuple([z.string(), z.string()])),
+      encryptedAccountKeys: z.array(z.tuple([z.string(), z.string()]))
     }),
   ),
   async (c) => {
@@ -119,20 +119,20 @@ app.post(
     if (!user || !user.masterKey) {
       return c.json({ message: "Unauthorized" }, 401);
     }
-    const { accountKey, accountKeySign, encryptedAccountKey } = c.req.valid(
+    const { accountKey, accountKeySign, encryptedAccountKeys } = c.req.valid(
       "json",
     );
     if (!verifyMasterKey(user.masterKey, accountKeySign, accountKey)) {
       return c.json({ message: "Invalid account key" }, 400);
     }
-    const sessionUUIDs = encryptedAccountKey.map(([sessionUUID]) =>
+    const sessionUUIDs = encryptedAccountKeys.map(([sessionUUID]) =>
       sessionUUID
     );
     const serverSessionUUIDs = (await Session.find({ userName: user.userName }))
       .map((session) => [session.sessionUUID, session.sessionid]);
     //sessionUUIDsに被りがなく、serverSessionUUIDsに全て含まれているか
     if (
-      sessionUUIDs.length !== encryptedAccountKey.length ||
+      sessionUUIDs.length !== encryptedAccountKeys.length ||
       !sessionUUIDs.every((sessionUUID) =>
         serverSessionUUIDs.some(([serverSessionUUID]) =>
           serverSessionUUID === sessionUUID
@@ -142,7 +142,7 @@ app.post(
       return c.json({ message: "Invalid session" }, 400);
     }
     await shareAccountKey.deleteMany({ userName: user.userName });
-    for (const [sessionUUID, encryptedAccountKeyValue] of encryptedAccountKey) {
+    for (const [sessionUUID, encryptedAccountKeyValue] of encryptedAccountKeys) {
       await shareAccountKey.create({
         userName: user.userName,
         hash: await keyHash(accountKey),

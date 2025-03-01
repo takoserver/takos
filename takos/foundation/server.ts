@@ -99,9 +99,10 @@ eventManager.add(
       return c.json({ error: "Invalid friendId" }, 400);
     }
     const friend = await friends.findOne({
-      userId: friendId,
+      userName: friendId,
       friendId: userId,
     });
+    console.log(friend, userId, friendId);
     if (friend) {
       return c.json({ error: "Already friends" }, 400);
     }

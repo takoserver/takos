@@ -579,9 +579,10 @@ export interface roomKeyMetaData {
 export async function encryptRoomKeyWithAccountKeys(
   key: {
     masterKey: string;
-    accountKeySign: string;
+    accountKeySign?: string;
     accountKey: string;
     userId: string;
+    isVeirfi?: boolean;
   }[],
   roomKey: string,
   identityKey: string,

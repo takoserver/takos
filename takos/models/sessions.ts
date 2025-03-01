@@ -27,6 +27,9 @@ const sessionSchema = new mongoose.Schema({
   shareKeySign: {
     type: String,
   },
+  userAgent: {
+    type: String,
+  },
 });
 
 const Session = mongoose.model("sessions", sessionSchema);

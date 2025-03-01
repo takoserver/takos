@@ -88,8 +88,10 @@ export function Load() {
     if (!session) {
       setLogin(false);
       setLoad(true);
+      console.log("session not found");
       return;
     }
+    console.log("session");
     if (session.login) {
       setLogin(true);
       fetch("/_takos/v1/user/nickName/" + userName, {
@@ -115,7 +117,11 @@ export function Load() {
         },
       );
     } else {
+      console.log("not login1");
       setLogin(false);
+      setLoad(true);
+      console.log("not login2");
+      return;
     }
     if (session.setup) {
       const icon = await fetch(

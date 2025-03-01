@@ -190,6 +190,7 @@ app.post(
       sessionid: sessionid,
       deviceKey: deviceKey,
       sessionUUID: sessionUUID,
+      userAgent: c.req.header("User-Agent"),
     });
     setCookie(c, "sessionid", sessionid, {
       httpOnly: true,
@@ -551,6 +552,9 @@ app.get(
       result.push({
         uuid: s.sessionUUID,
         encrypted: s.encrypted,
+        userAgent: s.userAgent,
+        shareKey: s.shareKey,
+        shareKeySign: s.shareKeySign,
       });
     }
     return c.json(result);
@@ -592,13 +596,14 @@ app.get(
   zValidator(
     "cookie",
     z.object({
-      sessionid: z.string(),
+      sessionid: z.string().optional(),
     }),
   ),
   async (c) => {
     const sessionid = c.req.valid("cookie").sessionid;
     const session = await Session.findOne({ sessionid });
     if (!session) {
+      console.log("Invalid session");
       return c.json({
         login: false,
         setup: false,

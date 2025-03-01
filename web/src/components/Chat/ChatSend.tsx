@@ -313,13 +313,14 @@ async function createRoomKey(
       b.timestamp - a.timestamp
     )[0];
   if (!encryptedAccountKey) return;
+  /*
   console.log(userId);
   const accountKeySign = await fetch(
     "./_takos/v1/key/accountKey?userId=" + userId,
   );
-  if (accountKeySign.status !== 200) return;
+  if (accountKeySign.status !== 200) throw new Error("Unauthorized1");
   const accountKeySignJson = await accountKeySign.json();
-  if (await keyHash(accountKeySignJson.key) !== encryptedAccountKey.key) return;
+  if (await keyHash(accountKeySignJson.key) !== encryptedAccountKey.key) throw new Error("Unauthorized2");
   if (
     !verifyMasterKey(
       JSON.parse(decryptMasterKey).publicKey,
@@ -327,7 +328,7 @@ async function createRoomKey(
       accountKeySignJson.key,
     )
   ) return;
-  //ドメインを取得 現在のサイトの
+  //ドメインを取得 現在のサイトの*/
   const domain = new URL(window.location.href).hostname;
   friendKeys.push({
     masterKey: JSON.parse(decryptMasterKey).publicKey,

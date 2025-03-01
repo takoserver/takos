@@ -45,11 +45,9 @@ app.post(
     }
     const isFriend = await friends.findOne({
       userName: user.userName + "@" + env["domain"],
-      friendName: userName,
+      friendId: userName,
     });
-    if (isFriend) {
-      return c.json({ message: "Already friend" }, 400);
-    }
+    if (isFriend) {return c.json({ message: "Already friend" }, 400);}
     if (domain !== env["domain"]) {
       const result = await fff(
         JSON.stringify({

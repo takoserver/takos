@@ -9,7 +9,7 @@ import {
 } from "../../utils/state";
 import { createEffect, createSignal, onMount, Show } from "solid-js";
 import { createTakosDB } from "../../utils/idb";
-import { decryptDataDeviceKey, keyHash } from "@takos/takos-encrypt-ink";
+import { decryptDataDeviceKey, encryptDataDeviceKey, encryptDataShareKey, generateAccountKey, keyHash, verifyMasterKey } from "@takos/takos-encrypt-ink";
 import hash from "fnv1a";
 import { fetchingUsersState } from "./SideBar";
 import { PopUpFrame, PopUpInput, PopUpTitle } from "../popUpFrame";
@@ -1133,21 +1133,86 @@ function Settings() {
 
 // プロフィール設定コンポーネント
 function ProfileSettings() {
-  const nickName = useAtomValue(nicknameState);
-  const icon = useAtomValue(iconState);
-  const description = useAtomValue(descriptionState);
+  const [nickName, setNickName] = useAtom(nicknameState);
+  const [icon, setIcon] = useAtom(iconState);
+  const [description, setDescription] = useAtom(descriptionState);
 
   const [newNickName, setNewNickName] = createSignal(nickName());
   const [newDescription, setNewDescription] = createSignal(description());
-  const [newIcon, setNewIcon] = createSignal("");
+  const [newIcon, setNewIcon] = createSignal(icon());
 
   const handleIconChange = (e: Event) => {
-    // ...既存のコード...
+    const target = e.target as HTMLInputElement;
+    const file = target.files?.[0];
+    
+    if (!file) return;
+    
+    // ファイルが画像かどうかを確認
+    if (!file.type.startsWith('image/')) {
+      alert('画像ファイルを選択してください');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (!e.target?.result) return;
+      
+      // Base64文字列を取得（data:image/xxx;base64, プレフィックスを除去）
+      const base64String = e.target.result.toString().split(',')[1];
+      setNewIcon(base64String);
+    };
+    
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
-    // ...既存のコード...
+    let isFailed = false;
+    const iconData = newIcon();
+    const nickNameData = newNickName();
+    const descriptionData = newDescription();
+    if(iconData !== icon()) {
+      const iconRes = await fetch("/api/v2/profile/icon", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ icon: iconData }),
+      })
+      if(iconRes.status !== 200) {
+        isFailed = true;
+      }
+    }
+    if(nickNameData !== nickName()) {
+      const nickNameRes = await fetch("/api/v2/profile/nickName", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ nickName: nickNameData }),
+      })
+      if(nickNameRes.status !== 200) {
+        isFailed = true;
+      }
+    }
+    if(descriptionData !== description()) {
+      const descriptionRes = await fetch("/api/v2/profile/description", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ description: descriptionData }),
+      })
+      if(descriptionRes.status !== 200) {
+        isFailed = true;
+      }
+    }
+    if(isFailed) {
+      alert("保存に失敗しました");
+    }
     setSelected("settings"); // 保存後は設定メニューに戻る
+    if(iconData !== icon()) setIcon(iconData);
+    if(nickNameData !== nickName()) setNickName(nickNameData);
+    if(descriptionData !== description()) setDescription(descriptionData);
   };
 
   return (
@@ -1180,9 +1245,7 @@ function ProfileSettings() {
       <div class="flex flex-col items-center gap-4 py-3">
         <div class="relative group">
           <img
-            src={newIcon()
-              ? `data:image/png;base64,${newIcon()}`
-              : `data:image/jpg;base64,${icon()}`}
+            src={`data:image/png;base64,${newIcon()}`}
             alt="Profile"
             class="w-24 h-24 rounded-full object-cover border-2 border-blue-500/40 shadow-lg shadow-blue-500/10"
           />
@@ -1308,11 +1371,88 @@ function KeyManagement() {
     }
   };
 
-  const updateAccountKey = () => {
+  const updateAccountKey = async () => {
     // アカウント認証鍵を更新する処理
     if (confirm("アカウント認証鍵を更新しますか？")) {
-      alert("アカウント認証鍵を更新しました。");
-      // ここで実際のアカウント鍵更新処理を実装
+      const masterKey = localStorage.getItem("masterKey");
+      if (!masterKey) {
+        alert("マスターキーがありません");
+        return;
+      }
+      const deviceKeyS = deviceKey();
+      if (!deviceKeyS) {
+        alert("デバイスキーがありません");
+        return;
+      }
+      const decryptedMasterKey = await decryptDataDeviceKey(deviceKeyS, masterKey)
+      if (!decryptedMasterKey) {
+        alert("マスターキーの復号に失敗しました");
+        return;
+      }
+      const masterKeyPrivate = JSON.parse(decryptedMasterKey).privateKey;
+      const masterKeyPublic = JSON.parse(decryptedMasterKey).publicKey;
+      const newAccountKey = await generateAccountKey(JSON.parse(decryptedMasterKey));
+      if (!newAccountKey) {
+        alert("アカウント鍵の生成に失敗しました");
+        return;
+      }
+      const sessions: {
+        uuid: string;
+        encrypted: string;
+        userAgent: string;
+        shareKey: string;
+        shareKeySign: string;
+      }[] = await fetch("/api/v2/sessions/list").then((res) => res.json());
+      if (!sessions) {
+        alert("セッションの取得に失敗しました");
+        return;
+      }
+      const encryptedAccountKeys = [];
+      for(const session of sessions) {
+        if(session.encrypted) {
+          if(!verifyMasterKey(masterKeyPublic, session.shareKeySign,session.shareKey )) {
+            alert("マスターキーの検証に失敗しました");
+            return;
+          }
+          const encryptedAccountKey = await encryptDataShareKey(session.shareKey, newAccountKey.privateKey);
+          if (!encryptedAccountKey) {
+            alert("アカウント鍵の暗号化に失敗しました");
+            return;
+          }
+          encryptedAccountKeys.push([
+            session.uuid,
+            encryptedAccountKey,
+          ]);
+        }
+      }
+      const res = await fetch("/api/v2/keys/accountKey", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          accountKey: newAccountKey.publickKey,
+          accountKeySign: newAccountKey.sign,
+          encryptedAccountKeys: encryptedAccountKeys,
+         }),
+      });
+      if(res.status !== 200) {
+        alert("アカウント鍵の更新に失敗しました");
+        return;
+      }
+      const encryptedAccountKey = await encryptDataDeviceKey(deviceKeyS, newAccountKey.privateKey);
+      if (!encryptedAccountKey) {
+        alert("アカウント鍵の暗号化に失敗しました");
+        return;
+      }
+      const db = await createTakosDB();
+      await db.put("accountKeys", {
+        key: await keyHash(newAccountKey.publickKey),
+        encryptedKey: encryptedAccountKey,
+        timestamp:
+          JSON.parse(newAccountKey.publickKey).timestamp,
+      });
+      alert("アカウント鍵を更新しました");
     }
   };
 
@@ -1355,7 +1495,7 @@ function KeyManagement() {
       </div>
 
       {/* Master Key 情報 */}
-      <div class="p-4 bg-gray-800/70 border border-gray-700 rounded-lg">
+      <div class="p-4 bg-gray-800/70 border border-gray-700 rounded-lg mb-2">
         <div class="flex items-center gap-3 mb-3">
           <span class="text-blue-400 bg-blue-500/10 p-2 rounded-lg">
             <svg

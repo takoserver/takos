@@ -65,6 +65,7 @@ export function Login() {
                 localStorage.setItem("userName", userName());
                 localStorage.setItem("sessionUUID", sessionUUID);
                 alert("ログインしました");
+                window.location.reload();
                 return;
               }}
             >

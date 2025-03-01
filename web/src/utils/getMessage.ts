@@ -71,6 +71,14 @@ export async function getMessage({
     const db = await createTakosDB();
     const accountKey = await db.get("accountKeys", accountKeyHash);
     if (!accountKey) {
+      const otherClientAccountKeyRes = await fetch(
+        "/api/v2/keys/accountKey" + "?hash=" + accountKeyHash,
+      )
+      if(otherClientAccountKeyRes.status !== 200) {
+        throw new Error("Unauthorized");
+      }
+      const otherClientAccountKey = await otherClientAccountKeyRes.json();
+      console.log(otherClientAccountKey);
       throw new Error("AccountKey not found");
     }
     const decryptedAccountKey = await decryptDataDeviceKey(

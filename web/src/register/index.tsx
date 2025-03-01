@@ -195,19 +195,12 @@ function SelectedServer() {
                   if (data.messages) {
                     return (
                       <ChatOtherMessage
-                        message={() => {
-                          return [
-                            [
-                              "a",
-                              {
-                                verified: false,
-                                encrypted: false,
-                                content: data.messages,
-                                type: "text",
-                                timestamp: Date.now().toString(),
-                              },
-                            ],
-                          ];
+                        content={{
+                          verified: true,
+                          encrypted: false,
+                          content: data.messages,
+                          type: "text",
+                          timestamp: Date.now().toString(),
                         }}
                         messageid={"a"}
                         name={data.userName}

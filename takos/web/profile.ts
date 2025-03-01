@@ -37,7 +37,7 @@ app.post(
 );
 
 app.post(
-  "nickname",
+  "nickName",
   zValidator(
     "json",
     z.object({
@@ -51,6 +51,25 @@ app.post(
     }
     const { nickName } = c.req.valid("json");
     await User.updateOne({ userName: user.userName }, { nickName });
+    return c.json({ message: "success" });
+  },
+);
+
+app.post(
+  "description",
+  zValidator(
+    "json",
+    z.object({
+      description: z.string(),
+    }),
+  ),
+  async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { description } = c.req.valid("json");
+    await User.updateOne({ userName: user.userName }, { description });
     return c.json({ message: "success" });
   },
 );
