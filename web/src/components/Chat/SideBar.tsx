@@ -2,9 +2,11 @@ import { atom, useAtom, useSetAtom } from "solid-jotai";
 import {
   deviceKeyState,
   domainState,
+  iconsState,
   IdentityKeyAndAccountKeyState,
   messageListState,
   messageValueState,
+  nickNamesState,
   notificationState,
   pageState,
   talkListState,
@@ -20,6 +22,7 @@ import { Home } from "./home";
 import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "../popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import { createTakosDB } from "../../utils/idb";
+import { isLoadedMessageState } from "../ChatTalkContent";
 export function SideBer() {
   const [page] = useAtom(pageState);
 
@@ -27,13 +30,19 @@ export function SideBer() {
     <>
       {page() === "home" && <Home />}
       {page() === "setting" && <Setting />}
-      {page() === "friend" && <Friend />}
       {page() === "notification" && <Notification />}
       {page() === "talk" && <TalkList />}
     </>
   );
 }
-
+export const fetchingUsersState = atom<
+  Map<
+    string,
+    Promise<{ icon: string; nickName: string; type: "friend" | "group" }>
+  >
+>(
+  new Map(),
+);
 function TalkListFriend({
   latestMessage,
   roomid,
@@ -46,6 +55,7 @@ function TalkListFriend({
   const [nickName, setNickName] = createSignal("");
   const [icon, setIcon] = createSignal("");
   const [roomNickName, setRoomNickName] = useAtom(nickNameState);
+  const [fetchingUsers, setFetchingUsers] = useAtom(fetchingUsersState);
   createEffect(async () => {
     const match = roomid.match(/^m\{([^}]+)\}@(.+)$/);
     if (!match) {
@@ -54,22 +64,66 @@ function TalkListFriend({
     const friendUserName = match[1];
     const domainFromRoom = match[2];
     const friendUserId = friendUserName + "@" + domainFromRoom;
-    const icon = (await (await fetch(
-      `https://${domainFromRoom}/_takos/v1/user/icon/${friendUserId}`,
-    )).json()).icon;
-    const nickName = (await (await fetch(
-      `https://${domainFromRoom}/_takos/v1/user/nickName/${friendUserId}`,
-    )).json()).nickName;
-    setNickName(nickName);
-    setIcon(icon);
+
+    // すでに取得中または取得済みならそのPromiseを使用
+    if (!fetchingUsers().has(friendUserId)) {
+      // 新しく取得処理を開始し、Mapに登録
+      const fetchUserInfo = async () => {
+        try {
+          // 並行して両方の情報を取得
+          const [iconResponse, nickNameResponse] = await Promise.all([
+            fetch(
+              `https://${domainFromRoom}/_takos/v1/user/icon/${friendUserId}`,
+            )
+              .then((res) => res.json()),
+            fetch(
+              `https://${domainFromRoom}/_takos/v1/user/nickName/${friendUserId}`,
+            )
+              .then((res) => res.json()),
+          ]);
+
+          return {
+            icon: iconResponse.icon,
+            nickName: nickNameResponse.nickName,
+            type: "friend" as const,
+          };
+        } catch (error) {
+          console.error(
+            `Failed to fetch user info for ${friendUserId}:`,
+            error,
+          );
+          return {
+            icon: "",
+            nickName: friendUserId,
+            type: "friend" as const,
+          };
+        }
+      };
+      const newMap = new Map(fetchingUsers());
+      newMap.set(friendUserId, fetchUserInfo());
+      setFetchingUsers(newMap); // アトムを通じて更新
+    }
+
+    try {
+      // 取得が完了するのを待つ
+      const result = await fetchingUsers().get(friendUserId);
+      if (result) {
+        setIcon(result.icon);
+        setNickName(result.nickName);
+      }
+    } catch (error) {
+      console.error(`Error waiting for user info: ${friendUserId}`, error);
+    }
   });
   const setRoomKeyState = useSetAtom(roomKeyState);
   const setSelectedRoom = useSetAtom(selectedRoomState);
   const setIsSelectRoom = useSetAtom(isSelectRoomState);
   const setMessageList = useSetAtom(messageListState);
+  const setLoadedMessageList = useSetAtom(isLoadedMessageState);
   const handelSelectRoomFriend = async (talk: any) => {
     setIsSelectRoom(true);
     setSelectedRoom(talk);
+    setLoadedMessageList(false);
     setRoomNickName(nickName());
     if (talk.type === "friend") {
       const messages = await fetch("/api/v2/message/friend/" + talk.roomid);
@@ -181,25 +235,60 @@ function TalkGroup({
   const [icon, setIcon] = createSignal("");
   const [roomNickName, setRoomNickName] = useAtom(nickNameState);
   const [groupChannel, setGroupChannel] = useAtom(groupChannelState);
+  const setLoadedMessageList = useSetAtom(isLoadedMessageState);
+  const [fetchingUsers, setFetchingUsers] = useAtom(fetchingUsersState);
   createEffect(async () => {
     const match = roomid.match(/^g\{([^}]+)\}@(.+)$/);
     if (!match) {
       return;
     }
-    const friendUserName = match[1];
+    const groupName = match[1];
     const domainFromRoom = match[2];
-    const icon = (await (await fetch(
-      `https://${domainFromRoom}/_takos/v1/group/icon/${
-        friendUserName + "@" + domainFromRoom
-      }`,
-    )).json()).icon;
-    const nickName = (await (await fetch(
-      `https://${domainFromRoom}/_takos/v1/group/name/${
-        friendUserName + "@" + domainFromRoom
-      }`,
-    )).json()).name;
-    setNickName(nickName);
-    setIcon(icon);
+    const groupId = groupName + "@" + domainFromRoom;
+
+    // すでに取得中または取得済みならそのPromiseを使用
+    if (!fetchingUsers().has(groupId)) {
+      // 新しく取得処理を開始し、Mapに登録
+      const fetchGroupInfo = async () => {
+        try {
+          // 並行して両方の情報を取得
+          const [iconResponse, nameResponse] = await Promise.all([
+            fetch(`https://${domainFromRoom}/_takos/v1/group/icon/${groupId}`)
+              .then((res) => res.json()),
+            fetch(`https://${domainFromRoom}/_takos/v1/group/name/${groupId}`)
+              .then((res) => res.json()),
+          ]);
+
+          return {
+            icon: iconResponse.icon,
+            nickName: nameResponse.name,
+            type: "group" as const,
+          };
+        } catch (error) {
+          console.error(`Failed to fetch group info for ${groupId}:`, error);
+          return {
+            icon: "",
+            nickName: groupId,
+            type: "group" as const,
+          };
+        }
+      };
+
+      const newMap = new Map(fetchingUsers());
+      newMap.set(groupId, fetchGroupInfo());
+      setFetchingUsers(newMap); // アトムを通じて更新
+    }
+
+    try {
+      // 取得が完了するのを待つ
+      const result = await fetchingUsers().get(groupId);
+      if (result) {
+        setIcon(result.icon);
+        setNickName(result.nickName);
+      }
+    } catch (error) {
+      console.error(`Error waiting for group info: ${groupId}`, error);
+    }
   });
   const setRoomKeyState = useSetAtom(roomKeyState);
   const setSelectedRoom = useSetAtom(selectedRoomState);
@@ -285,12 +374,13 @@ function TalkGroup({
     }[]).sort((a, b) =>
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
-    setIsSelectRoom(true);
-    setSelectedRoom(talk);
-    setRoomNickName(nickName());
-    setSelectedChannel(defaultChannelId);
     setTimeout(() => {
+      setLoadedMessageList(false);
       setMessageList(messagesJson);
+      setIsSelectRoom(true);
+      setSelectedRoom(talk);
+      setRoomNickName(nickName());
+      setSelectedChannel(defaultChannelId);
     }, 10);
   };
   return (
@@ -372,55 +462,6 @@ function TalkList() {
   );
 }
 
-function Friend() {
-  const [addFriendByIdFormOpen, setAddFriendByIdFormOpen] = createSignal(false);
-  const [addFriendByIdFormInput, setAddFriendByIdFormInput] = createSignal("");
-  const [domain] = useAtom(domainState);
-  return (
-    <>
-      <button
-        onClick={() => {
-          setAddFriendByIdFormOpen(true);
-        }}
-      >
-        友達をidで追加
-      </button>
-      {addFriendByIdFormOpen() && (
-        <PopUpFrame closeScript={setAddFriendByIdFormOpen}>
-          <div>
-            <PopUpTitle>友達をidで追加</PopUpTitle>
-            <PopUpInput
-              type="text"
-              placeholder="id"
-              state={setAddFriendByIdFormInput}
-            />
-            <button
-              class="w-full mt-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onClick={async () => {
-                const res = await fetch("/api/v2/friend/request", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    userName: addFriendByIdFormInput(),
-                  }),
-                });
-                if (res.status !== 200) {
-                  console.log("error");
-                  return;
-                }
-                alert("リクエストを送信しました");
-              }}
-            >
-              追加
-            </button>
-          </div>
-        </PopUpFrame>
-      )}
-    </>
-  );
-}
 
 function Request(
   { title, acceptFnc, rejectFnc, body }: {

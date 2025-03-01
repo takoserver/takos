@@ -19,11 +19,6 @@ export default function talkListHeader() {
           <Two />
         </>
       )}
-      {page() == "setting" && (
-        <>
-          <Three />
-        </>
-      )}
       {page() == "notification" && (
         <>
           <Notification />
@@ -119,9 +114,6 @@ function TwoValue() {
     </>
   );
 }
-function ThreeTitle() {
-  return <h1 class="p-talk-list-title">設定</h1>;
-}
 
 function Notification() {
   return <h1 class="p-talk-list-title">通知</h1>;
@@ -140,13 +132,6 @@ function Two() {
     <>
       <TwoTitle />
       <TwoValue />
-    </>
-  );
-}
-function Three() {
-  return (
-    <>
-      <ThreeTitle />
     </>
   );
 }

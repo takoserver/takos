@@ -67,6 +67,7 @@ export const messageValueState = atom<[string, {
   type: string;
   timestamp: string;
 }][]>([]);
+export const friendsState = atom<string[]>([]);
 
 export const messageListState = atom<{
   userName: string;
@@ -74,4 +75,28 @@ export const messageListState = atom<{
   timestamp: string;
 }[]>([]);
 
-export const friendsState = atom<string[]>([]);
+// メッセージ内容を Map 形式で保存するステート
+export const messageContentMapState = atom<
+  Map<string, {
+    verified: boolean;
+    encrypted: boolean;
+    content: string;
+    type: string;
+    timestamp: string;
+  }>
+>(new Map());
+
+// メッセージのロード状態を管理
+export const messageLoadingState = atom<boolean>(false);
+
+export const iconsState = atom<{
+  key: string;
+  type: "group" | "friend";
+  icon: string;
+}[]>([]);
+
+export const nickNamesState = atom<{
+  key: string;
+  type: "group" | "friend";
+  nickName: string;
+}[]>([]);

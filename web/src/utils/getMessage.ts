@@ -111,6 +111,6 @@ interface Message {
   verified: boolean;
   encrypted: boolean;
   content: string;
-  type: string;
+  type: string | number;
   timestamp: string;
 }

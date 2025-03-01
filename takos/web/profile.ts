@@ -29,7 +29,9 @@ app.post(
       new Uint8Array(base64ToArrayBuffer(icon)),
     );
     const buffer = resizedIcon.buffer;
-    await User.updateOne({ userName: user.userName }, { icon: arrayBufferToBase64(buffer as ArrayBuffer) });
+    await User.updateOne({ userName: user.userName }, {
+      icon: arrayBufferToBase64(buffer as ArrayBuffer),
+    });
     return c.json({ message: "success" });
   },
 );

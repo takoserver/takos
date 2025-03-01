@@ -515,11 +515,11 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 
 `payload`
 
-| パラメータ      | 型       | 説明           |
-| --------------- | -------- | -------------- |
-| `groupId`       | string   | グループID     |
-| `userId`        | string   | ユーザーID     |
-| `beforeEventId` | string   | 前のイベントID |
+| パラメータ      | 型     | 説明           |
+| --------------- | ------ | -------------- |
+| `groupId`       | string | グループID     |
+| `userId`        | string | ユーザーID     |
+| `beforeEventId` | string | 前のイベントID |
 
 ### t.group.sync.user.remove
 
@@ -539,12 +539,12 @@ origin: 送信サーバーのサーバー名 expires: 有効期限 sign: 署名
 
 `payload`
 
-| パラメータ      | 型     | 説明               |
-| --------------- | ------ | ------------------ |
-| `groupId`       | string | グループID         |
+| パラメータ      | 型       | 説明               |
+| --------------- | -------- | ------------------ |
+| `groupId`       | string   | グループID         |
 | `roleId`        | string[] | ロールID           |
-| `userId`        | string | 割り当てユーザーID |
-| `beforeEventId` | string | 前のイベントID     |
+| `userId`        | string   | 割り当てユーザーID |
+| `beforeEventId` | string   | 前のイベントID     |
 
 ### t.group.sync.channel.add
 

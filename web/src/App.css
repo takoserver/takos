@@ -7,3 +7,11 @@ html {
   background-size: cover;
 }
 */
+.p-talk-list-rooms__ul {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.p-talk-list-rooms__ul::-webkit-scrollbar {
+  display: none;
+}

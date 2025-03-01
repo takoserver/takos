@@ -209,7 +209,6 @@ eventManager.add(
   },
 );
 
-
 eventManager.add(
   "t.message.send",
   z.object({
@@ -436,7 +435,7 @@ eventManager.add(
     if (!group) {
       return c.json({ error: "Invalid groupId1" }, 400);
     }
-    if(userId.split("@")[1] == env["domain"]) {
+    if (userId.split("@")[1] == env["domain"]) {
       return c.json({ error: "Invalid userId" }, 400);
     }
     const member = await Member.findOne({
@@ -501,7 +500,7 @@ eventManager.add(
     await Group.updateOne({ groupId }, { beforeEventId: eventId });
     return c.json(200);
   },
-)
+);
 
 eventManager.add(
   "t.group.invite.send",
@@ -1266,7 +1265,7 @@ eventManager.add(
         return c.json({ message: "Error accepting group3" }, 500);
       }
       try {
-        await createRemoteGroup(groupId, await groupData.json(),[userId]);
+        await createRemoteGroup(groupId, await groupData.json(), [userId]);
       } catch (err) {
         return c.json({ message: "Error accepting group4" }, 500);
       }
@@ -1388,10 +1387,10 @@ eventManager.add(
   z.object({
     userId: z.string().email(),
     groupId: z.string(),
-      name: z.string().optional(),
-      description: z.string().optional(),
-      allowJoin: z.boolean().optional(),
-      icon: z.string().optional(),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    allowJoin: z.boolean().optional(),
+    icon: z.string().optional(),
   }),
   async (c, payload) => {
     const domain = c.get("domain");
@@ -1411,8 +1410,8 @@ eventManager.add(
       allowJoin,
       icon,
     });
-  }
-)
+  },
+);
 
 eventManager.add(
   "t.group.user.role",

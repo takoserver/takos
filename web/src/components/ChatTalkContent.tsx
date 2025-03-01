@@ -4,7 +4,7 @@ import {
   selectedRoomState,
 } from "../utils/roomState";
 import { messageListState, messageValueState } from "../utils/state.ts";
-import { useAtom } from "solid-jotai";
+import { atom, useAtom } from "solid-jotai";
 import ChatSendMessage from "./SendMessage.tsx";
 import ChatOtherMessage from "./OtherMessage.tsx";
 import { getMessage } from "../utils/getMessage.ts";
@@ -14,124 +14,276 @@ import { groupChannelState } from "./Chat/SideBar.tsx";
 const myuserName = localStorage.getItem("userName") + "@" +
   (document.location.hostname);
 
-  function ChatTalkMain() {
-    const [messageList] = useAtom(messageListState);
-    const list = messageList();
-    // chatListコンテナへの参照を作成
-    let chatListRef: HTMLDivElement | undefined;
-    
-    // メッセージリストが変更されたらスクロール処理を実行
-    createEffect(() => {
-      const messages = messageList();
-      if (messages.length && chatListRef) {
-        // 次のレンダリングサイクルでスクロール処理を実行するために setTimeout を使用
-        setTimeout(() => {
-          chatListRef?.scrollTo({
-            top: chatListRef.scrollHeight,
-            behavior: "smooth"
-          });
-        }, 100);
-      }
-    });
-  
-    return (
-      <>
-        <div id="chatList" ref={chatListRef} style={{ "overflow-y": "auto", "max-height": "calc(100vh - 150px)" }}>
-          <CreateChannelModal />
-          {list.map((message) => {
-            return (
-              <>
-                <Message
-                  messageid={message.messageid}
-                  myMessage={message.userName === myuserName}
-                  time={message.timestamp}
-                  userName={message.userName}
-                />
-              </>
-            );
-          })}
-        </div>
-      </>
+const messageCache = new Map<string, {
+  verified: boolean;
+  encrypted: boolean;
+  content: string;
+  type: string;
+  timestamp: number;
+  messageid: string;
+  roomid: string;
+  serverData: {
+    userName: string;
+    timestamp: string;
+  };
+}>();
+
+// MessagesStateの定義は変更なし
+const messagesState = atom<{
+  verified: boolean;
+  encrypted: boolean;
+  content: string;
+  type: string;
+  timestamp: number;
+  messageid: string;
+  roomid: string;
+  serverData: {
+    userName: string;
+    timestamp: string;
+  };
+}[]>(
+  [],
+);
+
+export const isLoadedMessageState = atom(false);
+
+function ChatTalkMain() {
+  const [messageList] = useAtom(messageListState);
+  const [loaded, setLoaded] = useAtom(isLoadedMessageState);
+  const [sellectedRoom] = useAtom(selectedRoomState);
+  const [messages, setMessages] = useAtom(messagesState);
+  const [messageTimeLine, setMessageTimeLine] = createSignal<{
+    verified: boolean;
+    encrypted: boolean;
+    content: string;
+    type: string;
+    timestamp: number | string;
+    messageid: string;
+    roomid: string;
+    serverData: {
+      userName: string;
+      timestamp: string;
+    };
+  }[]>([]);
+  const [processedMessageIds, setProcessedMessageIds] = createSignal<
+    Set<string>
+  >(new Set());
+  createEffect(async () => {
+    const result:
+      | any[]
+      | ((prev: {
+        verified: boolean;
+        encrypted: boolean;
+        content: string;
+        type: string;
+        timestamp: number | string;
+        messageid: string;
+        roomid: string;
+        serverData: {
+          userName: string;
+          timestamp: string;
+        };
+      }[]) => any[]) = [];
+    const currentMessageList = messageList();
+    if (currentMessageList.length === 0) {
+      setMessageTimeLine([]);
+      setLoaded(true);
+      return;
+    }
+    const roomid = sellectedRoom()?.roomid;
+    const type = sellectedRoom()?.type;
+    if (!roomid || !type) {
+      return;
+    }
+    // ルームが変わったら処理済みIDリストをリセット（キャッシュはそのまま維持）
+    if (messages().length > 0 && messages()[0].roomid !== roomid) {
+      setMessages([]);
+      setProcessedMessageIds(() => new Set<string>());
+    }
+    // まだ処理していないメッセージだけをフィルタリング
+    const newMessages = currentMessageList.filter(
+      (msg) => !processedMessageIds().has(`${msg.messageid}-${roomid}`),
     );
-  }
+
+    // validMessages変数を先に宣言しておく
+    let validMessages: {
+      verified: boolean;
+      encrypted: boolean;
+      content: string;
+      type: string;
+      timestamp: number;
+      messageid: string;
+      roomid: string;
+      serverData: {
+        userName: string;
+        timestamp: string;
+      };
+    }[] = [];
+
+    if (newMessages.length === 0) {
+      setLoaded(true);
+      // 既存のメッセージから情報を取得
+      messageList().map((messageIds) => {
+        const message = messages().find(
+          (msg) => msg.messageid === messageIds.messageid,
+        );
+        if (message) {
+          result.push(message);
+        }
+      });
+      setMessageTimeLine(result as any);
+      return;
+    }
+    const processedIds = new Set(processedMessageIds());
+    const messagesResult = await Promise.all(
+      newMessages.map(async (message) => {
+        // 処理済みとしてマーク
+        processedIds.add(`${message.messageid}-${roomid}`);
+
+        // キャッシュキーを作成
+        const cacheKey = `${message.messageid}-${roomid}`;
+
+        // キャッシュをチェック
+        if (messageCache.has(cacheKey)) {
+          return messageCache.get(cacheKey)!;
+        }
+
+        try {
+          const serverData = await getMessage({
+            messageid: message.messageid,
+            roomId: roomid,
+            type,
+            senderId: message.userName,
+          });
+
+          const messageData = {
+            verified: serverData.verified,
+            encrypted: serverData.encrypted,
+            content: serverData.content,
+            type: String(serverData.type),
+            timestamp: Number(serverData.timestamp),
+            messageid: message.messageid,
+            roomid: roomid,
+            serverData: {
+              userName: message.userName,
+              timestamp: serverData.timestamp,
+            },
+          };
+
+          // キャッシュに保存（reactive signalでなくグローバルオブジェクトを直接更新）
+          messageCache.set(cacheKey, messageData);
+
+          return messageData;
+        } catch (error) {
+          const errorMessage = {
+            verified: false,
+            encrypted: false,
+            content: "メッセージの取得に失敗しました",
+            type: "error",
+            timestamp: new Date().getTime(),
+            messageid: message.messageid,
+            roomid: roomid,
+            serverData: {
+              userName: message.userName,
+              timestamp: new Date().toISOString(),
+            },
+          };
+
+          // エラーメッセージもキャッシュ
+          messageCache.set(cacheKey, errorMessage);
+
+          return errorMessage;
+        }
+      }),
+    );
+    setProcessedMessageIds(processedIds);
+    validMessages = messagesResult.filter((
+      item,
+    ): item is NonNullable<typeof item> => item !== undefined);
+    if (validMessages.length > 0) {
+      setMessages((prev) => [...prev, ...validMessages]);
+      messageList().map((messageIds) => {
+        const message = validMessages.find(
+          (msg) => msg.messageid === messageIds.messageid,
+        );
+        if (message) {
+          result.push(message);
+        }
+      });
+      setMessageTimeLine(result);
+      setLoaded(true);
+    }
+  });
+
+  let chatListRef: HTMLDivElement | undefined;
+  createEffect(() => {
+    const messages = messageList();
+    if (messages.length && chatListRef) {
+      setTimeout(() => {
+        chatListRef?.scrollTo({
+          top: chatListRef.scrollHeight,
+          behavior: "smooth",
+        });
+      }, 0);
+    }
+  });
+  return (
+    <>
+      <div class="pl-2" id="chatList" ref={chatListRef}>
+        <CreateChannelModal />
+        {loaded() && (
+          <>
+            {messageTimeLine().map((message) => {
+              if (message.serverData.userName === myuserName) {
+                return (
+                  <ChatSendMessage
+                    time={message.serverData.timestamp}
+                    content={{
+                      verified: message.verified,
+                      encrypted: message.encrypted,
+                      content: message.content,
+                      type: message.type,
+                      timestamp: message.timestamp,
+                    }}
+                    messageid={message.messageid}
+                    isPrimary={true}
+                    isSendPrimary={true}
+                  />
+                );
+              } else {
+                return (
+                  <ChatOtherMessage
+                    name={message.serverData.userName}
+                    time={message.serverData.timestamp}
+                    content={{
+                      verified: message.verified,
+                      encrypted: message.encrypted,
+                      content: message.content,
+                      type: message.type,
+                      timestamp: message.timestamp,
+                    }}
+                    messageid={message.messageid}
+                    isPrimary={true}
+                    isFetch={true}
+                  />
+                );
+              }
+            })}
+          </>
+        )}
+        {!loaded() && (
+          <div class="flex w-full h-full">
+            <p class="m-auto">読み込み中...</p>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
 
 import { onMount } from "solid-js";
 import { PopUpFrame } from "./popUpFrame.tsx";
 import { uuidv7 } from "uuidv7";
-
-function Message(
-  { messageid, myMessage, time, userName }: {
-    messageid: string;
-    myMessage: boolean;
-    time: string;
-    userName: string;
-  },
-) {
-  const [messageValue, setMessageValue] = useAtom(messageValueState);
-  const [loaded, setLoaded] = createSignal(false);
-  const [sellectedRoom] = useAtom(selectedRoomState);
-  onMount(async () => {
-    const foundMessage = messageValue().find((val) => val[0] === messageid);
-    if (!foundMessage) {
-      try {
-        const type = sellectedRoom()?.type;
-        const roomId = sellectedRoom()?.roomid;
-        if (!type || !roomId) return;
-        const message = await getMessage({
-          messageid,
-          type,
-          roomId,
-          senderId: userName,
-        });
-        setMessageValue((prev) => [...prev, [messageid, message]]);
-      } catch (e) {
-        console.log(e);
-        setMessageValue((prev) => [
-          ...prev,
-          [
-            messageid,
-            {
-              verified: false,
-              encrypted: true,
-              content: "メッセージの取得に失敗しました",
-              type: "error",
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        ]);
-      }
-    }
-    setLoaded(true);
-  });
-
-  return (
-    <>
-      {loaded() && (
-        <>
-          {myMessage && (
-            <ChatSendMessage
-              time={time}
-              message={messageValue}
-              messageid={messageid}
-              isPrimary={true}
-              isSendPrimary={true}
-            />
-          )}
-          {!myMessage && (
-            <ChatOtherMessage
-              name={userName}
-              time={time}
-              messageid={messageid}
-              message={messageValue}
-              isPrimary={true}
-              isFetch={true}
-            />
-          )}
-        </>
-      )}
-    </>
-  );
-}
 
 function ChatTalk() {
   const [isChoiceUser] = useAtom(isSelectRoomState);

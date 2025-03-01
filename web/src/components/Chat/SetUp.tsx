@@ -4,13 +4,12 @@ import {
   sessionidState,
   setUpState,
 } from "../../utils/state";
-import { useAtom } from "solid-jotai";
+import { useAtom, useSetAtom } from "solid-jotai";
 import { PopUpFrame } from "./setupPopup/popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import { arrayBufferToBase64 } from "../../utils/buffers";
-import { uuidv7 } from "uuidv7";
-import { requester } from "../../utils/requester";
 import { createTakosDB, localStorageEditor } from "../../utils/idb";
+import { isLoadedMessageState } from "../ChatTalkContent.tsx";
 import {
   encryptDataDeviceKey,
   generateAccountKey,

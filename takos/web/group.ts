@@ -25,8 +25,6 @@ import { resizeImageTo256x256 } from "./sessions.ts";
 import { fff } from "../utils/foundationReq.ts";
 import request from "../models/request.ts";
 import { getUserPermission } from "../foundation/server.ts";
-import exp from "node:constants";
-import { group } from "node:console";
 
 const env = await load();
 
@@ -374,7 +372,7 @@ export async function createRemoteGroup(
     });
   }
   for (const member of resJson.members) {
-    if(!allowLocalUsers.includes(member.userId)){
+    if (!allowLocalUsers.includes(member.userId)) {
       continue;
     }
     await Member.create({
@@ -480,7 +478,7 @@ app.post(
           return c.json({ message: "Error accepting group3" }, 500);
         }
         await createRemoteGroup(groupId, await groupData.json(), [currentUser]);
-        if(await Member.findOne({groupId, userId: currentUser})){
+        if (await Member.findOne({ groupId, userId: currentUser })) {
           return c.json({ message: "success" });
         } else {
           await Member.create({
@@ -1316,11 +1314,10 @@ app.post(
       if (group.type == "private") {
         return c.json({ message: "Invalid group type" }, 400);
       }
-      if(group.allowJoin == true
-      ){
+      if (group.allowJoin == true) {
         return c.json({ message: "Group is not accepting join requests" }, 400);
       }
-      
+
       if (
         await Member.findOne({
           groupId,
@@ -1532,7 +1529,7 @@ app.post(
 export async function handleJoinGroup({
   c,
   groupId,
-  userId
+  userId,
 }: {
   c: Context;
   groupId: string;
@@ -1579,7 +1576,7 @@ export async function handleJoinGroup({
         beforeEventId: group.beforeEventId,
       },
     }),
-    uniqueDomains
+    uniqueDomains,
   );
   return c.json({ message: "success" });
 }
@@ -1994,7 +1991,10 @@ app.post(
         userId: user.userName + "@" + env["domain"],
       });
     } else {
-      if(!(name !== undefined || icon !== undefined || description !== undefined || allowJoin !== undefined)) {
+      if (
+        !(name !== undefined || icon !== undefined ||
+          description !== undefined || allowJoin !== undefined)
+      ) {
         return c.json({ message: "No changes specified" }, 400);
       }
       const res = await fff(
@@ -2017,8 +2017,8 @@ app.post(
       }
       return c.json({ message: "success" });
     }
-  }
-)
+  },
+);
 
 export async function handleSettings({
   groupId,
@@ -2045,7 +2045,10 @@ export async function handleSettings({
     userId,
     groupId,
   );
-  if(!(name !== undefined || icon !== undefined || description !== undefined || allowJoin !== undefined)) {
+  if (
+    !(name !== undefined || icon !== undefined || description !== undefined ||
+      allowJoin !== undefined)
+  ) {
     return c.json({ message: "No changes specified" }, 400);
   }
   if (!permission) {
@@ -2062,12 +2065,16 @@ export async function handleSettings({
       new Uint8Array(base64ToArrayBuffer(icon)),
     );
     const buffer = resizedIcon.buffer;
-    await Group.updateOne({ groupId }, { $set: { groupIcon: arrayBufferToBase64(buffer as ArrayBuffer) } });
+    await Group.updateOne({ groupId }, {
+      $set: { groupIcon: arrayBufferToBase64(buffer as ArrayBuffer) },
+    });
   }
   if (allowJoin !== undefined) {
     await Group.updateOne({ groupId }, { $set: { allowJoin } });
   }
-  await Group.updateOne({ groupId }, { $set: { groupDescription: description } });
+  await Group.updateOne({ groupId }, {
+    $set: { groupDescription: description },
+  });
   return c.json({ message: "success" });
 }
 
