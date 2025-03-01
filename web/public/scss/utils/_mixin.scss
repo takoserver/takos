@@ -1,0 +1,10 @@
+//_mixin.scss
+
+//レスポンシブ対応のためにMQを定義するためのファイルです。
+@import "_breakpoint";
+
+@mixin mq($breakpoint) {
+  @media #{map-get($breakpoints, $breakpoint)} {
+    @content;
+  }
+}

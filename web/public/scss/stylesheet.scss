@@ -1,0 +1,19 @@
+// stylesheet.css
+// 詳細はREADME.MDを参照してください。
+
+//keyframes
+@import "./animation/animation.scss"; //アニメーション
+@import "./animation/keyframes.scss"; //キーフレーム
+
+//layout
+@import "./layout/common.scss"; //タグ指定されたスタイルを格納
+@import "./layout/header-layout";
+@import "layout/talk-layout";
+@import "./layout/chat-layout";
+@import "./layout/other";
+
+
+//utils
+@import "./utils/_breakpoint.scss"; //ブレークポイントの指定
+@import "./utils/_mixin.scss"; //mixinに関する設定
+

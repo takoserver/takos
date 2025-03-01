@@ -1,4 +1,6 @@
-## Usage
+## フロントエンドコンポーネント
+
+# Solid
 
 ```bash
 $ npm install # or pnpm install or yarn install
@@ -27,3 +29,39 @@ ready to be deployed!
 
 Learn more about deploying your application with the
 [documentations](https://vitejs.dev/guide/static-deploy.html)
+
+
+# ディレクトリ構造
+
+フロントエンドのディレクトリは以下の構造になっています
+
+* public
+* src
+  * assets
+  * components
+    * Chat
+  * register
+  * utils
+
+
+### public
+
+共通のスタイルに関する情報が記述されています。
+
+## src
+
+### assets
+SolidのロゴSVG。おそらく使用されていません。
+
+### components
+
+おそらくメイン画面のレンダリング処理等に関するファイル。
+よくわからん。
+
+### register
+
+ログイン以前の登録画面に関するデータ。
+
+### utils
+
+おそらくAPIとかを使ってバックエンドとやり取りするためのデータ？
