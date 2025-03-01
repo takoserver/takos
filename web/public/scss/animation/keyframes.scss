@@ -1,0 +1,41 @@
+//keyframes.scss
+
+//アニメーションを記述する場所です。
+//貢献者はアニメーションの使用箇所をコメントすることを推奨します。
+
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes scroll {
+  0% {
+    transform: translateY(15%);
+  }
+  5% {
+    transform: translateY(15%);
+  }
+  90% {
+    transform: translateY(-70%);
+  }
+  95% {
+    transform: translateY(-70%);
+  }
+  100% {
+    transform: translateY(15%);
+  }
+}
+
+@keyframes loop {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+

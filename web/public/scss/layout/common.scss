@@ -1,0 +1,17 @@
+//common.scss
+
+//主にタグ指定(クラス指定していない)してあるものを格納しているファイルです
+
+html, body {
+  position: relative;
+  background-image: url("/api/v2/server/background");
+  background-size: cover;
+}
+
+::-webkit-scrollbar {
+  background: #000;
+  width: 0px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: black;
+}

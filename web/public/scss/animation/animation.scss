@@ -1,0 +1,23 @@
+//animation.scss
+
+//アニメーションに関するクラスのスタイルを格納しています。
+
+.animation-marquee {
+  /* アニメーションの速度や他の設定はそのまま */
+  animation: marquee 10s linear infinite;
+}
+
+.scroll-animation {
+  animation: scroll 25s linear infinite;
+}
+
+.loop {
+  animation: loop 10s linear infinite;
+  width: 100%;
+}
+.loop2 {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  animation: loop 10s linear infinite;
+}
