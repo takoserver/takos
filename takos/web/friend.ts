@@ -1,14 +1,5 @@
-import {
-  generateDeviceKey,
-  isValidIdentityKeyPublic,
-  keyHash,
-  verifyMasterKey,
-} from "@takos/takos-encrypt-ink";
-import shareAccountKey from "../models/shareAccountKey.ts";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import Session from "../models/sessions.ts";
-import IdentityKey from "../models/identityKey.ts";
 import { load } from "@std/dotenv";
 import friends from "../models/friends.ts";
 import { fff } from "../utils/foundationReq.ts";

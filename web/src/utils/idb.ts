@@ -1,5 +1,6 @@
 import {
   decryptDataDeviceKey,
+  encryptDataDeviceKey,
   isValidAccountKeyPublic,
   keyHash,
 } from "@takos/takos-encrypt-ink";
@@ -48,10 +49,18 @@ export interface TakosDB extends DBSchema {
       latest: boolean;
     };
   };
+  shareSignKeys: {
+    key: string;
+    value: {
+      key: string; //hash
+      encryptedKey: string;
+      timestamp: number;
+    };
+  };
 }
 
 export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
-  return openDB<TakosDB>("takos-db", 14, {
+  return openDB<TakosDB>("takos-db", 15, {
     upgrade(db) {
       if (!db.objectStoreNames.contains("shareKeys")) {
         db.createObjectStore("shareKeys", { keyPath: "key" });
@@ -68,6 +77,9 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
       if (!db.objectStoreNames.contains("allowKeys")) {
         db.createObjectStore("allowKeys", { keyPath: "key" });
       }
+      if (!db.objectStoreNames.contains("shareSignKeys")) {
+        db.createObjectStore("shareSignKeys", { keyPath: "key" });
+      }
       // 許可されたobjectStoreのみ残し、その他を削除
       const allowedStores = [
         "shareKeys",
@@ -75,6 +87,7 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
         "accountKeys",
         "RoomKeys",
         "allowKeys",
+        "shareSignKeys",
       ];
       for (const storeName of Array.from(db.objectStoreNames)) {
         if (!allowedStores.includes(storeName)) {
@@ -85,61 +98,79 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
   });
 }
 
-export async function getAccountKey(
-  hash: string,
-  deviceKey: string,
-): Promise<string | null> {
-  const db = await createTakosDB();
-  const data = await db.get("accountKeys", hash);
-  if (!data) return null;
-  return await decryptDataDeviceKey(deviceKey, data.encryptedKey);
+export interface AccountKey {
+  privateKey: string;
+  publicKey: string;
+  sign: string;
 }
 
-export async function getIdentityKey(
-  hash: string,
-  deviceKey: string,
-): Promise<string | null> {
-  const db = await createTakosDB();
-  const data = await db.get("identityKeys", hash);
-  if (!data) return null;
-  return await decryptDataDeviceKey(deviceKey, data.encryptedKey);
+export interface IdentityKey {
+  privateKey: string;
+  publicKey: string;
+  sign: string;
 }
 
-export async function getLatestIdentityKey(deviceKey: string): Promise<
-  {
-    private: string;
-    hash: string;
-  } | null
-> {
-  const db = await createTakosDB();
-  const data = await db.getAll("identityKeys");
-  if (!data) return null;
-  const decrypted = await decryptDataDeviceKey(
+export async function encryptAccountKey({
+  deviceKey,
+  accountKey,
+}: {
+  deviceKey: string;
+  accountKey: AccountKey;
+}): Promise<string> {
+  const rawString = JSON.stringify(accountKey);
+  const encryptedAccountKey = await encryptDataDeviceKey(
     deviceKey,
-    data.sort((a, b) => b.timestamp - a.timestamp)[0].encryptedKey,
+    rawString,
   );
-  if (!decrypted) return null;
-  return {
-    private: decrypted,
-    hash: data.sort((a, b) => b.timestamp - a.timestamp)[0].key,
-  };
+  if(!encryptedAccountKey) throw new Error("encryptedAccountKey is not generated");
+  return encryptedAccountKey;
 }
 
-type LocalStorageKey =
-  | "sessionid"
-  | "userName"
-  | "server"
-  | "masterKey"
-  | "sessionuuid";
+export async function decryptAccountKey({
+  deviceKey,
+  encryptedAccountKey,
+}: {
+  deviceKey: string;
+  encryptedAccountKey: string;
+}): Promise<AccountKey> {
+  const decryptedAccountKey = await decryptDataDeviceKey(
+    deviceKey,
+    encryptedAccountKey,
+  );
+  if(!decryptedAccountKey) throw new Error("decryptedAccountKey is not generated");
+  return JSON.parse(decryptedAccountKey) as AccountKey;
+}
 
-export const localStorageEditor = {
-  set: (key: LocalStorageKey, value: string) => {
-    localStorage.setItem(key, value);
-  },
-  get: (key: LocalStorageKey) => {
-    return localStorage.getItem(key);
-  },
-};
+export async function encryptIdentityKey({
+  deviceKey,
+  identityKey,
+}: {
+  deviceKey: string;
+  identityKey: IdentityKey;
+}): Promise<string> {
+  const rawString = JSON.stringify(identityKey);
+  const encryptedIdentityKey = await encryptDataDeviceKey(
+    deviceKey,
+    rawString,
+  );
+  if(!encryptedIdentityKey) throw new Error("encryptedIdentityKey is not generated");
+  return encryptedIdentityKey;
+}
+
+export async function decryptIdentityKey({
+  deviceKey,
+  encryptedIdentityKey,
+}: {
+  deviceKey: string;
+  encryptedIdentityKey: string;
+}): Promise<IdentityKey> {
+  const decryptedIdentityKey = await decryptDataDeviceKey(
+    deviceKey,
+    encryptedIdentityKey,
+  );
+  if(!decryptedIdentityKey) throw new Error("decryptedIdentityKey is not generated");
+  return JSON.parse(decryptedIdentityKey) as IdentityKey;
+}
 
 export async function clearDB() {
   const db = await createTakosDB();

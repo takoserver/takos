@@ -1,14 +1,17 @@
 import { atom, useAtom } from "solid-jotai";
 import { PopUpFrame } from "./Chat/setupPopup/popUpFrame";
 import { createEffect, createSignal } from "solid-js";
-import { createTakosDB } from "../utils/idb";
+import { createTakosDB, encryptIdentityKey } from "../utils/idb";
 import { deviceKeyState } from "../utils/state";
 import {
   decryptDataDeviceKey,
   encryptDataDeviceKey,
   generateIdentityKey,
   keyHash,
+  generateShareSignKey,
 } from "@takos/takos-encrypt-ink";
+
+import { FiKey, FiCheckCircle, FiXCircle, FiClock } from "solid-icons/fi";
 
 export const shoowIdentityKeyPopUp = atom(false);
 
@@ -18,6 +21,7 @@ export function CreateIdentityKeyPopUp() {
   );
   const [lastCreateIdentityKeyTime, setLastCreateIdentityKeyTime] =
     createSignal("");
+  const [isCreating, setIsCreating] = createSignal(false);
   const [deviceKey] = useAtom(deviceKeyState);
 
   createEffect(async () => {
@@ -36,77 +40,226 @@ export function CreateIdentityKeyPopUp() {
   });
 
   async function handleCreateIdentityKey() {
-    const db = await createTakosDB();
-    const encryptedMasterKey = localStorage.getItem("masterKey");
-    const sessionUUID = localStorage.getItem("sessionUUID");
-    if (!encryptedMasterKey || !sessionUUID) return;
-    const deviceKeyVal = deviceKey();
-    if (!deviceKeyVal) return;
-    const masterKey = await decryptDataDeviceKey(
-      deviceKeyVal,
-      encryptedMasterKey,
-    );
-    if (!masterKey) return;
-    const identityKey = await generateIdentityKey(
-      sessionUUID,
-      JSON.parse(masterKey),
-    );
-    if (!identityKey) return;
-    const res = await fetch("./api/v2/keys/identityKey", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        identityKey: identityKey.publickKey,
-        identityKeySign: identityKey.sign,
-      }),
-    });
-    if (res.status !== 200) return;
-    const encryptedIdentityKey = await encryptDataDeviceKey(
-      deviceKeyVal,
-      identityKey.privateKey,
-    );
-    if (!encryptedIdentityKey) return;
-    await db.put("identityKeys", {
-      key: await keyHash(identityKey.publickKey),
-      encryptedKey: encryptedIdentityKey,
-      timestamp: Date.now(),
-    });
-    setShowIdentityKeyPopUp(false);
-    alert("IdentityKeyを作成しました。");
+    setIsCreating(true);
+    try {
+      const db = await createTakosDB();
+      const encryptedMasterKey = localStorage.getItem("masterKey");
+      const sessionUUID = localStorage.getItem("sessionUUID");
+      if (!encryptedMasterKey || !sessionUUID) {
+        alert("必要な認証情報が見つかりません");
+        return;
+      }
+      
+      const deviceKeyVal = deviceKey();
+      if (!deviceKeyVal) {
+        alert("デバイスキーが見つかりません");
+        return;
+      }
+      
+      const masterKey = await decryptDataDeviceKey(
+        deviceKeyVal,
+        encryptedMasterKey,
+      );
+      if (!masterKey) {
+        alert("マスターキーの復号化に失敗しました");
+        return;
+      }
+      
+      const identityKey = await generateIdentityKey(
+        sessionUUID,
+        JSON.parse(masterKey),
+      );
+      if (!identityKey) {
+        alert("IdentityKeyの生成に失敗しました");
+        return;
+      }
+      
+      const res = await fetch("./api/v2/keys/identityKey", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          identityKey: identityKey.publickKey,
+          identityKeySign: identityKey.sign,
+        }),
+      });
+      
+      if (res.status !== 200) {
+        alert("サーバーへの登録に失敗しました");
+        return;
+      }
+      
+      const encryptedIdentityKey = await encryptIdentityKey({
+        deviceKey: deviceKeyVal,
+        identityKey: {
+          privateKey: identityKey.privateKey,
+          publicKey: identityKey.publickKey,
+          sign: identityKey.sign,
+        }
+      })
+      
+      await db.put("identityKeys", {
+        key: await keyHash(identityKey.publickKey),
+        encryptedKey: encryptedIdentityKey,
+        timestamp: Date.now(),
+      });
+      
+      setLastCreateIdentityKeyTime(new Date().toLocaleString());
+      setShowIdentityKeyPopUp(false);
+      alert("IdentityKeyを作成しました。");
+    } catch (error) {
+      console.error(error);
+      if (error instanceof Error) {
+        alert("エラーが発生しました: " + error.message);
+      } else {
+        alert("エラーが発生しました: " + String(error));
+      }
+    } finally {
+      setIsCreating(false);
+    }
   }
 
   return (
     <>
       {showIdentityKeyPopUp() && (
-        <div class="fixed z-50 w-full h-full bg-[rgba(28,34,40,0.15)] left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px]">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-2xl w-full max-w-md">
-            <div class="flex justify-between items-center border-b px-4 py-2 border-gray-200 dark:border-gray-700">
-              <h2 class="text-xl font-bold text-gray-800 dark:text-white">
-                IdentityKey作成
-              </h2>
+        <div class="fixed z-50 w-full h-full bg-[rgba(0,0,0,0.3)] backdrop-blur-sm left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px] transition-all duration-300">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-md transform transition-all duration-300 scale-100 opacity-100">
+            <div class="flex justify-between items-center border-b px-6 py-4 border-gray-200 dark:border-gray-700">
+              <div class="flex items-center space-x-3">
+                <div class="bg-gray-200 dark:bg-gray-700 p-2 rounded-lg">
+                  <FiKey class="text-gray-700 dark:text-gray-300 text-xl" />
+                </div>
+                <h2 class="text-xl font-medium text-gray-800 dark:text-white">
+                  IdentityKey作成
+                </h2>
+              </div>
               <button
                 onClick={() => setShowIdentityKeyPopUp(false)}
-                class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-2xl font-bold"
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors"
+                aria-label="閉じる"
               >
-                &times;
+                <FiXCircle class="text-xl" />
               </button>
             </div>
             <div class="p-6">
-              <p class="text-gray-700 dark:text-gray-300 mb-2">
-                最新のidentityKeyの作成時期:
-              </p>
-              <div class="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded text-gray-800 dark:text-gray-100 font-medium">
-                {lastCreateIdentityKeyTime()}
+              <div class="mb-6">
+                <div class="flex items-center mb-2 text-gray-700 dark:text-gray-300">
+                  <FiClock class="mr-2" />
+                  <p>最新のIdentityKeyの作成時期:</p>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-md text-gray-800 dark:text-gray-100 font-normal border border-gray-200 dark:border-gray-600">
+                  {lastCreateIdentityKeyTime()}
+                </div>
               </div>
               <div class="flex justify-end">
                 <button
                   type="button"
                   onClick={handleCreateIdentityKey}
-                  class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded shadow-md hover:shadow-lg transition-shadow"
+                  disabled={isCreating()}
+                  class="bg-gray-700 hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 text-white font-medium py-2 px-5 rounded-md transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  作成
+                  {isCreating() ? (
+                    <>
+                      <div class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full inline-block"></div>
+                      処理中...
+                    </>
+                  ) : (
+                    <>
+                      <FiCheckCircle class="mr-2 inline-block" />
+                      作成
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
+export const showShareSignKeyPopUp = atom(false);
+
+export function ShareSignKeyPopUp() {
+  const [showPopUp, setShowPopUp] = useAtom(showShareSignKeyPopUp);
+  const [lastCreateTime, setLastCreateTime] = createSignal("");
+  const [isCreating, setIsCreating] = createSignal(false);
+  const [deviceKey] = useAtom(deviceKeyState);
+
+  createEffect(async () => {
+    const db = await createTakosDB();
+    const signKeys = await db.getAll("shareSignKeys");
+    const latestKey = signKeys.sort((a, b) => 
+      b.timestamp - a.timestamp
+    )[0];
+    
+    if (latestKey) {
+      setLastCreateTime(
+        new Date(latestKey.timestamp).toLocaleString()
+      );
+      return;
+    }
+    setLastCreateTime("未作成");
+  });
+
+  async function handleCreateShareSignKey() {
+    setIsCreating(true);
+  }
+
+
+   return (
+    <>
+      {showPopUp() && (
+        <div class="fixed z-50 w-full h-full bg-[rgba(0,0,0,0.3)] backdrop-blur-sm left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px] transition-all duration-300">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-md transform transition-all duration-300 scale-100 opacity-100">
+            <div class="flex justify-between items-center border-b px-6 py-4 border-gray-200 dark:border-gray-700">
+              <div class="flex items-center space-x-3">
+                <div class="bg-gray-200 dark:bg-gray-700 p-2 rounded-lg">
+                  <FiKey class="text-gray-700 dark:text-gray-300 text-xl" />
+                </div>
+                <h2 class="text-xl font-medium text-gray-800 dark:text-white">
+                  ShareSignKey作成
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowPopUp(false)}
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors"
+                aria-label="閉じる"
+              >
+                <FiXCircle class="text-xl" />
+              </button>
+            </div>
+            <div class="p-6">
+              <div class="mb-6">
+                <div class="flex items-center mb-2 text-gray-700 dark:text-gray-300">
+                  <FiClock class="mr-2" />
+                  <p>最新のShareSignKeyの作成時期:</p>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-md text-gray-800 dark:text-gray-100 font-normal border border-gray-200 dark:border-gray-600">
+                  {lastCreateTime()}
+                </div>
+              </div>
+              <div class="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleCreateShareSignKey}
+                  disabled={isCreating()}
+                  class="bg-gray-700 hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 text-white font-medium py-2 px-5 rounded-md transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isCreating() ? (
+                    <>
+                      <div class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full inline-block"></div>
+                      処理中...
+                    </>
+                  ) : (
+                    <>
+                      <FiCheckCircle class="mr-2 inline-block" />
+                      作成
+                    </>
+                  )}
                 </button>
               </div>
             </div>

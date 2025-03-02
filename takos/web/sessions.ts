@@ -1,6 +1,5 @@
 import app from "../_factory.ts";
 import { array, isValid, z } from "zod";
-import { isTrueRequestSchema } from "../utils/requestSchema.ts";
 import tempUsers from "../models/tempUsers.ts";
 import users from "../models/users.ts";
 import { sendEmail } from "../utils/sendEmail.ts";
@@ -11,12 +10,9 @@ import {
   isValidAccountKeyPublic,
   isValidMasterKeyPublic,
   isValidShareKeyPublic,
-  keyHash,
-  verifyIdentityKey,
   verifyMasterKey,
 } from "@takos/takos-encrypt-ink";
 import Session from "../models/sessions.ts";
-import IdentityKey from "../models/identityKey.ts";
 import shareAccountKey from "../models/shareAccountKey.ts";
 import { Image } from "imagescript";
 import {

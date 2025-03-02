@@ -20,7 +20,7 @@ import { PopUpFrame } from "./setupPopup/popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import { requester } from "../../utils/requester";
 import fnv1a from "fnv1a";
-import { createTakosDB, localStorageEditor } from "../../utils/idb";
+import { createTakosDB, encryptAccountKey} from "../../utils/idb";
 import {
   decryptDataDeviceKey,
   encryptDataDeviceKey,
@@ -151,21 +151,24 @@ export function EncryptSession() {
                                 deviceKeyS,
                                 JSON.stringify(masterKey),
                               );
-                            const encryptedAccountKey =
-                              await encryptDataDeviceKey(
-                                deviceKeyS,
-                                accountKey.privateKey,
-                              );
+                            const encryptedAccountKey = await encryptAccountKey({
+                              deviceKey:deviceKeyS,
+                              accountKey: {
+                                privateKey: accountKey.privateKey,
+                                publicKey: accountKey.publickKey,
+                                sign: accountKey.sign,
+                              }
+                            })
                             const encryptedShareKey =
                               await encryptDataDeviceKey(
                                 deviceKeyS,
-                                shareKey.privateKey,
+                                JSON.stringify(shareKey)
                               );
                             if (
                               !encryptedMasterKey ||
                               !encryptedAccountKey || !encryptedShareKey
                             ) return;
-                            localStorageEditor.set(
+                            localStorage.setItem(
                               "masterKey",
                               encryptedMasterKey,
                             );
@@ -173,14 +176,12 @@ export function EncryptSession() {
                             await db.put("accountKeys", {
                               key: await keyHash(accountKey.publickKey),
                               encryptedKey: encryptedAccountKey,
-                              timestamp:
-                                JSON.parse(accountKey.publickKey).timestamp,
+                              timestamp: JSON.parse(accountKey.publickKey).timestamp,
                             });
                             await db.put("shareKeys", {
                               key: await keyHash(shareKey.publickKey),
                               encryptedKey: encryptedShareKey,
-                              timestamp:
-                                JSON.parse(shareKey.publickKey).timestamp,
+                              timestamp: JSON.parse(shareKey.publickKey).timestamp,
                             });
                             alert("鍵をリセットしました");
                           }

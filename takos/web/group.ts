@@ -160,8 +160,6 @@ app.post(
         [group.groupId.split("@")[1]],
       );
       if (Array.isArray(res) ? res[0].status !== 200 : true) {
-        //@ts-ignore
-        console.log(await res[0].json());
         return c.json({ message: "Error inviting user1" }, 500);
       }
     }
@@ -179,8 +177,6 @@ app.post(
         [userId.split("@")[1]],
       );
       if (Array.isArray(res) ? res[0].status !== 200 : true) {
-        //@ts-ignore
-        console.log(await res[0].json());
         return c.json({ message: "Error inviting user2" }, 500);
       }
     } else {
@@ -231,8 +227,6 @@ app.post(
         [group.groupId.split("@")[1]],
       );
       if (!(Array.isArray(res) && res[0].status === 200)) {
-        //@ts-ignore
-        console.log(await res[0].json(), uniqueDomains);
         return c.json({ message: "Error leaving group" }, 500);
       }
       await Member.deleteOne({

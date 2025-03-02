@@ -19,6 +19,9 @@ const keyShareDataSchema = new mongoose.Schema({
   sessionid: {
     type: String,
   },
+  sign: {
+    type: String,
+  }
 });
 
 const KeyShareData = mongoose.model("accountKeyShare", keyShareDataSchema);

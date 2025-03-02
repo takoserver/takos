@@ -16,7 +16,7 @@ import IdentityKey from "../models/identityKey.ts";
 import RoomKey from "../models/roomKey.ts";
 import friends from "../models/friends.ts";
 import { load } from "@std/dotenv";
-import { Group, Member } from "../models/groups.ts";
+import { Member } from "../models/groups.ts";
 
 const env = await load();
 

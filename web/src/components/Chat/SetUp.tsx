@@ -8,7 +8,7 @@ import { useAtom, useSetAtom } from "solid-jotai";
 import { PopUpFrame } from "./setupPopup/popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import { arrayBufferToBase64 } from "../../utils/buffers";
-import { createTakosDB, localStorageEditor } from "../../utils/idb";
+import { createTakosDB, encryptAccountKey } from "../../utils/idb";
 import { isLoadedMessageState } from "../ChatTalkContent.tsx";
 import {
   encryptDataDeviceKey,
@@ -105,10 +105,16 @@ export function SetUp() {
                         deviceKeyS,
                         JSON.stringify(masterKey),
                       );
-                      const encryptedAccountKey = await encryptDataDeviceKey(
-                        deviceKeyS,
-                        accountKey.privateKey,
-                      );
+                      const encryptedAccountKey = await encryptAccountKey(
+                        {
+                        deviceKey:deviceKeyS,
+                        accountKey: {
+                          privateKey: accountKey.privateKey,
+                          publicKey: accountKey.publickKey,
+                          sign: accountKey.sign,
+                        }
+                        }
+                      )
                       const encryptedShareKey = await encryptDataDeviceKey(
                         deviceKeyS,
                         sharekey.privateKey,
@@ -117,7 +123,7 @@ export function SetUp() {
                         !encryptedMasterKey ||
                         !encryptedAccountKey || !encryptedShareKey
                       ) throw new Error("encrypted key is not generated");
-                      localStorageEditor.set("masterKey", encryptedMasterKey);
+                      localStorage.setItem("masterKey", encryptedMasterKey);
                       const db = await createTakosDB();
                       await db.put("accountKeys", {
                         key: await keyHash(accountKey.publickKey),

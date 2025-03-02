@@ -17,8 +17,6 @@ import {
 } from "@takos/takos-encrypt-ink";
 import {
   createTakosDB,
-  getLatestIdentityKey,
-  localStorageEditor,
 } from "../../utils/idb";
 import { shoowIdentityKeyPopUp } from "../CreateIdentityKeyPopUp";
 import { groupChannelState } from "./SideBar";
@@ -242,6 +240,7 @@ async function createRoomKey(
     accountKeySign: string;
     accountKey: string;
     userId: string;
+    isVerify: boolean;
   }[] = [];
   const uuid = localStorage.getItem("sessionUUID");
   if (!uuid) return;
@@ -302,6 +301,7 @@ async function createRoomKey(
       accountKey: friendAccountKey,
       accountKeySign: friendAccountKeySign,
       userId: friendId,
+      isVerify: true,
     });
   }
   const masterKey = localStorage.getItem("masterKey");
@@ -313,14 +313,13 @@ async function createRoomKey(
       b.timestamp - a.timestamp
     )[0];
   if (!encryptedAccountKey) return;
-  /*
   console.log(userId);
   const accountKeySign = await fetch(
     "./_takos/v1/key/accountKey?userId=" + userId,
   );
-  if (accountKeySign.status !== 200) throw new Error("Unauthorized1");
+  if (accountKeySign.status !== 200) return;
   const accountKeySignJson = await accountKeySign.json();
-  if (await keyHash(accountKeySignJson.key) !== encryptedAccountKey.key) throw new Error("Unauthorized2");
+  if (await keyHash(accountKeySignJson.key) !== encryptedAccountKey.key) return;
   if (
     !verifyMasterKey(
       JSON.parse(decryptMasterKey).publicKey,
@@ -328,13 +327,14 @@ async function createRoomKey(
       accountKeySignJson.key,
     )
   ) return;
-  //ドメインを取得 現在のサイトの*/
+  //ドメインを取得 現在のサイトの
   const domain = new URL(window.location.href).hostname;
   friendKeys.push({
     masterKey: JSON.parse(decryptMasterKey).publicKey,
     accountKey: accountKeySignJson.key,
     accountKeySign: accountKeySignJson.signature,
     userId: userId,
+    isVerify: true,
   });
   const encrypted = await encryptRoomKeyWithAccountKeys(
     friendKeys,

@@ -8,7 +8,7 @@ import {
   talkListState,
 } from "../../utils/state";
 import { createEffect, createSignal, onMount, Show } from "solid-js";
-import { createTakosDB } from "../../utils/idb";
+import { createTakosDB, encryptAccountKey } from "../../utils/idb";
 import { decryptDataDeviceKey, encryptDataDeviceKey, encryptDataShareKey, generateAccountKey, keyHash, verifyMasterKey } from "@takos/takos-encrypt-ink";
 import hash from "fnv1a";
 import { fetchingUsersState } from "./SideBar";
@@ -1372,7 +1372,6 @@ function KeyManagement() {
   };
 
   const updateAccountKey = async () => {
-    // アカウント認証鍵を更新する処理
     if (confirm("アカウント認証鍵を更新しますか？")) {
       const masterKey = localStorage.getItem("masterKey");
       if (!masterKey) {
@@ -1389,7 +1388,6 @@ function KeyManagement() {
         alert("マスターキーの復号に失敗しました");
         return;
       }
-      const masterKeyPrivate = JSON.parse(decryptedMasterKey).privateKey;
       const masterKeyPublic = JSON.parse(decryptedMasterKey).publicKey;
       const newAccountKey = await generateAccountKey(JSON.parse(decryptedMasterKey));
       if (!newAccountKey) {
@@ -1440,7 +1438,14 @@ function KeyManagement() {
         alert("アカウント鍵の更新に失敗しました");
         return;
       }
-      const encryptedAccountKey = await encryptDataDeviceKey(deviceKeyS, newAccountKey.privateKey);
+      const encryptedAccountKey = await encryptAccountKey({
+        deviceKey: deviceKeyS,
+        accountKey: {
+          privateKey: newAccountKey.privateKey,
+          publicKey: newAccountKey.publickKey,
+          sign: newAccountKey.sign,
+        }
+      })
       if (!encryptedAccountKey) {
         alert("アカウント鍵の暗号化に失敗しました");
         return;
