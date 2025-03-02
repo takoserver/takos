@@ -27,6 +27,7 @@ import { load } from "@std/dotenv";
 const env = await load();
 import { cors } from "hono/cors";
 import { CategoryPermissions } from "../models/groups.ts";
+import accountKeyData from "../models/accountKey.ts";
 app.use(cors(
   {
     origin: "*",
@@ -310,7 +311,16 @@ app.get("/key/:kind", async (c) => {
       return c.json({ key: user.masterKey });
     }
     case "accountKey": {
-      return c.json({ key: user.accountKey, signature: user.accountKeySign });
+      const accountKey = await accountKeyData.findOne({
+        userName: user.userName,
+      }).sort({ timestamp: -1 });
+      if (!accountKey) {
+        return c.json({ error: "Invalid accountKey" }, 400);
+      }
+      return c.json({
+        key: accountKey.Key,
+        signature: accountKey.sign,
+      });
     }
     case "identityKey": {
       const hash = c.req.query("hash");

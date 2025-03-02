@@ -1,17 +1,17 @@
 import { atom, useAtom } from "solid-jotai";
 import { PopUpFrame } from "./Chat/setupPopup/popUpFrame";
 import { createEffect, createSignal } from "solid-js";
-import { createTakosDB, encryptIdentityKey } from "../utils/idb";
+import { createTakosDB, encryptIdentityKey, encryptShareSignKey } from "../utils/idb";
 import { deviceKeyState } from "../utils/state";
 import {
   decryptDataDeviceKey,
   encryptDataDeviceKey,
   generateIdentityKey,
-  keyHash,
   generateShareSignKey,
+  keyHash,
 } from "@takos/takos-encrypt-ink";
 
-import { FiKey, FiCheckCircle, FiXCircle, FiClock } from "solid-icons/fi";
+import { FiCheckCircle, FiClock, FiKey, FiXCircle } from "solid-icons/fi";
 
 export const shoowIdentityKeyPopUp = atom(false);
 
@@ -49,13 +49,13 @@ export function CreateIdentityKeyPopUp() {
         alert("必要な認証情報が見つかりません");
         return;
       }
-      
+
       const deviceKeyVal = deviceKey();
       if (!deviceKeyVal) {
         alert("デバイスキーが見つかりません");
         return;
       }
-      
+
       const masterKey = await decryptDataDeviceKey(
         deviceKeyVal,
         encryptedMasterKey,
@@ -64,7 +64,7 @@ export function CreateIdentityKeyPopUp() {
         alert("マスターキーの復号化に失敗しました");
         return;
       }
-      
+
       const identityKey = await generateIdentityKey(
         sessionUUID,
         JSON.parse(masterKey),
@@ -73,7 +73,7 @@ export function CreateIdentityKeyPopUp() {
         alert("IdentityKeyの生成に失敗しました");
         return;
       }
-      
+
       const res = await fetch("./api/v2/keys/identityKey", {
         method: "POST",
         headers: {
@@ -84,27 +84,27 @@ export function CreateIdentityKeyPopUp() {
           identityKeySign: identityKey.sign,
         }),
       });
-      
+
       if (res.status !== 200) {
         alert("サーバーへの登録に失敗しました");
         return;
       }
-      
+
       const encryptedIdentityKey = await encryptIdentityKey({
         deviceKey: deviceKeyVal,
         identityKey: {
           privateKey: identityKey.privateKey,
           publicKey: identityKey.publickKey,
           sign: identityKey.sign,
-        }
-      })
-      
+        },
+      });
+
       await db.put("identityKeys", {
         key: await keyHash(identityKey.publickKey),
         encryptedKey: encryptedIdentityKey,
         timestamp: Date.now(),
       });
-      
+
       setLastCreateIdentityKeyTime(new Date().toLocaleString());
       setShowIdentityKeyPopUp(false);
       alert("IdentityKeyを作成しました。");
@@ -159,17 +159,20 @@ export function CreateIdentityKeyPopUp() {
                   disabled={isCreating()}
                   class="bg-gray-700 hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 text-white font-medium py-2 px-5 rounded-md transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  {isCreating() ? (
-                    <>
-                      <div class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full inline-block"></div>
-                      処理中...
-                    </>
-                  ) : (
-                    <>
-                      <FiCheckCircle class="mr-2 inline-block" />
-                      作成
-                    </>
-                  )}
+                  {isCreating()
+                    ? (
+                      <>
+                        <div class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full inline-block">
+                        </div>
+                        処理中...
+                      </>
+                    )
+                    : (
+                      <>
+                        <FiCheckCircle class="mr-2 inline-block" />
+                        作成
+                      </>
+                    )}
                 </button>
               </div>
             </div>
@@ -180,10 +183,9 @@ export function CreateIdentityKeyPopUp() {
   );
 }
 
-
 export const showShareSignKeyPopUp = atom(false);
 
-export function ShareSignKeyPopUp() {
+export function CreateShareSignKeyPopUp() {
   const [showPopUp, setShowPopUp] = useAtom(showShareSignKeyPopUp);
   const [lastCreateTime, setLastCreateTime] = createSignal("");
   const [isCreating, setIsCreating] = createSignal(false);
@@ -192,13 +194,11 @@ export function ShareSignKeyPopUp() {
   createEffect(async () => {
     const db = await createTakosDB();
     const signKeys = await db.getAll("shareSignKeys");
-    const latestKey = signKeys.sort((a, b) => 
-      b.timestamp - a.timestamp
-    )[0];
-    
+    const latestKey = signKeys.sort((a, b) => b.timestamp - a.timestamp)[0];
+
     if (latestKey) {
       setLastCreateTime(
-        new Date(latestKey.timestamp).toLocaleString()
+        new Date(latestKey.timestamp).toLocaleString(),
       );
       return;
     }
@@ -207,10 +207,63 @@ export function ShareSignKeyPopUp() {
 
   async function handleCreateShareSignKey() {
     setIsCreating(true);
+    const masterKey = localStorage.getItem("masterKey");
+    const sessionUUID = localStorage.getItem("sessionUUID");
+    const deviceKeyVal = deviceKey();
+    if(!masterKey || !sessionUUID || !deviceKeyVal) {
+      alert("必要な認証情報が見つかりません");
+      return;
+    }
+    const decryptedMasterKey = await decryptDataDeviceKey(
+      deviceKeyVal,
+      masterKey,
+    );
+    if (!decryptedMasterKey) {
+      alert("マスターキーの復号化に失敗しました");
+      return
+    }
+    const shareSignKey = await generateShareSignKey(
+      JSON.parse(decryptedMasterKey),
+      sessionUUID,
+    )
+    if (!shareSignKey) {
+      alert("ShareSignKeyの生成に失敗しました");
+      return;
+    }
+    const res = await fetch("./api/v2/keys/shareSignKey", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        shareSignKey: shareSignKey.publickKey,
+        shareSignKeySign: shareSignKey.sign,
+      }),
+    });
+    if (res.status !== 200) {
+      alert("サーバーへの登録に失敗しました");
+      return;
+    }
+    const db = await createTakosDB();
+    const encryptedShareSignKey = await encryptShareSignKey({
+      deviceKey: deviceKeyVal,
+      shareSignKey: {
+        privateKey: shareSignKey.privateKey,
+        publicKey: shareSignKey.publickKey,
+        sign: shareSignKey.sign,
+      },
+    })
+    await db.put("shareSignKeys", {
+      key: await keyHash(shareSignKey.publickKey),
+      encryptedKey: encryptedShareSignKey,
+      timestamp: Date.now(),
+    });
+    setLastCreateTime(new Date().toLocaleString());
+    setShowPopUp(false);
+    alert("ShareSignKeyを作成しました");
   }
 
-
-   return (
+  return (
     <>
       {showPopUp() && (
         <div class="fixed z-50 w-full h-full bg-[rgba(0,0,0,0.3)] backdrop-blur-sm left-0 top-0 flex justify-center items-center p-3 md:pb-3 pb-[76px] transition-all duration-300">
@@ -249,17 +302,20 @@ export function ShareSignKeyPopUp() {
                   disabled={isCreating()}
                   class="bg-gray-700 hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 text-white font-medium py-2 px-5 rounded-md transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  {isCreating() ? (
-                    <>
-                      <div class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full inline-block"></div>
-                      処理中...
-                    </>
-                  ) : (
-                    <>
-                      <FiCheckCircle class="mr-2 inline-block" />
-                      作成
-                    </>
-                  )}
+                  {isCreating()
+                    ? (
+                      <>
+                        <div class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full inline-block">
+                        </div>
+                        処理中...
+                      </>
+                    )
+                    : (
+                      <>
+                        <FiCheckCircle class="mr-2 inline-block" />
+                        作成
+                      </>
+                    )}
                 </button>
               </div>
             </div>

@@ -38,7 +38,7 @@ app.post(
       userName: user.userName + "@" + env["domain"],
       friendId: userName,
     });
-    if (isFriend) {return c.json({ message: "Already friend" }, 400);}
+    if (isFriend) return c.json({ message: "Already friend" }, 400);
     if (domain !== env["domain"]) {
       const result = await fff(
         JSON.stringify({

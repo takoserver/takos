@@ -110,6 +110,13 @@ export interface IdentityKey {
   sign: string;
 }
 
+export interface ShareSignKey {
+  privateKey: string;
+  publicKey: string;
+  sign: string;
+}
+
+
 export async function encryptAccountKey({
   deviceKey,
   accountKey,
@@ -122,7 +129,9 @@ export async function encryptAccountKey({
     deviceKey,
     rawString,
   );
-  if(!encryptedAccountKey) throw new Error("encryptedAccountKey is not generated");
+  if (!encryptedAccountKey) {
+    throw new Error("encryptedAccountKey is not generated");
+  }
   return encryptedAccountKey;
 }
 
@@ -137,7 +146,9 @@ export async function decryptAccountKey({
     deviceKey,
     encryptedAccountKey,
   );
-  if(!decryptedAccountKey) throw new Error("decryptedAccountKey is not generated");
+  if (!decryptedAccountKey) {
+    throw new Error("decryptedAccountKey is not generated");
+  }
   return JSON.parse(decryptedAccountKey) as AccountKey;
 }
 
@@ -153,7 +164,9 @@ export async function encryptIdentityKey({
     deviceKey,
     rawString,
   );
-  if(!encryptedIdentityKey) throw new Error("encryptedIdentityKey is not generated");
+  if (!encryptedIdentityKey) {
+    throw new Error("encryptedIdentityKey is not generated");
+  }
   return encryptedIdentityKey;
 }
 
@@ -168,8 +181,45 @@ export async function decryptIdentityKey({
     deviceKey,
     encryptedIdentityKey,
   );
-  if(!decryptedIdentityKey) throw new Error("decryptedIdentityKey is not generated");
+  if (!decryptedIdentityKey) {
+    throw new Error("decryptedIdentityKey is not generated");
+  }
   return JSON.parse(decryptedIdentityKey) as IdentityKey;
+}
+
+export async function encryptShareSignKey({
+  deviceKey,
+  shareSignKey,
+}: {
+  deviceKey: string;
+  shareSignKey: ShareSignKey;
+}): Promise<string> {
+  const rawString = JSON.stringify(shareSignKey);
+  const encryptedShareSignKey = await encryptDataDeviceKey(
+    deviceKey,
+    rawString,
+  );
+  if (!encryptedShareSignKey) {
+    throw new Error("encryptedShareSignKey is not generated");
+  }
+  return encryptedShareSignKey;
+}
+
+export async function decryptShareSignKey({
+  deviceKey,
+  encryptedShareSignKey,
+}: {
+  deviceKey: string;
+  encryptedShareSignKey: string;
+}): Promise<ShareSignKey> {
+  const decryptedShareSignKey = await decryptDataDeviceKey(
+    deviceKey,
+    encryptedShareSignKey,
+  );
+  if (!decryptedShareSignKey) {
+    throw new Error("decryptedShareSignKey is not generated");
+  }
+  return JSON.parse(decryptedShareSignKey) as ShareSignKey;
 }
 
 export async function clearDB() {

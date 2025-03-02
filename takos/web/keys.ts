@@ -17,6 +17,8 @@ import RoomKey from "../models/roomKey.ts";
 import friends from "../models/friends.ts";
 import { load } from "@std/dotenv";
 import { Member } from "../models/groups.ts";
+import accountKeyData from "../models/accountKey.ts";
+import shareSignKey from "../models/shareSignKey.ts";
 
 const env = await load();
 
@@ -55,7 +57,17 @@ app.get("accountKey", async (c) => {
   if (!sharedKey || !sharedKey.encryptedAccountKey) {
     return c.json({ message: "Unauthorized" }, 401);
   }
-  return c.json({ accountKey: sharedKey.encryptedAccountKey });
+  const accountKey = await accountKeyData.findOne({
+    userName: user.userName,
+    hash: accountKeyHash,
+  });
+  if (!accountKey) {
+    return c.json({ message: "Unauthorized" }, 401);
+  }
+  return c.json({
+    accountKey: sharedKey.encryptedAccountKey,
+    shareDataSign: accountKey.shareDataSign,
+  });
 });
 
 app.post(
@@ -111,13 +123,14 @@ app.post(
     z.object({
       accountKey: z.string(),
       accountKeySign: z.string(),
-      encryptedAccountKeys: z.array(z.tuple([z.string(), z.string()]))
+      encryptedAccountKeys: z.array(z.tuple([z.string(), z.string()])),
+      shareDataSign: z.string(),
     }),
   ),
   async (c) => {
     const user = c.get("user");
     if (!user || !user.masterKey) {
-      return c.json({ message: "Unauthorized" }, 401);
+      return c.json({ message: "Unauthorized1" }, 401);
     }
     const { accountKey, accountKeySign, encryptedAccountKeys } = c.req.valid(
       "json",
@@ -130,7 +143,6 @@ app.post(
     );
     const serverSessionUUIDs = (await Session.find({ userName: user.userName }))
       .map((session) => [session.sessionUUID, session.sessionid]);
-    //sessionUUIDsに被りがなく、serverSessionUUIDsに全て含まれているか
     if (
       sessionUUIDs.length !== encryptedAccountKeys.length ||
       !sessionUUIDs.every((sessionUUID) =>
@@ -141,8 +153,20 @@ app.post(
     ) {
       return c.json({ message: "Invalid session" }, 400);
     }
-    await shareAccountKey.deleteMany({ userName: user.userName });
-    for (const [sessionUUID, encryptedAccountKeyValue] of encryptedAccountKeys) {
+    const beforAccountKey = await accountKeyData.findOne({
+      userName: user.userName,
+    }).sort({ timestamp: -1 });
+    if (
+      beforAccountKey
+    ) {
+      await shareAccountKey.updateMany({
+        userName: user.userName,
+        hash: beforAccountKey.hash,
+      }, { $set: { updateTime: new Date() } });
+    }
+    for (
+      const [sessionUUID, encryptedAccountKeyValue] of encryptedAccountKeys
+    ) {
       await shareAccountKey.create({
         userName: user.userName,
         hash: await keyHash(accountKey),
@@ -152,9 +176,64 @@ app.post(
         )?.[1] ?? null,
       });
     }
+    console.log(accountKey);
+    await accountKeyData.create({
+      userName: user.userName,
+      hash: await keyHash(accountKey),
+      key: accountKey,
+      sign: accountKeySign,
+      shareDataSign: c.req.valid("json").shareDataSign,
+    });
     return c.json({ message: "success" });
   },
 );
+
+app.post(
+  "shareSignKey",
+  zValidator(
+    "json",
+    z.object({
+      shareSignKey: z.string(),
+      shareSignKeySign: z.string(),
+    }),
+  ),
+  async (c) => {
+    const user = c.get("user");
+    if (!user || !user.masterKey) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { shareSignKey: shareSignKeyValue, shareSignKeySign } = c.req.valid("json");
+    if (!verifyMasterKey(user.masterKey, shareSignKeySign, shareSignKeyValue)) {
+      return c.json({ message: "Invalid share sign key" }, 400);
+    }
+    await shareSignKey.create({
+      userName: user.userName,
+      sessionid: c.get("session").sessionid,
+      sign: shareSignKeySign,
+      timestamp: Date.now(),
+      hash: await keyHash(shareSignKeyValue),
+      shareSignKey: shareSignKeyValue,
+    })
+    return c.json({ message: "success" });
+  },
+);
+
+app.get("shareSignKey", async (c) => {
+  const user = c.get("user");
+  if (!user) {
+    return c.json({ message: "Unauthorized" }, 401);
+  }
+  const hash = c.req.query("hash");
+  const shareSignKeyValue = await shareSignKey.findOne({
+    userName: user.userName,
+    sessionid: c.get("session").sessionid,
+    hash,
+  });
+  if (!shareSignKeyValue) {
+    return c.json({ message: "Unauthorized" }, 401);
+  }
+  return c.json({ shareSignKey: shareSignKeyValue.shareSignKey });
+});
 
 app.post(
   "roomKey",

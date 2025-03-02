@@ -30,19 +30,17 @@ ready to be deployed!
 Learn more about deploying your application with the
 [documentations](https://vitejs.dev/guide/static-deploy.html)
 
-
 # ディレクトリ構造
 
 フロントエンドのディレクトリは以下の構造になっています
 
-* public
-* src
-  * assets
-  * components
-    * Chat
-  * register
-  * utils
-
+- public
+- src
+  - assets
+  - components
+    - Chat
+  - register
+  - utils
 
 ### public
 
@@ -51,12 +49,12 @@ Learn more about deploying your application with the
 ## src
 
 ### assets
+
 SolidのロゴSVG。おそらく使用されていません。
 
 ### components
 
-おそらくメイン画面のレンダリング処理等に関するファイル。
-よくわからん。
+おそらくメイン画面のレンダリング処理等に関するファイル。 よくわからん。
 
 ### register
 

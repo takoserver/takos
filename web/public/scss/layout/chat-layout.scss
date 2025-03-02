@@ -5,22 +5,22 @@
 @import "../utils/_breakpoint";
 @import "../utils/_mixin";
 
-.c-talk{
-  &-rooms{
+.c-talk {
+  &-rooms {
     height: 64px;
     border-radius: 8px;
     margin-bottom: 8px;
     width: 100%;
 
-    &:hover{
+    &:hover {
       background-color: rgb(120 120 128 / 12%);
     }
 
-    &.is-active{
+    &.is-active {
       background-color: #d1d1d6;
     }
 
-    & button{
+    & button {
       height: 100%;
       width: 100%;
       padding: 10px 8px;
@@ -41,7 +41,7 @@
       cursor: pointer;
     }
 
-    &-icon{
+    &-icon {
       height: 100%;
       aspect-ratio: 1 / 1;
       display: block;
@@ -59,7 +59,7 @@
       }
     }
 
-    &-box{
+    &-box {
       padding-left: 10px;
       display: flex;
       flex-direction: column;
@@ -67,7 +67,7 @@
       min-width: 0;
     }
 
-    &-name{
+    &-name {
       font-size: 14px;
       width: 100%;
       white-space: nowrap;
@@ -75,16 +75,16 @@
       text-overflow: ellipsis;
     }
 
-    &-nickname{
+    &-nickname {
       font-weight: 700;
     }
 
-    &-locate{
+    &-locate {
       color: rgb(60 60 67 / 60%);
       margin-left: 8px;
     }
 
-    &-msg{
+    &-msg {
       font-weight: 400;
       font-size: 12px;
       color: rgb(60 60 67 / 60%);
@@ -95,7 +95,7 @@
       }
     }
   }
-  &-chat{
+  &-chat {
     display: flex;
     margin-top: 3px;
     position: relative;
@@ -106,27 +106,27 @@
       margin-right: 12px;
     }
 
-    &-box{
+    &-box {
       max-width: 80%;
       display: flex;
     }
 
-    &-icon{
+    &-icon {
       height: 36px;
       aspect-ratio: 1 / 1;
     }
 
-    &-name{
+    &-name {
       font-size: 10px;
       font-weight: 700;
       margin: 2px 0 2px 10px;
     }
 
-    &-right{
+    &-right {
       flex-grow: 1;
     }
 
-    &-msg{
+    &-msg {
       position: relative;
       padding: 6px 12px;
       border-radius: 12px;
@@ -143,16 +143,16 @@
       }
     }
 
-    &.primary{
+    &.primary {
       margin-top: 10px;
     }
 
-    &.other,&-msg{
+    &.other, &-msg {
       background-color: #ffffff;
       color: #000000;
     }
 
-    &.self,&-msg{
+    &.self, &-msg {
       background-color: #ff3b3b;
       color: #ffffff;
       box-shadow: 1px 1px 10px rgba(31, 38, 135, 0.1);
@@ -182,7 +182,7 @@
       width: 100%;
       margin: 20px 0 8px;
 
-      &-box{
+      &-box {
         padding: 3px 12px;
         background-color: rgb(218 218 228 / 60%);
         width: fit-content;
@@ -192,15 +192,14 @@
       }
     }
 
-    &-date, &.other{
+    &-date, &.other {
       margin-left: 6px;
       text-align: left;
     }
 
-    &.self, &-date{
+    &.self, &-date {
       margin-right: 6px;
       text-align: right;
     }
-
   }
 }

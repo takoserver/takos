@@ -15,9 +15,7 @@ import {
   keyHash,
   verifyMasterKey,
 } from "@takos/takos-encrypt-ink";
-import {
-  createTakosDB,
-} from "../../utils/idb";
+import { createTakosDB } from "../../utils/idb";
 import { shoowIdentityKeyPopUp } from "../CreateIdentityKeyPopUp";
 import { groupChannelState } from "./SideBar";
 const userId = localStorage.getItem("userName") + "@" +

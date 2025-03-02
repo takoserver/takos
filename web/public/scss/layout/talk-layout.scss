@@ -5,7 +5,6 @@
 @import "../utils/_breakpoint";
 @import "../utils/_mixin";
 
-
 .p-talk {
   height: 100%;
   display: flex;
@@ -269,7 +268,6 @@
     }
   }
 }
-
 
 @media (max-width: 1052px) and (min-width: 769px) {
   .p-talk {

@@ -28,6 +28,7 @@ import Message from "../models/message.ts";
 import MigrateData from "../models/migrateData.ts";
 import { uuidv7 } from "npm:uuidv7@^1.0.2";
 import publish from "../utils/redisClient.ts";
+import accountKeyData from "../models/accountKey.ts";
 
 const env = await load();
 
@@ -277,8 +278,12 @@ app.post(
       ),
       setup: true,
       masterKey,
-      accountKey,
-      accountKeySign,
+    });
+    await accountKeyData.create({
+      userName: session.userName,
+      hash: accountKey,
+      key: accountKey,
+      sign: accountKeySign,
     });
     return c.json({ status: "success" });
   },
@@ -334,8 +339,12 @@ app.post(
     });
     await users.updateOne({ userName: session.userName }, {
       masterKey,
-      accountKey,
-      accountKeySign,
+    });
+    await accountKeyData.create({
+      userName: session.userName,
+      hash: accountKey,
+      key: accountKey,
+      sign: accountKeySign,
     });
     return c.json({ status: "success" });
   },

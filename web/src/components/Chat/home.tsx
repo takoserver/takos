@@ -1,4 +1,4 @@
-import { useAtom, useAtomValue } from "solid-jotai";
+import { useAtom, useAtomValue, useSetAtom } from "solid-jotai";
 import {
   descriptionState,
   deviceKeyState,
@@ -8,16 +8,30 @@ import {
   talkListState,
 } from "../../utils/state";
 import { createEffect, createSignal, onMount, Show } from "solid-js";
-import { createTakosDB, encryptAccountKey } from "../../utils/idb";
-import { decryptDataDeviceKey, encryptDataDeviceKey, encryptDataShareKey, generateAccountKey, keyHash, verifyMasterKey } from "@takos/takos-encrypt-ink";
+import { createTakosDB, decryptShareSignKey, encryptAccountKey } from "../../utils/idb";
+import {
+  decryptDataDeviceKey,
+  encryptDataDeviceKey,
+  encryptDataShareKey,
+  generateAccountKey,
+  keyHash,
+  signDataShareSignKey,
+  verifyMasterKey,
+} from "@takos/takos-encrypt-ink";
 import hash from "fnv1a";
 import { fetchingUsersState } from "./SideBar";
 import { PopUpFrame, PopUpInput, PopUpTitle } from "../popUpFrame";
 
 const userId = localStorage.getItem("userName") + "@" +
   new URL(window.location.href).hostname;
-  const [selected, setSelected] = createSignal<
-  null | string | "settings:profile" | "settings:keys" | "settings:account" | "friend:detail" | "friend:verify"
+const [selected, setSelected] = createSignal<
+  | null
+  | string
+  | "settings:profile"
+  | "settings:keys"
+  | "settings:account"
+  | "friend:detail"
+  | "friend:verify"
 >(null);
 
 // friendSelected の状態を保存
@@ -323,77 +337,49 @@ export function Home() {
       {selected() === "settings:account" && <AccountManagement />}
       {selected() === "friend:detail" && <FriendDetail />}
       {selected() === "friend:verify" && <FriendVerify />}
-      {/*
-      {addFriendByIdFormOpen() && (
-        <PopUpFrame closeScript={setAddFriendByIdFormOpen}>
-          <div>
-            <PopUpTitle>友達をidで追加</PopUpTitle>
-            <PopUpInput
-              type="text"
-              placeholder="id"
-              state={setAddFriendByIdFormInput}
-            />
-            <button
-              class="w-full mt-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onClick={async () => {
-                const res = await fetch("/api/v2/friend/request", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    userName: addFriendByIdFormInput(),
-                  }),
-                });
-                if (res.status !== 200) {
-                  console.log("error");
-                  return;
-                }
-                alert("リクエストを送信しました");
-              }}
-            >
-              追加
-            </button>
-          </div>
-        </PopUpFrame>
-      )}*/}
     </>
   );
 }
 
 function AddUserUI() {
   const [searchId, setSearchId] = createSignal("");
-  const [searchResult, setSearchResult] = createSignal<{
-    userName: string;
-    icon: string;
-    nickName: string;
-    description: string;
-  } | null>(null);
+  const [searchResult, setSearchResult] = createSignal<
+    {
+      userName: string;
+      icon: string;
+      nickName: string;
+      description: string;
+    } | null
+  >(null);
   const [isSearching, setIsSearching] = createSignal(false);
-  
+
   const handleInvite = () => {
     // 招待機能の実装をここに追加
     alert("招待リンクがコピーされました");
   };
-  
+
   const handleQRCode = () => {
     // QRコード表示機能の実装をここに追加
     alert("QRコードを表示します");
   };
-  
+
   const handleSearch = async () => {
     const id = searchId().trim();
     if (!id) return;
-    
+
     setIsSearching(true);
     setSearchResult(null);
-    
+
     try {
       // ユーザー検索リクエスト
       const domain = id.split("@")[1];
       const icon = await fetch(`https://${domain}/_takos/v1/user/icon/${id}`);
-      const nickName = await fetch(`https://${domain}/_takos/v1/user/nickName/${id}`);
-      const discription = await fetch(`https://${domain}/_takos/v1/user/description/${id}`);
+      const nickName = await fetch(
+        `https://${domain}/_takos/v1/user/nickName/${id}`,
+      );
+      const discription = await fetch(
+        `https://${domain}/_takos/v1/user/description/${id}`,
+      );
       if (!icon.ok) {
         alert("ユーザーが見つかりませんでした");
         return;
@@ -411,10 +397,10 @@ function AddUserUI() {
       setIsSearching(false);
     }
   };
-  
+
   const handleSendRequest = async () => {
     if (!searchResult()) return;
-    
+
     try {
       const res = await fetch("/api/v2/friend/request", {
         method: "POST",
@@ -425,7 +411,7 @@ function AddUserUI() {
           userName: searchResult()!.userName,
         }),
       });
-      
+
       if (res.status === 200) {
         alert("リクエストを送信しました");
         setSearchId("");
@@ -438,7 +424,7 @@ function AddUserUI() {
       alert("エラーが発生しました");
     }
   };
-  
+
   return (
     <>
       <div class="flex items-center justify-between p-4">
@@ -451,7 +437,7 @@ function AddUserUI() {
         <h2 class="font-bold text-xl">友だちを追加</h2>
         <div class="w-10"></div> {/* バランス用の空要素 */}
       </div>
-      
+
       <div class="p-4 max-w-full overflow-x-hidden">
         {/* 招待とQRコードのボタン */}
         <div class="grid grid-cols-2 gap-3 mb-6">
@@ -459,27 +445,51 @@ function AddUserUI() {
             onClick={handleInvite}
             class="bg-[#1E1E1E] hover:bg-[#252525] text-white py-3 px-3 rounded-lg flex flex-col items-center justify-center transition-colors border border-gray-800"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6 mb-1 text-blue-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
             </svg>
             <span class="font-medium text-sm">招待</span>
           </button>
-          
+
           <button
             onClick={handleQRCode}
             class="bg-[#1E1E1E] hover:bg-[#252525] text-white py-3 px-3 rounded-lg flex flex-col items-center justify-center transition-colors border border-gray-800"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1v-2a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6 mb-1 text-blue-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1v-2a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1z"
+              />
             </svg>
             <span class="font-medium text-sm">QRコード</span>
           </button>
         </div>
-        
+
         {/* IDで検索 - より暗いデザイン */}
         <div class="bg-[#1A1A1A] rounded-lg p-4 border border-[#252525] shadow-lg shadow-black/30">
-          <h3 class="text-md font-medium mb-3 text-gray-200">IDで友だちを検索</h3>
-          
+          <h3 class="text-md font-medium mb-3 text-gray-200">
+            IDで友だちを検索
+          </h3>
+
           <div class="flex flex-col sm:flex-row items-center gap-2">
             <input
               type="text"
@@ -494,57 +504,118 @@ function AddUserUI() {
               disabled={!searchId().trim() || isSearching()}
             >
               <div class="flex items-center justify-center">
-                {isSearching() ? (
-                  <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                ) : (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                {isSearching()
+                  ? (
+                    <svg
+                      class="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        class="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="4"
+                      >
+                      </circle>
+                      <path
+                        class="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      >
+                      </path>
                     </svg>
-                    <span class="ml-1 sm:hidden block">検索</span>
-                  </>
-                )}
+                  )
+                  : (
+                    <>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                      <span class="ml-1 sm:hidden block">検索</span>
+                    </>
+                  )}
               </div>
             </button>
           </div>
-          
+
           {/* 検索結果表示エリア */}
           {searchResult() && (
             <div class="mt-6 bg-[#121212] rounded-lg p-4 border border-gray-800 animate-fadeIn">
               <div class="flex items-center gap-4">
                 <div class="flex-shrink-0">
-                  {searchResult()!.icon ? (
-                    <img 
-                      src={`data:image/png;base64,${searchResult()!.icon}`} 
-                      alt="プロフィール画像" 
-                      class="w-16 h-16 rounded-full object-cover border border-gray-700"
-                    />
-                  ) : (
-                    <div class="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </div>
-                  )}
+                  {searchResult()!.icon
+                    ? (
+                      <img
+                        src={`data:image/png;base64,${searchResult()!.icon}`}
+                        alt="プロフィール画像"
+                        class="w-16 h-16 rounded-full object-cover border border-gray-700"
+                      />
+                    )
+                    : (
+                      <div class="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-8 w-8 text-gray-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                      </div>
+                    )}
                 </div>
-                
+
                 <div class="flex-1 min-w-0">
-                  <h4 class="font-medium text-lg text-white truncate">{searchResult()!.nickName}</h4>
-                  <p class="text-xs text-blue-400 truncate mb-1">{searchResult()!.userName}</p>
-                  <p class="text-sm text-gray-400 line-clamp-2">{searchResult()!.description || "自己紹介はありません"}</p>
+                  <h4 class="font-medium text-lg text-white truncate">
+                    {searchResult()!.nickName}
+                  </h4>
+                  <p class="text-xs text-blue-400 truncate mb-1">
+                    {searchResult()!.userName}
+                  </p>
+                  <p class="text-sm text-gray-400 line-clamp-2">
+                    {searchResult()!.description || "自己紹介はありません"}
+                  </p>
                 </div>
               </div>
-              
+
               <div class="mt-4 flex justify-end">
                 <button
                   onClick={handleSendRequest}
                   class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors flex items-center gap-2"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                    />
                   </svg>
                   友だちリクエストを送信
                 </button>
@@ -732,14 +803,11 @@ function Friends() {
         <div class="w-10"></div> {/* バランス用の空要素 */}
       </div>
       <div class="p-4">
-        {friends().map((friend) => (
-          <TalkListFriend friendId={friend} />
-        ))}
+        {friends().map((friend) => <TalkListFriend friendId={friend} />)}
       </div>
     </>
   );
 }
-
 
 function TalkListFriend({
   friendId,
@@ -856,17 +924,17 @@ function FriendDetail() {
   createEffect(async () => {
     const friendId = friendDetailId();
     if (!friendId) return;
-    
+
     try {
       const host = friendId.split("@")[1];
       const [iconResponse, nickNameResponse] = await Promise.all([
         fetch(`https://${host}/_takos/v1/user/icon/${friendId}`),
-        fetch(`https://${host}/_takos/v1/user/nickName/${friendId}`)
+        fetch(`https://${host}/_takos/v1/user/nickName/${friendId}`),
       ]);
-      
+
       const iconData = await iconResponse.json();
       const nickNameData = await nickNameResponse.json();
-      
+
       setFriendDetails({
         nickName: nickNameData.nickName,
         icon: iconData.icon,
@@ -906,19 +974,41 @@ function FriendDetail() {
 
           <div class="mt-6 space-y-3">
             <button class="w-full p-3 bg-blue-600 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                />
               </svg>
               チャットを開始
             </button>
-            
+
             {!encrypted().includes(friendDetailId()!) && (
               <button
                 onClick={() => setSelected("friend:verify")}
                 class="w-full p-3 bg-green-600/80 rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
                 </svg>
                 鍵の検証
               </button>
@@ -934,23 +1024,25 @@ function FriendDetail() {
 function FriendVerify() {
   const [keys, setKeys] = createSignal<[string, string]>(["", ""]);
   const deviceKey = useAtomValue(deviceKeyState);
-  
+
   onMount(async () => {
     const friendId = friendDetailId();
     if (!friendId) return;
-    
+
     const encryptedMasterKey = localStorage.getItem("masterKey");
     const deviceKeyS = deviceKey();
     if (!encryptedMasterKey || !deviceKeyS) return;
-    
+
     const decryptedMasterKey = await decryptDataDeviceKey(
       deviceKeyS,
       encryptedMasterKey,
     );
     if (!decryptedMasterKey) return;
-    
+
     const friendMasterKeyRes = await fetch(
-      `https://${friendId.split("@")[1]}/_takos/v1/key/masterKey?userId=${friendId}`,
+      `https://${
+        friendId.split("@")[1]
+      }/_takos/v1/key/masterKey?userId=${friendId}`,
     );
     const friendMasterKeyData = await friendMasterKeyRes.json();
     const friendMasterKey = friendMasterKeyData.key;
@@ -960,7 +1052,7 @@ function FriendVerify() {
   const handleVerify = async () => {
     const friendId = friendDetailId();
     if (!friendId) return;
-    
+
     const db = await createTakosDB();
     const hashKey = await keyHash(keys()[1]);
     await db.put("allowKeys", {
@@ -969,10 +1061,10 @@ function FriendVerify() {
       key: hashKey,
       timestamp: new Date().getTime(),
     });
-    
+
     // 検証済みリストを更新
     setEncrypted((prev) => [...prev, friendId]);
-    
+
     alert("鍵の検証が完了しました");
     setSelected("friend:detail"); // 詳細画面に戻る
   };
@@ -998,7 +1090,7 @@ function FriendVerify() {
               {hash(keys()[0]) || "読み込み中..."}
             </p>
           </div>
-          
+
           <div>
             <p class="mb-2 font-medium text-blue-300">友だちのハッシュ</p>
             <p class="break-all bg-gray-900/80 p-3 rounded-lg border border-gray-700 font-mono text-green-400 text-sm">
@@ -1011,13 +1103,24 @@ function FriendVerify() {
               両方のハッシュが一致していることを確認してから、鍵を承認してください。
               別の通信手段で相手のハッシュを確認することをお勧めします。
             </p>
-            
+
             <button
               onClick={handleVerify}
               class="w-full p-3 bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
               鍵を承認する
             </button>
@@ -1041,7 +1144,7 @@ function Settings() {
         <h2 class="font-bold text-xl">設定</h2>
         <div class="w-10"></div> {/* バランス用の空要素 */}
       </div>
-      
+
       <div class="p-4">
         <ul class="space-y-3">
           <li
@@ -1144,24 +1247,24 @@ function ProfileSettings() {
   const handleIconChange = (e: Event) => {
     const target = e.target as HTMLInputElement;
     const file = target.files?.[0];
-    
+
     if (!file) return;
-    
+
     // ファイルが画像かどうかを確認
-    if (!file.type.startsWith('image/')) {
-      alert('画像ファイルを選択してください');
+    if (!file.type.startsWith("image/")) {
+      alert("画像ファイルを選択してください");
       return;
     }
-    
+
     const reader = new FileReader();
     reader.onload = (e) => {
       if (!e.target?.result) return;
-      
+
       // Base64文字列を取得（data:image/xxx;base64, プレフィックスを除去）
-      const base64String = e.target.result.toString().split(',')[1];
+      const base64String = e.target.result.toString().split(",")[1];
       setNewIcon(base64String);
     };
-    
+
     reader.readAsDataURL(file);
   };
 
@@ -1170,49 +1273,49 @@ function ProfileSettings() {
     const iconData = newIcon();
     const nickNameData = newNickName();
     const descriptionData = newDescription();
-    if(iconData !== icon()) {
+    if (iconData !== icon()) {
       const iconRes = await fetch("/api/v2/profile/icon", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ icon: iconData }),
-      })
-      if(iconRes.status !== 200) {
+      });
+      if (iconRes.status !== 200) {
         isFailed = true;
       }
     }
-    if(nickNameData !== nickName()) {
+    if (nickNameData !== nickName()) {
       const nickNameRes = await fetch("/api/v2/profile/nickName", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ nickName: nickNameData }),
-      })
-      if(nickNameRes.status !== 200) {
+      });
+      if (nickNameRes.status !== 200) {
         isFailed = true;
       }
     }
-    if(descriptionData !== description()) {
+    if (descriptionData !== description()) {
       const descriptionRes = await fetch("/api/v2/profile/description", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ description: descriptionData }),
-      })
-      if(descriptionRes.status !== 200) {
+      });
+      if (descriptionRes.status !== 200) {
         isFailed = true;
       }
     }
-    if(isFailed) {
+    if (isFailed) {
       alert("保存に失敗しました");
     }
     setSelected("settings"); // 保存後は設定メニューに戻る
-    if(iconData !== icon()) setIcon(iconData);
-    if(nickNameData !== nickName()) setNickName(nickNameData);
-    if(descriptionData !== description()) setDescription(descriptionData);
+    if (iconData !== icon()) setIcon(iconData);
+    if (nickNameData !== nickName()) setNickName(nickNameData);
+    if (descriptionData !== description()) setDescription(descriptionData);
   };
 
   return (
@@ -1321,10 +1424,12 @@ function ProfileSettings() {
   );
 }
 
+import { showShareSignKeyPopUp } from "../CreateIdentityKeyPopUp";
+
 // 鍵の管理コンポーネント
 function KeyManagement() {
   const deviceKey = useAtomValue(deviceKeyState);
-
+  const setShowSHareSignKeyPopUp = useSetAtom(showShareSignKeyPopUp);
   const [masterKeyHash, setMasterKeyHash] = createSignal<string>("");
   const [latestKeyTimestamp, setLatestKeyTimestamp] = createSignal<Date | null>(
     null,
@@ -1383,13 +1488,18 @@ function KeyManagement() {
         alert("デバイスキーがありません");
         return;
       }
-      const decryptedMasterKey = await decryptDataDeviceKey(deviceKeyS, masterKey)
+      const decryptedMasterKey = await decryptDataDeviceKey(
+        deviceKeyS,
+        masterKey,
+      );
       if (!decryptedMasterKey) {
         alert("マスターキーの復号に失敗しました");
         return;
       }
       const masterKeyPublic = JSON.parse(decryptedMasterKey).publicKey;
-      const newAccountKey = await generateAccountKey(JSON.parse(decryptedMasterKey));
+      const newAccountKey = await generateAccountKey(
+        JSON.parse(decryptedMasterKey),
+      );
       if (!newAccountKey) {
         alert("アカウント鍵の生成に失敗しました");
         return;
@@ -1405,14 +1515,49 @@ function KeyManagement() {
         alert("セッションの取得に失敗しました");
         return;
       }
+      const shareData = JSON.stringify({
+        privateKey: newAccountKey.privateKey,
+        publicKey: newAccountKey.publickKey,
+      });
+      const db = await createTakosDB();
+      const latestShareSignKey = await db.getAll("shareSignKeys");
+      if(latestShareSignKey.length === 0) {
+        setShowSHareSignKeyPopUp(true);
+        return;
+      }
+      const shareSignKey = (latestShareSignKey.sort(
+        (a, b) => b.timestamp - a.timestamp
+      ))[0].encryptedKey;
+      const decryptedShareSignKey = await decryptShareSignKey({
+        deviceKey: deviceKeyS,
+        encryptedShareSignKey: shareSignKey,
+      })
+      const shareDataSign = signDataShareSignKey(
+        decryptedShareSignKey.privateKey,
+        shareData,
+        await keyHash(newAccountKey.publickKey),
+      )
+      if (!shareDataSign) {
+        alert("アカウント鍵の署名に失敗しました");
+        return
+      }
       const encryptedAccountKeys = [];
-      for(const session of sessions) {
-        if(session.encrypted) {
-          if(!verifyMasterKey(masterKeyPublic, session.shareKeySign,session.shareKey )) {
+      for (const session of sessions) {
+        if (session.encrypted) {
+          if (
+            !verifyMasterKey(
+              masterKeyPublic,
+              session.shareKeySign,
+              session.shareKey,
+            )
+          ) {
             alert("マスターキーの検証に失敗しました");
             return;
           }
-          const encryptedAccountKey = await encryptDataShareKey(session.shareKey, newAccountKey.privateKey);
+          const encryptedAccountKey = await encryptDataShareKey(
+            session.shareKey,
+            shareData,
+          );
           if (!encryptedAccountKey) {
             alert("アカウント鍵の暗号化に失敗しました");
             return;
@@ -1428,13 +1573,14 @@ function KeyManagement() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           accountKey: newAccountKey.publickKey,
           accountKeySign: newAccountKey.sign,
           encryptedAccountKeys: encryptedAccountKeys,
-         }),
+          shareDataSign
+        }),
       });
-      if(res.status !== 200) {
+      if (res.status !== 200) {
         alert("アカウント鍵の更新に失敗しました");
         return;
       }
@@ -1444,18 +1590,16 @@ function KeyManagement() {
           privateKey: newAccountKey.privateKey,
           publicKey: newAccountKey.publickKey,
           sign: newAccountKey.sign,
-        }
-      })
+        },
+      });
       if (!encryptedAccountKey) {
         alert("アカウント鍵の暗号化に失敗しました");
         return;
       }
-      const db = await createTakosDB();
       await db.put("accountKeys", {
         key: await keyHash(newAccountKey.publickKey),
         encryptedKey: encryptedAccountKey,
-        timestamp:
-          JSON.parse(newAccountKey.publickKey).timestamp,
+        timestamp: JSON.parse(newAccountKey.publickKey).timestamp,
       });
       alert("アカウント鍵を更新しました");
     }
@@ -1681,7 +1825,6 @@ function KeyManagement() {
   );
 }
 
-
 function AccountManagement() {
   const [confirmLogout, setConfirmLogout] = createSignal(false);
   const [confirmDelete, setConfirmDelete] = createSignal(false);
@@ -1701,7 +1844,7 @@ function AccountManagement() {
       // const response = await fetch("/api/v2/account/sessions");
       // const data = await response.json();
       // setSessionInfo(data.sessions);
-      
+
       // 仮のセッションデータ（デモ用）
       setTimeout(() => {
         setSessionInfo([
@@ -1709,20 +1852,20 @@ function AccountManagement() {
             deviceName: "このデバイス (Chrome on Windows)",
             lastActive: "現在アクティブ",
             current: true,
-            id: "session-current-123"
+            id: "session-current-123",
           },
           {
             deviceName: "iPhone 13 Pro",
             lastActive: "2日前にアクティブ",
             current: false,
-            id: "session-iphone-456"
+            id: "session-iphone-456",
           },
           {
             deviceName: "MacBook Pro",
             lastActive: "1週間前にアクティブ",
             current: false,
-            id: "session-mac-789"
-          }
+            id: "session-mac-789",
+          },
         ]);
         setIsLoading(false);
       }, 800);
@@ -1736,11 +1879,11 @@ function AccountManagement() {
     try {
       // TODO: 実際のログアウト処理を実装
       // await fetch("/api/v2/auth/logout", { method: "POST" });
-      
+
       // ローカルストレージのクリア
       localStorage.removeItem("userName");
       localStorage.removeItem("masterKey");
-      
+
       // リダイレクト
       window.location.href = "/login";
     } catch (error) {
@@ -1753,10 +1896,10 @@ function AccountManagement() {
     try {
       // TODO: 実際のアカウント削除処理を実装
       // await fetch("/api/v2/account/delete", { method: "DELETE" });
-      
+
       // ローカルストレージのクリア
       localStorage.clear();
-      
+
       // 削除完了後のリダイレクト
       alert("アカウントが削除されました。");
       window.location.href = "/";
@@ -1770,9 +1913,9 @@ function AccountManagement() {
     try {
       // TODO: 実際のセッション終了処理を実装
       // await fetch(`/api/v2/account/sessions/${sessionId}`, { method: "DELETE" });
-      
+
       // 画面を更新（現在のセッション以外）
-      setSessionInfo(sessionInfo().filter(s => s.id !== sessionId));
+      setSessionInfo(sessionInfo().filter((s) => s.id !== sessionId));
       alert("セッションを終了しました。");
     } catch (error) {
       console.error("セッション終了中にエラーが発生しました:", error);
@@ -1829,42 +1972,77 @@ function AccountManagement() {
           <h4 class="font-medium">アクティブなセッション</h4>
         </div>
 
-        {isLoading() ? (
-          <div class="flex justify-center items-center py-6">
-            <svg class="animate-spin h-6 w-6 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </div>
-        ) : (
-          <div class="space-y-3">
-            {sessionInfo().map((session) => (
-              <div class="bg-gray-900/80 border border-gray-700 rounded-lg p-3 flex items-center justify-between">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-white">{session.deviceName}</span>
-                    {session.current && (
-                      <span class="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full">現在のデバイス</span>
-                    )}
+        {isLoading()
+          ? (
+            <div class="flex justify-center items-center py-6">
+              <svg
+                class="animate-spin h-6 w-6 text-blue-400"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                >
+                </circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                >
+                </path>
+              </svg>
+            </div>
+          )
+          : (
+            <div class="space-y-3">
+              {sessionInfo().map((session) => (
+                <div class="bg-gray-900/80 border border-gray-700 rounded-lg p-3 flex items-center justify-between">
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-white">{session.deviceName}</span>
+                      {session.current && (
+                        <span class="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full">
+                          現在のデバイス
+                        </span>
+                      )}
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1">
+                      {session.lastActive}
+                    </div>
                   </div>
-                  <div class="text-xs text-gray-400 mt-1">{session.lastActive}</div>
+                  {!session.current && (
+                    <button
+                      onClick={() => handleTerminateSession(session.id)}
+                      class="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 p-2 rounded-lg transition-colors"
+                      title="このセッションを終了"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  )}
                 </div>
-                {!session.current && (
-                  <button
-                    onClick={() => handleTerminateSession(session.id)}
-                    class="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 p-2 rounded-lg transition-colors"
-                    title="このセッションを終了"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        
+              ))}
+            </div>
+          )}
+
         <p class="text-xs text-gray-400 mt-3 flex items-center gap-1">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -1890,18 +2068,40 @@ function AccountManagement() {
           onClick={() => setConfirmLogout(true)}
           class="w-full p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-center gap-2"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+            />
           </svg>
           ログアウト
         </button>
-        
+
         <button
           onClick={() => setConfirmDelete(true)}
           class="w-full p-3 bg-red-600/50 hover:bg-red-700/50 rounded-lg transition-colors flex items-center justify-center gap-2"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
           </svg>
           アカウントを削除
         </button>
@@ -1935,7 +2135,9 @@ function AccountManagement() {
       {confirmDelete() && (
         <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div class="bg-gray-800 p-6 rounded-lg w-full max-w-md mx-4">
-            <h3 class="text-xl font-bold mb-3 text-red-400">アカウント削除の確認</h3>
+            <h3 class="text-xl font-bold mb-3 text-red-400">
+              アカウント削除の確認
+            </h3>
             <p class="text-gray-300 mb-2">本当にアカウントを削除しますか？</p>
             <p class="text-red-400 text-sm mb-4 p-2 bg-red-900/20 rounded-md border border-red-900/20">
               この操作は取り消せません。すべての個人データ、チャット履歴、友だち関係が完全に削除されます。

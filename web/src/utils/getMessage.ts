@@ -76,7 +76,7 @@ export async function getMessage({
     const decryptedAccountKey = await decryptAccountKey({
       deviceKey: deviceKeyVal,
       encryptedAccountKey: accountKey.encryptedKey,
-    })
+    });
     console.log(decryptedAccountKey === null);
     if (!decryptedAccountKey) {
       throw new Error("Failed to decrypt accountKey");

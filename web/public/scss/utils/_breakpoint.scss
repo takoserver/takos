@@ -3,10 +3,10 @@
 //mixin用のブレークポイントを定義する場所です。
 
 $breakpoints: (
-        "sm": "screen and (min-width: 399px)",
-        "tb": "screen and (min-width: 769px)",
-        "pc": "screen and (min-width: 1053px)",
-        "max_sm": "screen and (max-width: 400px)",
-        "max_tb": "screen and (max-width: 768px)",
-        "max_pc": "screen and (max-width: 1052px)",
+  "sm": "screen and (min-width: 399px)",
+  "tb": "screen and (min-width: 769px)",
+  "pc": "screen and (min-width: 1053px)",
+  "max_sm": "screen and (max-width: 400px)",
+  "max_tb": "screen and (max-width: 768px)",
+  "max_pc": "screen and (max-width: 1052px)",
 ) !default;

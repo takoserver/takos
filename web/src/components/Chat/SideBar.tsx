@@ -462,7 +462,6 @@ function TalkList() {
   );
 }
 
-
 function Request(
   { title, acceptFnc, rejectFnc, body }: {
     title: string;

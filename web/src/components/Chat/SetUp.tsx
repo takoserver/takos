@@ -107,14 +107,14 @@ export function SetUp() {
                       );
                       const encryptedAccountKey = await encryptAccountKey(
                         {
-                        deviceKey:deviceKeyS,
-                        accountKey: {
-                          privateKey: accountKey.privateKey,
-                          publicKey: accountKey.publickKey,
-                          sign: accountKey.sign,
-                        }
-                        }
-                      )
+                          deviceKey: deviceKeyS,
+                          accountKey: {
+                            privateKey: accountKey.privateKey,
+                            publicKey: accountKey.publickKey,
+                            sign: accountKey.sign,
+                          },
+                        },
+                      );
                       const encryptedShareKey = await encryptDataDeviceKey(
                         deviceKeyS,
                         sharekey.privateKey,

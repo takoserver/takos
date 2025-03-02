@@ -40,12 +40,6 @@ const userSchema = new mongoose.Schema({
   masterKey: {
     type: String,
   },
-  accountKey: {
-    type: String,
-  },
-  accountKeySign: {
-    type: String,
-  },
   description: {
     type: String,
     default: "",

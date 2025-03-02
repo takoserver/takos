@@ -21,7 +21,11 @@ const keyShareDataSchema = new mongoose.Schema({
   },
   sign: {
     type: String,
-  }
+  },
+  updateTime: {
+    type: Date,
+    expires: 60 * 60 * 24 * 14,
+  },
 });
 
 const KeyShareData = mongoose.model("accountKeyShare", keyShareDataSchema);

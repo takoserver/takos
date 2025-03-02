@@ -7,7 +7,7 @@ import { ChangeURL } from "./components/ChangeURL.tsx";
 import { Register } from "./register/index.tsx";
 import { Chat } from "./components/Chat.tsx";
 import { createEffect } from "solid-js";
-import { CreateIdentityKeyPopUp } from "./components/CreateIdentityKeyPopUp.tsx";
+import { CreateIdentityKeyPopUp, CreateShareSignKeyPopUp } from "./components/CreateIdentityKeyPopUp.tsx";
 import { CreateGroupPopUp } from "./components/CreateGroup.tsx";
 import { SettingRoom } from "./components/SettingRoom.tsx";
 import { MigrateKey } from "./components/MigrateKeys.tsx";
@@ -27,6 +27,7 @@ function App(
     <>
       {!load() && <Loading />}
       <CreateIdentityKeyPopUp />
+      <CreateShareSignKeyPopUp />
       <SettingRoom />
       <CreateGroupPopUp />
       <Css />

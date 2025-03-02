@@ -9,7 +9,7 @@ const keyShareDataSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  Key: {
+  key: {
     type: String,
     required: true,
   },
@@ -19,7 +19,6 @@ const keyShareDataSchema = new mongoose.Schema({
   },
   shareDataSign: {
     type: String,
-    required: true
   },
   updateTime: {
     type: Date,
