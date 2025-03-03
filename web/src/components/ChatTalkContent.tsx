@@ -46,28 +46,28 @@ const messagesState = atom<{
 );
 
 export const isLoadedMessageState = atom(false);
-
+const [processedMessageIds, setProcessedMessageIds] = createSignal<
+  Set<string>
+>(new Set());
+const [messageTimeLine, setMessageTimeLine] = createSignal<{
+  verified: boolean;
+  encrypted: boolean;
+  content: string;
+  type: string;
+  timestamp: number | string;
+  messageid: string;
+  roomid: string;
+  serverData: {
+    userName: string;
+    timestamp: string;
+  };
+}[]>([]);
 function ChatTalkMain() {
   const [messageList] = useAtom(messageListState);
   const [loaded, setLoaded] = useAtom(isLoadedMessageState);
   const [sellectedRoom] = useAtom(selectedRoomState);
   const [messages, setMessages] = useAtom(messagesState);
-  const [messageTimeLine, setMessageTimeLine] = createSignal<{
-    verified: boolean;
-    encrypted: boolean;
-    content: string;
-    type: string;
-    timestamp: number | string;
-    messageid: string;
-    roomid: string;
-    serverData: {
-      userName: string;
-      timestamp: string;
-    };
-  }[]>([]);
-  const [processedMessageIds, setProcessedMessageIds] = createSignal<
-    Set<string>
-  >(new Set());
+
   createEffect(async () => {
     const result:
       | any[]
@@ -122,7 +122,7 @@ function ChatTalkMain() {
 
     if (newMessages.length === 0) {
       setLoaded(true);
-      // 既存のメッセージから情報を取得
+      // 既存のメッセージから情報を取得してリザルトに追加
       messageList().map((messageIds) => {
         const message = messages().find(
           (msg) => msg.messageid === messageIds.messageid,
@@ -201,15 +201,23 @@ function ChatTalkMain() {
       item,
     ): item is NonNullable<typeof item> => item !== undefined);
     if (validMessages.length > 0) {
+      // 新しいメッセージを既存のメッセージに追加
       setMessages((prev) => [...prev, ...validMessages]);
-      messageList().map((messageIds) => {
-        const message = validMessages.find(
-          (msg) => msg.messageid === messageIds.messageid,
-        );
+
+      // ここで全メッセージを取得してタイムラインを構築
+      const allMessages = [...messages(), ...validMessages];
+      const uniqueMessages = new Map();
+      // 重複を排除して最新のメッセージを保持
+      allMessages.forEach((msg) => uniqueMessages.set(msg.messageid, msg));
+
+      // メッセージIDリストの順序に従ってメッセージを並べる
+      messageList().forEach((messageIds) => {
+        const message = uniqueMessages.get(messageIds.messageid);
         if (message) {
           result.push(message);
         }
       });
+
       setMessageTimeLine(result);
       setLoaded(true);
     }
@@ -444,18 +452,24 @@ function CreateChannelModal() {
     </>
   );
 }
-const [showEditChannelModal, setShowEditChannelModal] = createSignal(false);
-const [contextMenuPosition, setContextMenuPosition] = createSignal<
+
+export const showEditChannelModalState = atom(false);
+export const contextMenuPositionState = atom<
   { x: number; y: number; type: "channel" | "category" | null; id: string }
 >({ x: 0, y: 0, type: null, id: "" });
 function ChannelSideBar() {
+  const [contextMenuPosition, setContextMenuPosition] = useAtom(contextMenuPositionState);
   const [selectedChannel, setSelectedChannel] = useAtom(selectedChannelState);
   const [isOpenChannel, setIsOpenChannel] = createSignal(false);
   const [isSelectRoom] = useAtom(selectedRoomState);
   const [groupChannel] = useAtom(groupChannelState);
   const [showContextMenu, setShowContextMenu] = createSignal(false);
+  const [contextMenuTarget, setContextMenuTarget] = createSignal<
+    { id: string; type: "channel" | "category" | null }
+  >({ id: "", type: null });
   const [sellectedRoom] = useAtom(selectedRoomState);
   const [messageList, setMessageList] = useAtom(messageListState);
+  const [showEditChannelModal, setShowEditChannelModal] = useAtom(showEditChannelModalState);
   // クリックでコンテキストメニューを閉じる
   onMount(() => {
     const clickHandler = (e: MouseEvent) => {
@@ -470,123 +484,24 @@ function ChannelSideBar() {
   function createChannel() {
     setShowCreateChannelModal(true);
   }
+
   const handleContextMenu = (e: MouseEvent, id: string, type: string) => {
     e.preventDefault();
-    setContextMenuPosition({
-      x: e.clientX,
-      y: e.clientY,
-      type: type as "channel" | "category",
+    e.stopPropagation(); // 親要素へのイベント伝播を防止
+    setContextMenuTarget({
       id,
+      type: type as "channel" | "category",
     });
     setShowContextMenu(true);
   };
+
   const handleMenuItemClick = (item: string) => {
     console.log(item + " clicked");
     setShowContextMenu(false);
   };
+  const [messages, setMessages] = useAtom(messagesState);
   return (
     <>
-      {showContextMenu() && (
-        <div
-          style={{
-            position: "fixed",
-            top: contextMenuPosition().y + "px",
-            left: contextMenuPosition().x + "px",
-            "z-index": 99999,
-          }}
-          onClick={() => setShowContextMenu(false)}
-        >
-          <ul class="bg-gray-800 text-white rounded-lg shadow-lg p-2 animate-fadeIn">
-            <li
-              class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
-              onClick={() => {
-                handleMenuItemClick("編集");
-                setShowEditChannelModal(true);
-              }}
-            >
-              編集
-            </li>
-            <li
-              class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
-              onClick={async () => {
-                const match = sellectedRoom()?.roomid.match(
-                  /^g\{([^}]+)\}@(.+)$/,
-                );
-                if (!match) {
-                  return console.error("Invalid roomid");
-                }
-                if (contextMenuPosition().type === "channel") {
-                  const res = await fetch("/api/v2/group/channel/delete", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-
-                    body: JSON.stringify({
-                      groupId: match[1] + "@" + match[2],
-                      channelId: contextMenuPosition().id,
-                    }),
-                  });
-                  if (!res.ok) {
-                    console.error("Failed to create channel");
-                  }
-                  alert("チャンネルを削除しました");
-                } else {
-                  const res = await fetch("/api/v2/group/category/delete", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-
-                    body: JSON.stringify({
-                      groupId: match[1] + "@" + match[2],
-                      categoryId: contextMenuPosition().id,
-                    }),
-                  });
-                  if (!res.ok) {
-                    console.error("Failed to create channel");
-                  }
-                  alert("カテゴリーを削除しました");
-                }
-              }}
-            >
-              削除
-            </li>
-            <li
-              class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
-              onClick={async () => {
-                const match = sellectedRoom()?.roomid.match(
-                  /^g\{([^}]+)\}@(.+)$/,
-                );
-                if (!match) {
-                  return console.error("Invalid roomid");
-                }
-                if (contextMenuPosition().type === "channel") {
-                  const res = await fetch("/api/v2/group/channel/default", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-
-                    body: JSON.stringify({
-                      groupId: match[1] + "@" + match[2],
-                      channelId: contextMenuPosition().id,
-                    }),
-                  });
-                  if (!res.ok) {
-                    return console.error("Failed to create channel");
-                  }
-                  alert("チャンネルをデフォルトに設定しました");
-                } else {
-                  alert("カテゴリーはデフォルトにできません");
-                }
-              }}
-            >
-              デフォルトに設定
-            </li>
-          </ul>
-        </div>
-      )}
       {isSelectRoom()?.type === "group" && (
         <>
           {isOpenChannel() === true && (
@@ -625,11 +540,7 @@ function ChannelSideBar() {
                         id: string;
                       }) {
                         return (
-                          <li
-                            class="hover:bg-gray-700 rounded"
-                            onContextMenu={(e) =>
-                              handleContextMenu(e, id, "channel")}
-                          >
+                          <li class="hover:bg-gray-700 rounded relative">
                             <button
                               class={`w-full text-left py-2 px-4 text-white transition-colors ${
                                 selectedChannel() === id
@@ -644,28 +555,148 @@ function ChannelSideBar() {
                                 if (!match) {
                                   return console.error("Invalid roomid");
                                 }
-                                const messages = await fetch(
-                                  "/api/v2/message/group/" +
-                                    sellectedRoom()?.roomid + "/" + id,
-                                );
-                                const messagesJson =
-                                  (((await messages.json()).messages) as {
-                                    userName: string;
-                                    messageid: string;
-                                    timestamp: string;
-                                  }[]).sort((a, b) =>
-                                    new Date(a.timestamp).getTime() -
-                                    new Date(b.timestamp).getTime()
+
+                                try {
+                                  const messages = await fetch(
+                                    "/api/v2/message/group/" +
+                                      sellectedRoom()?.roomid + "/" + id,
                                   );
-                                console.log(messagesJson);
-                                setMessageList([]);
-                                setTimeout(() => {
-                                  setMessageList(messagesJson);
-                                }, 10);
+
+                                  if (!messages.ok) {
+                                    console.error("Failed to fetch messages");
+                                    return;
+                                  }
+
+                                  const messagesJson =
+                                    (((await messages.json()).messages) as {
+                                      userName: string;
+                                      messageid: string;
+                                      timestamp: string;
+                                    }[]).sort((a, b) =>
+                                      new Date(a.timestamp).getTime() -
+                                      new Date(b.timestamp).getTime()
+                                    );
+
+                                  // 新しいチャンネルを選択したとき、メッセージリストとキャッシュをリセット
+                                  setProcessedMessageIds(() =>
+                                    new Set<string>()
+                                  );
+                                  setMessages([]);
+                                  setMessageTimeLine([]);
+
+                                  // 遅延してセットすることで状態が正しく更新されるようにする
+                                  setTimeout(() => {
+                                    setMessageList(messagesJson);
+                                  }, 10);
+                                } catch (error) {
+                                  console.error(
+                                    "Error fetching messages:",
+                                    error,
+                                  );
+                                }
                               }}
+                              onContextMenu={(e) =>
+                                handleContextMenu(e, id, "channel")}
                             >
                               {name}
                             </button>
+
+                            {/* チャンネルのコンテキストメニュー */}
+                            {showContextMenu() &&
+                              contextMenuTarget().id === id &&
+                              contextMenuTarget().type === "channel" && (
+                              <div class="absolute right-1 top-1 bg-gray-800 text-white rounded-lg shadow-lg p-2 animate-fadeIn z-50">
+                                <ul>
+                                  <li
+                                    class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
+                                    onClick={() => {
+                                      handleMenuItemClick("編集");
+                                      setContextMenuPosition({
+                                        x: 0,
+                                        y: 0,
+                                        type: "channel",
+                                        id: id,
+                                      });
+                                      setShowEditChannelModal(true);
+                                    }}
+                                  >
+                                    編集
+                                  </li>
+                                  <li
+                                    class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
+                                    onClick={async () => {
+                                      const match = sellectedRoom()?.roomid
+                                        .match(
+                                          /^g\{([^}]+)\}@(.+)$/,
+                                        );
+                                      if (!match) {
+                                        return console.error("Invalid roomid");
+                                      }
+
+                                      const res = await fetch(
+                                        "/api/v2/group/channel/delete",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            groupId: match[1] + "@" + match[2],
+                                            channelId: id,
+                                          }),
+                                        },
+                                      );
+                                      if (!res.ok) {
+                                        console.error(
+                                          "Failed to delete channel",
+                                        );
+                                      }
+                                      alert("チャンネルを削除しました");
+                                      setShowContextMenu(false);
+                                    }}
+                                  >
+                                    削除
+                                  </li>
+                                  <li
+                                    class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
+                                    onClick={async () => {
+                                      const match = sellectedRoom()?.roomid
+                                        .match(
+                                          /^g\{([^}]+)\}@(.+)$/,
+                                        );
+                                      if (!match) {
+                                        return console.error("Invalid roomid");
+                                      }
+
+                                      const res = await fetch(
+                                        "/api/v2/group/channel/default",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            groupId: match[1] + "@" + match[2],
+                                            channelId: id,
+                                          }),
+                                        },
+                                      );
+                                      if (!res.ok) {
+                                        return console.error(
+                                          "Failed to set default channel",
+                                        );
+                                      }
+                                      alert(
+                                        "チャンネルをデフォルトに設定しました",
+                                      );
+                                      setShowContextMenu(false);
+                                    }}
+                                  >
+                                    デフォルトに設定
+                                  </li>
+                                </ul>
+                              </div>
+                            )}
                           </li>
                         );
                       }
@@ -679,17 +710,88 @@ function ChannelSideBar() {
                         children: JSX.Element;
                       }) {
                         return (
-                          <li
-                            class="mt-2 hover:bg-gray-700"
-                            onContextMenu={(e) =>
-                              handleContextMenu(e, id, "category")}
-                          >
-                            <div class="px-4 py-2">
+                          <li class="mt-2 hover:bg-gray-700 relative">
+                            <div
+                              class="px-4 py-2"
+                              onContextMenu={(e) =>
+                                handleContextMenu(e, id, "category")}
+                            >
                               <span class="block text-gray-300 font-semibold">
                                 {name}
                               </span>
                               {children}
                             </div>
+
+                            {/* カテゴリーのコンテキストメニュー */}
+                            {showContextMenu() &&
+                              contextMenuTarget().id === id &&
+                              contextMenuTarget().type === "category" && (
+                              <div class="absolute right-1 top-1 bg-gray-800 text-white rounded-lg shadow-lg p-2 animate-fadeIn z-50">
+                                <ul>
+                                  <li
+                                    class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
+                                    onClick={() => {
+                                      handleMenuItemClick("編集");
+                                      setContextMenuPosition({
+                                        x: 0,
+                                        y: 0,
+                                        type: "category",
+                                        id: id,
+                                      });
+                                      setShowEditChannelModal(true);
+                                    }}
+                                  >
+                                    編集
+                                  </li>
+                                  <li
+                                    class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
+                                    onClick={async () => {
+                                      const match = sellectedRoom()?.roomid
+                                        .match(
+                                          /^g\{([^}]+)\}@(.+)$/,
+                                        );
+                                      if (!match) {
+                                        return console.error("Invalid roomid");
+                                      }
+
+                                      const res = await fetch(
+                                        "/api/v2/group/category/delete",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            groupId: match[1] + "@" + match[2],
+                                            categoryId: id,
+                                          }),
+                                        },
+                                      );
+                                      if (!res.ok) {
+                                        console.error(
+                                          "Failed to delete category",
+                                        );
+                                      }
+                                      alert("カテゴリーを削除しました");
+                                      setShowContextMenu(false);
+                                    }}
+                                  >
+                                    削除
+                                  </li>
+                                  <li
+                                    class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200 text-gray-400"
+                                    onClick={() => {
+                                      alert(
+                                        "カテゴリーはデフォルトにできません",
+                                      );
+                                      setShowContextMenu(false);
+                                    }}
+                                  >
+                                    デフォルトに設定
+                                  </li>
+                                </ul>
+                              </div>
+                            )}
                           </li>
                         );
                       }
@@ -765,13 +867,7 @@ function ChannelSideBar() {
               </svg>
             </button>
           )}
-          {showEditChannelModal() && (
-            <ChannelEditModal
-              channel={contextMenuPosition().id}
-              type={contextMenuPosition().type!}
-              onClose={setShowEditChannelModal}
-            />
-          )}
+          
         </>
       )}
     </>
@@ -779,7 +875,7 @@ function ChannelSideBar() {
 }
 export default ChatTalk;
 
-function ChannelEditModal(props: {
+export function ChannelEditModal(props: {
   channel: string;
   onClose: Setter<boolean>;
   type: "channel" | "category";

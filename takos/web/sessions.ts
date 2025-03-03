@@ -212,7 +212,7 @@ app.post(
     if (!session) {
       return c.json({ status: "error", message: "Invalid session" }, 400);
     }
-    await Session.deleteOne({ session });
+    await Session.deleteOne({ sessionid: session.sessionid });
     await shareAccountKey.deleteMany({ sessionid: session.sessionid });
     return c.json({ status: "success" });
   },
@@ -652,7 +652,11 @@ app.get(
       }).sort({ timestamp: -1 });
       return [f, latestMessage];
     }));
-
+    const shareKeys = await shareAccountKey.find({
+      userName: userInfo.userName,
+      sessionid: session.sessionid,
+    });
+    const shareKey = shareKeys.map((s) => s.hash);
     return c.json({
       login: true,
       setup: true,
@@ -667,6 +671,7 @@ app.get(
       })),
       friendInfo,
       groupInfo,
+      updatedAccountKeys: shareKey,
     });
   },
 );

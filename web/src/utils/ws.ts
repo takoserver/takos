@@ -1,4 +1,4 @@
-import { useAtom, useSetAtom } from "solid-jotai";
+import { useAtom, useAtomValue, useSetAtom } from "solid-jotai";
 import {
   deviceKeyState,
   domainState,
@@ -30,35 +30,60 @@ import { createTakosDB } from "./idb.ts";
 
 export function createWebsocket(loadedFn: () => void) {
   createRoot(() => {
-    const [domain] = useAtom(domainState);
-    const [selectedRoom] = useAtom(selectedRoomState);
-    const [sessionId] = useAtom(sessionidState);
-    const [webSocket, setWebsocket] = useAtom(webSocketState);
+    const selectedRoom = useAtomValue(selectedRoomState);
+    const setWebsocket = useSetAtom(webSocketState);
     const setMigrateRequest = useSetAtom(migrateRequestState);
     const setMessageList = useSetAtom(messageListState);
     const setLoad = useSetAtom(loadState);
     const [migrateSessioonId, setMigrateSessioonId] = useAtom(migrateSessionid);
-    const [migrateKeyPublic, setMigrateKeyPublic] = useAtom(
-      migrateKeyPublicState,
-    );
-    const [migrateSignKeyPublic, setMigrateSignKeyPublic] = useAtom(
-      migrateSignKeyPublicState,
-    );
-    const [page, setPage] = useAtom(migrateRequestPage);
-    const [migrateKeyPrivate] = useAtom(migrateKeyPrivateState);
-    const [deviceKey] = useAtom(deviceKeyState);
-    createEffect(() => {
+    const setMigrateKeyPublic = useSetAtom(migrateKeyPublicState,);
+    const [migrateSignKeyPublic, setMigrateSignKeyPublic] = useAtom(migrateSignKeyPublicState,);
+    const setPage = useSetAtom(migrateRequestPage);
+    const migrateKeyPrivate = useAtomValue(migrateKeyPrivateState);
+    const deviceKey = useAtomValue(deviceKeyState);
+    
+    // 再接続関連の変数
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 10;
+    let reconnectTimeout: number | null = null;
+    
+    // WebSocketを接続する関数
+    const connectWebSocket = () => {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
       const websocket = new WebSocket(
-        `./api/v2/ws`,
+        `${protocol}//${host}/api/v2/ws`,
       );
 
       websocket.onopen = () => {
         setWebsocket(websocket);
         loadedFn();
+        reconnectAttempts = 0; // 接続成功したらカウンターをリセット
       };
 
       websocket.onclose = () => {
         setLoad(false);
+        // 再接続ロジック
+        if (reconnectAttempts < maxReconnectAttempts) {
+          // 指数バックオフによる待機時間の計算（最大30秒）
+          const timeout = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+          console.log(`WebSocket切断。${timeout/1000}秒後に再接続します...`);
+          
+          if (reconnectTimeout) {
+            clearTimeout(reconnectTimeout);
+          }
+          
+          reconnectTimeout = setTimeout(() => {
+            reconnectAttempts++;
+            connectWebSocket();
+          }, timeout) as unknown as number;
+        } else {
+          console.error("最大再接続回数に達しました。ページを更新してください。");
+        }
+      };
+
+      websocket.onerror = (error) => {
+        console.error("WebSocketエラー:", error);
       };
 
       websocket.onmessage = async (event) => {
@@ -201,6 +226,11 @@ export function createWebsocket(loadedFn: () => void) {
           }
         }
       };
+    };
+    
+    createEffect(() => {
+      // 最初の接続を開始
+      connectWebSocket();
     });
   });
 }

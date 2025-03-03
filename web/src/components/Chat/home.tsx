@@ -8,7 +8,12 @@ import {
   talkListState,
 } from "../../utils/state";
 import { createEffect, createSignal, onMount, Show } from "solid-js";
-import { createTakosDB, decryptShareSignKey, encryptAccountKey } from "../../utils/idb";
+import {
+  clearDB,
+  createTakosDB,
+  decryptShareSignKey,
+  encryptAccountKey,
+} from "../../utils/idb";
 import {
   decryptDataDeviceKey,
   encryptDataDeviceKey,
@@ -1521,25 +1526,25 @@ function KeyManagement() {
       });
       const db = await createTakosDB();
       const latestShareSignKey = await db.getAll("shareSignKeys");
-      if(latestShareSignKey.length === 0) {
+      if (latestShareSignKey.length === 0) {
         setShowSHareSignKeyPopUp(true);
         return;
       }
       const shareSignKey = (latestShareSignKey.sort(
-        (a, b) => b.timestamp - a.timestamp
+        (a, b) => b.timestamp - a.timestamp,
       ))[0].encryptedKey;
       const decryptedShareSignKey = await decryptShareSignKey({
         deviceKey: deviceKeyS,
         encryptedShareSignKey: shareSignKey,
-      })
+      });
       const shareDataSign = signDataShareSignKey(
         decryptedShareSignKey.privateKey,
         shareData,
-        await keyHash(newAccountKey.publickKey),
-      )
+        await keyHash(decryptedShareSignKey.publicKey),
+      );
       if (!shareDataSign) {
         alert("アカウント鍵の署名に失敗しました");
-        return
+        return;
       }
       const encryptedAccountKeys = [];
       for (const session of sessions) {
@@ -1577,7 +1582,7 @@ function KeyManagement() {
           accountKey: newAccountKey.publickKey,
           accountKeySign: newAccountKey.sign,
           encryptedAccountKeys: encryptedAccountKeys,
-          shareDataSign
+          shareDataSign,
         }),
       });
       if (res.status !== 200) {
@@ -1877,15 +1882,12 @@ function AccountManagement() {
 
   const handleLogout = async () => {
     try {
-      // TODO: 実際のログアウト処理を実装
-      // await fetch("/api/v2/auth/logout", { method: "POST" });
-
-      // ローカルストレージのクリア
       localStorage.removeItem("userName");
       localStorage.removeItem("masterKey");
-
-      // リダイレクト
-      window.location.href = "/login";
+      await clearDB()
+      await fetch("/api/v2/sessions/logout", { method: "POST" });
+      alert("ログアウトしました。");
+      window.location.href = "/";
     } catch (error) {
       console.error("ログアウト中にエラーが発生しました:", error);
       alert("ログアウトに失敗しました。");

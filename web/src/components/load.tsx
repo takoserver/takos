@@ -18,6 +18,14 @@ import {
   webSocketState,
 } from "../utils/state";
 import { createWebsocket } from "../utils/ws";
+import {
+  decryptDataDeviceKey,
+  decryptDataShareKey,
+  keyHash,
+  verifyDataShareSignKey,
+  verifyMasterKey,
+} from "@takos/takos-encrypt-ink";
+import { createTakosDB } from "../utils/idb";
 export function Loading() {
   return (
     <>
@@ -184,6 +192,13 @@ export function Load() {
         });
       }
     }
+    if (session.updatedAccountKeys && session.updatedAccountKeys.length > 0) {
+      for (const key of session.updatedAccountKeys) {
+        await saveSharedAccountKey(key, session.deviceKey);
+      }
+    } else {
+      console.log("no updatedAccountKeys");
+    }
     setTalkListState(talkList);
     setFriends(friends);
     if (session.login) {
@@ -197,4 +212,92 @@ export function Load() {
   }
   loadSession();
   return <></>;
+}
+export async function saveSharedAccountKey(hash: string, deviceKey: string) {
+  const sharedAccountKey = await fetch(
+    "/api/v2/keys/accountKey?hash=" + encodeURIComponent(hash),
+  )
+    .then((res) => res.json());
+  if (!sharedAccountKey) {
+    return;
+  }
+  const shareSingKeyHash = JSON.parse(sharedAccountKey.shareDataSign).keyHash;
+  const shareDataSign = await fetch(
+    "/api/v2/keys/shareSignKey?hash=" + encodeURIComponent(shareSingKeyHash),
+  ).then((res) => res.json());
+  if (!shareDataSign) {
+    return;
+  }
+  const decryptedMasterKey = await (async () => {
+    const masterKey = localStorage.getItem("masterKey");
+    if (!masterKey) {
+      return;
+    }
+    const decryptedMasterKey = await decryptDataDeviceKey(
+      deviceKey,
+      masterKey,
+    );
+    if (
+      !decryptedMasterKey
+    ) {
+      return;
+    }
+    return JSON.parse(decryptedMasterKey).publicKey;
+  })();
+  if (!decryptedMasterKey) {
+    return;
+  }
+  if (
+    !verifyMasterKey(
+      decryptedMasterKey,
+      shareDataSign.sign,
+      shareDataSign.shareSignKey,
+    )
+  ) {
+    return;
+  }
+  const db = await createTakosDB();
+  const shareKeyHash = JSON.parse(sharedAccountKey.accountKey).keyHash;
+  const encshareKey = await db.get("shareKeys", shareKeyHash);
+  if (!encshareKey) {
+    return;
+  }
+  const shareKey = await decryptDataDeviceKey(
+    deviceKey,
+    encshareKey.encryptedKey,
+  );
+  if (!shareKey) {
+    return;
+  }
+  const accountKey = await decryptDataShareKey(
+    shareKey,
+    sharedAccountKey.accountKey,
+  );
+  if (!accountKey) {
+    return;
+  }
+  if (
+    !verifyDataShareSignKey(
+      shareDataSign.shareSignKey,
+      sharedAccountKey.shareDataSign,
+      accountKey,
+    )
+  ) {
+    console.log("verifyDataShareSignKey failed");
+    return;
+  }
+  await db.put("accountKeys", {
+    key: await keyHash(JSON.parse(accountKey).publicKey),
+    encryptedKey: accountKey,
+    timestamp: (JSON.parse(JSON.parse(accountKey).publicKey)).timestamp,
+  });
+  await fetch("/api/v2/keys/accountKey/notify", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      hash: await keyHash(JSON.parse(accountKey).publicKey),
+    }),
+  });
 }

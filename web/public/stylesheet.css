@@ -53,6 +53,23 @@
     transform: translateX(-100%);
   }
 }
+
+/* 右クリックメニューのアニメーション */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
 html, body {
   position: relative;
   background-image: url("/api/v2/server/background");
@@ -626,6 +643,33 @@ input {
 
 .g-recaptcha-badge {
   visibility: hidden;
+}
+
+/* メッセージのコンテキストメニュー用のスタイル追加 */
+.message-context-menu {
+  position: fixed;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 99999 !important;
+  isolation: isolate;
+  min-width: 150px;
+  overflow: visible;
+  pointer-events: auto;
+  contain: layout; /* パフォーマンス最適化 */
+}
+
+/* ポップアップの表示を改善するためのスタイル追加 */
+@media screen and (max-width: 768px) {
+  .permissions-container {
+    max-height: 30vh !important;
+  }
+}
+
+/* モバイルでのモーダル表示を改善 */
+@media (max-width: 768px) {
+  .bg-gray-800.rounded-lg {
+    width: 90% !important;
+    max-width: 90% !important;
+  }
 }
 
 /*# sourceMappingURL=stylesheet.css.map */

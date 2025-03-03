@@ -43,11 +43,11 @@ app.post("deviceKey", async (c) => {
 app.get("accountKey", async (c) => {
   const user = c.get("user");
   if (!user) {
-    return c.json({ message: "Unauthorized" }, 401);
+    return c.json({ message: "Unauthorized1" }, 401);
   }
   const accountKeyHash = c.req.query("hash");
   if (!accountKeyHash) {
-    return c.json({ message: "Unauthorized" }, 401);
+    return c.json({ message: "Unauthorized2" }, 401);
   }
   const sharedKey = await shareAccountKey.findOne({
     userName: user.userName,
@@ -55,14 +55,15 @@ app.get("accountKey", async (c) => {
     sessionid: c.get("session").sessionid,
   });
   if (!sharedKey || !sharedKey.encryptedAccountKey) {
-    return c.json({ message: "Unauthorized" }, 401);
+    console.log(user.userName, accountKeyHash, c.get("session").sessionid);
+    return c.json({ message: "Unauthorized3" }, 401);
   }
   const accountKey = await accountKeyData.findOne({
     userName: user.userName,
     hash: accountKeyHash,
   });
   if (!accountKey) {
-    return c.json({ message: "Unauthorized" }, 401);
+    return c.json({ message: "Unauthorized4" }, 401);
   }
   return c.json({
     accountKey: sharedKey.encryptedAccountKey,
@@ -202,7 +203,9 @@ app.post(
     if (!user || !user.masterKey) {
       return c.json({ message: "Unauthorized" }, 401);
     }
-    const { shareSignKey: shareSignKeyValue, shareSignKeySign } = c.req.valid("json");
+    const { shareSignKey: shareSignKeyValue, shareSignKeySign } = c.req.valid(
+      "json",
+    );
     if (!verifyMasterKey(user.masterKey, shareSignKeySign, shareSignKeyValue)) {
       return c.json({ message: "Invalid share sign key" }, 400);
     }
@@ -213,7 +216,7 @@ app.post(
       timestamp: Date.now(),
       hash: await keyHash(shareSignKeyValue),
       shareSignKey: shareSignKeyValue,
-    })
+    });
     return c.json({ message: "success" });
   },
 );
@@ -226,14 +229,44 @@ app.get("shareSignKey", async (c) => {
   const hash = c.req.query("hash");
   const shareSignKeyValue = await shareSignKey.findOne({
     userName: user.userName,
-    sessionid: c.get("session").sessionid,
     hash,
   });
   if (!shareSignKeyValue) {
     return c.json({ message: "Unauthorized" }, 401);
   }
-  return c.json({ shareSignKey: shareSignKeyValue.shareSignKey });
+  return c.json({
+    shareSignKey: shareSignKeyValue.shareSignKey,
+    sign: shareSignKeyValue.sign,
+  });
 });
+
+//accountKeyを保存したことを通知するapi
+app.post(
+  "accountKey/notify",
+  zValidator(
+    "json",
+    z.object({
+      hash: z.string(),
+    }),
+  ),
+  async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { hash } = c.req.valid("json");
+    const accountKey = await shareAccountKey.findOne({
+      userName: user.userName,
+      hash,
+      sessionid: c.get("session").sessionid,
+    });
+    if (!accountKey) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    await shareAccountKey.deleteOne({ userName: user.userName, hash });
+    return c.json({ message: "success" });
+  },
+);
 
 app.post(
   "roomKey",

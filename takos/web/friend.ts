@@ -29,10 +29,10 @@ app.post(
     const name = userName.split("@")[0];
     const domain = userName.split("@")[1];
     if (!name || !domain) {
-      return c.json({ message: "Invalid userName" }, 400);
+      return c.json({ message: "Invalid userName1" }, 400);
     }
     if (name === user.userName && domain === env["domain"]) {
-      return c.json({ message: "Invalid userName" }, 400);
+      return c.json({ message: "Invalid userName2" }, 400);
     }
     const isFriend = await friends.findOne({
       userName: user.userName + "@" + env["domain"],
@@ -53,11 +53,11 @@ app.post(
       );
       if (!Array.isArray(result) || result[0].status !== 200) {
         console.log(result);
-        return c.json({ message: "Invalid userName" }, 400);
+        return c.json({ message: "Invalid userName3" }, 400);
       }
       const res = await result[0].json();
       if (res.error) {
-        return c.json({ message: "Invalid userName" }, 400);
+        return c.json({ message: "Invalid userName4" }, 400);
       }
       await Request.create({
         type: "friend",

@@ -1,7 +1,11 @@
 import { atom, useAtom } from "solid-jotai";
 import { PopUpFrame } from "./Chat/setupPopup/popUpFrame";
 import { createEffect, createSignal } from "solid-js";
-import { createTakosDB, encryptIdentityKey, encryptShareSignKey } from "../utils/idb";
+import {
+  createTakosDB,
+  encryptIdentityKey,
+  encryptShareSignKey,
+} from "../utils/idb";
 import { deviceKeyState } from "../utils/state";
 import {
   decryptDataDeviceKey,
@@ -210,7 +214,7 @@ export function CreateShareSignKeyPopUp() {
     const masterKey = localStorage.getItem("masterKey");
     const sessionUUID = localStorage.getItem("sessionUUID");
     const deviceKeyVal = deviceKey();
-    if(!masterKey || !sessionUUID || !deviceKeyVal) {
+    if (!masterKey || !sessionUUID || !deviceKeyVal) {
       alert("必要な認証情報が見つかりません");
       return;
     }
@@ -220,12 +224,12 @@ export function CreateShareSignKeyPopUp() {
     );
     if (!decryptedMasterKey) {
       alert("マスターキーの復号化に失敗しました");
-      return
+      return;
     }
     const shareSignKey = await generateShareSignKey(
       JSON.parse(decryptedMasterKey),
       sessionUUID,
-    )
+    );
     if (!shareSignKey) {
       alert("ShareSignKeyの生成に失敗しました");
       return;
@@ -252,7 +256,7 @@ export function CreateShareSignKeyPopUp() {
         publicKey: shareSignKey.publickKey,
         sign: shareSignKey.sign,
       },
-    })
+    });
     await db.put("shareSignKeys", {
       key: await keyHash(shareSignKey.publickKey),
       encryptedKey: encryptedShareSignKey,

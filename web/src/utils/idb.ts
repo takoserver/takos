@@ -116,7 +116,6 @@ export interface ShareSignKey {
   sign: string;
 }
 
-
 export async function encryptAccountKey({
   deviceKey,
   accountKey,
@@ -229,4 +228,5 @@ export async function clearDB() {
   db.clear("accountKeys");
   db.clear("shareKeys");
   db.clear("RoomKeys");
+  db.clear("shareSignKeys");
 }

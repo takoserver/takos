@@ -318,7 +318,7 @@ app.get("/key/:kind", async (c) => {
         return c.json({ error: "Invalid accountKey" }, 400);
       }
       return c.json({
-        key: accountKey.Key,
+        key: accountKey.key,
         signature: accountKey.sign,
       });
     }

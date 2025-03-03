@@ -2,6 +2,7 @@ import { atom, useAtom } from "solid-jotai";
 import { createEffect, createSignal } from "solid-js";
 import { DEFAULT_ICON } from "./defaultIcon.ts";
 import { iconsState, nickNamesState } from "../utils/state.ts";
+import { ContextMenu } from "./ContextMenu";
 
 // ユーザー情報の取得状態を追跡するグローバルMap
 const fetchingUsers = new Map<
@@ -32,6 +33,41 @@ const ChatOtherMessage = (
   const [nickName, setNickName] = createSignal("");
   const [icons, setIcons] = useAtom(iconsState);
   const [nickNames, setNickNames] = useAtom(nickNamesState);
+
+  // 右クリックメニュー用の状態
+  const [showContextMenu, setShowContextMenu] = createSignal(false);
+  const [contextMenuPosition, setContextMenuPosition] = createSignal({
+    x: 0,
+    y: 0,
+  });
+
+  // 右クリックイベントハンドラ
+  const handleContextMenu = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenuPosition({ x: e.clientX, y: e.clientY });
+    setShowContextMenu(true);
+  };
+
+  // メッセージをコピー
+  const copyMessage = () => {
+    if (content.content) {
+      navigator.clipboard.writeText(content.content)
+        .then(() => alert("メッセージをクリップボードにコピーしました"))
+        .catch((err) => console.error("コピーに失敗しました:", err));
+    }
+  };
+
+  // ユーザーを報告
+  const reportUser = () => {
+    alert(`${name} を報告する機能は開発中です`);
+  };
+
+  // メニュー項目の定義
+  const menuItems = [
+    { label: "メッセージをコピー", onClick: copyMessage },
+    { label: "ユーザーを報告", onClick: reportUser },
+  ];
 
   createEffect(async () => {
     if (!isFetch) return;
@@ -109,7 +145,10 @@ const ChatOtherMessage = (
 
   return (
     <li class={isPrimaryClass}>
-      <div class="c-talk-chat-box mb-1">
+      <div
+        class="c-talk-chat-box mb-1"
+        onContextMenu={handleContextMenu}
+      >
         {isPrimary && (
           <div class="c-talk-chat-icon">
             <img
@@ -125,21 +164,41 @@ const ChatOtherMessage = (
               <p>{nickName()}</p>
             </div>
           )}
-          <div class="c-talk-chat-msg">
-            <p>
-              {convertLineBreak(content.content)}
-            </p>
-          </div>
+
+          {content.type === "image"
+            ? (
+              <img
+                src={`data:image/png;base64,${content.content}`}
+                alt="送信された画像"
+                class="max-w-full max-h-64 rounded"
+              />
+            )
+            : (
+              <div class="c-talk-chat-msg" style={{ "user-select": "none" }}>
+                <p>
+                  {convertLineBreak(content.content)}
+                </p>
+              </div>
+            )}
         </div>
         <div class="c-talk-chat-date">
           <p>{convertTime(time)}</p>
         </div>
       </div>
+
+      {/* 右クリックメニュー */}
+      {showContextMenu() && (
+        <ContextMenu
+          x={contextMenuPosition().x}
+          y={contextMenuPosition().y}
+          items={menuItems}
+          onClose={() => setShowContextMenu(false)}
+        />
+      )}
     </li>
   );
 };
 
-//preactで動作する改行を反映させるために、改行コードをbrタグに変換する関数
 function convertLineBreak(message: string | null | undefined) {
   if (message === null || message === undefined) return;
   return message.split("\n").map((line, index) => (
@@ -150,7 +209,6 @@ function convertLineBreak(message: string | null | undefined) {
   ));
 }
 
-//Date型のデータを受け取り、午前か午後何時何分かを返す関数
 function convertTime(time: string | number | Date) {
   const date = new Date(time);
   const hours = date.getHours();

@@ -1,23 +1,42 @@
-import { createSignal, Setter } from "solid-js";
-export function PopUpFrame(
-  { children, closeScript }: { children: any; closeScript: Setter<boolean> },
-) {
+import { Setter, JSX, Show, createEffect } from "solid-js";
+
+interface PopUpFrameProps {
+  children: JSX.Element;
+  closeScript: Setter<boolean>;
+}
+
+export function PopUpFrame(props: PopUpFrameProps) {
+  // ESCキー押下で閉じる機能
+  createEffect(() => {
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        props.closeScript(false);
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+    
+    return () => {
+      document.removeEventListener('keydown', handleEsc);
+    };
+  });
+
   return (
-    <div class="fixed z-[99999] w-full h-full overflow-hidden bg-[rgba(75,92,108,0.4)] left-0 top-0 flex justify-center items-center p-5">
-      <div class="bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(24,24,24,0.7)] backdrop-blur border-inherit border-1 max-w-md max-h-[350px] w-full h-full p-5 rounded-xl shadow-lg relative">
-        <div class="absolute right-0 top-0 p-4">
-          <span
-            class="ml-0 text-3xl text-black dark:text-white font-[bold] no-underline cursor-pointer"
-            onClick={() => {
-              closeScript(false);
-            }}
-          >
-            ×
-          </span>
-        </div>
-        <div class="h-full overflow-y-auto">
-          {children}
-        </div>
+    <div 
+      class="fixed inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.5)] p-4 animate-fadeIn z-[9999999999999999999999999]"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          props.closeScript(false);
+        }
+      }}
+    >
+      <div 
+        class="bg-[#242424] rounded-lg shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col"
+        style={{
+          "position": "relative",
+          "z-index": "10001"
+        }}
+      >
+        {props.children}
       </div>
     </div>
   );
