@@ -668,12 +668,14 @@ export async function encryptRoomKeyWithAccountKeys(
 
 export async function encryptMessage(
   message: {
-    type: "text" | "image" | "video" | "audio" | "file";
+    type: "text" | "image" | "video" | "audio" | "file" | "thumbnail";
     content: string;
     channel: string;
     timestamp: number;
     isLarge: boolean;
     original?: string;
+    reply?: { id: string }; // 返信先情報の追加
+    mention: string[]; // メンション対象ユーザーの追加
   },
   roomKey: string,
   identityKey: {
@@ -696,6 +698,8 @@ export async function encryptMessage(
   const messageContent = JSON.stringify({
     type: message.type,
     content: message.content,
+    reply: message.reply, // 返信情報を含める
+    mention: message.mention || [], // メンション情報を含める
   });
   const data = await encryptDataRoomKey(roomKey, messageContent);
   if (!data) {
@@ -738,12 +742,14 @@ export async function decryptMessage(
   roomid: string,
 ): Promise<
   {
-    type: "text" | "image" | "video" | "audio" | "file";
+    type: "text" | "image" | "video" | "audio" | "file" | "thumbnail";
     content: string;
     channel: string;
     timestamp: number;
     isLarge: boolean;
     original?: string;
+    reply?: { id: string }; // 返信先情報を追加
+    mention: string[]; // メンション対象ユーザーを追加
   } | null
 > {
   if (!isValidRoomKey(roomKey)) {
@@ -760,7 +766,7 @@ export async function decryptMessage(
   if (!messageObj.encrypted) {
     return messageObj;
   }
-  //messageObj.timestampとserverData.timestampの誤差が1分いないではない場合はエラー
+  // messageObj.timestampとserverData.timestampの誤差が1分以内かどうか確認
   if (Math.abs(messageObj.timestamp - serverData.timestamp) > 60000) {
     return null;
   }
@@ -779,6 +785,8 @@ export async function decryptMessage(
     timestamp: messageObj.timestamp,
     isLarge: messageObj.isLarge,
     original: messageObj.original,
+    reply: messageContent.reply, // 返信情報を復号結果に含める
+    mention: messageContent.mention || [], // メンション情報を復号結果に含める
   };
 }
 
@@ -1634,22 +1642,40 @@ export function isValidkeyPairEncrypt(
 }
 
 export function isValidMessage(message: string): boolean {
-  const messageObj = JSON.parse(message);
-  if (messageObj.encrypted) {
-    if (messageObj.channel.length > 100) {
-      return false;
+  try {
+    const messageObj = JSON.parse(message);
+    if (messageObj.encrypted) {
+      if (messageObj.channel.length > 100) {
+        return false;
+      }
+      if (new Date(messageObj.timestamp).getTime() !== messageObj.timestamp) {
+        return false;
+      }
+      if (typeof messageObj.isLarge !== "boolean") {
+        return false;
+      }
+      if (!isValidEncryptedDataRoomKey(messageObj.value)) {
+        return false;
+      }
+      return true;
+    } else {
+      // 非暗号化メッセージの検証ロジックも必要に応じて追加
+      const validTypes = ["text", "image", "video", "audio", "file", "thumbnail"];
+      if (!validTypes.includes(messageObj.value.type)) {
+        return false;
+      }
+      if (messageObj.channel.length > 100) {
+        return false;
+      }
+      if (typeof messageObj.isLarge !== "boolean") {
+        return false;
+      }
+      if (messageObj.value.mention && !Array.isArray(messageObj.value.mention)) {
+        return false;
+      }
+      return true;
     }
-    if (new Date(messageObj.timestamp).getTime() !== messageObj.timestamp) {
-      return false;
-    }
-    if (typeof messageObj.isLarge !== "boolean") {
-      return false;
-    }
-    if (!isValidEncryptedDataRoomKey(messageObj.value)) {
-      return false;
-    }
-    return true;
-  } else {
+  } catch (_e) {
     return false;
   }
 }

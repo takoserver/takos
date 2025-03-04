@@ -567,16 +567,7 @@ app.get(
 );
 
 app.post(
-  "/delete",
-  zValidator(
-    "json",
-    z.object({
-      sessionUUID: z.string().regex(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-        "Invalid UUID",
-      ),
-    }).strict(),
-  ),
+  "/delete/:uuid",
   zValidator(
     "cookie",
     z.object({
@@ -589,7 +580,7 @@ app.post(
     if (!session) {
       return c.json({ status: "error", message: "Invalid session" }, 400);
     }
-    const { sessionUUID } = c.req.valid("json");
+    const sessionUUID = c.req.param("uuid");
     await Session.deleteOne({ userName: session.userName, sessionUUID });
     await shareAccountKey.deleteMany({ sessionid: session.sessionid });
     return c.json({ status: "success" });

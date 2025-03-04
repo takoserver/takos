@@ -59,6 +59,7 @@ export function createWebsocket(loadedFn: () => void) {
         setWebsocket(websocket);
         loadedFn();
         reconnectAttempts = 0; // 接続成功したらカウンターをリセット
+        console.log("WebSocket接続成功");
       };
 
       websocket.onclose = () => {

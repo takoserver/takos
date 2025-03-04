@@ -6,6 +6,7 @@ import {
 import { useAtom } from "solid-jotai";
 import { createEffect, createSignal } from "solid-js";
 import { selectedChannelState, selectedRoomState } from "../../utils/roomState";
+import imageCompression from 'browser-image-compression';
 import {
   decryptDataDeviceKey,
   encryptDataDeviceKey,
@@ -309,8 +310,24 @@ function ChatSend() {
   };
 
   // メニュー表示切り替え処理
+  const [menuPosition, setMenuPosition] = createSignal("left");
+
+  // メニュー表示切り替え処理を修正
   const toggleMenu = (e: MouseEvent) => {
     e.stopPropagation();
+    
+    // ボタンの位置を取得して画面端からの距離を計算
+    const buttonElement = e.currentTarget as HTMLElement;
+    const rect = buttonElement.getBoundingClientRect();
+    const distanceFromRight = window.innerWidth - rect.right;
+    
+    // 右端から250px以内の場合は右揃えに切り替え (w-48 = 12rem = ~192px + 余裕)
+    if (distanceFromRight < 250) {
+      setMenuPosition("right");
+    } else {
+      setMenuPosition("left");
+    }
+    
     setIsMenuOpen(!isMenuOpen());
   };
 
@@ -344,45 +361,76 @@ function ChatSend() {
     //画像選択処理 FileAPIを使用
     console.log("画像選択");
     setIsMenuOpen(false);
-
+  
     // ファイル入力要素の作成
     const fileInput = document.createElement("input");
     fileInput.type = "file";
     fileInput.accept = "image/*"; // 画像ファイルのみ許可
     fileInput.style.display = "none";
-
+  
     // ファイル選択イベントハンドラを設定
     fileInput.addEventListener("change", async (event) => {
       console.log("画像選択完了");
       const target = event.target as HTMLInputElement;
       const file = target.files?.[0];
-
+  
       if (file) {
         try {
-          // 画像ファイルをリサイズして Base64 に変換
-          const base64Image = await resizeAndConvertToBase64(
-            file,
-            256,
-            800,
-            800,
-          );
-          console.log("画像を変換しました", file.name);
-
-          // 画像メッセージとして送信
-          await sendHandler({
-            type: "image",
-            content: base64Image,
-          });
+          // ファイルサイズをキロバイト単位で計算
+          const fileSizeKB = file.size / 1024;
+          console.log(`画像サイズ: ${fileSizeKB.toFixed(2)}KB`);
+  
+          if (fileSizeKB > 256) {
+            // 256KB以上の場合は圧縮処理を実行
+            console.log("画像サイズが256KBを超えているため圧縮します");
+            const options = {
+              maxSizeKB: 256,
+              maxWidthOrHeight: 1920
+            }
+            imageCompression(file, options)
+              .then(async function (compressedFile) {
+                const img = URL.createObjectURL(compressedFile);
+                const base64Image = await new Promise<string>((resolve) => {
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const dataUrl = reader.result as string;
+                    const base64Data = dataUrl.replace(/^data:.*?;base64,/, '');
+                    resolve(base64Data);
+                  };
+                  reader.readAsDataURL(compressedFile);
+                })
+                await sendHandler({
+                  type: "image",
+                  content: base64Image,
+                });
+              });
+          } else {
+            // 256KB以下の場合は圧縮せずにそのまま送信
+            console.log("画像サイズが256KB以下のため圧縮せずに送信します");
+            const base64Image = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const dataUrl = reader.result as string;
+                const base64Data = dataUrl.replace(/^data:.*?;base64,/, '');
+                resolve(base64Data);
+              };
+              reader.readAsDataURL(file);
+            });
+            await sendHandler({
+              type: "image",
+              content: base64Image,
+            });
+          }
         } catch (error) {
           console.error("画像処理中にエラーが発生しました:", error);
         }
       }
     });
-
+  
     // bodyに追加して自動的にクリックイベントを発火
     document.body.appendChild(fileInput);
     fileInput.click();
-
+  
     // 使用後にDOMから削除（少し遅延させる）
     setTimeout(() => {
       document.body.removeChild(fileInput);
@@ -460,7 +508,9 @@ function ChatSend() {
 
             {/* ドロップダウンメニュー */}
             <div
-              class={`absolute bottom-12 left-0 bg-[#333333] rounded-md shadow-lg py-2 w-48 z-50 ${
+              class={`absolute bottom-12 ${
+                menuPosition() === "right" ? "right-0" : "left-0"
+              } bg-[#333333] rounded-md shadow-lg py-2 w-48 z-50 ${
                 isMenuOpen() ? "block" : "hidden"
               }`}
               onClick={(e) => e.stopPropagation()}
@@ -513,50 +563,6 @@ function ChatSend() {
                   </path>
                 </svg>
                 暗号化設定: {isEncrypted() ? "オン" : "オフ"}
-              </button>
-              <button
-                class="w-full text-left px-4 py-2 hover:bg-[#444444] flex items-center"
-                onClick={handleExcludeSettings}
-              >
-                <svg
-                  class="mr-2"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
-                </svg>
-                暗号化除外設定
-              </button>
-              <button
-                class="w-full text-left px-4 py-2 hover:bg-[#444444] flex items-center"
-                onClick={handleShowEncryptedUsers}
-              >
-                <svg
-                  class="mr-2"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-                暗号化ユーザー表示
               </button>
             </div>
           </div>
@@ -913,53 +919,4 @@ interface ResizeImageOptions {
   maxSizeKB?: number;
   maxWidth?: number;
   maxHeight?: number;
-}
-
-function resizeAndConvertToBase64(
-  file: File,
-  maxSizeKB: number = 256,
-  maxWidth: number = 800,
-  maxHeight: number = 800,
-): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    const reader: FileReader = new FileReader();
-
-    reader.onload = (event: ProgressEvent<FileReader>) => {
-      const img: HTMLImageElement = new Image();
-      img.onload = () => {
-        let width: number = img.width;
-        let height: number = img.height;
-        let scale: number = Math.min(maxWidth / width, maxHeight / height, 1); // 縮小率を計算
-
-        width *= scale;
-        height *= scale;
-
-        const canvas: HTMLCanvasElement = document.createElement("canvas");
-        const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
-        canvas.width = width;
-        canvas.height = height;
-
-        ctx.drawImage(img, 0, 0, width, height);
-
-        let quality: number = 0.9; // 初期圧縮率
-        let base64: string = "";
-
-        // サイズチェックしながら圧縮
-        do {
-          base64 = canvas.toDataURL("image/jpeg", quality);
-          quality -= 0.05; // 品質を下げる
-        } while (base64.length > maxSizeKB * 1024 && quality > 0.1);
-
-        // data:image/*;base64, プレフィックスを削除
-        base64 = base64.replace(/^data:image\/\w+;base64,/, "");
-
-        resolve(base64);
-      };
-      img.onerror = reject;
-      img.src = event.target!.result as string;
-    };
-
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }

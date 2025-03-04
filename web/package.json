@@ -12,6 +12,7 @@
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^0.14.7",
     "@takos/takos-encrypt-ink": "npm:@jsr/takos__takos-encrypt-ink@^5.4.0",
+    "browser-image-compression": "^2.0.2",
     "fnv1a": "^1.1.1",
     "idb": "^8.0.0",
     "jotai": "^2.10.1",
@@ -19,6 +20,7 @@
     "solid-jotai": "^0.3.0",
     "solid-js": "^1.9.1",
     "solid-transition-group": "^0.3.0",
+    "ua-parser-js": "^2.0.2",
     "ui7": "^0.2.3",
     "uuidv7": "^1.0.2",
     "wasm-imagemagick": "^1.2.8"

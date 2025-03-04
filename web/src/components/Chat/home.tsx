@@ -1,5 +1,8 @@
 import { useAtom, useAtomValue, useSetAtom } from "solid-jotai";
 import {
+  UAParser
+} from 'ua-parser-js';
+import {
   descriptionState,
   deviceKeyState,
   friendsState,
@@ -74,15 +77,18 @@ export function Home() {
         const domainFromRoom = match[2];
         groups.push(groupName + "@" + domainFromRoom);
       }
+      // 3つ以上見つかったら終了ではなく、最大3つまで取得するよう変更
       if (friends.length >= 3 && groups.length >= 3) {
         break;
       }
     }
 
-    if (friends.length >= 3) {
-      // 3人の人間のnickNameとiconを取得
+    // 友達がいる場合は表示（3つ以上→1つ以上に変更）
+    if (friends.length > 0) {
+      // 最大3つまでの友達情報を取得
       const displayFriends = friends.slice(0, 3);
 
+      // 以下は既存の処理をそのまま使用
       // 友達情報を並列取得
       await Promise.all(displayFriends.map(async (friendId) => {
         // すでに取得中または取得済みならそのPromiseを使用
@@ -147,7 +153,7 @@ export function Home() {
       }
     }
 
-    if (groups.length >= 3) {
+    if (groups.length > 0) {
       // 3つのグループのnameとiconを取得
       const displayGroups = groups.slice(0, 3);
 
@@ -1829,56 +1835,48 @@ function KeyManagement() {
     </div>
   );
 }
-
 function AccountManagement() {
   const [confirmLogout, setConfirmLogout] = createSignal(false);
   const [confirmDelete, setConfirmDelete] = createSignal(false);
   const [sessionInfo, setSessionInfo] = createSignal<{
     deviceName: string;
-    lastActive: string;
     current: boolean;
     id: string;
+    encrypted: boolean;
   }[]>([]);
   const [isLoading, setIsLoading] = createSignal(true);
 
   // セッション情報をサーバーから取得
+  // ...existing code...
   onMount(async () => {
     setIsLoading(true);
     try {
-      // TODO: 実際のAPIエンドポイントに変更する
-      // const response = await fetch("/api/v2/account/sessions");
-      // const data = await response.json();
-      // setSessionInfo(data.sessions);
+      const response = await fetch("/api/v2/sessions/list");
+      const data = await response.json();
+      console.log(data)
+      setSessionInfo(
+        data.map((s: { userAgent: any; uuid: string | null; encrypted: boolean; }) => {
+          const ua = s.userAgent
+          const parser = new UAParser(ua);
+          const result = parser.getResult(); // ブラウザ、OS、デバイスなどの情報を取得
+          console.log(result)
+          const deviceName = result.os.name + " " + result.os.version
+          return {
+            deviceName,
+            current: s.uuid === localStorage.getItem("sessionUUID"),
+            id: s.uuid,
+            encrypted: !!s.encrypted, // 暗号化状態を追加
 
-      // 仮のセッションデータ（デモ用）
-      setTimeout(() => {
-        setSessionInfo([
-          {
-            deviceName: "このデバイス (Chrome on Windows)",
-            lastActive: "現在アクティブ",
-            current: true,
-            id: "session-current-123",
-          },
-          {
-            deviceName: "iPhone 13 Pro",
-            lastActive: "2日前にアクティブ",
-            current: false,
-            id: "session-iphone-456",
-          },
-          {
-            deviceName: "MacBook Pro",
-            lastActive: "1週間前にアクティブ",
-            current: false,
-            id: "session-mac-789",
-          },
-        ]);
-        setIsLoading(false);
-      }, 800);
+          }
+        }),
+      )
+      setIsLoading(false);
     } catch (error) {
       console.error("セッション情報の取得に失敗:", error);
       setIsLoading(false);
     }
   });
+// ...existing code...
 
   const handleLogout = async () => {
     try {
@@ -1895,30 +1893,16 @@ function AccountManagement() {
   };
 
   const handleDeleteAccount = async () => {
-    try {
-      // TODO: 実際のアカウント削除処理を実装
-      // await fetch("/api/v2/account/delete", { method: "DELETE" });
-
-      // ローカルストレージのクリア
-      localStorage.clear();
-
-      // 削除完了後のリダイレクト
-      alert("アカウントが削除されました。");
-      window.location.href = "/";
-    } catch (error) {
-      console.error("アカウント削除中にエラーが発生しました:", error);
-      alert("アカウント削除に失敗しました。");
-    }
+    //
   };
 
   const handleTerminateSession = async (sessionId: string) => {
     try {
-      // TODO: 実際のセッション終了処理を実装
-      // await fetch(`/api/v2/account/sessions/${sessionId}`, { method: "DELETE" });
-
-      // 画面を更新（現在のセッション以外）
-      setSessionInfo(sessionInfo().filter((s) => s.id !== sessionId));
-      alert("セッションを終了しました。");
+      if(confirm("このセッションを終了しますか？")){
+        await fetch(`/api/v2/sessions/delete/${sessionId}`, { method: "POST" });
+        alert("セッションを終了しました。");
+        window.location.reload();
+      }
     } catch (error) {
       console.error("セッション終了中にエラーが発生しました:", error);
       alert("セッション終了に失敗しました。");
@@ -2013,9 +1997,25 @@ function AccountManagement() {
                           現在のデバイス
                         </span>
                       )}
-                    </div>
-                    <div class="text-xs text-gray-400 mt-1">
-                      {session.lastActive}
+                      {session.encrypted && (
+                        <span class="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            class="h-3 w-3" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path 
+                              stroke-linecap="round" 
+                              stroke-linejoin="round" 
+                              stroke-width="2" 
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" 
+                            />
+                          </svg>
+                          暗号化
+                        </span>
+                      )}
                     </div>
                   </div>
                   {!session.current && (
@@ -2086,7 +2086,7 @@ function AccountManagement() {
           </svg>
           ログアウト
         </button>
-
+          {/*
         <button
           onClick={() => setConfirmDelete(true)}
           class="w-full p-3 bg-red-600/50 hover:bg-red-700/50 rounded-lg transition-colors flex items-center justify-center gap-2"
@@ -2106,8 +2106,9 @@ function AccountManagement() {
             />
           </svg>
           アカウントを削除
-        </button>
+        </button>*/}
       </div>
+
 
       {/* ログアウト確認ダイアログ */}
       {confirmLogout() && (
