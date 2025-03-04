@@ -4,14 +4,14 @@
   },
 
   "name": "@takos/takos-encrypt-ink",
-  "version": "6.0.0",
+  "version": "6.0.1",
   "exports": "./mod.ts",
   "fmt": {
     "lineWidth": 120,
     "semiColons": false
   },
   "imports": {
-    "@noble/post-quantum": "npm:@noble/post-quantum@^0.2.0",
+    "@noble/post-quantum": "npm:@noble/post-quantum@^0.4.0",
     "base64-arraybuffer": "npm:base64-arraybuffer@^1.0.2",
     "uuidv7": "npm:uuidv7@^1.0.2"
   },
