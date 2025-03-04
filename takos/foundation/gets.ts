@@ -49,7 +49,7 @@ app.get("message/:messageId", async (c) => {
   return c.json({
     message: message.message,
     signature: message.sign,
-    timestamp: message.timestamp,
+    timestamp: message.timestamp.getTime(),
     userName: message.userName,
   });
 });

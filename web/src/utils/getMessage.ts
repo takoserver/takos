@@ -6,8 +6,28 @@ import {
   decryptDataDeviceKey,
   decryptDataRoomKey,
 } from "@takos/takos-encrypt-ink";
+
 const userName = localStorage.getItem("userName") + "@" +
   new URL(window.location.href).hostname;
+  
+// 新しいメッセージ型定義に基づくレスポンス型
+export interface MessageResponse {
+  verified: boolean;
+  encrypted: boolean;
+  value: {
+    type: "text" | "image" | "video" | "audio" | "file" | "thumbnail";
+    content: string; // 各タイプに応じた内容
+    reply?: {
+      id: string;
+    };
+    mention: string[];
+  };
+  channel: string;
+  original?: string;
+  timestamp: number;
+  isLarge: boolean;
+}
+
 export async function getMessage({
   messageid,
   type,
@@ -18,28 +38,39 @@ export async function getMessage({
   type: string;
   roomId: string;
   senderId: string;
-}): Promise<Message> {
+}): Promise<MessageResponse> {
   const [deviceKey] = useAtom(deviceKeyState);
   const deviceKeyVal = deviceKey();
   if (!deviceKeyVal) throw new Error("DeviceKey not found");
+  
   const encryptedMessageRes = await fetch(
     `https://${messageid.split("@")[1]}/_takos/v1/message/${messageid}`,
   );
   if (encryptedMessageRes.status !== 200) {
     throw new Error("Unauthorized");
   }
+  
   const encryptedMessage = await encryptedMessageRes.json();
-  const roomKeyHash =
-    JSON.parse(JSON.parse(encryptedMessage.message).value).keyHash;
-  if (!JSON.parse(encryptedMessage.message).encrypted) {
+  const parsedMessage = JSON.parse(encryptedMessage.message);
+  
+  // 非暗号化メッセージの処理
+  if (!parsedMessage.encrypted) {
     return {
       verified: true,
       encrypted: false,
-      content: encryptedMessage.message,
-      type: encryptedMessage.type,
+      value: parsedMessage.value,
+      channel: parsedMessage.channel,
+      original: parsedMessage.original,
       timestamp: encryptedMessage.timestamp,
+      isLarge: parsedMessage.isLarge,
     };
   }
+  
+  // 暗号化メッセージの処理
+  const messageValue = JSON.parse(parsedMessage.value);
+  const roomKeyHash = messageValue.keyHash;
+  
+  // セッションストレージからroomKeyを取得、なければ取得して復号
   let roomKey = sessionStorage.getItem("roomKey-" + roomKeyHash);
   if (!roomKey) {
     let encryptedRoomKeyRes;
@@ -60,57 +91,95 @@ export async function getMessage({
         }&userId=${senderId}`,
       );
     }
-    if (!encryptedRoomKeyRes) {
+    
+    if (!encryptedRoomKeyRes || encryptedRoomKeyRes.status !== 200) {
       throw new Error("Unauthorized");
     }
-    if (encryptedRoomKeyRes.status !== 200) {
-      throw new Error("Unauthorized");
-    }
+    
     const encryptedRoomKey = (await encryptedRoomKeyRes.json()).roomKey;
     const accountKeyHash = JSON.parse(encryptedRoomKey).keyHash;
+    
     const db = await createTakosDB();
     const accountKey = await db.get("accountKeys", accountKeyHash);
     if (!accountKey) {
       throw new Error("AccountKey not found");
     }
+    
     const decryptedAccountKey = await decryptAccountKey({
       deviceKey: deviceKeyVal,
       encryptedAccountKey: accountKey.encryptedKey,
     });
-    console.log(decryptedAccountKey === null);
+    
     if (!decryptedAccountKey) {
       throw new Error("Failed to decrypt accountKey");
     }
+    
     const roomKeyResult = await decryptDataAccountKey(
       decryptedAccountKey.privateKey,
       encryptedRoomKey,
     );
+    
     if (!roomKeyResult) {
       throw new Error("Failed to decrypt roomKey");
     }
+    
     roomKey = roomKeyResult;
     sessionStorage.setItem("roomKey-" + roomKeyHash, roomKey);
   }
+  
+  // roomKeyを使ってメッセージを復号
   const decryptedMessage = await decryptDataRoomKey(
     roomKey,
-    JSON.parse(encryptedMessage.message).value,
+    parsedMessage.value,
   );
+  
   if (!decryptedMessage) {
     throw new Error("Failed to decrypt message");
   }
+  
+  // 復号したメッセージをパース
+  const decryptedContent = JSON.parse(decryptedMessage);
   return {
-    verified: false,
+    verified: false, // 署名検証が実装されていない場合はfalse
     encrypted: true,
-    content: JSON.parse(decryptedMessage).content,
-    type: JSON.parse(decryptedMessage).type,
+    value: {
+      type: decryptedContent.type,
+      content: decryptedContent.content, // コンテンツはJSONの場合があるためパース
+      reply: decryptedContent.reply,
+      mention: decryptedContent.mention || [],
+    },
+    channel: parsedMessage.channel,
+    original: parsedMessage.original,
     timestamp: encryptedMessage.timestamp,
+    isLarge: parsedMessage.isLarge,
   };
 }
 
-interface Message {
-  verified: boolean;
-  encrypted: boolean;
-  content: string;
-  type: string | number;
-  timestamp: string;
+export function createTextContent({
+  text,
+  format
+}: {
+  text: string;
+  format: "text" | "markdown";
+}) {
+  return JSON.stringify({
+    text,
+    format
+  });
+}
+
+export function createMediaContent({
+  uri,
+  metadata
+}: {
+  uri: string;
+  metadata: {
+    filename: string;
+    mimeType: string;
+  };
+}) {
+  return JSON.stringify({
+    uri,
+    metadata
+  });
 }

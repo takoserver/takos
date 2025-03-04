@@ -19,15 +19,14 @@ const messageCache = new Map<string, {
   encrypted: boolean;
   content: string;
   type: string;
-  timestamp: number;
+  timestamp: number;  // string | number から number に変更
   messageid: string;
   roomid: string;
   serverData: {
     userName: string;
-    timestamp: string;
+    timestamp: number;  // string | number から number に変更
   };
 }>();
-
 // MessagesStateの定義は変更なし
 const messagesState = atom<{
   verified: boolean;
@@ -39,7 +38,7 @@ const messagesState = atom<{
   roomid: string;
   serverData: {
     userName: string;
-    timestamp: string;
+    timestamp: number;
   };
 }[]>(
   [],
@@ -49,19 +48,21 @@ export const isLoadedMessageState = atom(false);
 const [processedMessageIds, setProcessedMessageIds] = createSignal<
   Set<string>
 >(new Set());
+
 const [messageTimeLine, setMessageTimeLine] = createSignal<{
   verified: boolean;
   encrypted: boolean;
   content: string;
   type: string;
-  timestamp: number | string;
+  timestamp: number;  // number | string から number に変更
   messageid: string;
   roomid: string;
   serverData: {
     userName: string;
-    timestamp: string;
+    timestamp: number;  // string | number から number に変更
   };
 }[]>([]);
+
 function ChatTalkMain() {
   const [messageList] = useAtom(messageListState);
   const [loaded, setLoaded] = useAtom(isLoadedMessageState);
@@ -116,7 +117,7 @@ function ChatTalkMain() {
       roomid: string;
       serverData: {
         userName: string;
-        timestamp: string;
+        timestamp: number;
       };
     }[] = [];
 
@@ -155,24 +156,24 @@ function ChatTalkMain() {
             type,
             senderId: message.userName,
           });
-
+        
           const messageData = {
             verified: serverData.verified,
             encrypted: serverData.encrypted,
-            content: serverData.content,
-            type: String(serverData.type),
+            content: serverData.value.content,
+            type: String(serverData.value.type),
             timestamp: Number(serverData.timestamp),
             messageid: message.messageid,
             roomid: roomid,
             serverData: {
               userName: message.userName,
-              timestamp: serverData.timestamp,
+              timestamp: Number(serverData.timestamp), // 確実に number に変換
             },
           };
-
+        
           // キャッシュに保存（reactive signalでなくグローバルオブジェクトを直接更新）
           messageCache.set(cacheKey, messageData);
-
+        
           return messageData;
         } catch (error) {
           const errorMessage = {
@@ -185,13 +186,13 @@ function ChatTalkMain() {
             roomid: roomid,
             serverData: {
               userName: message.userName,
-              timestamp: new Date().toISOString(),
+              timestamp: new Date().getTime(), // toISOStringからgetTimeに変更
             },
           };
-
+        
           // エラーメッセージもキャッシュ
           messageCache.set(cacheKey, errorMessage);
-
+        
           return errorMessage;
         }
       }),

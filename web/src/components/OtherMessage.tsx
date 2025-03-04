@@ -165,21 +165,7 @@ const ChatOtherMessage = (
             </div>
           )}
 
-          {content.type === "image"
-            ? (
-              <img
-                src={`data:image/png;base64,${content.content}`}
-                alt="送信された画像"
-                class="max-w-full max-h-64 rounded"
-              />
-            )
-            : (
-              <div class="c-talk-chat-msg" style={{ "user-select": "none" }}>
-                <p>
-                  {convertLineBreak(content.content)}
-                </p>
-              </div>
-            )}
+          {renderMessageContent(content)}
         </div>
         <div class="c-talk-chat-date">
           <p>{convertTime(time)}</p>
@@ -199,17 +185,57 @@ const ChatOtherMessage = (
   );
 };
 
-function convertLineBreak(message: string | null | undefined) {
-  if (message === null || message === undefined) return;
-  return message.split("\n").map((line, index) => (
-    <span>
-      {line}
-      <br />
-    </span>
-  ));
+
+export function renderMessageContent(content: {
+  type: string;
+  content: string;
+  // 必要に応じて他のプロパティを追加
+}) {
+  switch (content.type) {
+    case "text":
+      return (
+        <div class="c-talk-chat-msg" style={{ "user-select": "none" }}>
+          <p>{convertLineBreak(content.content)}</p>
+        </div>
+      );
+    
+    case "image": {
+      const contentValue: {
+        uri: string;
+        metadata: {
+            filename: string;
+            mimeType: string;
+        };
+      } = JSON.parse(content.content);
+      return (
+        <img
+          src={`data:${contentValue.metadata.mimeType};base64,${contentValue.uri}`}
+          alt="送信された画像"
+          class="max-w-full max-h-64 rounded"
+        />
+      );
+    }
+  }
 }
 
-function convertTime(time: string | number | Date) {
+
+export function convertLineBreak(message: string | null | undefined) {
+  if (message === null || message === undefined) return;
+  const messageValue = JSON.parse(message) as { text: string; format: string };
+  if(messageValue.format === "text") {
+    return messageValue.text.split("\n").map((line, index) => (
+      <span>
+        {line}
+        <br />
+      </span>
+    ))
+  }
+  if(messageValue.format === "markdown") {
+    return messageValue.text;
+  }
+}
+
+export function convertTime(time: string | number | Date) {
   const date = new Date(time);
   const hours = date.getHours();
   const minutes = date.getMinutes();

@@ -1,5 +1,6 @@
 import { createSignal } from "solid-js";
 import { ContextMenu } from "./ContextMenu";
+import { convertLineBreak, convertTime, renderMessageContent } from "./OtherMessage";
 
 const ChatSendMessage = (
   { time, content, isPrimary, isSendPrimary, messageid }: {
@@ -73,22 +74,7 @@ const ChatSendMessage = (
         </div>
         <div class="c-talk-chat-right">
           <p>
-            {content.type === "image"
-              ? (
-                <img
-                  src={`data:image/png;base64,${content.content}`}
-                  alt="送信された画像"
-                  class="max-w-full max-h-64 rounded"
-                  style={{ "user-select": "none" }}
-                />
-              )
-              : (
-                <div class="c-talk-chat-msg" style={{ "user-select": "none" }}>
-                  <p>
-                    {convertLineBreak(content.content)}
-                  </p>
-                </div>
-              )}
+            {renderMessageContent(content)}
           </p>
         </div>
       </div>
@@ -107,25 +93,3 @@ const ChatSendMessage = (
 };
 
 export default ChatSendMessage;
-
-function convertTime(time: string | number | Date) {
-  const date = new Date(time);
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? "午後" : "午前";
-  const hour = hours % 12;
-  const zeroPaddingHour = hour === 0 ? 12 : hour;
-  const zeroPaddingMinutes = String(minutes).padStart(2, "0");
-  return `${ampm} ${zeroPaddingHour}:${zeroPaddingMinutes}`;
-}
-
-//preactで動作する改行を反映させるために、改行コードをbrタグに変換する関数
-function convertLineBreak(message: string | null | undefined) {
-  if (message === null || message === undefined) return;
-  return message.split("\n").map((line) => (
-    <span>
-      {line}
-      <br />
-    </span>
-  ));
-}

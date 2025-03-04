@@ -19,6 +19,7 @@ import {
 import { createTakosDB, decryptIdentityKey } from "../../utils/idb";
 import { shoowIdentityKeyPopUp } from "../CreateIdentityKeyPopUp";
 import { groupChannelState } from "./SideBar";
+import { createMediaContent, createTextContent } from "../../utils/getMessage";
 const userId = localStorage.getItem("userName") + "@" +
   new URL(window.location.href).hostname;
 function ChatSend() {
@@ -39,10 +40,13 @@ function ChatSend() {
     if (!isValidInput()) return;
     const input = inputMessage();
     if (!input) return;
-    // メッセージ送信
+    const textContent = createTextContent({
+      text: input,
+      format: "text",
+    })
     await sendHandler({
       type: "text",
-      content: input,
+      content: textContent
     });
   };
 
@@ -78,6 +82,7 @@ function ChatSend() {
           channel,
           timestamp: new Date().getTime(),
           isLarge: false,
+          mention: [],
         },
         roomKey,
         {
@@ -87,7 +92,6 @@ function ChatSend() {
         room.roomid,
       );
       if (!encrypted) return;
-
       // メッセージ送信
       const success = await sendEncryptedMessage({
         roomId: room.roomid,
@@ -399,10 +403,17 @@ function ChatSend() {
                   };
                   reader.readAsDataURL(compressedFile);
                 })
+                const content = createMediaContent({
+                  uri: base64Image,
+                  metadata: {
+                    filename: compressedFile.name,
+                    mimeType: compressedFile.type,
+                  }
+                })
                 await sendHandler({
                   type: "image",
-                  content: base64Image,
-                });
+                  content,
+                })
               });
           } else {
             // 256KB以下の場合は圧縮せずにそのまま送信
@@ -416,10 +427,17 @@ function ChatSend() {
               };
               reader.readAsDataURL(file);
             });
+            const content = createMediaContent({
+              uri: base64Image,
+              metadata: {
+                filename: file.name,
+                mimeType: file.type,
+              }
+            })
             await sendHandler({
               type: "image",
-              content: base64Image,
-            });
+              content,
+            })
           }
         } catch (error) {
           console.error("画像処理中にエラーが発生しました:", error);

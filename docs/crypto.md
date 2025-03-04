@@ -277,7 +277,6 @@ export interface FileContent {
   metadata: {
     filename: string;           // ファイル名
     mimeType: string;           // MIMEタイプ
-    extension: string;          // ファイル拡張子（MIMEタイプとの冗長性に留意）
   };
 }
 
