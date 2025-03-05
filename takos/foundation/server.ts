@@ -17,15 +17,9 @@ import {
   Member,
   Roles,
 } from "../models/groups.ts";
-import {
-  arrayBufferToBase64,
-  base64ToArrayBuffer,
-} from "https://jsr.io/@takos/takos-encrypt-ink/5.3.2/utils/buffers.ts";
-import { resizeImageTo256x256 } from "../web/sessions.ts";
 import { load } from "@std/dotenv";
 import User from "../models/users.ts";
 import publish from "../utils/redisClient.ts";
-import { group } from "node:console";
 import {
   createRemoteGroup,
   handleAcceptJoinRequest,
@@ -220,6 +214,7 @@ eventManager.add(
     channelId: z.string().optional(),
   }),
   async (c, payload) => {
+    console.log("t.message.send");
     const domain = c.get("domain");
     const { userId, messageId, roomId, roomType, channelId } = payload;
     if (userId.split("@")[1] !== domain) {
@@ -230,6 +225,7 @@ eventManager.add(
       console.log("error3");
       return c.json({ error: "Invalid roomType" }, 400);
     }
+    console.log(messageId)
     if (roomType === "friend") {
       if (roomId.split("@")[1] !== env["domain"]) {
         return c.json({ error: "Invalid roomId" }, 400);
@@ -284,7 +280,6 @@ eventManager.add(
         roomIdUserName + "@" + roomIdDomain,
         channelId,
       );
-      console.log(permission);
       if (
         !permission.includes("SEND_MESSAGE") && !permission.includes("ADMIN")
       ) {
@@ -319,6 +314,7 @@ eventManager.add(
       });
       return c.json({ message: "success" });
     }
+    console.log("error4");
     return c.json({ error: "Invalid roomType" }, 400);
   },
 );
@@ -402,9 +398,6 @@ eventManager.add(
       }),
       uniqueDomains,
     );
-    //@ts-ignore
-    //@ts-ignore
-    console.log(await res[0].json());
     await Group.updateOne({ groupId }, {
       $pull: { invites: userId },
       $set: { beforeEventId: eventId },

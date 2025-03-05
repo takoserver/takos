@@ -366,14 +366,14 @@ export async function createRemoteGroup(
     });
   }
   for (const member of resJson.members) {
-    if (!allowLocalUsers.includes(member.userId)) {
+    if (!allowLocalUsers.includes(member.userId) && member.userId.split("@")[1] === env["domain"]) {
       continue;
     }
     await Member.create({
       groupId,
       userId: member.userId,
       role: member.role,
-    });
+    })
   }
 }
 
@@ -694,12 +694,12 @@ export async function handleAddChannel(
 ) {
   const channel = await Channels.findOne({ id, groupId });
   if (channel) {
-    //上書き
-    await Channels.updateOne({ id }, { name, category: categoryId });
+    console.log("update",categoryId);
+    await Channels.updateOne({ id, groupId }, { name, category: categoryId });
   } else {
     await Channels.create({ id, name, groupId, category: categoryId });
   }
-  await Channels.updateOne({ id }, { name, category: categoryId });
+  await Channels.updateOne({ id, groupId }, { name, category: categoryId });
   await ChannelPermissions.deleteMany({ channelId: id, groupId });
   if (permissions) {
     for (const roleId of permissions ?? []) {

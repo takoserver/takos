@@ -20,6 +20,8 @@ import { createTakosDB, decryptIdentityKey } from "../../utils/idb";
 import { shoowIdentityKeyPopUp } from "../CreateIdentityKeyPopUp";
 import { groupChannelState } from "./SideBar";
 import { createMediaContent, createTextContent } from "../../utils/getMessage";
+import EncryptionSettingsModal, { showEncryptionSettingsState } from "./EncryptionSettingsModal";
+
 const userId = localStorage.getItem("userName") + "@" +
   new URL(window.location.href).hostname;
 function ChatSend() {
@@ -32,6 +34,7 @@ function ChatSend() {
   );
   const [groupChannel, setGroupChannel] = useAtom(groupChannelState);
   const [selectedChannel] = useAtom(selectedChannelState);
+  const [showEncryptionSettings, setShowEncryptionSettings] = useAtom(showEncryptionSettingsState);
   /**
    * メッセージ送信を処理する関数
    */
@@ -463,9 +466,19 @@ function ChatSend() {
     setIsMenuOpen(false);
   };
 
+  // 暗号化設定モーダルを表示
+  const openEncryptionSettings = (e?: Event) => {
+    // イベントがある場合はデフォルト動作を防止
+    if (e) {
+      e.preventDefault();
+    }
+    setIsMenuOpen(false);
+    setShowEncryptionSettings(true);
+  };
+
   return (
     <div class="p-talk-chat-send">
-      <form class="p-talk-chat-send__form">
+      <form class="p-talk-chat-send__form" onSubmit={(e) => e.preventDefault()}>
         <div class="p-talk-chat-send__msg">
           <div
             class="p-talk-chat-send__dummy"
@@ -534,6 +547,7 @@ function ChatSend() {
               onClick={(e) => e.stopPropagation()}
             >
               <button
+                type="button"
                 class="w-full text-left px-4 py-2 hover:bg-[#444444] flex items-center"
                 onClick={handleFileSelect}
               >
@@ -556,8 +570,9 @@ function ChatSend() {
                 ファイル
               </button>
               <button
+                type="button"
                 class="w-full text-left px-4 py-2 hover:bg-[#444444] flex items-center"
-                onClick={toggleEncryption}
+                onClick={(e) => openEncryptionSettings(e)}
               >
                 <svg
                   class="mr-2"
@@ -580,7 +595,7 @@ function ChatSend() {
                   >
                   </path>
                 </svg>
-                暗号化設定: {isEncrypted() ? "オン" : "オフ"}
+                暗号化設定
               </button>
             </div>
           </div>
@@ -631,6 +646,12 @@ function ChatSend() {
           </div>
         </div>
       </form>
+      <EncryptionSettingsModal
+        isOpen={showEncryptionSettings()}
+        onClose={() => setShowEncryptionSettings(false)}
+        isEncrypted={isEncrypted()}
+        onToggleEncryption={toggleEncryption}
+      />
     </div>
   );
 }

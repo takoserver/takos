@@ -321,9 +321,7 @@ function ChatTalk() {
 const [showCreateChannelModal, setShowCreateChannelModal] = createSignal(false);
 
 function CreateChannelModal() {
-  const [selectedMode, setSelectedMode] = createSignal<"category" | "channel">(
-    "category",
-  );
+  const [selectedMode, setSelectedMode] = createSignal<"category" | "channel">("category");
   const [nameValue, setNameValue] = createSignal("");
   const [sellectedRoom] = useAtom(selectedRoomState);
   const createEntity = async () => {
@@ -391,22 +389,35 @@ function CreateChannelModal() {
     <>
       {showCreateChannelModal() && (
         <PopUpFrame closeScript={setShowCreateChannelModal}>
-          <div class="p-4">
-            <h2 class="text-xl font-bold mb-4">チャンネルの作成</h2>
-            <div class="flex mb-4">
+          <div class="p-5 w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+              <h2 class="text-xl font-bold">チャンネルの作成</h2>
+              <button
+                onClick={() => setShowCreateChannelModal(false)}
+                class="text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none"
+                aria-label="閉じる"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <div class="bg-gray-700 rounded-lg p-1 flex mb-6">
               <button
                 type="button"
                 onClick={() => {
                   setSelectedMode("category");
                   setNameValue("");
                 }}
-                class={`flex-1 p-2 rounded ${
+                class={`flex-1 py-2 px-4 rounded-md transition-all duration-200 font-medium ${
                   selectedMode() === "category"
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-300 text-black"
+                    ? "bg-green-500 text-white shadow-md"
+                    : "bg-transparent text-gray-300 hover:bg-gray-600"
                 }`}
               >
-                カテゴリー作成
+                カテゴリー
               </button>
               <button
                 type="button"
@@ -414,38 +425,45 @@ function CreateChannelModal() {
                   setSelectedMode("channel");
                   setNameValue("");
                 }}
-                class={`flex-1 p-2 ml-2 rounded ${
+                class={`flex-1 py-2 px-4 rounded-md ml-2 transition-all duration-200 font-medium ${
                   selectedMode() === "channel"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-300 text-black"
+                    ? "bg-blue-500 text-white shadow-md"
+                    : "bg-transparent text-gray-300 hover:bg-gray-600"
                 }`}
               >
-                チャンネル作成
+                チャンネル
               </button>
             </div>
-            <form onSubmit={handleSubmit}>
-              <input
-                type="text"
-                value={nameValue()}
-                onInput={(e) =>
-                  setNameValue(e.currentTarget.value)}
-                placeholder={selectedMode() === "category"
-                  ? "カテゴリー名"
-                  : "チャンネル名"}
-                class="w-full p-2 border rounded mb-2 text-black"
-              />
-              <button
-                type="submit"
-                class={`w-full py-2 rounded ${
-                  selectedMode() === "category"
-                    ? "bg-green-500 hover:bg-green-600"
-                    : "bg-blue-500 hover:bg-blue-600"
-                } text-white`}
-              >
-                {selectedMode() === "category"
-                  ? "カテゴリー作成"
-                  : "チャンネル作成"}
-              </button>
+            
+            <form onSubmit={handleSubmit} class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">
+                  {selectedMode() === "category" ? "カテゴリー名" : "チャンネル名"}
+                </label>
+                <input
+                  type="text"
+                  value={nameValue()}
+                  onInput={(e) => setNameValue(e.currentTarget.value)}
+                  placeholder={selectedMode() === "category" ? "カテゴリー名を入力" : "チャンネル名を入力"}
+                  class="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  required
+                />
+              </div>
+              
+              <div class="pt-4">
+                <button
+                  type="submit"
+                  disabled={!nameValue().trim()}
+                  class={`w-full py-3 px-4 rounded-md font-medium transition-all duration-200 
+                    ${!nameValue().trim() ? 'opacity-50 cursor-not-allowed ' : ''}
+                    ${selectedMode() === "category"
+                      ? "bg-green-500 hover:bg-green-600"
+                      : "bg-blue-500 hover:bg-blue-600"
+                    } text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5`}
+                >
+                  {selectedMode() === "category" ? "カテゴリーを作成" : "チャンネルを作成"}
+                </button>
+              </div>
             </form>
           </div>
         </PopUpFrame>
@@ -458,6 +476,7 @@ export const showEditChannelModalState = atom(false);
 export const contextMenuPositionState = atom<
   { x: number; y: number; type: "channel" | "category" | null; id: string }
 >({ x: 0, y: 0, type: null, id: "" });
+
 function ChannelSideBar() {
   const [contextMenuPosition, setContextMenuPosition] = useAtom(contextMenuPositionState);
   const [selectedChannel, setSelectedChannel] = useAtom(selectedChannelState);
@@ -468,9 +487,11 @@ function ChannelSideBar() {
   const [contextMenuTarget, setContextMenuTarget] = createSignal<
     { id: string; type: "channel" | "category" | null }
   >({ id: "", type: null });
+  const [menuPosition, setMenuPosition] = createSignal({ x: 0, y: 0 });
   const [sellectedRoom] = useAtom(selectedRoomState);
   const [messageList, setMessageList] = useAtom(messageListState);
   const [showEditChannelModal, setShowEditChannelModal] = useAtom(showEditChannelModalState);
+  
   // クリックでコンテキストメニューを閉じる
   onMount(() => {
     const clickHandler = (e: MouseEvent) => {
@@ -482,6 +503,21 @@ function ChannelSideBar() {
     });
   });
 
+  // サイドバーの空き領域に対する右クリックメニュー用のハンドラー
+  const handleSidebarContextMenu = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // スクロール位置を考慮した位置計算
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setMenuPosition({ x, y });
+    setContextMenuTarget({ id: "sidebar", type: null });
+    setShowContextMenu(true);
+  };
+
   function createChannel() {
     setShowCreateChannelModal(true);
   }
@@ -489,6 +525,13 @@ function ChannelSideBar() {
   const handleContextMenu = (e: MouseEvent, id: string, type: string) => {
     e.preventDefault();
     e.stopPropagation(); // 親要素へのイベント伝播を防止
+    
+    // スクロール位置を考慮した位置計算
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setMenuPosition({ x, y });
     setContextMenuTarget({
       id,
       type: type as "channel" | "category",
@@ -513,23 +556,24 @@ function ChannelSideBar() {
                   top: "50%",
                   left: 0,
                   transform: "translateY(-50%)",
-                  "backdrop-filter": "blur(10px)",
-                  "background-color": "rgba(24, 24, 24, 0.5)",
+                  "background-color": "rgba(32, 34, 37, 0.85)", // より濃い背景色で視認性向上
+                  "box-shadow": "0 4px 12px rgba(0, 0, 0, 0.15)", // シャドウ追加
                 }}
-                class="z-[99] border-t border-r border-b border-solid border-gray-300 rounded-r-lg h-4/5 max-w-[400px] w-full"
+                class="z-[99] border-t border-r border-b border-solid border-gray-600 rounded-r-lg h-4/5 max-w-[400px] w-full transition-all duration-200"
+                onContextMenu={handleSidebarContextMenu}
               >
-                <div class="flex items-center justify-between border-b border-gray-700 px-5 py-3">
+                <div class="flex items-center justify-between border-b border-gray-700 px-5 py-3 bg-gray-800 rounded-tr-lg">
                   <h2 class="text-xl font-semibold text-white">チャンネル</h2>
                   <button
                     onClick={() => setIsOpenChannel(!isOpenChannel())}
                     aria-label="閉じる"
-                    class="text-gray-400 hover:text-white text-2xl transition-colors"
+                    class="text-gray-400 hover:text-white text-2xl transition-colors focus:outline-none"
                   >
                     &times;
                   </button>
                 </div>
-                <div>
-                  <ul class="p-talk-list-rooms__ul">
+                <div class="overflow-y-auto h-[calc(100%-54px)]">
+                <ul class="p-talk-list-rooms__ul py-2">
                     {(() => {
                       const groupInfo = groupChannel();
                       if (!groupInfo) return <></>;
@@ -545,7 +589,7 @@ function ChannelSideBar() {
                             <button
                               class={`w-full text-left py-2 px-4 text-white transition-colors ${
                                 selectedChannel() === id
-                                  ? "bg-blue-500"
+                                  ? "bg-[#181818] border-l-2 border-blue-500 rounded-lg"
                                   : "hover:bg-gray-600"
                               }`}
                               onClick={async () => {
@@ -606,7 +650,14 @@ function ChannelSideBar() {
                             {showContextMenu() &&
                               contextMenuTarget().id === id &&
                               contextMenuTarget().type === "channel" && (
-                              <div class="absolute right-1 top-1 bg-gray-800 text-white rounded-lg shadow-lg p-2 animate-fadeIn z-50">
+                              <div 
+                                class="absolute bg-gray-800 text-white rounded-lg shadow-lg p-2 animate-fadeIn z-50"
+                                style={{
+                                  left: `${menuPosition().x}px`,
+                                  top: `${menuPosition().y}px`,
+                                  position: 'fixed'
+                                }}
+                              >
                                 <ul>
                                   <li
                                     class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
@@ -727,7 +778,14 @@ function ChannelSideBar() {
                             {showContextMenu() &&
                               contextMenuTarget().id === id &&
                               contextMenuTarget().type === "category" && (
-                              <div class="absolute right-1 top-1 bg-gray-800 text-white rounded-lg shadow-lg p-2 animate-fadeIn z-50">
+                              <div 
+                                class="absolute bg-gray-800 text-white rounded-lg shadow-lg p-2 animate-fadeIn z-50"
+                                style={{
+                                  left: `${menuPosition().x}px`,
+                                  top: `${menuPosition().y}px`,
+                                  position: 'fixed'
+                                }}
+                              >
                                 <ul>
                                   <li
                                     class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
@@ -834,15 +892,30 @@ function ChannelSideBar() {
                       );
                     })()}
                   </ul>
-                  {/* チャンネル作成ボタンを追加 */}
-                  <div class="px-4 py-2">
-                    <button
-                      class="w-full text-left py-2 px-4 mt-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors shadow-sm"
-                      onClick={createChannel}
+                  {/* サイドバーのコンテキストメニュー */}
+                  {showContextMenu() && contextMenuTarget().id === "sidebar" && (
+                    <div 
+                      class="bg-gray-800 text-white rounded-lg shadow-lg p-2 animate-fadeIn z-50"
+                      style={{
+                        left: `${menuPosition().x}px`,
+                        top: `${menuPosition().y}px`,
+                        position: 'fixed'
+                      }}
                     >
-                      + チャンネル作成
-                    </button>
-                  </div>
+                      <ul>
+                        <li
+                          class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
+                          onClick={() => {
+                            createChannel();
+                            setShowContextMenu(false);
+                          }}
+                        >
+                          チャンネル作成
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+                  {/* チャンネル作成ボタンを削除 */}
                 </div>
               </div>
             </>
@@ -1006,12 +1079,16 @@ export function ChannelEditModal(props: {
         {props.type === "channel" && (
           <div class="mb-4">
             <label class="block mb-1">カテゴリー</label>
-            <input
-              type="text"
+            <select
               value={channelCategory()}
               onChange={(e) => setChannelCategory(e.currentTarget.value)}
               class="w-full p-2 border rounded text-black"
-            />
+            >
+              <option value="">カテゴリーなし</option>
+              {groupChannel()?.categories?.map((category) => (
+                <option value={category.id}>{category.name}</option>
+              ))}
+            </select>
           </div>
         )}
         <div class="mb-4">
