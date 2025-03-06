@@ -66,7 +66,7 @@ export interface TakosDB extends DBSchema {
       roomId: string;
       timestamp: number;
     };
-  }
+  };
 }
 
 export async function saveExcludeUsers({

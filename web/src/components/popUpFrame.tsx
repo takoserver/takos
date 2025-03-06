@@ -1,4 +1,4 @@
-import { Setter, JSX, Show, createEffect } from "solid-js";
+import { createEffect, JSX, Setter, Show } from "solid-js";
 
 interface PopUpFrameProps {
   children: JSX.Element;
@@ -9,19 +9,19 @@ export function PopUpFrame(props: PopUpFrameProps) {
   // ESCキー押下で閉じる機能
   createEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         props.closeScript(false);
       }
     };
-    document.addEventListener('keydown', handleEsc);
-    
+    document.addEventListener("keydown", handleEsc);
+
     return () => {
-      document.removeEventListener('keydown', handleEsc);
+      document.removeEventListener("keydown", handleEsc);
     };
   });
 
   return (
-    <div 
+    <div
       class="fixed inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.5)] p-4 animate-fadeIn z-[9999999999999999999999999]"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -29,11 +29,11 @@ export function PopUpFrame(props: PopUpFrameProps) {
         }
       }}
     >
-      <div 
+      <div
         class="bg-[#242424] rounded-lg shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col"
         style={{
           "position": "relative",
-          "z-index": "10001"
+          "z-index": "10001",
         }}
       >
         {props.children}

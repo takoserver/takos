@@ -6,16 +6,21 @@ import "./App.css";
 import { ChangeURL } from "./components/ChangeURL.tsx";
 import { Register } from "./register/index.tsx";
 import { Chat } from "./components/Chat.tsx";
-import { createEffect } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import {
   CreateIdentityKeyPopUp,
   CreateShareSignKeyPopUp,
 } from "./components/CreateIdentityKeyPopUp.tsx";
 import { CreateGroupPopUp } from "./components/CreateGroup.tsx";
-import { SettingRoom } from "./components/SettingRoom.tsx";
 import { MigrateKey } from "./components/MigrateKeys.tsx";
-import { showEditChannelModalState, contextMenuPositionState, ChannelEditModal } from "./components/ChatTalkContent.tsx"
-import { ImageViewer, VideoPlayer } from "./components/OtherMessage.tsx";
+import {
+  ChannelEditModal,
+  contextMenuPositionState,
+  CreateChannelModal,
+  showEditChannelModalState,
+} from "./components/ChatTalkContent.tsx";
+import { ImageViewer } from "./components/ImageViewer.tsx";
+import { VideoPlayer } from "./components/VideoPlayer.tsx";
 
 function App(
   { page }: { page?: "home" | "talk" | "friend" | "setting" | "notification" },
@@ -23,8 +28,13 @@ function App(
   const [load] = useAtom(loadState);
   const [login] = useAtom(loginState);
   const [_page, setPageState] = useAtom(pageState);
-  const [contextMenuPosition, setContextMenuPosition] = useAtom(contextMenuPositionState);
-  const [showEditChannelModal, setShowEditChannelModal] = useAtom(showEditChannelModalState)
+  const [contextMenuPosition, setContextMenuPosition] = useAtom(
+    contextMenuPositionState,
+  );
+  const [showEditChannelModal, setShowEditChannelModal] = useAtom(
+    showEditChannelModalState,
+  );
+  const [isMobile] = createSignal(window.innerWidth <= 768);
 
   setPageState(page || "talk");
   createEffect(() => {
@@ -32,10 +42,10 @@ function App(
   });
   return (
     <>
+      <CreateChannelModal />
       {!load() && <Loading />}
       <CreateIdentityKeyPopUp />
       <CreateShareSignKeyPopUp />
-      <SettingRoom />
       <CreateGroupPopUp />
       <Css />
       <ChangeURL />
@@ -44,11 +54,11 @@ function App(
       {load() && login() && <Chat />}
       {load() && !login() && <Register />}
       {showEditChannelModal() && (
-            <ChannelEditModal
-              channel={contextMenuPosition().id}
-              type={contextMenuPosition().type!}
-              onClose={setShowEditChannelModal}
-            />
+        <ChannelEditModal
+          channel={contextMenuPosition().id}
+          type={contextMenuPosition().type!}
+          onClose={setShowEditChannelModal}
+        />
       )}
       <ImageViewer />
       <VideoPlayer />

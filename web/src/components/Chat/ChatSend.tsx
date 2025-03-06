@@ -4,9 +4,9 @@ import {
   isValidInputState,
 } from "../../utils/state";
 import { useAtom } from "solid-jotai";
-import { createEffect, createSignal } from "solid-js";
+import { createEffect, createSignal, Show } from "solid-js"; // Showをインポート
 import { selectedChannelState, selectedRoomState } from "../../utils/roomState";
-import imageCompression from 'browser-image-compression';
+import imageCompression from "browser-image-compression";
 import { generateThumbnailFromFile } from "../../utils/getVideoThumbnail";
 import {
   decryptDataDeviceKey,
@@ -20,11 +20,26 @@ import {
 import { createTakosDB, decryptIdentityKey } from "../../utils/idb";
 import { shoowIdentityKeyPopUp } from "../CreateIdentityKeyPopUp";
 import { groupChannelState } from "./SideBar";
-import { createMediaContent, createTextContent, createThumbnailContent } from "../../utils/getMessage";
-import EncryptionSettingsModal, { showEncryptionSettingsState } from "./EncryptionSettingsModal";
+import {
+  createMediaContent,
+  createTextContent,
+  createThumbnailContent,
+} from "../../utils/getMessage";
+import EncryptionSettingsModal, {
+  showEncryptionSettingsState,
+} from "./EncryptionSettingsModal";
+import {
+  clearMentionReplyState,
+  EVERYONE_MENTION_ID,
+  mentionEveryone,
+  mentionListState,
+  replyTargetState,
+} from "../../utils/mentionReply";
+import MentionReplyDisplay from "../MentionReplyDisplay";
 
 const userId = localStorage.getItem("userName") + "@" +
   new URL(window.location.href).hostname;
+
 function ChatSend() {
   const [inputMessage, setInputMessage] = useAtom(inputMessageState);
   const [isValidInput, setIsValidInput] = useAtom(isValidInputState);
@@ -35,8 +50,16 @@ function ChatSend() {
   );
   const [groupChannel, setGroupChannel] = useAtom(groupChannelState);
   const [selectedChannel] = useAtom(selectedChannelState);
-  const [showEncryptionSettings, setShowEncryptionSettings] = useAtom(showEncryptionSettingsState);
-   // メッセージ送信を処理する関数
+  const [showEncryptionSettings, setShowEncryptionSettings] = useAtom(
+    showEncryptionSettingsState,
+  );
+  const [isSending, setIsSending] = createSignal(false);
+  const [sendingProgress, setSendingProgress] = createSignal(0);
+  const [currentOperation, setCurrentOperation] = createSignal("");
+  const [mentionList] = useAtom(mentionListState);
+  const [replyTarget] = useAtom(replyTargetState);
+
+  // メッセージ送信を処理する関数
   const sendTextHandler = async () => {
     // 入力検証と必要な値の確認
     if (!isValidInput()) return;
@@ -45,11 +68,23 @@ function ChatSend() {
     const textContent = createTextContent({
       text: input,
       format: "text",
-    })
+    });
+    // メンションリストからeveryoneを処理
+    const mentionsToSend = mentionList().includes(EVERYONE_MENTION_ID)
+      ? [EVERYONE_MENTION_ID] // everyoneが含まれている場合はそれだけを送信
+      : mentionList();
+
     await sendHandler({
       type: "text",
-      content: textContent
+      content: textContent,
+      mention: mentionsToSend,
+      reply: replyTarget()
+        ? { id: replyTarget()!.id, content: replyTarget()?.content || "" }
+        : null,
     });
+
+    // 送信後にメンションとリプライ情報をクリア
+    clearMentionReplyState();
   };
 
   const sendHandler = async ({
@@ -68,25 +103,48 @@ function ChatSend() {
     isLarge?: boolean;
   }) => {
     try {
+      // 大きいファイルの場合、送信状態を設定
+      if (isLarge) {
+        setIsSending(true);
+        setCurrentOperation("メッセージを準備中...");
+      }
+
       const room = selectedRoom();
       if (!room?.roomid) return;
       const deviceKeyVal = deviceKey();
       if (!deviceKeyVal) return;
+
+      setCurrentOperation("暗号化キーを確認中...");
       const { decryptedIdentityKey, latestIdentityKey } = await getIdentityKeys(
         deviceKeyVal,
       );
-      if (!decryptedIdentityKey) return;
+      if (!decryptedIdentityKey) {
+        setIsSending(false);
+        return;
+      }
+
       const roomKey = await getRoomKeyOrCreate({
         room,
         deviceKeyVal,
         decryptedIdentityKey,
         latestIdentityKey,
       });
-      if (!roomKey) return;
+      if (!roomKey) {
+        setIsSending(false);
+        return;
+      }
+
       const channel = room.type === "friend" ? "friend" : selectedChannel();
-      if (!channel) return;
+      if (!channel) {
+        setIsSending(false);
+        return;
+      }
+
       const processedReply = reply ? { id: reply.id } : undefined;
       const processedOriginal = original ? original : undefined;
+
+      setCurrentOperation("メッセージを暗号化中...");
+      setSendingProgress(50);
 
       const encrypted = await encryptMessage(
         {
@@ -106,7 +164,13 @@ function ChatSend() {
         },
         room.roomid,
       );
-      if (!encrypted) return;
+      if (!encrypted) {
+        setIsSending(false);
+        return;
+      }
+
+      setCurrentOperation("メッセージを送信中...");
+      setSendingProgress(80);
 
       const success = await sendEncryptedMessage({
         roomId: room.roomid,
@@ -116,20 +180,26 @@ function ChatSend() {
         channelId: channel,
       });
 
+      // 送信処理完了時に状態をリセット
+      setIsSending(false);
+      setSendingProgress(0);
+
       if (success) {
         setInputMessage("");
       }
-      if(success.status === false) {
+      if (success.status === false) {
         console.error("メッセージ送信に失敗しました");
         return;
       }
       return success.messageId;
     } catch (error) {
       console.error("メッセージ送信中にエラーが発生しました:", error);
+      // エラー時も送信状態をリセット
+      setIsSending(false);
+      setSendingProgress(0);
     }
   };
 
-  
   // ID鍵を取得する
   const getIdentityKeys = async (deviceKeyVal: string) => {
     const db = await createTakosDB();
@@ -319,9 +389,9 @@ function ChatSend() {
         channelId,
       }),
     });
-    if(res.status == 200) {
+    if (res.status == 200) {
       const body = await res.json();
-    return { status: true, messageId: body.messageId };
+      return { status: true, messageId: body.messageId };
     } else {
       return { status: false };
     }
@@ -342,19 +412,19 @@ function ChatSend() {
   // メニュー表示切り替え処理を修正
   const toggleMenu = (e: MouseEvent) => {
     e.stopPropagation();
-    
+
     // ボタンの位置を取得して画面端からの距離を計算
     const buttonElement = e.currentTarget as HTMLElement;
     const rect = buttonElement.getBoundingClientRect();
     const distanceFromRight = window.innerWidth - rect.right;
-    
+
     // 右端から250px以内の場合は右揃えに切り替え (w-48 = 12rem = ~192px + 余裕)
     if (distanceFromRight < 250) {
       setMenuPosition("right");
     } else {
       setMenuPosition("left");
     }
-    
+
     setIsMenuOpen(!isMenuOpen());
   };
 
@@ -388,35 +458,35 @@ function ChatSend() {
     // 画像・動画選択処理
     console.log("メディア選択");
     setIsMenuOpen(false);
-  
+
     // ファイル入力要素の作成
     const fileInput = document.createElement("input");
     fileInput.type = "file";
     fileInput.accept = "image/*,video/*"; // 画像と動画ファイルを許可
     fileInput.style.display = "none";
-  
+
     // ファイル選択イベントハンドラを設定
     fileInput.addEventListener("change", async (event) => {
       console.log("ファイル選択完了");
       const target = event.target as HTMLInputElement;
       const file = target.files?.[0];
-  
+
       if (!file) return;
-      
+
       try {
         // ファイルタイプを確認
-        const isVideo = file.type.startsWith('video/');
-        const isImage = file.type.startsWith('image/');
-        
+        const isVideo = file.type.startsWith("video/");
+        const isImage = file.type.startsWith("image/");
+
         if (!isVideo && !isImage) {
           console.error("サポートされていないファイル形式です");
           return;
         }
-  
+
         // ファイルサイズをメガバイト単位で計算
         const fileSizeMB = file.size / (1024 * 1024);
         console.log(`ファイルサイズ: ${fileSizeMB.toFixed(2)}MB`);
-  
+
         if (isImage) {
           // 画像処理 - 既存コード
           await handleImageFile(file);
@@ -428,49 +498,73 @@ function ChatSend() {
         console.error("メディア処理中にエラーが発生しました:", error);
       }
     });
-  
+
     // bodyに追加して自動的にクリックイベントを発火
     document.body.appendChild(fileInput);
     fileInput.click();
-  
+
     // 使用後にDOMから削除
     setTimeout(() => {
       document.body.removeChild(fileInput);
     }, 3000);
   };
-  
+
   // 画像ファイル処理関数
   const handleImageFile = async (file: File) => {
     const fileSizeKB = file.size / 1024;
-    
+
     if (fileSizeKB > 256) {
+      setIsSending(true);
+      setCurrentOperation("画像を処理中...");
+      setSendingProgress(10);
+
       const base64Image = await readFileAsBase64(file);
-      const replaced = base64Image.replace(/^data:.*?;base64,/, '')
+      setSendingProgress(30);
+
+      const replaced = base64Image.replace(/^data:.*?;base64,/, "");
       const contentRaw = createMediaContent({
         uri: replaced,
         metadata: {
           filename: file.name,
           mimeType: file.type,
-        }
+        },
       });
-      const big = contentRaw
+
+      setSendingProgress(50);
+      setCurrentOperation("元の画像を送信中...");
+
+      const big = contentRaw;
       const messageId = await sendHandler({
         type: "image",
         content: big,
         isLarge: true,
       });
-      const resizedImage = (await resizeBase64Image(base64Image, 256)).replace(/^data:.*?;base64,/, '');
+
+      setSendingProgress(70);
+      setCurrentOperation("サムネイルを生成中...");
+
+      const resizedImage = (await resizeBase64Image(base64Image, 256)).replace(
+        /^data:.*?;base64,/,
+        "",
+      );
       const content = createThumbnailContent({
         originalType: "image",
         thumbnailMimeType: file.type,
         thumbnailUri: resizedImage,
       });
+
+      setCurrentOperation("サムネイルを送信中...");
+      setSendingProgress(90);
+
       await sendHandler({
         type: "thumbnail",
         content,
         isLarge: false,
-        original: messageId
+        original: messageId,
       });
+
+      setIsSending(false);
+      setSendingProgress(0);
     } else {
       // 256KB以下の場合は圧縮せずに送信
       console.log("画像サイズが256KB以下のため圧縮せずに送信します");
@@ -480,7 +574,7 @@ function ChatSend() {
         metadata: {
           filename: file.name,
           mimeType: file.type,
-        }
+        },
       });
       await sendHandler({
         type: "image",
@@ -488,19 +582,18 @@ function ChatSend() {
       });
     }
   };
-  
+
   // 動画ファイル処理関数
   const handleVideoFile = async (file: File) => {
-    // 動画ファイルのサイズ制限 (10GB)
     const maxVideoSizeMB = 10000;
     const fileSizeMB = file.size / (1024 * 1024);
     const fileSizeKB = file.size / 1024;
-    
+
     if (fileSizeMB > maxVideoSizeMB) {
       console.error(`動画サイズが上限（${maxVideoSizeMB}MB）を超えています`);
       return;
     }
-  
+
     // 256KB以下の場合は圧縮せずにサムネイルなしで直接送信
     if (fileSizeKB <= 256) {
       console.log("動画サイズが256KB以下のため圧縮せずに送信します");
@@ -510,7 +603,7 @@ function ChatSend() {
         metadata: {
           filename: file.name,
           mimeType: file.type,
-        }
+        },
       });
       await sendHandler({
         type: "video",
@@ -518,11 +611,19 @@ function ChatSend() {
       });
       return;
     }
-    
-    // 256KB以上の場合は元のロジックを実行（動画を送信してからサムネイルも送信）
+
+    // 256KB以上の場合の処理
+    setIsSending(true);
+    setCurrentOperation("動画を処理中...");
+    setSendingProgress(10);
+
     const base64Video = await readFileAsBase64(file);
-    const videoContent = base64Video.replace(/^data:.*?;base64,/, '');
-    
+    setSendingProgress(40);
+
+    const videoContent = base64Video.replace(/^data:.*?;base64,/, "");
+    setCurrentOperation("動画を送信中...");
+    setSendingProgress(50);
+
     // 元の動画を送信
     const messageId = await sendHandler({
       type: "video",
@@ -531,43 +632,56 @@ function ChatSend() {
         metadata: {
           filename: file.name,
           mimeType: file.type,
-        }
+        },
       }),
       isLarge: true,
     });
-    
+
     // 動画のサムネイル生成と送信
     try {
+      setCurrentOperation("サムネイルを生成中...");
+      setSendingProgress(80);
+
       const thumbnailBase64 = await generateThumbnailFromFile(file, 0);
       // 256KB以上の場合は圧縮
       let resizedThumbnailBase64 = thumbnailBase64;
       if (getBase64SizeKB(thumbnailBase64) > 256) {
         resizedThumbnailBase64 = await resizeBase64Image(thumbnailBase64, 256);
       }
+
+      setCurrentOperation("サムネイルを送信中...");
+      setSendingProgress(90);
+
       const thumbnailContent = createThumbnailContent({
         originalType: "video",
         thumbnailMimeType: "image/jpeg",
-        thumbnailUri: resizedThumbnailBase64.replace(/^data:.*?;base64,/, ''),
+        thumbnailUri: resizedThumbnailBase64.replace(/^data:.*?;base64,/, ""),
       });
       await sendHandler({
         type: "thumbnail",
         content: thumbnailContent,
         isLarge: false,
-        original: messageId
+        original: messageId,
       });
     } catch (err) {
       console.error("動画サムネイル生成に失敗しました:", err);
+    } finally {
+      setIsSending(false);
+      setSendingProgress(0);
     }
   };
-  
+
   // ファイルをBase64に変換するユーティリティ関数
-  const readFileAsBase64 = (file: File, stripPrefix = false): Promise<string> => {
+  const readFileAsBase64 = (
+    file: File,
+    stripPrefix = false,
+  ): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = () => {
         const dataUrl = reader.result as string;
         if (stripPrefix) {
-          const base64Data = dataUrl.replace(/^data:.*?;base64,/, '');
+          const base64Data = dataUrl.replace(/^data:.*?;base64,/, "");
           resolve(base64Data);
         } else {
           resolve(dataUrl);
@@ -576,7 +690,6 @@ function ChatSend() {
       reader.readAsDataURL(file);
     });
   };
-  
 
   const handleExcludeSettings = () => {
     setIsMenuOpen(false);
@@ -596,8 +709,86 @@ function ChatSend() {
     setShowEncryptionSettings(true);
   };
 
+  // メニュー項目に「全員をメンション」ボタンを追加
+  const menuItems = [
+    {
+      label: "ファイル",
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z">
+          </path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+      ),
+      onClick: handleFileSelect,
+    },
+    {
+      label: "全員をメンション",
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M17 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-6"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+      ),
+      onClick: () => {
+        mentionEveryone();
+        setIsMenuOpen(false);
+      },
+    },
+    {
+      label: "暗号化設定",
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={isEncrypted() ? "#4CAF50" : "#F44336"}
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path
+            d={isEncrypted()
+              ? "M7 11V7a5 5 0 0 1 10 0v4"
+              : "M7 11V7a5 5 0 0 1 9.9-1"}
+          >
+          </path>
+        </svg>
+      ),
+      onClick: openEncryptionSettings,
+    },
+  ];
+
   return (
-    <div class="p-talk-chat-send">
+    <div class="p-talk-chat-send relative">
+      {/* メンションとリプライ表示コンポーネント */}
+      <MentionReplyDisplay />
+
       <form class="p-talk-chat-send__form" onSubmit={(e) => e.preventDefault()}>
         <div class="p-talk-chat-send__msg">
           <div
@@ -666,57 +857,16 @@ function ChatSend() {
               }`}
               onClick={(e) => e.stopPropagation()}
             >
-              <button
-                type="button"
-                class="w-full text-left px-4 py-2 hover:bg-[#444444] flex items-center"
-                onClick={handleFileSelect}
-              >
-                <svg
-                  class="mr-2"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+              {menuItems.map((item) => (
+                <button
+                  type="button"
+                  class="w-full text-left px-4 py-2 hover:bg-[#444444] flex items-center"
+                  onClick={item.onClick}
                 >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z">
-                  </path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                </svg>
-                ファイル
-              </button>
-              <button
-                type="button"
-                class="w-full text-left px-4 py-2 hover:bg-[#444444] flex items-center"
-                onClick={(e) => openEncryptionSettings(e)}
-              >
-                <svg
-                  class="mr-2"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke={isEncrypted() ? "#4CAF50" : "#F44336"}
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2">
-                  </rect>
-                  <path
-                    d={isEncrypted()
-                      ? "M7 11V7a5 5 0 0 1 10 0v4"
-                      : "M7 11V7a5 5 0 0 1 9.9-1"}
-                  >
-                  </path>
-                </svg>
-                暗号化設定
-              </button>
+                  <span class="mr-2">{item.icon}</span>
+                  {item.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -772,6 +922,23 @@ function ChatSend() {
         isEncrypted={isEncrypted()}
         onToggleEncryption={toggleEncryption}
       />
+
+      {/* 送信中プログレスバー表示 */}
+      <Show when={isSending()}>
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div class="bg-[#333] p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h3 class="text-xl mb-3">ファイル送信中...</h3>
+            <p class="mb-4">{currentOperation()}</p>
+            <div class="w-full bg-gray-700 rounded-full h-2.5">
+              <div
+                class="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out"
+                style={{ width: `${sendingProgress()}%` }}
+              >
+              </div>
+            </div>
+          </div>
+        </div>
+      </Show>
     </div>
   );
 }
@@ -907,7 +1074,11 @@ async function collectFriendKeys(
           latest: false,
         });
       }
-      console.log(!!friendMasterKey, !!friendAccountKey, !!friendAccountKeySign);
+      console.log(
+        !!friendMasterKey,
+        !!friendAccountKey,
+        !!friendAccountKeySign,
+      );
       // マスターキーの検証
       if (
         !verifyMasterKey(
@@ -1080,39 +1251,42 @@ interface ResizeImageOptions {
   maxHeight?: number;
 }
 
-async function resizeBase64Image(base64: string, maxSizeKB: number = 256): Promise<string> {
+async function resizeBase64Image(
+  base64: string,
+  maxSizeKB: number = 256,
+): Promise<string> {
   return new Promise((resolve, reject) => {
-      const img: HTMLImageElement = new Image();
-      img.onload = async function () {
-          const canvas: HTMLCanvasElement = document.createElement("canvas");
-          const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
+    const img: HTMLImageElement = new Image();
+    img.onload = async function () {
+      const canvas: HTMLCanvasElement = document.createElement("canvas");
+      const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
 
-          if (!ctx) {
-              reject(new Error("Canvas context is not supported"));
-              return;
-          }
+      if (!ctx) {
+        reject(new Error("Canvas context is not supported"));
+        return;
+      }
 
-          let width: number = img.width;
-          let height: number = img.height;
+      let width: number = img.width;
+      let height: number = img.height;
 
-          // 初期の canvas サイズ設定
-          canvas.width = width;
-          canvas.height = height;
-          ctx.drawImage(img, 0, 0, width, height);
+      // 初期の canvas サイズ設定
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
 
-          let quality: number = 0.9; // 初期圧縮率
-          let resultBase64: string = canvas.toDataURL("image/jpeg", quality);
+      let quality: number = 0.9; // 初期圧縮率
+      let resultBase64: string = canvas.toDataURL("image/jpeg", quality);
 
-          // 256KB 以下になるように調整
-          while (getBase64SizeKB(resultBase64) > maxSizeKB && quality > 0.1) {
-              quality -= 0.05;
-              resultBase64 = canvas.toDataURL("image/jpeg", quality);
-          }
+      // 256KB 以下になるように調整
+      while (getBase64SizeKB(resultBase64) > maxSizeKB && quality > 0.1) {
+        quality -= 0.05;
+        resultBase64 = canvas.toDataURL("image/jpeg", quality);
+      }
 
-          resolve(resultBase64);
-      };
-      img.onerror = () => reject(new Error("Failed to load image"));
-      img.src = base64;
+      resolve(resultBase64);
+    };
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = base64;
   });
 }
 

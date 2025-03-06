@@ -9,7 +9,7 @@ import {
 
 const userName = localStorage.getItem("userName") + "@" +
   new URL(window.location.href).hostname;
-  
+
 // 新しいメッセージ型定義に基づくレスポンス型
 export interface MessageResponse {
   verified: boolean;
@@ -42,18 +42,18 @@ export async function getMessage({
   const [deviceKey] = useAtom(deviceKeyState);
   const deviceKeyVal = deviceKey();
   if (!deviceKeyVal) throw new Error("DeviceKey not found");
-  
+
   const encryptedMessageRes = await fetch(
     `https://${messageid.split("@")[1]}/_takos/v1/message/${messageid}`,
-    { cache: "force-cache" }  // キャッシュを積極的に使用
+    { cache: "force-cache" }, // キャッシュを積極的に使用
   );
   if (encryptedMessageRes.status !== 200) {
     throw new Error("Unauthorized");
   }
-  
+
   const encryptedMessage = await encryptedMessageRes.json();
   const parsedMessage = JSON.parse(encryptedMessage.message);
-  
+
   // 非暗号化メッセージの処理
   if (!parsedMessage.encrypted) {
     return {
@@ -66,11 +66,11 @@ export async function getMessage({
       isLarge: parsedMessage.isLarge,
     };
   }
-  
+
   // 暗号化メッセージの処理
   const messageValue = JSON.parse(parsedMessage.value);
   const roomKeyHash = messageValue.keyHash;
-  
+
   // セッションストレージからroomKeyを取得、なければ取得して復号
   let roomKey = sessionStorage.getItem("roomKey-" + roomKeyHash);
   if (!roomKey) {
@@ -92,55 +92,55 @@ export async function getMessage({
         }&userId=${senderId}`,
       );
     }
-    
+
     if (!encryptedRoomKeyRes || encryptedRoomKeyRes.status !== 200) {
       throw new Error("Unauthorized");
     }
-    
+
     const encryptedRoomKey = (await encryptedRoomKeyRes.json()).roomKey;
     const accountKeyHash = JSON.parse(encryptedRoomKey).keyHash;
-    
+
     const db = await createTakosDB();
     const accountKey = await db.get("accountKeys", accountKeyHash);
     if (!accountKey) {
       throw new Error("AccountKey not found");
     }
-    
+
     const decryptedAccountKey = await decryptAccountKey({
       deviceKey: deviceKeyVal,
       encryptedAccountKey: accountKey.encryptedKey,
     });
-    
+
     if (!decryptedAccountKey) {
       throw new Error("Failed to decrypt accountKey");
     }
-    
+
     const roomKeyResult = await decryptDataAccountKey(
       decryptedAccountKey.privateKey,
       encryptedRoomKey,
     );
-    
+
     if (!roomKeyResult) {
       throw new Error("Failed to decrypt roomKey");
     }
-    
+
     roomKey = roomKeyResult;
     sessionStorage.setItem("roomKey-" + roomKeyHash, roomKey);
   }
-  
+
   // roomKeyを使ってメッセージを復号
   const decryptedMessage = await decryptDataRoomKey(
     roomKey,
     parsedMessage.value,
   );
-  
+
   if (!decryptedMessage) {
     throw new Error("Failed to decrypt message");
   }
-  
+
   // 復号したメッセージをパース
   const decryptedContent = JSON.parse(decryptedMessage);
-  console.log(parsedMessage)
+  console.log(parsedMessage);
   return {
     verified: false, // 署名検証が実装されていない場合はfalse
     encrypted: true,
@@ -159,20 +159,20 @@ export async function getMessage({
 
 export function createTextContent({
   text,
-  format
+  format,
 }: {
   text: string;
   format: "text" | "markdown";
 }) {
   return JSON.stringify({
     text,
-    format
+    format,
   });
 }
 
 export function createMediaContent({
   uri,
-  metadata
+  metadata,
 }: {
   uri: string;
   metadata: {
@@ -182,7 +182,7 @@ export function createMediaContent({
 }) {
   return JSON.stringify({
     uri,
-    metadata
+    metadata,
   });
 }
 
@@ -212,7 +212,7 @@ export function createThumbnailContent({
   originalType,
   thumbnailText,
   thumbnailUri,
-  thumbnailMimeType
+  thumbnailMimeType,
 }: {
   originalType: "text" | "image" | "video" | "audio" | "file";
   thumbnailText?: string;
@@ -222,18 +222,18 @@ export function createThumbnailContent({
   if (originalType === "text") {
     return JSON.stringify({
       originalType,
-      thumbnailText
+      thumbnailText,
     });
   } else if (originalType === "image" || originalType === "video") {
     return JSON.stringify({
       originalType,
       thumbnailUri,
-      thumbnailMimeType
+      thumbnailMimeType,
     });
   } else {
     return JSON.stringify({
       originalType,
-      thumbnailText
+      thumbnailText,
     });
   }
 }

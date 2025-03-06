@@ -34,7 +34,7 @@ import {
   handleRemoveChannel,
   handleRemoveRole,
   handleSettings,
-  handleUnbanUser
+  handleUnbanUser,
 } from "../web/group.ts";
 
 const env = await load();
@@ -226,7 +226,7 @@ eventManager.add(
       console.log("error3");
       return c.json({ error: "Invalid roomType" }, 400);
     }
-    console.log(messageId)
+    console.log(messageId);
     if (roomType === "friend") {
       if (roomId.split("@")[1] !== env["domain"]) {
         return c.json({ error: "Invalid roomId" }, 400);

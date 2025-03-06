@@ -1564,7 +1564,10 @@ function generateServerKey(): {
 function signData(data: string, secretKey: string): string {
   const key = base64ToArrayBuffer(secretKey);
   return arrayBufferToBase64(
-    (ml_dsa65.sign(new Uint8Array(key), new TextEncoder().encode(data))) as unknown as ArrayBuffer,
+    (ml_dsa65.sign(
+      new Uint8Array(key),
+      new TextEncoder().encode(data),
+    )) as unknown as ArrayBuffer,
   );
 }
 
@@ -1655,7 +1658,14 @@ export function isValidMessage(message: string): boolean {
       return true;
     } else {
       // 非暗号化メッセージの検証ロジックも必要に応じて追加
-      const validTypes = ["text", "image", "video", "audio", "file", "thumbnail"];
+      const validTypes = [
+        "text",
+        "image",
+        "video",
+        "audio",
+        "file",
+        "thumbnail",
+      ];
       if (!validTypes.includes(messageObj.value.type)) {
         return false;
       }
@@ -1665,7 +1675,9 @@ export function isValidMessage(message: string): boolean {
       if (typeof messageObj.isLarge !== "boolean") {
         return false;
       }
-      if (messageObj.value.mention && !Array.isArray(messageObj.value.mention)) {
+      if (
+        messageObj.value.mention && !Array.isArray(messageObj.value.mention)
+      ) {
         return false;
       }
       return true;

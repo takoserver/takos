@@ -1,14 +1,17 @@
-import { verifyMasterKey, signMasterKey, generateMasterKey } from "./mod.ts"
-import { keyHash } from "./utils/keyHash.ts"
+import { generateMasterKey, signMasterKey, verifyMasterKey } from "./mod.ts";
+import { keyHash } from "./utils/keyHash.ts";
 
-const data = "Hello, World!"
+const data = "Hello, World!";
 
-const masteKey = generateMasterKey()
+const masteKey = generateMasterKey();
 
-const signature = signMasterKey(masteKey.privateKey, data,await keyHash(masteKey.publicKey))
-if(!signature) throw new Error("Failed to sign")
-console.log(verifyMasterKey(masteKey.publicKey, signature, data))
-
+const signature = signMasterKey(
+  masteKey.privateKey,
+  data,
+  await keyHash(masteKey.publicKey),
+);
+if (!signature) throw new Error("Failed to sign");
+console.log(verifyMasterKey(masteKey.publicKey, signature, data));
 
 /*
 import { ml_dsa65, ml_dsa87 } from "@noble/post-quantum/ml-dsa";

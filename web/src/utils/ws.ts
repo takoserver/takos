@@ -36,20 +36,22 @@ export function createWebsocket(loadedFn: () => void) {
     const setMessageList = useSetAtom(messageListState);
     const setLoad = useSetAtom(loadState);
     const [migrateSessioonId, setMigrateSessioonId] = useAtom(migrateSessionid);
-    const setMigrateKeyPublic = useSetAtom(migrateKeyPublicState,);
-    const [migrateSignKeyPublic, setMigrateSignKeyPublic] = useAtom(migrateSignKeyPublicState,);
+    const setMigrateKeyPublic = useSetAtom(migrateKeyPublicState);
+    const [migrateSignKeyPublic, setMigrateSignKeyPublic] = useAtom(
+      migrateSignKeyPublicState,
+    );
     const setPage = useSetAtom(migrateRequestPage);
     const migrateKeyPrivate = useAtomValue(migrateKeyPrivateState);
     const deviceKey = useAtomValue(deviceKeyState);
-    
+
     // 再接続関連の変数
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 10;
     let reconnectTimeout: number | null = null;
-    
+
     // WebSocketを接続する関数
     const connectWebSocket = () => {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const host = window.location.host;
       const websocket = new WebSocket(
         `${protocol}//${host}/api/v2/ws`,
@@ -67,19 +69,24 @@ export function createWebsocket(loadedFn: () => void) {
         // 再接続ロジック
         if (reconnectAttempts < maxReconnectAttempts) {
           // 指数バックオフによる待機時間の計算（最大30秒）
-          const timeout = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-          console.log(`WebSocket切断。${timeout/1000}秒後に再接続します...`);
-          
+          const timeout = Math.min(
+            1000 * Math.pow(2, reconnectAttempts),
+            30000,
+          );
+          console.log(`WebSocket切断。${timeout / 1000}秒後に再接続します...`);
+
           if (reconnectTimeout) {
             clearTimeout(reconnectTimeout);
           }
-          
+
           reconnectTimeout = setTimeout(() => {
             reconnectAttempts++;
             connectWebSocket();
           }, timeout) as unknown as number;
         } else {
-          console.error("最大再接続回数に達しました。ページを更新してください。");
+          console.error(
+            "最大再接続回数に達しました。ページを更新してください。",
+          );
         }
       };
 
@@ -228,7 +235,7 @@ export function createWebsocket(loadedFn: () => void) {
         }
       };
     };
-    
+
     createEffect(() => {
       // 最初の接続を開始
       connectWebSocket();

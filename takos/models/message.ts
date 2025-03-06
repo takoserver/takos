@@ -34,7 +34,10 @@ const messageSchema = new mongoose.Schema({
   },
   isLarge: {
     type: Boolean,
-  }
+  },
+  deleted: {
+    type: Boolean,
+  },
 });
 
 const Message = mongoose.model("message", messageSchema);

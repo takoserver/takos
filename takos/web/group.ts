@@ -366,14 +366,17 @@ export async function createRemoteGroup(
     });
   }
   for (const member of resJson.members) {
-    if (!allowLocalUsers.includes(member.userId) && member.userId.split("@")[1] === env["domain"]) {
+    if (
+      !allowLocalUsers.includes(member.userId) &&
+      member.userId.split("@")[1] === env["domain"]
+    ) {
       continue;
     }
     await Member.create({
       groupId,
       userId: member.userId,
       role: member.role,
-    })
+    });
   }
 }
 
@@ -694,7 +697,7 @@ export async function handleAddChannel(
 ) {
   const channel = await Channels.findOne({ id, groupId });
   if (channel) {
-    console.log("update",categoryId);
+    console.log("update", categoryId);
     await Channels.updateOne({ id, groupId }, { name, category: categoryId });
   } else {
     await Channels.create({ id, name, groupId, category: categoryId });

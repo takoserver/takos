@@ -75,7 +75,7 @@ export function ContextMenu(props: {
     <Portal mount={document.body}>
       <div
         ref={menuRef}
-        class="fixed message-context-menu animate-fadeIn z-[9999]"
+        class="fixed message-context-menu z-[9999]"
         style={{
           left: `${position().x}px`,
           top: `${position().y}px`,

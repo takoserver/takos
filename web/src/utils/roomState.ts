@@ -17,3 +17,11 @@ export const roomKeyState = atom<{
 }[]>([]);
 export const selectedChannelState = atom<string | null>(null);
 export const nickNameState = atom<string | null>("選択してください");
+
+// メンションリスト用の状態
+export const mentionListState = atom<string[]>([]);
+
+// リプライターゲット用の状態
+export const replyTargetState = atom<{ id: string; content: string } | null>(
+  null,
+);

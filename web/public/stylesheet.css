@@ -672,4 +672,31 @@ input {
   }
 }
 
+/* 設定サイドバー用のスタイル追加 */
+@media screen and (min-width: 769px) {
+  .p-talk {
+    display: flex;
+    width: 100%;
+  }
+
+  .p-talk-chat {
+    flex-shrink: 1;
+    flex-grow: 1;
+    width: auto;
+  }
+}
+
+/* モバイルでの表示調整 */
+@media screen and (max-width: 768px) {
+  .p-talk {
+    width: 100vw;
+    flex-direction: column;
+  }
+}
+
+/* アニメーションのスムーズ化 */
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
 /*# sourceMappingURL=stylesheet.css.map */

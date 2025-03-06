@@ -51,7 +51,7 @@ app.post(
       }
       const messageid = uuidv7() + "@" + env["domain"];
       const timestamp = new Date();
-      if(isLarge) {
+      if (isLarge) {
         await Message.create({
           userName: user.userName + "@" + env["domain"],
           timestamp,
@@ -76,7 +76,7 @@ app.post(
           isLarge: false,
         });
       }
-      if(!isLarge) {
+      if (!isLarge) {
         publish({
           type: "message",
           users: [user.userName + "@" + env["domain"], roomId],
@@ -150,7 +150,7 @@ app.post(
       }
       const messageid = uuidv7() + "@" + env["domain"];
       const timestamp = new Date();
-      if(isLarge) {
+      if (isLarge) {
         await Message.create({
           userName: user.userName + "@" + env["domain"],
           timestamp,
@@ -204,7 +204,7 @@ app.post(
           channelId: channelId,
         }),
       });
-      if(!isLarge) {
+      if (!isLarge) {
         await fff(
           JSON.stringify({
             event: "t.message.send",
@@ -222,6 +222,32 @@ app.post(
       }
       return c.json({ messageId: messageid }, 200);
     }
+  },
+);
+
+app.post(
+  "delete",
+  zValidator(
+    "json",
+    z.object({
+      messageId: z.string(),
+    }),
+  ),
+  async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { messageId } = c.req.valid("json");
+    const message = await Message.findOne({ messageid: messageId });
+    if (!message) {
+      return c.json({ message: "Message not found" }, 404);
+    }
+    if (message.userName !== user.userName + "@" + env["domain"]) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    await Message.deleteOne({ messageid: messageId });
+    return c.json({ message: "Deleted" }, 200);
   },
 );
 
@@ -274,7 +300,7 @@ app.get("friend/:roomId", async (c) => {
   const beforeMessageId = await Message.findOne({
     roomId,
     timestamp: { $lt: new Date(bfore) },
-    isLarge: false || undefined
+    isLarge: false || undefined,
   }).sort({ timestamp: -1 });
   if (!beforeMessageId) {
     return c.json({ error: "Invalid before" }, 400);
@@ -348,7 +374,7 @@ app.get("group/:roomId/:channelId", async (c) => {
   }, { messageid: 1, timestamp: 1, userName: 1, _id: 0 }).limit(limit).sort({
     timestamp: -1,
   });
-  
+
   return c.json({ messages });
 });
 

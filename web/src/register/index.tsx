@@ -13,41 +13,119 @@ import { requester } from "../utils/requester.ts";
 const sampleChatData = {
   roomName: "たこたこチャット",
   talkData: [
-    { userName: "tako", messages: { text: "かわよい絵がほしいのぉ", format: "text" } },
-    { userName: "やほほーい", messages: { text: "ここ送っていいかな", format: "text" } },
-    { userName: "tako", messages: { text: "著作権パワーがあるからなぁ", format: "text" } },
-    { userName: "tako", messages: { text: "サイトのど真ん中に置きたい", format: "text" } },
-    { userName: "なん", messages: { text: "デザイン考えて、それを元に外注", format: "text" } },
-    { userName: "tako", messages: { text: "それが一番だけどえぐい金かかりそう", format: "text" } },
+    {
+      userName: "tako",
+      messages: { text: "かわよい絵がほしいのぉ", format: "text" },
+    },
+    {
+      userName: "やほほーい",
+      messages: { text: "ここ送っていいかな", format: "text" },
+    },
+    {
+      userName: "tako",
+      messages: { text: "著作権パワーがあるからなぁ", format: "text" },
+    },
+    {
+      userName: "tako",
+      messages: { text: "サイトのど真ん中に置きたい", format: "text" },
+    },
+    {
+      userName: "なん",
+      messages: { text: "デザイン考えて、それを元に外注", format: "text" },
+    },
+    {
+      userName: "tako",
+      messages: { text: "それが一番だけどえぐい金かかりそう", format: "text" },
+    },
     { userName: "tako", messages: { text: "1万ぐらい", format: "text" } },
     { userName: "tako", messages: { text: "もっとかな", format: "text" } },
     {
       userName: "なん",
-      messages: { text: "もしくは絵が上手い人が知り合いにいればその人に頼む", format: "text" },
+      messages: {
+        text: "もしくは絵が上手い人が知り合いにいればその人に頼む",
+        format: "text",
+      },
     },
-    { userName: "なん", messages: { text: "1〜4マソが相場らしい", format: "text" } },
-    { userName: "tako", messages: { text: "novelAIでしぶるか", format: "text" } },
-    { userName: "tako", messages: { text: "それだけあったらモニター買うよ", format: "text" } },
-    { userName: "なん", messages: { text: "まあ、ネットでうまく関係作るしかないわな", format: "text" } },
-    { userName: "なん", messages: { text: "AIだって著作権問題まだまだあるだろうし", format: "text" } },
-    { userName: "tako", messages: { text: "今のところフリーだから", format: "text" } },
-    { userName: "tako", messages: { text: "危なくなったらすり替える", format: "text" } },
-    { userName: "tako", messages: { text: "まだコイン的なやつ残ってたかな", format: "text" } },
-    { userName: "tako", messages: { text: "SSRのchartjsいいね", format: "text" } },
+    {
+      userName: "なん",
+      messages: { text: "1〜4マソが相場らしい", format: "text" },
+    },
+    {
+      userName: "tako",
+      messages: { text: "novelAIでしぶるか", format: "text" },
+    },
+    {
+      userName: "tako",
+      messages: { text: "それだけあったらモニター買うよ", format: "text" },
+    },
+    {
+      userName: "なん",
+      messages: {
+        text: "まあ、ネットでうまく関係作るしかないわな",
+        format: "text",
+      },
+    },
+    {
+      userName: "なん",
+      messages: {
+        text: "AIだって著作権問題まだまだあるだろうし",
+        format: "text",
+      },
+    },
+    {
+      userName: "tako",
+      messages: { text: "今のところフリーだから", format: "text" },
+    },
+    {
+      userName: "tako",
+      messages: { text: "危なくなったらすり替える", format: "text" },
+    },
+    {
+      userName: "tako",
+      messages: { text: "まだコイン的なやつ残ってたかな", format: "text" },
+    },
+    {
+      userName: "tako",
+      messages: { text: "SSRのchartjsいいね", format: "text" },
+    },
     { userName: "tako", img: "./strict/1.jpg" },
     { userName: "371tti", messages: { text: "お", format: "text" } },
-    { userName: "371tti", messages: { text: "ついにchart.jsか", format: "text" } },
-    { userName: "371tti", img: "./strict/2.jpg" },
-    { userName: "371tti", messages: { text: "正規表現😀", format: "text" } },
-    { userName: "tako", messages: { text: "右半分は昨日のベスト会話的なの流すか", format: "text" } },
-    { userName: "tako", messages: { text: "もちろん審査あり", format: "text" } },
-    { userName: "tako", messages: { text: "きっしょい会話を流すわけにはいかん", format: "text" } },
-    { userName: "tako", messages: { text: "公開チャット的なやつだけどね", format: "text" } },
     {
       userName: "371tti",
-      messages: { text: "hello 000 im this OC bot! Nicetomeet you", format: "text" },
+      messages: { text: "ついにchart.jsか", format: "text" },
     },
-    { userName: "371tti", messages: { text: "セキュリティむずすぎ", format: "text" } },
+    { userName: "371tti", img: "./strict/2.jpg" },
+    { userName: "371tti", messages: { text: "正規表現😀", format: "text" } },
+    {
+      userName: "tako",
+      messages: {
+        text: "右半分は昨日のベスト会話的なの流すか",
+        format: "text",
+      },
+    },
+    {
+      userName: "tako",
+      messages: { text: "もちろん審査あり", format: "text" },
+    },
+    {
+      userName: "tako",
+      messages: { text: "きっしょい会話を流すわけにはいかん", format: "text" },
+    },
+    {
+      userName: "tako",
+      messages: { text: "公開チャット的なやつだけどね", format: "text" },
+    },
+    {
+      userName: "371tti",
+      messages: {
+        text: "hello 000 im this OC bot! Nicetomeet you",
+        format: "text",
+      },
+    },
+    {
+      userName: "371tti",
+      messages: { text: "セキュリティむずすぎ", format: "text" },
+    },
   ],
 };
 

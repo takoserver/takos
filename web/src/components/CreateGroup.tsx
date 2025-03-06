@@ -438,7 +438,7 @@ export function CreateGroup() {
           <div class="bg-[#242424] rounded-lg shadow-2xl w-full max-w-md">
             {/* ヘッダー */}
             <div class="flex items-center justify-between border-b border-gray-700 px-5 py-3">
-              <h2 class="text-xl font-semibold text-white">グループ設定</h2>
+              <h2 class="text-xl font-semibold text-white">グループ</h2>
               <button
                 onClick={() => setShowGroupPopUp(false)}
                 aria-label="閉じる"

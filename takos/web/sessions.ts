@@ -273,8 +273,9 @@ app.post(
     await users.updateOne({ userName: session.userName }, {
       nickName,
       icon: arrayBufferToBase64(
-        (await resizeImageTo256x256(new Uint8Array(base64ToArrayBuffer(icon))))
-           as unknown as ArrayBuffer,
+        (await resizeImageTo256x256(
+          new Uint8Array(base64ToArrayBuffer(icon)),
+        )) as unknown as ArrayBuffer,
       ),
       setup: true,
       masterKey,

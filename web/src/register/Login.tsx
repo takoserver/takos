@@ -57,7 +57,7 @@ export function Login() {
                     sessionUUID: sessionUUID,
                   }),
                 });
-                await clearDB()
+                await clearDB();
                 if (res.status !== 200) {
                   const message = (await res.json()).message;
                   alert("エラーが発生しました: " + message);

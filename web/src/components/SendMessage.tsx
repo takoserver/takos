@@ -1,6 +1,8 @@
 import { createSignal } from "solid-js";
 import { ContextMenu } from "./ContextMenu";
-import { convertLineBreak, convertTime, renderMessageContent } from "./OtherMessage";
+import { convertTime } from "../utils/messageUtils";
+import { renderMessageContent } from "./MessageContent";
+import { setReplyToMessage } from "../utils/mentionReply";
 
 const userId = localStorage.getItem("userName") + "@" +
   new URL(window.location.href).hostname;
@@ -12,7 +14,7 @@ const ChatSendMessage = (
       verified: boolean;
       encrypted: boolean;
       content: string;
-      type: string;
+      type: "text" | "image" | "video" | "audio" | "file";
       timestamp: string | number | Date;
       original?: string | undefined;
     };
@@ -53,7 +55,16 @@ const ChatSendMessage = (
   const deleteMessage = async () => {
     if (confirm("このメッセージを削除しますか？")) {
       try {
-        // TODO: メッセージ削除APIの実装
+        const res = await fetch("/api/v2/message/delete", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ messageId: messageid }),
+        });
+        if (!res.ok) {
+          throw new Error("メッセージ削除に失敗しました");
+        }
         console.log("メッセージ削除:", messageid);
       } catch (error) {
         console.error("メッセージ削除エラー:", error);
@@ -64,19 +75,26 @@ const ChatSendMessage = (
   // メニュー項目の定義
   const menuItems = [
     { label: "メッセージをコピー", onClick: copyMessage },
+    {
+      label: "リプライ",
+      onClick: () => {
+        setReplyToMessage(messageid, content.type, content.content);
+        setShowContextMenu(false);
+      },
+    },
     { label: "メッセージを削除", onClick: deleteMessage, danger: true },
   ];
 
   return (
     <li class={isPrimaryClass}>
       <div
-        class="c-talk-chat-box mb-[3px]"
+        class="c-talk-chat-box mb-[3px] max-w-full"
         onContextMenu={handleContextMenu}
       >
         <div class="c-talk-chat-date">
           <p>{convertTime(time)}</p>
         </div>
-        <div class="c-talk-chat-right">
+        <div class="c-talk-chat-right max-w-[calc(100%-45px)]">
           <p>
             {renderMessageContent(content, userId)}
           </p>

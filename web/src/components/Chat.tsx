@@ -9,10 +9,27 @@ import ChatTalkContent from "./ChatTalkContent.tsx";
 import ChatTalkTitleContent from "./ChatTalkTitleContent.tsx";
 import { isSelectRoomState } from "../utils/roomState.ts";
 import { atom, useAtom } from "solid-jotai";
+import { SettingRoom } from "./SettingRoom.tsx";
+import { createSignal, onMount } from "solid-js";
+
 export const openConfig = atom(false);
+
 export function Chat() {
   const [isSelectRoom] = useAtom(isSelectRoomState);
   const [open, setOpen] = useAtom(openConfig);
+  const [isMobile, setIsMobile] = createSignal(window.innerWidth <= 768);
+
+  // 画面サイズの変更を検知
+  onMount(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  });
+
   return (
     <>
       <ChatHeader />
@@ -20,7 +37,7 @@ export function Chat() {
       <EncryptSession />
       <div class="wrapper w-full">
         <main
-          class={`p-talk ${isSelectRoom() ? "is-inview" : ""}`}
+          class={`p-talk ${isSelectRoom() ? "is-inview" : ""} flex`}
           id="chatmain"
         >
           <div class="p-talk-list min-h-screen">
@@ -42,7 +59,7 @@ export function Chat() {
                     <ChatTalkTitle />
                   </div>
                   <ChatTalkTitleContent />
-                  {!open() && isSelectRoom() && (
+                  {isMobile() && !open() && isSelectRoom() && (
                     <div
                       class="absolute right-7 cursor-pointer hover:scale-105 transition-transform duration-200"
                       onClick={() => setOpen(true)}
@@ -59,8 +76,12 @@ export function Chat() {
               <ChatSend />
             </div>
           </div>
+          {/* デスクトップでは設定パネルを常に表示、モバイルでは別のコンポーネントで表示 */}
+          {!isMobile() && <SettingRoom />}
         </main>
       </div>
+      {/* モバイル版でのみ表示されるポップアップ */}
+      {isMobile() && <SettingRoom />}
     </>
   );
 }

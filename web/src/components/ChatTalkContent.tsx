@@ -19,13 +19,13 @@ const messageCache = new Map<string, {
   encrypted: boolean;
   content: string;
   type: string;
-  timestamp: number;  // string | number から number に変更
+  timestamp: number; // string | number から number に変更
   messageid: string;
   roomid: string;
   original?: string;
   serverData: {
     userName: string;
-    timestamp: number;  // string | number から number に変更
+    timestamp: number; // string | number から number に変更
   };
 }>();
 // MessagesStateの定義は変更なし
@@ -56,13 +56,13 @@ const [messageTimeLine, setMessageTimeLine] = createSignal<{
   encrypted: boolean;
   content: string;
   type: string;
-  timestamp: number;  // number | string から number に変更
+  timestamp: number; // number | string から number に変更
   messageid: string;
   roomid: string;
   original?: string;
   serverData: {
     userName: string;
-    timestamp: number;  // string | number から number に変更
+    timestamp: number; // string | number から number に変更
   };
 }[]>([]);
 
@@ -159,7 +159,7 @@ function ChatTalkMain() {
             type,
             senderId: message.userName,
           });
-        
+
           const messageData = {
             verified: serverData.verified,
             encrypted: serverData.encrypted,
@@ -168,16 +168,16 @@ function ChatTalkMain() {
             timestamp: Number(serverData.timestamp),
             messageid: message.messageid,
             roomid: roomid,
-            original : serverData.original,
+            original: serverData.original,
             serverData: {
               userName: message.userName,
               timestamp: Number(serverData.timestamp), // 確実に number に変換
             },
           };
-        
+
           // キャッシュに保存（reactive signalでなくグローバルオブジェクトを直接更新）
           messageCache.set(cacheKey, messageData);
-        
+
           return messageData;
         } catch (error) {
           const errorMessage = {
@@ -193,10 +193,10 @@ function ChatTalkMain() {
               timestamp: new Date().getTime(), // toISOStringからgetTimeに変更
             },
           };
-        
+
           // エラーメッセージもキャッシュ
           messageCache.set(cacheKey, errorMessage);
-        
+
           return errorMessage;
         }
       }),
@@ -243,7 +243,6 @@ function ChatTalkMain() {
   return (
     <>
       <div class="pl-2" id="chatList" ref={chatListRef}>
-        <CreateChannelModal />
         {loaded() && (
           <>
             {messageTimeLine().map((message) => {
@@ -255,7 +254,12 @@ function ChatTalkMain() {
                       verified: message.verified,
                       encrypted: message.encrypted,
                       content: message.content,
-                      type: message.type,
+                      type: message.type as
+                        | "text"
+                        | "image"
+                        | "video"
+                        | "audio"
+                        | "file",
                       timestamp: message.timestamp,
                       original: message.original,
                     }}
@@ -326,8 +330,10 @@ function ChatTalk() {
 
 const [showCreateChannelModal, setShowCreateChannelModal] = createSignal(false);
 
-function CreateChannelModal() {
-  const [selectedMode, setSelectedMode] = createSignal<"category" | "channel">("category");
+export function CreateChannelModal() {
+  const [selectedMode, setSelectedMode] = createSignal<"category" | "channel">(
+    "category",
+  );
   const [nameValue, setNameValue] = createSignal("");
   const [sellectedRoom] = useAtom(selectedRoomState);
   const createEntity = async () => {
@@ -399,17 +405,28 @@ function CreateChannelModal() {
             <div class="flex justify-between items-center mb-6">
               <h2 class="text-xl font-bold">チャンネルの作成</h2>
               <button
-                onClick={() => setShowCreateChannelModal(false)}
+                onClick={() =>
+                  setShowCreateChannelModal(false)}
                 class="text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none"
                 aria-label="閉じる"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               </button>
             </div>
-            
+
             <div class="bg-gray-700 rounded-lg p-1 flex mb-6">
               <button
                 type="button"
@@ -440,34 +457,43 @@ function CreateChannelModal() {
                 チャンネル
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit} class="space-y-4">
               <div>
                 <label class="block text-sm font-medium mb-1">
-                  {selectedMode() === "category" ? "カテゴリー名" : "チャンネル名"}
+                  {selectedMode() === "category"
+                    ? "カテゴリー名"
+                    : "チャンネル名"}
                 </label>
                 <input
                   type="text"
                   value={nameValue()}
                   onInput={(e) => setNameValue(e.currentTarget.value)}
-                  placeholder={selectedMode() === "category" ? "カテゴリー名を入力" : "チャンネル名を入力"}
+                  placeholder={selectedMode() === "category"
+                    ? "カテゴリー名を入力"
+                    : "チャンネル名を入力"}
                   class="w-full p-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   required
                 />
               </div>
-              
+
               <div class="pt-4">
                 <button
                   type="submit"
                   disabled={!nameValue().trim()}
                   class={`w-full py-3 px-4 rounded-md font-medium transition-all duration-200 
-                    ${!nameValue().trim() ? 'opacity-50 cursor-not-allowed ' : ''}
-                    ${selectedMode() === "category"
+                    ${
+                    !nameValue().trim() ? "opacity-50 cursor-not-allowed " : ""
+                  }
+                    ${
+                    selectedMode() === "category"
                       ? "bg-green-500 hover:bg-green-600"
                       : "bg-blue-500 hover:bg-blue-600"
-                    } text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5`}
+                  } text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5`}
                 >
-                  {selectedMode() === "category" ? "カテゴリーを作成" : "チャンネルを作成"}
+                  {selectedMode() === "category"
+                    ? "カテゴリーを作成"
+                    : "チャンネルを作成"}
                 </button>
               </div>
             </form>
@@ -490,7 +516,9 @@ function ChannelSideBar() {
   const [isSelectRoom] = useAtom(selectedRoomState);
   const [groupChannel] = useAtom(groupChannelState);
   const [showContextMenu, setShowContextMenu] = createSignal(false);
-  const [contextMenuTarget, setContextMenuTarget] = createSignal<{ id: string; type: "channel" | "category" | null }>({ id: "", type: null });
+  const [contextMenuTarget, setContextMenuTarget] = createSignal<
+    { id: string; type: "channel" | "category" | null }
+  >({ id: "", type: null });
   const [menuPosition, setMenuPosition] = createSignal({ x: 0, y: 0 });
   const [sellectedRoom] = useAtom(selectedRoomState);
   const setMessageList = useSetAtom(messageListState);
@@ -523,12 +551,12 @@ function ChannelSideBar() {
   const handleContextMenu = (e: MouseEvent, id: string, type: string) => {
     e.preventDefault();
     e.stopPropagation(); // 親要素へのイベント伝播を防止
-    
+
     // スクロール位置を考慮した位置計算
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     setMenuPosition({ x, y });
     setContextMenuTarget({
       id,
@@ -570,7 +598,7 @@ function ChannelSideBar() {
                   </button>
                 </div>
                 <div class="overflow-y-auto h-[calc(100%-54px)]">
-                <ul class="p-talk-list-rooms__ul py-2">
+                  <ul class="p-talk-list-rooms__ul py-2">
                     {(() => {
                       const groupInfo = groupChannel();
                       if (!groupInfo) return <></>;
@@ -647,12 +675,12 @@ function ChannelSideBar() {
                             {showContextMenu() &&
                               contextMenuTarget().id === id &&
                               contextMenuTarget().type === "channel" && (
-                              <div 
+                              <div
                                 class="absolute bg-gray-800 text-white rounded-lg shadow-lg p-2 animate-fadeIn z-50"
                                 style={{
                                   left: `${menuPosition().x}px`,
                                   top: `${menuPosition().y}px`,
-                                  position: 'fixed'
+                                  position: "fixed",
                                 }}
                               >
                                 <ul>
@@ -775,12 +803,12 @@ function ChannelSideBar() {
                             {showContextMenu() &&
                               contextMenuTarget().id === id &&
                               contextMenuTarget().type === "category" && (
-                              <div 
+                              <div
                                 class="absolute bg-gray-800 text-white rounded-lg shadow-lg p-2 animate-fadeIn z-50"
                                 style={{
                                   left: `${menuPosition().x}px`,
                                   top: `${menuPosition().y}px`,
-                                  position: 'fixed'
+                                  position: "fixed",
                                 }}
                               >
                                 <ul>
@@ -890,28 +918,29 @@ function ChannelSideBar() {
                     })()}
                   </ul>
                   {/* サイドバーのコンテキストメニュー */}
-                  {showContextMenu() && contextMenuTarget().id === "sidebar" && (
-                    <div 
-                      class="bg-gray-800 text-white rounded-lg shadow-lg p-2 animate-fadeIn z-50"
-                      style={{
-                        left: `${menuPosition().x}px`,
-                        top: `${menuPosition().y}px`,
-                        position: 'fixed'
-                      }}
-                    >
-                      <ul>
-                        <li
-                          class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
-                          onClick={() => {
-                            createChannel();
-                            setShowContextMenu(false);
-                          }}
-                        >
-                          チャンネル作成
-                        </li>
-                      </ul>
-                    </div>
-                  )}
+                  {showContextMenu() && contextMenuTarget().id === "sidebar" &&
+                    (
+                      <div
+                        class="bg-gray-800 text-white rounded-lg shadow-lg p-2 animate-fadeIn z-50"
+                        style={{
+                          left: `${menuPosition().x}px`,
+                          top: `${menuPosition().y}px`,
+                          position: "fixed",
+                        }}
+                      >
+                        <ul>
+                          <li
+                            class="cursor-pointer p-2 hover:bg-gray-700 rounded transition-colors duration-200"
+                            onClick={() => {
+                              createChannel();
+                              setShowContextMenu(false);
+                            }}
+                          >
+                            チャンネル作成
+                          </li>
+                        </ul>
+                      </div>
+                    )}
                   {/* チャンネル作成ボタンを削除 */}
                 </div>
               </div>

@@ -47,7 +47,7 @@ app.get("message/:messageId", async (c) => {
   if (!message) {
     return c.json({ error: "Invalid messageId" }, 400);
   }
-  if(!message.isLarge) {
+  if (!message.isLarge) {
     return c.json({
       message: message.message,
       signature: message.sign,
