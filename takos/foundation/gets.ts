@@ -28,6 +28,7 @@ const env = await load();
 import { cors } from "hono/cors";
 import { CategoryPermissions } from "../models/groups.ts";
 import accountKeyData from "../models/accountKey.ts";
+import { downloadFile } from "../utils/S3Client.ts";
 app.use(cors(
   {
     origin: "*",
@@ -46,12 +47,22 @@ app.get("message/:messageId", async (c) => {
   if (!message) {
     return c.json({ error: "Invalid messageId" }, 400);
   }
-  return c.json({
-    message: message.message,
-    signature: message.sign,
-    timestamp: message.timestamp.getTime(),
-    userName: message.userName,
-  });
+  if(!message.isLarge) {
+    return c.json({
+      message: message.message,
+      signature: message.sign,
+      timestamp: message.timestamp.getTime(),
+      userName: message.userName,
+    });
+  } else {
+    const messageContent = await downloadFile(messageId);
+    return c.json({
+      message: messageContent,
+      signature: message.sign,
+      timestamp: message.timestamp.getTime(),
+      userName: message.userName,
+    });
+  }
 });
 
 app.get("/key/server/:origin", async (c) => {

@@ -34,8 +34,9 @@ import {
   handleRemoveChannel,
   handleRemoveRole,
   handleSettings,
-  handleUnbanUser,
+  handleUnbanUser
 } from "../web/group.ts";
+
 const env = await load();
 
 class EventManager {
@@ -252,6 +253,7 @@ eventManager.add(
         messageid: messageId,
         userName: userId,
         timestamp: timestamp,
+        isLarge: false,
       });
       publish({
         type: "message",
@@ -295,6 +297,7 @@ eventManager.add(
         userName: userId,
         timestamp: timestamp,
         channelId: channelId,
+        isLarge: false,
       });
       const members = (
         await Member.find({ groupId: roomIdUserName + "@" + roomIdDomain })

@@ -45,6 +45,7 @@ export async function getMessage({
   
   const encryptedMessageRes = await fetch(
     `https://${messageid.split("@")[1]}/_takos/v1/message/${messageid}`,
+    { cache: "force-cache" }  // キャッシュを積極的に使用
   );
   if (encryptedMessageRes.status !== 200) {
     throw new Error("Unauthorized");
@@ -139,6 +140,7 @@ export async function getMessage({
   
   // 復号したメッセージをパース
   const decryptedContent = JSON.parse(decryptedMessage);
+  console.log(parsedMessage)
   return {
     verified: false, // 署名検証が実装されていない場合はfalse
     encrypted: true,
@@ -182,4 +184,56 @@ export function createMediaContent({
     uri,
     metadata
   });
+}
+
+/*
+// 6. thumbnailタイプのコンテンツ
+interface TextThumbnail {
+    originalType: "text";
+    thumbnailText: string;
+}
+
+// 画像・動画用のサムネイル
+interface MediaThumbnail {
+    originalType: "image" | "video";
+    thumbnailUri: string;       // 実際の画像/動画サムネイル
+    thumbnailMimeType: string;
+}
+
+interface FilesThumbnail {
+    originalType: "file" | "audio";
+    thumbnailText: string;
+}
+
+export type ThumbnailContent = TextThumbnail | MediaThumbnail | FilesThumbnail;
+*/
+
+export function createThumbnailContent({
+  originalType,
+  thumbnailText,
+  thumbnailUri,
+  thumbnailMimeType
+}: {
+  originalType: "text" | "image" | "video" | "audio" | "file";
+  thumbnailText?: string;
+  thumbnailUri?: string;
+  thumbnailMimeType?: string;
+}) {
+  if (originalType === "text") {
+    return JSON.stringify({
+      originalType,
+      thumbnailText
+    });
+  } else if (originalType === "image" || originalType === "video") {
+    return JSON.stringify({
+      originalType,
+      thumbnailUri,
+      thumbnailMimeType
+    });
+  } else {
+    return JSON.stringify({
+      originalType,
+      thumbnailText
+    });
+  }
 }

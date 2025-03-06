@@ -1,12 +1,49 @@
 {
   "version": "4",
   "specifiers": {
+    "jsr:@takos/takos-encrypt-ink@4.0.5": "4.0.5",
+    "jsr:@takos/takos-encrypt-ink@5": "5.4.0",
+    "jsr:@takos/takos-encrypt-ink@5.0.0": "5.0.0",
+    "jsr:@takos/takos-encrypt-ink@5.3.2": "5.3.2",
+    "jsr:@takos/takos-encrypt-ink@5.4.0": "5.4.0",
     "npm:@noble/post-quantum@*": "0.4.0",
     "npm:@noble/post-quantum@0.2": "0.2.1",
     "npm:@noble/post-quantum@0.4": "0.4.0",
     "npm:base64-arraybuffer@*": "1.0.2",
     "npm:base64-arraybuffer@^1.0.2": "1.0.2",
     "npm:uuidv7@^1.0.2": "1.0.2"
+  },
+  "jsr": {
+    "@takos/takos-encrypt-ink@4.0.5": {
+      "integrity": "4db52e58988ddc941e54c08d46d67ffe6ba604a8643cf73f2fef652ba08b4d94",
+      "dependencies": [
+        "npm:@noble/post-quantum@0.2",
+        "npm:base64-arraybuffer@^1.0.2"
+      ]
+    },
+    "@takos/takos-encrypt-ink@5.0.0": {
+      "integrity": "74387a86bf0ba831aaa1f456c7cb4ea592391f9a020c0d9c3bd882810ce9af15",
+      "dependencies": [
+        "npm:@noble/post-quantum@0.2",
+        "npm:base64-arraybuffer@^1.0.2",
+        "npm:uuidv7"
+      ]
+    },
+    "@takos/takos-encrypt-ink@5.3.2": {
+      "integrity": "79c043b2196da7bbb90c0b13e1e7be0ccfc4c2af83d3176d94db8ef97c97cb35",
+      "dependencies": [
+        "npm:@noble/post-quantum@0.2",
+        "npm:base64-arraybuffer@^1.0.2",
+        "npm:uuidv7"
+      ]
+    },
+    "@takos/takos-encrypt-ink@5.4.0": {
+      "integrity": "5ec49576ddeb5d9df8a8c911f3b22f32cd3553091b2541d369a60bf6006085ec",
+      "dependencies": [
+        "npm:@noble/post-quantum@0.2",
+        "npm:base64-arraybuffer@^1.0.2"
+      ]
+    }
   },
   "npm": {
     "@noble/hashes@1.6.0": {

@@ -94,11 +94,10 @@ export function EncryptionSettingsModal(props: EncryptionSettingsModalProps) {
                   <p>暗号化を有効にすると、メッセージはエンドツーエンドで暗号化されます。</p>
                   <p class="mt-2">チャット参加者のみがメッセージを閲覧できます。</p>
 
-                  {/* 暗号化から除外するユーザー設定 */}
                   <div class="mt-4 border-t border-gray-700 pt-4">
                     <h3 class="font-medium text-gray-200 mb-2">暗号化から除外するユーザー</h3>
                     <p class="mb-2">指定したユーザーに対しては暗号化されず、解読できません。</p>
-                    
+
                     <div class="flex items-center mt-3">
                       <input
                         type="text"
@@ -144,7 +143,6 @@ export function EncryptionSettingsModal(props: EncryptionSettingsModalProps) {
                   </div>
                 </div>
               </Show>
-              
               <Show when={!localIsEncrypted()}>
                 <div class="mt-4 text-sm text-orange-400">
                   <p>警告: 暗号化を無効にすると、メッセージは暗号化されずに送信されます。</p>

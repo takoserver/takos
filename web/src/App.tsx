@@ -15,6 +15,7 @@ import { CreateGroupPopUp } from "./components/CreateGroup.tsx";
 import { SettingRoom } from "./components/SettingRoom.tsx";
 import { MigrateKey } from "./components/MigrateKeys.tsx";
 import { showEditChannelModalState, contextMenuPositionState, ChannelEditModal } from "./components/ChatTalkContent.tsx"
+import { ImageViewer, VideoPlayer } from "./components/OtherMessage.tsx";
 
 function App(
   { page }: { page?: "home" | "talk" | "friend" | "setting" | "notification" },
@@ -49,6 +50,8 @@ function App(
               onClose={setShowEditChannelModal}
             />
       )}
+      <ImageViewer />
+      <VideoPlayer />
     </>
   );
 }

@@ -32,6 +32,9 @@ const messageSchema = new mongoose.Schema({
   channelId: {
     type: String,
   },
+  isLarge: {
+    type: Boolean,
+  }
 });
 
 const Message = mongoose.model("message", messageSchema);

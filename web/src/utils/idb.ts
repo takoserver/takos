@@ -57,6 +57,43 @@ export interface TakosDB extends DBSchema {
       timestamp: number;
     };
   };
+  //暗号化除外するユーザーのオブジェクト
+  excludeUsers: {
+    key: string;
+    value: {
+      key: string; //userId-roomId
+      userId: string;
+      roomId: string;
+      timestamp: number;
+    };
+  }
+}
+
+export async function saveExcludeUsers({
+  userId,
+  roomId,
+}: {
+  userId: string;
+  roomId: string;
+}) {
+  const db = await createTakosDB();
+  await db.put("excludeUsers", {
+    key: `${userId}-${roomId}`,
+    userId,
+    roomId,
+    timestamp: Date.now(),
+  });
+}
+
+export async function getExcludeUsers({
+  userId,
+  roomId,
+}: {
+  userId: string;
+  roomId: string;
+}) {
+  const db = await createTakosDB();
+  return db.get("excludeUsers", `${userId}-${roomId}`);
 }
 
 export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {

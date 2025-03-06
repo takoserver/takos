@@ -281,13 +281,30 @@ export interface FileContent {
 }
 
 // 6. thumbnailタイプのコンテンツ
-export interface ThumbnailContent {
-  uri: string;                  // サムネイルのURI（Base64データURIまたはURL）
-  metadata: {
-    filename: string;           // ファイル名
-    mimeType: string;           // MIMEタイプ
-  };
+interface TextThumbnail {
+    originalType: "text";
+    thumbnailText: string;
+    size:? number;
 }
+
+// 画像・動画用のサムネイル
+interface MediaThumbnail {
+    originalType: "image" | "video";
+    thumbnailUri: string;       // 実際の画像/動画サムネイル
+    thumbnailMimeType: string;
+    size:? number;
+}
+
+interface FilesThumbnail {
+    originalType: "file" | "audio";
+    thumbnailText: string;
+    size:? number;
+}
+
+export type ThumbnailContent = TextThumbnail | MediaThumbnail | FilesThumbnail;
+
+// メッセージのコンテンツタイプ
+export type MessageContent = TextContent | ImageContent | VideoContent | AudioContent | FileContent | ThumbnailContent;
 ```
 ## roomKeyの共有
 

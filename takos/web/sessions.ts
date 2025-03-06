@@ -274,7 +274,7 @@ app.post(
       nickName,
       icon: arrayBufferToBase64(
         (await resizeImageTo256x256(new Uint8Array(base64ToArrayBuffer(icon))))
-          .buffer as ArrayBuffer,
+           as unknown as ArrayBuffer,
       ),
       setup: true,
       masterKey,

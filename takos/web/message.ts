@@ -14,6 +14,7 @@ import publish from "../utils/redisClient.ts";
 import { Channels, Member } from "../models/groups.ts";
 import { channel } from "node:diagnostics_channel";
 import { getUserPermission } from "../foundation/server.ts";
+import { uploadFile } from "../utils/S3Client.ts";
 const env = await load();
 
 app.post(
@@ -34,6 +35,8 @@ app.post(
       return c.json({ message: "Unauthorized" }, 401);
     }
     const { roomId, message, sign, type, channelId } = c.req.valid("json");
+    const presedMessage = JSON.parse(message);
+    const isLarge = presedMessage.isLarge;
     if (type === "friend") {
       if (
         !friends.findOne({
@@ -48,48 +51,65 @@ app.post(
       }
       const messageid = uuidv7() + "@" + env["domain"];
       const timestamp = new Date();
-      await Message.create({
-        userName: user.userName + "@" + env["domain"],
-        timestamp,
-        roomId,
-        messageid,
-        isEncrypted: true,
-        isSigned: true,
-        message,
-        sign,
-      });
-      publish({
-        type: "message",
-        users: [user.userName + "@" + env["domain"], roomId],
-        data: JSON.stringify({
-          messageid,
-          timestamp,
+      if(isLarge) {
+        await Message.create({
           userName: user.userName + "@" + env["domain"],
-          roomid: roomId,
-        }),
-      });
-      if (roomId.split("@")[1] !== env["domain"]) {
-        const res = await fff(
-          JSON.stringify({
-            event: "t.message.send",
-            eventId: uuidv7(),
-            payload: {
-              userId: user.userName + "@" + env["domain"],
-              messageId: messageid,
-              roomId: roomId,
-              roomType: "friend",
-            },
+          timestamp,
+          roomId,
+          messageid,
+          isEncrypted: true,
+          isSigned: true,
+          sign,
+          isLarge: true,
+        });
+        await uploadFile(messageid, message);
+      } else {
+        await Message.create({
+          userName: user.userName + "@" + env["domain"],
+          timestamp,
+          roomId,
+          messageid,
+          isEncrypted: true,
+          isSigned: true,
+          message,
+          sign,
+          isLarge: false,
+        });
+      }
+      if(!isLarge) {
+        publish({
+          type: "message",
+          users: [user.userName + "@" + env["domain"], roomId],
+          data: JSON.stringify({
+            messageid,
+            timestamp,
+            userName: user.userName + "@" + env["domain"],
+            roomid: roomId,
           }),
-          [roomId.split("@")[1]],
-        ) as [Response] | { error: string };
-        if ("error" in res) {
-          return c.json({ message: res.error }, 500);
-        }
-        if (res[0].status !== 200) {
-          return c.json({ message: "Failed to send message" }, 500);
+        });
+        if (roomId.split("@")[1] !== env["domain"]) {
+          const res = await fff(
+            JSON.stringify({
+              event: "t.message.send",
+              eventId: uuidv7(),
+              payload: {
+                userId: user.userName + "@" + env["domain"],
+                messageId: messageid,
+                roomId: roomId,
+                roomType: "friend",
+              },
+            }),
+            [roomId.split("@")[1]],
+          ) as [Response] | { error: string };
+          if ("error" in res) {
+            return c.json({ message: res.error }, 500);
+          }
+          if (res[0].status !== 200) {
+            return c.json({ message: "Failed to send message" }, 500);
+          }
         }
       }
-      return c.json({ message: "Success" }, 200);
+      return c.json({ messageId: messageid }, 200);
     }
     if (type === "group") {
       const match = roomId.match(/^g\{([^}]+)\}@(.+)$/);
@@ -130,17 +150,33 @@ app.post(
       }
       const messageid = uuidv7() + "@" + env["domain"];
       const timestamp = new Date();
-      await Message.create({
-        userName: user.userName + "@" + env["domain"],
-        timestamp,
-        roomId,
-        messageid,
-        isEncrypted: true,
-        isSigned: true,
-        message,
-        sign,
-        channelId: channelId,
-      });
+      if(isLarge) {
+        await Message.create({
+          userName: user.userName + "@" + env["domain"],
+          timestamp,
+          roomId,
+          messageid,
+          isEncrypted: true,
+          isSigned: true,
+          sign,
+          channelId: channelId,
+          isLarge: true,
+        });
+        await uploadFile(messageid, message);
+      } else {
+        await Message.create({
+          userName: user.userName + "@" + env["domain"],
+          timestamp,
+          roomId,
+          messageid,
+          isEncrypted: true,
+          isSigned: true,
+          message,
+          sign,
+          channelId: channelId,
+          isLarge: false,
+        });
+      }
       const Members =
         (await Member.find({ groupId: friendUserName + "@" + domainFromRoom }))
           .map((member) => member.userId);
@@ -168,21 +204,23 @@ app.post(
           channelId: channelId,
         }),
       });
-      await fff(
-        JSON.stringify({
-          event: "t.message.send",
-          eventId: uuidv7(),
-          payload: {
-            userId: user.userName + "@" + env["domain"],
-            messageId: messageid,
-            roomId: roomId,
-            roomType: "group",
-            channelId: channelId,
-          },
-        }),
-        MembersArray,
-      );
-      return c.json({ message: "Success" }, 200);
+      if(!isLarge) {
+        await fff(
+          JSON.stringify({
+            event: "t.message.send",
+            eventId: uuidv7(),
+            payload: {
+              userId: user.userName + "@" + env["domain"],
+              messageId: messageid,
+              roomId: roomId,
+              roomType: "group",
+              channelId: channelId,
+            },
+          }),
+          MembersArray,
+        );
+      }
+      return c.json({ messageId: messageid }, 200);
     }
   },
 );
@@ -216,12 +254,14 @@ app.get("friend/:roomId", async (c) => {
     const myMessages = await Message.find({
       roomId,
       userName: user.userName + "@" + env["domain"],
+      isLarge: false,
     }, { messageid: 1, timestamp: 1, userName: 1, _id: 0 }).limit(limit).sort({
       timestamp: -1,
     });
     const friendMessages = await Message.find({
       roomId: "m{" + user.userName + "}@" + env["domain"],
       userName: friendUserName + "@" + domainFromRoom,
+      isLarge: false,
     }, { messageid: 1, timestamp: 1, userName: 1, _id: 0 }).limit(limit).sort({
       timestamp: -1,
     });
@@ -234,6 +274,7 @@ app.get("friend/:roomId", async (c) => {
   const beforeMessageId = await Message.findOne({
     roomId,
     timestamp: { $lt: new Date(bfore) },
+    isLarge: false || undefined
   }).sort({ timestamp: -1 });
   if (!beforeMessageId) {
     return c.json({ error: "Invalid before" }, 400);
@@ -243,6 +284,7 @@ app.get("friend/:roomId", async (c) => {
     roomId,
     userName: user.userName + "@" + env["domain"],
     timestamp: { $lt: beforemessageTime },
+    isLarge: false,
   }, { messageid: 1, timestamp: 1, userName: 1, _id: 0 }).limit(limit).sort({
     timestamp: -1,
   });
@@ -250,6 +292,7 @@ app.get("friend/:roomId", async (c) => {
     roomId: "m{" + user.userName + "}@" + env["domain"],
     userName: friendUserName + "@" + domainFromRoom,
     timestamp: { $lt: beforemessageTime },
+    isLarge: false,
   }, { messageid: 1, timestamp: 1, userName: 1, _id: 0 }).limit(limit).sort({
     timestamp: -1,
   });
@@ -281,6 +324,7 @@ app.get("group/:roomId/:channelId", async (c) => {
     const messages = await Message.find({
       roomId,
       channelId,
+      isLarge: false,
     }, { messageid: 1, timestamp: 1, userName: 1, _id: 0 }).limit(limit).sort({
       timestamp: -1,
     });
@@ -290,6 +334,7 @@ app.get("group/:roomId/:channelId", async (c) => {
     roomId,
     channelId,
     timestamp: { $lt: new Date(bfore) },
+    isLarge: false,
   }).sort({ timestamp: -1 });
   if (!beforeMessageId) {
     return c.json({ error: "Invalid before" }, 400);
@@ -298,6 +343,7 @@ app.get("group/:roomId/:channelId", async (c) => {
   const messages = await Message.find({
     roomId,
     channelId,
+    isLarge: false,
     timestamp: { $lt: beforemessageTime },
   }, { messageid: 1, timestamp: 1, userName: 1, _id: 0 }).limit(limit).sort({
     timestamp: -1,

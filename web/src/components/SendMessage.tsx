@@ -2,6 +2,9 @@ import { createSignal } from "solid-js";
 import { ContextMenu } from "./ContextMenu";
 import { convertLineBreak, convertTime, renderMessageContent } from "./OtherMessage";
 
+const userId = localStorage.getItem("userName") + "@" +
+  new URL(window.location.href).hostname;
+
 const ChatSendMessage = (
   { time, content, isPrimary, isSendPrimary, messageid }: {
     time: string | number | Date;
@@ -11,6 +14,7 @@ const ChatSendMessage = (
       content: string;
       type: string;
       timestamp: string | number | Date;
+      original?: string | undefined;
     };
     messageid: string;
     isPrimary: boolean;
@@ -74,7 +78,7 @@ const ChatSendMessage = (
         </div>
         <div class="c-talk-chat-right">
           <p>
-            {renderMessageContent(content)}
+            {renderMessageContent(content, userId)}
           </p>
         </div>
       </div>

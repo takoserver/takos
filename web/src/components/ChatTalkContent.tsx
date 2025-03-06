@@ -4,7 +4,7 @@ import {
   selectedRoomState,
 } from "../utils/roomState";
 import { messageListState, messageValueState } from "../utils/state.ts";
-import { atom, useAtom } from "solid-jotai";
+import { atom, useAtom, useSetAtom } from "solid-jotai";
 import ChatSendMessage from "./SendMessage.tsx";
 import ChatOtherMessage from "./OtherMessage.tsx";
 import { getMessage } from "../utils/getMessage.ts";
@@ -22,6 +22,7 @@ const messageCache = new Map<string, {
   timestamp: number;  // string | number から number に変更
   messageid: string;
   roomid: string;
+  original?: string;
   serverData: {
     userName: string;
     timestamp: number;  // string | number から number に変更
@@ -36,6 +37,7 @@ const messagesState = atom<{
   timestamp: number;
   messageid: string;
   roomid: string;
+  original?: string;
   serverData: {
     userName: string;
     timestamp: number;
@@ -57,6 +59,7 @@ const [messageTimeLine, setMessageTimeLine] = createSignal<{
   timestamp: number;  // number | string から number に変更
   messageid: string;
   roomid: string;
+  original?: string;
   serverData: {
     userName: string;
     timestamp: number;  // string | number から number に変更
@@ -165,6 +168,7 @@ function ChatTalkMain() {
             timestamp: Number(serverData.timestamp),
             messageid: message.messageid,
             roomid: roomid,
+            original : serverData.original,
             serverData: {
               userName: message.userName,
               timestamp: Number(serverData.timestamp), // 確実に number に変換
@@ -253,6 +257,7 @@ function ChatTalkMain() {
                       content: message.content,
                       type: message.type,
                       timestamp: message.timestamp,
+                      original: message.original,
                     }}
                     messageid={message.messageid}
                     isPrimary={true}
@@ -270,6 +275,7 @@ function ChatTalkMain() {
                       content: message.content,
                       type: message.type,
                       timestamp: message.timestamp,
+                      original: message.original,
                     }}
                     messageid={message.messageid}
                     isPrimary={true}
@@ -478,20 +484,17 @@ export const contextMenuPositionState = atom<
 >({ x: 0, y: 0, type: null, id: "" });
 
 function ChannelSideBar() {
-  const [contextMenuPosition, setContextMenuPosition] = useAtom(contextMenuPositionState);
+  const setContextMenuPosition = useSetAtom(contextMenuPositionState);
   const [selectedChannel, setSelectedChannel] = useAtom(selectedChannelState);
   const [isOpenChannel, setIsOpenChannel] = createSignal(false);
   const [isSelectRoom] = useAtom(selectedRoomState);
   const [groupChannel] = useAtom(groupChannelState);
   const [showContextMenu, setShowContextMenu] = createSignal(false);
-  const [contextMenuTarget, setContextMenuTarget] = createSignal<
-    { id: string; type: "channel" | "category" | null }
-  >({ id: "", type: null });
+  const [contextMenuTarget, setContextMenuTarget] = createSignal<{ id: string; type: "channel" | "category" | null }>({ id: "", type: null });
   const [menuPosition, setMenuPosition] = createSignal({ x: 0, y: 0 });
   const [sellectedRoom] = useAtom(selectedRoomState);
-  const [messageList, setMessageList] = useAtom(messageListState);
-  const [showEditChannelModal, setShowEditChannelModal] = useAtom(showEditChannelModalState);
-  
+  const setMessageList = useSetAtom(messageListState);
+  const setShowEditChannelModal = useSetAtom(showEditChannelModalState);
   // クリックでコンテキストメニューを閉じる
   onMount(() => {
     const clickHandler = (e: MouseEvent) => {
@@ -502,26 +505,21 @@ function ChannelSideBar() {
       document.removeEventListener("click", clickHandler);
     });
   });
-
   // サイドバーの空き領域に対する右クリックメニュー用のハンドラー
   const handleSidebarContextMenu = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
     // スクロール位置を考慮した位置計算
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
     setMenuPosition({ x, y });
     setContextMenuTarget({ id: "sidebar", type: null });
     setShowContextMenu(true);
   };
-
   function createChannel() {
     setShowCreateChannelModal(true);
   }
-
   const handleContextMenu = (e: MouseEvent, id: string, type: string) => {
     e.preventDefault();
     e.stopPropagation(); // 親要素へのイベント伝播を防止
@@ -538,12 +536,11 @@ function ChannelSideBar() {
     });
     setShowContextMenu(true);
   };
-
   const handleMenuItemClick = (item: string) => {
     console.log(item + " clicked");
     setShowContextMenu(false);
   };
-  const [messages, setMessages] = useAtom(messagesState);
+  const setMessages = useSetAtom(messagesState);
   return (
     <>
       {isSelectRoom()?.type === "group" && (
@@ -941,7 +938,6 @@ function ChannelSideBar() {
               </svg>
             </button>
           )}
-          
         </>
       )}
     </>

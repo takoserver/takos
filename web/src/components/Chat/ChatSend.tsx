@@ -7,6 +7,7 @@ import { useAtom } from "solid-jotai";
 import { createEffect, createSignal } from "solid-js";
 import { selectedChannelState, selectedRoomState } from "../../utils/roomState";
 import imageCompression from 'browser-image-compression';
+import { generateThumbnailFromFile } from "../../utils/getVideoThumbnail";
 import {
   decryptDataDeviceKey,
   encryptDataDeviceKey,
@@ -19,7 +20,7 @@ import {
 import { createTakosDB, decryptIdentityKey } from "../../utils/idb";
 import { shoowIdentityKeyPopUp } from "../CreateIdentityKeyPopUp";
 import { groupChannelState } from "./SideBar";
-import { createMediaContent, createTextContent } from "../../utils/getMessage";
+import { createMediaContent, createTextContent, createThumbnailContent } from "../../utils/getMessage";
 import EncryptionSettingsModal, { showEncryptionSettingsState } from "./EncryptionSettingsModal";
 
 const userId = localStorage.getItem("userName") + "@" +
@@ -35,9 +36,7 @@ function ChatSend() {
   const [groupChannel, setGroupChannel] = useAtom(groupChannelState);
   const [selectedChannel] = useAtom(selectedChannelState);
   const [showEncryptionSettings, setShowEncryptionSettings] = useAtom(showEncryptionSettingsState);
-  /**
-   * メッセージ送信を処理する関数
-   */
+   // メッセージ送信を処理する関数
   const sendTextHandler = async () => {
     // 入力検証と必要な値の確認
     if (!isValidInput()) return;
@@ -56,9 +55,17 @@ function ChatSend() {
   const sendHandler = async ({
     type,
     content,
+    mention = [],
+    reply = null,
+    original = null,
+    isLarge = false,
   }: {
-    type: "text" | "file" | "image";
+    type: "text" | "file" | "image" | "thumbnail" | "video";
     content: string;
+    mention?: string[];
+    reply?: { id: string; content: string } | null;
+    original?: string | null;
+    isLarge?: boolean;
   }) => {
     try {
       const room = selectedRoom();
@@ -78,14 +85,19 @@ function ChatSend() {
       if (!roomKey) return;
       const channel = room.type === "friend" ? "friend" : selectedChannel();
       if (!channel) return;
+      const processedReply = reply ? { id: reply.id } : undefined;
+      const processedOriginal = original ? original : undefined;
+
       const encrypted = await encryptMessage(
         {
           type,
           content: content,
           channel,
           timestamp: new Date().getTime(),
-          isLarge: false,
-          mention: [],
+          isLarge,
+          mention,
+          reply: processedReply,
+          original: processedOriginal,
         },
         roomKey,
         {
@@ -95,7 +107,7 @@ function ChatSend() {
         room.roomid,
       );
       if (!encrypted) return;
-      // メッセージ送信
+
       const success = await sendEncryptedMessage({
         roomId: room.roomid,
         message: encrypted.message,
@@ -107,14 +119,18 @@ function ChatSend() {
       if (success) {
         setInputMessage("");
       }
+      if(success.status === false) {
+        console.error("メッセージ送信に失敗しました");
+        return;
+      }
+      return success.messageId;
     } catch (error) {
       console.error("メッセージ送信中にエラーが発生しました:", error);
     }
   };
 
-  /**
-   * ID鍵を取得する
-   */
+  
+  // ID鍵を取得する
   const getIdentityKeys = async (deviceKeyVal: string) => {
     const db = await createTakosDB();
     const identityKeys = await db.getAll("identityKeys");
@@ -278,7 +294,7 @@ function ChatSend() {
     return null;
   };
 
-  /**
+  /*
    * 暗号化されたメッセージを送信
    */
   const sendEncryptedMessage = async (
@@ -303,8 +319,12 @@ function ChatSend() {
         channelId,
       }),
     });
-
-    return res.status === 200;
+    if(res.status == 200) {
+      const body = await res.json();
+    return { status: true, messageId: body.messageId };
+    } else {
+      return { status: false };
+    }
   };
   // 暗号化設定状態を管理
   const [isEncrypted, setIsEncrypted] = createSignal(true);
@@ -364,87 +384,48 @@ function ChatSend() {
     setIsMenuOpen(false);
   };
 
-  const handleImageSelect = () => {
-    //画像選択処理 FileAPIを使用
-    console.log("画像選択");
+  const handleMediaSelect = () => {
+    // 画像・動画選択処理
+    console.log("メディア選択");
     setIsMenuOpen(false);
   
     // ファイル入力要素の作成
     const fileInput = document.createElement("input");
     fileInput.type = "file";
-    fileInput.accept = "image/*"; // 画像ファイルのみ許可
+    fileInput.accept = "image/*,video/*"; // 画像と動画ファイルを許可
     fileInput.style.display = "none";
   
     // ファイル選択イベントハンドラを設定
     fileInput.addEventListener("change", async (event) => {
-      console.log("画像選択完了");
+      console.log("ファイル選択完了");
       const target = event.target as HTMLInputElement;
       const file = target.files?.[0];
   
-      if (file) {
-        try {
-          // ファイルサイズをキロバイト単位で計算
-          const fileSizeKB = file.size / 1024;
-          console.log(`画像サイズ: ${fileSizeKB.toFixed(2)}KB`);
-  
-          if (fileSizeKB > 256) {
-            // 256KB以上の場合は圧縮処理を実行
-            console.log("画像サイズが256KBを超えているため圧縮します");
-            const options = {
-              maxSizeKB: 256,
-              maxWidthOrHeight: 1920
-            }
-            imageCompression(file, options)
-              .then(async function (compressedFile) {
-                const img = URL.createObjectURL(compressedFile);
-                const base64Image = await new Promise<string>((resolve) => {
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    const dataUrl = reader.result as string;
-                    const base64Data = dataUrl.replace(/^data:.*?;base64,/, '');
-                    resolve(base64Data);
-                  };
-                  reader.readAsDataURL(compressedFile);
-                })
-                const content = createMediaContent({
-                  uri: base64Image,
-                  metadata: {
-                    filename: compressedFile.name,
-                    mimeType: compressedFile.type,
-                  }
-                })
-                await sendHandler({
-                  type: "image",
-                  content,
-                })
-              });
-          } else {
-            // 256KB以下の場合は圧縮せずにそのまま送信
-            console.log("画像サイズが256KB以下のため圧縮せずに送信します");
-            const base64Image = await new Promise<string>((resolve) => {
-              const reader = new FileReader();
-              reader.onload = () => {
-                const dataUrl = reader.result as string;
-                const base64Data = dataUrl.replace(/^data:.*?;base64,/, '');
-                resolve(base64Data);
-              };
-              reader.readAsDataURL(file);
-            });
-            const content = createMediaContent({
-              uri: base64Image,
-              metadata: {
-                filename: file.name,
-                mimeType: file.type,
-              }
-            })
-            await sendHandler({
-              type: "image",
-              content,
-            })
-          }
-        } catch (error) {
-          console.error("画像処理中にエラーが発生しました:", error);
+      if (!file) return;
+      
+      try {
+        // ファイルタイプを確認
+        const isVideo = file.type.startsWith('video/');
+        const isImage = file.type.startsWith('image/');
+        
+        if (!isVideo && !isImage) {
+          console.error("サポートされていないファイル形式です");
+          return;
         }
+  
+        // ファイルサイズをメガバイト単位で計算
+        const fileSizeMB = file.size / (1024 * 1024);
+        console.log(`ファイルサイズ: ${fileSizeMB.toFixed(2)}MB`);
+  
+        if (isImage) {
+          // 画像処理 - 既存コード
+          await handleImageFile(file);
+        } else if (isVideo) {
+          // 動画処理 - 新規追加
+          await handleVideoFile(file);
+        }
+      } catch (error) {
+        console.error("メディア処理中にエラーが発生しました:", error);
       }
     });
   
@@ -452,11 +433,150 @@ function ChatSend() {
     document.body.appendChild(fileInput);
     fileInput.click();
   
-    // 使用後にDOMから削除（少し遅延させる）
+    // 使用後にDOMから削除
     setTimeout(() => {
       document.body.removeChild(fileInput);
-    }, 3000); // 3秒後に削除（時間を長くして確実にイベントが処理されるようにする）
+    }, 3000);
   };
+  
+  // 画像ファイル処理関数
+  const handleImageFile = async (file: File) => {
+    const fileSizeKB = file.size / 1024;
+    
+    if (fileSizeKB > 256) {
+      const base64Image = await readFileAsBase64(file);
+      const replaced = base64Image.replace(/^data:.*?;base64,/, '')
+      const contentRaw = createMediaContent({
+        uri: replaced,
+        metadata: {
+          filename: file.name,
+          mimeType: file.type,
+        }
+      });
+      const big = contentRaw
+      const messageId = await sendHandler({
+        type: "image",
+        content: big,
+        isLarge: true,
+      });
+      const resizedImage = (await resizeBase64Image(base64Image, 256)).replace(/^data:.*?;base64,/, '');
+      const content = createThumbnailContent({
+        originalType: "image",
+        thumbnailMimeType: file.type,
+        thumbnailUri: resizedImage,
+      });
+      await sendHandler({
+        type: "thumbnail",
+        content,
+        isLarge: false,
+        original: messageId
+      });
+    } else {
+      // 256KB以下の場合は圧縮せずに送信
+      console.log("画像サイズが256KB以下のため圧縮せずに送信します");
+      const base64Data = await readFileAsBase64(file, true);
+      const content = createMediaContent({
+        uri: base64Data,
+        metadata: {
+          filename: file.name,
+          mimeType: file.type,
+        }
+      });
+      await sendHandler({
+        type: "image",
+        content,
+      });
+    }
+  };
+  
+  // 動画ファイル処理関数
+  const handleVideoFile = async (file: File) => {
+    // 動画ファイルのサイズ制限 (10GB)
+    const maxVideoSizeMB = 10000;
+    const fileSizeMB = file.size / (1024 * 1024);
+    const fileSizeKB = file.size / 1024;
+    
+    if (fileSizeMB > maxVideoSizeMB) {
+      console.error(`動画サイズが上限（${maxVideoSizeMB}MB）を超えています`);
+      return;
+    }
+  
+    // 256KB以下の場合は圧縮せずにサムネイルなしで直接送信
+    if (fileSizeKB <= 256) {
+      console.log("動画サイズが256KB以下のため圧縮せずに送信します");
+      const base64Data = await readFileAsBase64(file, true);
+      const content = createMediaContent({
+        uri: base64Data,
+        metadata: {
+          filename: file.name,
+          mimeType: file.type,
+        }
+      });
+      await sendHandler({
+        type: "video",
+        content,
+      });
+      return;
+    }
+    
+    // 256KB以上の場合は元のロジックを実行（動画を送信してからサムネイルも送信）
+    const base64Video = await readFileAsBase64(file);
+    const videoContent = base64Video.replace(/^data:.*?;base64,/, '');
+    
+    // 元の動画を送信
+    const messageId = await sendHandler({
+      type: "video",
+      content: createMediaContent({
+        uri: videoContent,
+        metadata: {
+          filename: file.name,
+          mimeType: file.type,
+        }
+      }),
+      isLarge: true,
+    });
+    
+    // 動画のサムネイル生成と送信
+    try {
+      const thumbnailBase64 = await generateThumbnailFromFile(file, 0);
+      // 256KB以上の場合は圧縮
+      let resizedThumbnailBase64 = thumbnailBase64;
+      if (getBase64SizeKB(thumbnailBase64) > 256) {
+        resizedThumbnailBase64 = await resizeBase64Image(thumbnailBase64, 256);
+      }
+      const thumbnailContent = createThumbnailContent({
+        originalType: "video",
+        thumbnailMimeType: "image/jpeg",
+        thumbnailUri: resizedThumbnailBase64.replace(/^data:.*?;base64,/, ''),
+      });
+      await sendHandler({
+        type: "thumbnail",
+        content: thumbnailContent,
+        isLarge: false,
+        original: messageId
+      });
+    } catch (err) {
+      console.error("動画サムネイル生成に失敗しました:", err);
+    }
+  };
+  
+  // ファイルをBase64に変換するユーティリティ関数
+  const readFileAsBase64 = (file: File, stripPrefix = false): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        if (stripPrefix) {
+          const base64Data = dataUrl.replace(/^data:.*?;base64,/, '');
+          resolve(base64Data);
+        } else {
+          resolve(dataUrl);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+  
 
   const handleExcludeSettings = () => {
     setIsMenuOpen(false);
@@ -603,8 +723,8 @@ function ChatSend() {
           {/* 画像ボタン */}
           <div
             class="mr-2 p-2 cursor-pointer hover:bg-[#2e2e2e] rounded-full transition-colors"
-            onClick={handleImageSelect}
-            title="画像を送信"
+            onClick={handleMediaSelect}
+            title="写真・動画を送信"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -787,7 +907,7 @@ async function collectFriendKeys(
           latest: false,
         });
       }
-
+      console.log(!!friendMasterKey, !!friendAccountKey, !!friendAccountKeySign);
       // マスターキーの検証
       if (
         !verifyMasterKey(
@@ -958,4 +1078,45 @@ interface ResizeImageOptions {
   maxSizeKB?: number;
   maxWidth?: number;
   maxHeight?: number;
+}
+
+async function resizeBase64Image(base64: string, maxSizeKB: number = 256): Promise<string> {
+  return new Promise((resolve, reject) => {
+      const img: HTMLImageElement = new Image();
+      img.onload = async function () {
+          const canvas: HTMLCanvasElement = document.createElement("canvas");
+          const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
+
+          if (!ctx) {
+              reject(new Error("Canvas context is not supported"));
+              return;
+          }
+
+          let width: number = img.width;
+          let height: number = img.height;
+
+          // 初期の canvas サイズ設定
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          let quality: number = 0.9; // 初期圧縮率
+          let resultBase64: string = canvas.toDataURL("image/jpeg", quality);
+
+          // 256KB 以下になるように調整
+          while (getBase64SizeKB(resultBase64) > maxSizeKB && quality > 0.1) {
+              quality -= 0.05;
+              resultBase64 = canvas.toDataURL("image/jpeg", quality);
+          }
+
+          resolve(resultBase64);
+      };
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = base64;
+  });
+}
+
+// Base64 のサイズを KB 単位で取得
+function getBase64SizeKB(base64: string): number {
+  return Math.round((base64.length * 3) / 4 / 1024);
 }

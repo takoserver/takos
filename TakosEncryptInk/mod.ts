@@ -37,9 +37,8 @@ export function signMasterKey(
   const signature = ml_dsa87.sign(
     new Uint8Array(base64ToArrayBuffer(keyBinary)),
     dataArray,
-    new Uint8Array(64),
   );
-  const signString = arrayBufferToBase64(signature.buffer as ArrayBuffer);
+  const signString = arrayBufferToBase64(signature as unknown as ArrayBuffer);
   const signResult: Sign = {
     signature: signString,
     keyHash: pubKeyHash,
@@ -83,9 +82,8 @@ export function signIdentityKey(
   const signature = ml_dsa65.sign(
     new Uint8Array(base64ToArrayBuffer(keyBinary)),
     dataArray,
-    new Uint8Array(64),
   );
-  const signString = arrayBufferToBase64(signature.buffer as ArrayBuffer);
+  const signString = arrayBufferToBase64(signature as unknown as ArrayBuffer);
   const signResult: Sign = {
     signature: signString,
     keyHash: pubKeyHash,
@@ -123,10 +121,10 @@ export function generateMasterKey(): {
   const seed = crypto.getRandomValues(new Uint8Array(32));
   const key = ml_dsa87.keygen(seed);
   const publicKeyBinary = arrayBufferToBase64(
-    key.publicKey.buffer as ArrayBuffer,
+    key.publicKey as unknown as ArrayBuffer,
   );
   const privateKeyBinary = arrayBufferToBase64(
-    key.secretKey.buffer as ArrayBuffer,
+    key.secretKey as unknown as ArrayBuffer,
   );
   const publickKey: masterKey = {
     keyType: "masterKeyPublic",
@@ -198,10 +196,10 @@ export async function generateIdentityKey(uuid: string, masterKey: {
   const seed = crypto.getRandomValues(new Uint8Array(32));
   const key = ml_dsa65.keygen(seed);
   const publicKeyBinary = arrayBufferToBase64(
-    key.publicKey.buffer as ArrayBuffer,
+    key.publicKey as unknown as ArrayBuffer,
   );
   const privateKeyBinary = arrayBufferToBase64(
-    key.secretKey.buffer as ArrayBuffer,
+    key.secretKey as unknown as ArrayBuffer,
   );
   const timestamp = new Date().getTime();
   const publickKeyObj: identityKey = {
@@ -285,10 +283,10 @@ export async function generateAccountKey(masterKey: {
   }
   const key = ml_kem768.keygen();
   const publicKeyBinary = arrayBufferToBase64(
-    key.publicKey.buffer as ArrayBuffer,
+    key.publicKey as unknown as ArrayBuffer,
   );
   const privateKeyBinary = arrayBufferToBase64(
-    key.secretKey.buffer as ArrayBuffer,
+    key.secretKey as unknown as ArrayBuffer,
   );
   const timestamp = new Date().getTime();
   const publickKeyObj: accountKey = {
@@ -366,7 +364,7 @@ export async function encryptDataAccountKey(
     new Uint8Array(32),
   );
   const ciphertextString = arrayBufferToBase64(
-    ciphertext.cipherText.buffer as ArrayBuffer,
+    ciphertext.cipherText as unknown as ArrayBuffer,
   );
   const keyHashString = await keyHash(key);
   const importedKey = await crypto.subtle.importKey(
@@ -385,7 +383,7 @@ export async function encryptDataAccountKey(
     importedKey,
     dataArray,
   );
-  const viString = arrayBufferToBase64(iv.buffer as ArrayBuffer);
+  const viString = arrayBufferToBase64(iv as unknown as ArrayBuffer);
   const encryptedDataString = arrayBufferToBase64(encryptedData);
   const result: EncryptedData = {
     encryptedData: encryptedDataString,
@@ -533,7 +531,7 @@ export async function encryptDataRoomKey(
     importedKey,
     dataArray,
   );
-  const viString = arrayBufferToBase64(iv.buffer as ArrayBuffer);
+  const viString = arrayBufferToBase64(iv as unknown as ArrayBuffer);
   const encryptedDataString = arrayBufferToBase64(encryptedData);
   const result: EncryptedData = {
     keyType: "roomKey",
@@ -808,10 +806,10 @@ export async function generateShareKey(
   }
   const key = ml_kem768.keygen();
   const publicKeyBinary = arrayBufferToBase64(
-    key.publicKey.buffer as ArrayBuffer,
+    key.publicKey as unknown as ArrayBuffer,
   );
   const privateKeyBinary = arrayBufferToBase64(
-    key.secretKey.buffer as ArrayBuffer,
+    key.secretKey as unknown as ArrayBuffer,
   );
   const timestamp = new Date().getTime();
   const publickKeyObj: shareKey = {
@@ -891,7 +889,7 @@ export async function encryptDataShareKey(
     new Uint8Array(32),
   );
   const ciphertextString = arrayBufferToBase64(
-    ciphertext.cipherText.buffer as ArrayBuffer,
+    ciphertext.cipherText as unknown as ArrayBuffer,
   );
   const keyHashString = await keyHash(key);
   const importedKey = await crypto.subtle.importKey(
@@ -910,7 +908,7 @@ export async function encryptDataShareKey(
     importedKey,
     dataArray,
   );
-  const viString = arrayBufferToBase64(iv.buffer as ArrayBuffer);
+  const viString = arrayBufferToBase64(iv as unknown as ArrayBuffer);
   const encryptedDataString = arrayBufferToBase64(encryptedData);
   const result: EncryptedData = {
     keyType: "shareKey",
@@ -1001,10 +999,10 @@ export async function generateShareSignKey(
   const seed = crypto.getRandomValues(new Uint8Array(32));
   const key = ml_dsa65.keygen(seed);
   const publicKeyBinary = arrayBufferToBase64(
-    key.publicKey.buffer as ArrayBuffer,
+    key.publicKey as unknown as ArrayBuffer,
   );
   const privateKeyBinary = arrayBufferToBase64(
-    key.secretKey.buffer as ArrayBuffer,
+    key.secretKey as unknown as ArrayBuffer,
   );
   const timestamp = new Date().getTime();
   const publickKey: shareSignKey = {
@@ -1083,9 +1081,8 @@ export function signDataShareSignKey(
   const signature = ml_dsa65.sign(
     new Uint8Array(base64ToArrayBuffer(keyBinary)),
     dataArray,
-    new Uint8Array(64),
   );
-  const signString = arrayBufferToBase64(signature.buffer as ArrayBuffer);
+  const signString = arrayBufferToBase64(signature as unknown as ArrayBuffer);
   const signResult: Sign = {
     signature: signString,
     keyHash: pubKeyHash,
@@ -1180,10 +1177,10 @@ export function generateMigrateKey(): {
 } {
   const key = ml_kem768.keygen();
   const publicKeyBinary = arrayBufferToBase64(
-    key.publicKey.buffer as ArrayBuffer,
+    key.publicKey as unknown as ArrayBuffer,
   );
   const privateKeyBinary = arrayBufferToBase64(
-    key.secretKey.buffer as ArrayBuffer,
+    key.secretKey as unknown as ArrayBuffer,
   );
   const publickKey: migrateKey = {
     keyType: "migrateKeyPublic",
@@ -1246,7 +1243,7 @@ export async function encryptDataMigrateKey(
     new Uint8Array(32),
   );
   const ciphertextString = arrayBufferToBase64(
-    ciphertext.cipherText.buffer as ArrayBuffer,
+    ciphertext.cipherText as unknown as ArrayBuffer,
   );
   const keyHashString = await keyHash(key);
   const importedKey = await crypto.subtle.importKey(
@@ -1265,7 +1262,7 @@ export async function encryptDataMigrateKey(
     importedKey,
     dataArray,
   );
-  const viString = arrayBufferToBase64(iv.buffer as ArrayBuffer);
+  const viString = arrayBufferToBase64(iv as unknown as ArrayBuffer);
   const encryptedDataString = arrayBufferToBase64(encryptedData);
   const result: EncryptedData = {
     keyType: "migrateKey",
@@ -1336,10 +1333,10 @@ export function generateMigrateSignKey(): {
   const seed = crypto.getRandomValues(new Uint8Array(32));
   const key = ml_dsa65.keygen(seed);
   const publicKeyBinary = arrayBufferToBase64(
-    key.publicKey.buffer as ArrayBuffer,
+    key.publicKey as unknown as ArrayBuffer,
   );
   const privateKeyBinary = arrayBufferToBase64(
-    key.secretKey.buffer as ArrayBuffer,
+    key.secretKey as unknown as ArrayBuffer,
   );
   const publickKey: migrateSignKey = {
     keyType: "migrateSignKeyPublic",
@@ -1402,9 +1399,8 @@ export function signDataMigrateSignKey(
   const signature = ml_dsa65.sign(
     new Uint8Array(base64ToArrayBuffer(keyBinary)),
     dataArray,
-    new Uint8Array(64),
   );
-  const signString = arrayBufferToBase64(signature.buffer as ArrayBuffer);
+  const signString = arrayBufferToBase64(signature as unknown as ArrayBuffer);
   const signResult: Sign = {
     signature: signString,
     keyHash: pubKeyHash,
@@ -1515,7 +1511,7 @@ export async function encryptDataDeviceKey(
     importedKey,
     dataArray,
   );
-  const viString = arrayBufferToBase64(iv.buffer as ArrayBuffer);
+  const viString = arrayBufferToBase64(iv as unknown as ArrayBuffer);
   const encryptedDataString = arrayBufferToBase64(encryptedData);
   const result: EncryptedData = {
     keyType: "deviceKey",
@@ -1560,16 +1556,15 @@ function generateServerKey(): {
   const seed = crypto.getRandomValues(new Uint8Array(32));
   const key = ml_dsa65.keygen(seed);
   return {
-    public: arrayBufferToBase64(key.publicKey.buffer as ArrayBuffer),
-    private: arrayBufferToBase64(key.secretKey.buffer as ArrayBuffer),
+    public: arrayBufferToBase64(key.publicKey as unknown as ArrayBuffer),
+    private: arrayBufferToBase64(key.secretKey as unknown as ArrayBuffer),
   };
 }
 
 function signData(data: string, secretKey: string): string {
   const key = base64ToArrayBuffer(secretKey);
   return arrayBufferToBase64(
-    (ml_dsa65.sign(new Uint8Array(key), new TextEncoder().encode(data)))
-      .buffer as ArrayBuffer,
+    (ml_dsa65.sign(new Uint8Array(key), new TextEncoder().encode(data))) as unknown as ArrayBuffer,
   );
 }
 
@@ -1637,8 +1632,8 @@ export function isValidkeyPairEncrypt(
     cipherText,
     new Uint8Array(base64ToArrayBuffer(JSON.parse(keyPair.private).key)),
   );
-  return arrayBufferToBase64(sharedSecret.buffer as ArrayBuffer) ===
-    arrayBufferToBase64(sharedSecret2.buffer as ArrayBuffer);
+  return arrayBufferToBase64(sharedSecret as unknown as ArrayBuffer) ===
+    arrayBufferToBase64(sharedSecret2 as unknown as ArrayBuffer);
 }
 
 export function isValidMessage(message: string): boolean {

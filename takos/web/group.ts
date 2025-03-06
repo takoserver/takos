@@ -2298,7 +2298,7 @@ app.post(
     const resizedIcon = arrayBufferToBase64(
       (await resizeImageTo256x256(
         new Uint8Array(base64ToArrayBuffer(icon)),
-      )).buffer as ArrayBuffer,
+      )) as unknown as ArrayBuffer,
     );
     if (groupId.split("@")[1] === env["domain"]) {
       return await handleIcon({
@@ -2361,7 +2361,7 @@ export async function handleIcon({
     const resizedIcon = arrayBufferToBase64(
       (await resizeImageTo256x256(
         new Uint8Array(base64ToArrayBuffer(icon)),
-      )).buffer as ArrayBuffer,
+      )) as unknown as ArrayBuffer,
     );
     await Group
       .updateOne({ groupId }, { $set: { icon: resizedIcon } });
