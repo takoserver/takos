@@ -632,18 +632,23 @@ app.get(
     const groupListUnique = Array.from(groupListSet);
 
     const groupInfo = await Promise.all(groupListUnique.map(async (g) => {
-      const latestMessage = await Message.findOne({
-        roomId: g,
-      }).sort({ timestamp: -1 });
-      return [g, latestMessage];
-    }));
-
-    const friendInfo = await Promise.all(friendList.map(async (f) => {
-      const latestMessage = await Message.findOne({
-        roomId: f,
-      }).sort({ timestamp: -1 });
-      return [f, latestMessage];
-    }));
+      const latestMessageId = await getLatestGroupMessageId(g);
+      return [g, latestMessageId];
+  }));
+  
+  const friendInfo = await Promise.all(friendList.map(async (f) => {
+      console.log(f);
+      // friendIdは "username@domain" の形式と仮定
+      const [friendUser, friendDomain] = f.split("@");
+      const latestMessageId = await getLatestFriendMessageId(
+          userInfo.userName,
+          env["domain"],
+          friendUser,
+          friendDomain,
+          f
+      );
+      return [f, latestMessageId];
+  }));
     const shareKeys = await shareAccountKey.find({
       userName: userInfo.userName,
       sessionid: session.sessionid,
@@ -667,6 +672,72 @@ app.get(
     });
   },
 );
+
+async function getLatestFriendMessageId(
+  userName: string,
+  domain: string,
+  friendUserName: string,
+  friendDomain: string,
+  roomId: string,
+): Promise<string | null> {
+  const projection = { messageid: 1, timestamp: 1, userName: 1, _id: 0 };
+
+  // 自分の送信メッセージ条件
+  const myRoomCondition = {
+    roomId,
+    userName: `${userName}@${domain}`,
+    isLarge: false,
+  };
+
+  // 友だち側の送信メッセージ条件
+  const friendRoomCondition = {
+    roomId: `m{${userName}}@${domain}`,
+    userName: `${friendUserName}@${friendDomain}`,
+    isLarge: false,
+  };
+
+  // 自分と友だちそれぞれの最新メッセージを1件ずつ取得
+  const [myMessage] = await Message.find(myRoomCondition, projection)
+    .limit(1)
+    .sort({ timestamp: -1 });
+  const [friendMessage] = await Message.find(friendRoomCondition, projection)
+    .limit(1)
+    .sort({ timestamp: -1 });
+
+  let latestMessage: typeof myMessage | typeof friendMessage | null = null;
+  if (myMessage && friendMessage) {
+    latestMessage =
+      myMessage.timestamp.getTime() >= friendMessage.timestamp.getTime()
+        ? myMessage
+        : friendMessage;
+  } else if (myMessage) {
+    latestMessage = myMessage;
+  } else if (friendMessage) {
+    latestMessage = friendMessage;
+  }
+
+  return latestMessage ? latestMessage.messageid : null;
+}
+
+async function getLatestGroupMessageId(
+  roomId: string,
+): Promise<string | null> {
+  const projection = { messageid: 1, timestamp: 1, userName: 1, _id: 0 };
+
+  const groupIds = roomId.split("@");
+
+  const groupCondition = {
+    roomId: "m{" + groupIds[1] + "}" + groupIds[0],
+    isLarge: false,
+  };
+
+  const latestMessage = await Message.findOne(groupCondition, projection)
+    .sort({ timestamp: -1 });
+
+    console.log(latestMessage)
+  
+  return latestMessage ? latestMessage.messageid : null;
+}
 
 function generateRandom8DigitNumber() {
   // Web Crypto API を使用してランダムなバイトを生成

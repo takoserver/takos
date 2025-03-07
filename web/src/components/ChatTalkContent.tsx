@@ -49,6 +49,7 @@ function useMessageLoader() {
     // 基本チェック
     if (currentMessageList.length === 0) {
       setMessageTimeLine([]);
+      setMessages([]);
       setLoaded(true);
       return;
     }
@@ -57,8 +58,18 @@ function useMessageLoader() {
       return;
     }
 
-    // ルームが変わったら処理済みIDリストをリセット
-    if (messages().length > 0 && messages()[0].roomid !== roomid) {
+    // メッセージリストが空の場合はリセット
+    if (currentMessageList.length === 0) {
+      setMessages([]);
+      setProcessedMessageIds(() => new Set<string>());
+      setMessageTimeLine([]);
+      setLoaded(true);
+      return;
+    }
+
+    // ルームが変わったらか、強制リロードフラグが立っていれば処理済みIDリストをリセット
+    if (messages().length > 0 && 
+        (messages()[0].roomid !== roomid || !loaded())) {
       setMessages([]);
       setProcessedMessageIds(() => new Set<string>());
     }
@@ -69,8 +80,7 @@ function useMessageLoader() {
     );
 
     // 新規メッセージがない場合
-    if (newMessages.length === 0) {
-      setLoaded(true);
+    if (newMessages.length === 0 && loaded()) {
       // 既存メッセージから情報を取得
       const result = messageList().map((messageIds) =>
         messages().find((msg) => msg.messageid === messageIds.messageid)

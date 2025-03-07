@@ -1,4 +1,4 @@
-import { pageState } from "../../utils/state";
+import { pageState } from "../utils/state";
 import { useAtom } from "solid-jotai";
 export default function HeaderButton(
   props: { page: any; children: any },

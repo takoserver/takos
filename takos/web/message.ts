@@ -12,7 +12,6 @@ import { uuidv7 } from "npm:uuidv7@^1.0.2";
 import { fff } from "../utils/foundationReq.ts";
 import publish from "../utils/redisClient.ts";
 import { Channels, Member } from "../models/groups.ts";
-import { channel } from "node:diagnostics_channel";
 import { getUserPermission } from "../foundation/server.ts";
 import { uploadFile } from "../utils/S3Client.ts";
 const env = await load();

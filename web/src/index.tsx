@@ -16,11 +16,11 @@ const routes = [
     component: () => <App />,
   },
   {
-    path: "/test",
-    component: () => <div>Test</div>,
+    path: "/home",
+    component: () => <App page="home" />,
   },
   {
-    path: "/home",
+    path: "/home/:roomId",
     component: () => <App page="home" />,
   },
   {
@@ -28,11 +28,23 @@ const routes = [
     component: () => <App page="talk" />,
   },
   {
+    path: "/talk/:roomId",
+    component: () => <App page="talk" />,
+  },
+  {
     path: "/friend",
     component: () => <App page="friend" />,
   },
   {
+    path: "/friend/:roomId",
+    component: () => <App page="friend" />,
+  },
+  {
     path: "/notification",
+    component: () => <App page="notification" />,
+  },
+  {
+    path: "/notification/:roomId",
     component: () => <App page="notification" />,
   },
 ];

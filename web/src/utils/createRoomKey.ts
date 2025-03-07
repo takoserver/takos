@@ -214,7 +214,7 @@ async function getMyKeyInfo(
 
   // アカウントキーの署名を取得
   const accountKeyRes = await fetch(
-    `./_takos/v1/key/accountKey?userId=${userId}`,
+    `/_takos/v1/key/accountKey?userId=${userId}`,
   );
   if (accountKeyRes.status !== 200) {
     console.error("アカウントキーの署名取得に失敗しました");
@@ -261,7 +261,7 @@ async function sendRoomKey(
   roomKey: string,
   roomType: "friend" | "group",
 ): Promise<boolean> {
-  const res = await fetch("./api/v2/keys/roomKey", {
+  const res = await fetch("/api/v2/keys/roomKey", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

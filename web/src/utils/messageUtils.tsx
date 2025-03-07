@@ -195,7 +195,7 @@ export const sendEncryptedMessage = async (
     channelId: string;
   },
 ) => {
-  const res = await fetch("./api/v2/message/send", {
+  const res = await fetch("/api/v2/message/send", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

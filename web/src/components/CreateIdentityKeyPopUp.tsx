@@ -78,7 +78,7 @@ export function CreateIdentityKeyPopUp() {
         return;
       }
 
-      const res = await fetch("./api/v2/keys/identityKey", {
+      const res = await fetch("/api/v2/keys/identityKey", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -234,7 +234,7 @@ export function CreateShareSignKeyPopUp() {
       alert("ShareSignKeyの生成に失敗しました");
       return;
     }
-    const res = await fetch("./api/v2/keys/shareSignKey", {
+    const res = await fetch("/api/v2/keys/shareSignKey", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

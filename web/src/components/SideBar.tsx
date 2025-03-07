@@ -19,10 +19,12 @@ import {
   selectedRoomState,
 } from "../utils/roomState";
 import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "./popUpFrame";
-import { createEffect, createSignal } from "solid-js";
+import { createEffect, createSignal, createMemo } from "solid-js";
 import { createTakosDB } from "../utils/idb";
 import { isLoadedMessageState } from "./ChatTalkContent";
 import { Home } from "./home";
+import { createRoomSelector } from "../utils/roomUtils";
+
 export function SideBer() {
   const [page] = useAtom(pageState);
 
@@ -56,6 +58,7 @@ function TalkListFriend({
   const [icon, setIcon] = createSignal("");
   const [roomNickName, setRoomNickName] = useAtom(nickNameState);
   const [fetchingUsers, setFetchingUsers] = useAtom(fetchingUsersState);
+  const [selectedRoom] = useAtom(selectedRoomState);
   createEffect(async () => {
     const match = roomid.match(/^m\{([^}]+)\}@(.+)$/);
     if (!match) {
@@ -120,28 +123,36 @@ function TalkListFriend({
   const setIsSelectRoom = useSetAtom(isSelectRoomState);
   const setMessageList = useSetAtom(messageListState);
   const setLoadedMessageList = useSetAtom(isLoadedMessageState);
-  const handelSelectRoomFriend = async (talk: any) => {
-    setIsSelectRoom(true);
-    setSelectedRoom(talk);
-    setLoadedMessageList(false);
-    setRoomNickName(nickName());
-    if (talk.type === "friend") {
-      const messages = await fetch("/api/v2/message/friend/" + talk.roomid);
-      const messagesJson = (((await messages.json()).messages) as {
-        userName: string;
-        messageid: string;
-        timestamp: string;
-      }[]).sort((a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-      setMessageList(messagesJson);
-    }
-  };
+  
+  // 新しいルーム選択関数を作成
+  const selectRoom = createRoomSelector({
+    setRoomNickName,
+    setSelectedRoom,
+    setIsSelectRoom,
+    setMessageList,
+    setLoadedMessageList,
+    setSelectedChannel: () => {}, // フレンドチャットではチャンネルを使用しないので空関数
+    setGroupChannel: () => {}, // フレンドチャットではグループチャンネルを使用しないので空関数
+  });
+  
+  // 選択状態をリアクティブな関数として定義
+  const isSelected = createMemo(() => {
+    const current = selectedRoom();
+    return current?.roomid === roomid;
+  });
+  
   return (
     <div
-      class="flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-[#282828]"
+      class={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
+        isSelected() ? "bg-[#3a3a3a]" : "hover:bg-[#282828]"
+      }`}
       onClick={async () => {
-        handelSelectRoomFriend({ roomid, latestMessage, type: "friend" });
+        selectRoom({
+          roomid, 
+          latestMessage, 
+          type: "friend", 
+          nickName: nickName()
+        });
       }}
     >
       <img
@@ -237,6 +248,7 @@ function TalkGroup({
   const [groupChannel, setGroupChannel] = useAtom(groupChannelState);
   const setLoadedMessageList = useSetAtom(isLoadedMessageState);
   const [fetchingUsers, setFetchingUsers] = useAtom(fetchingUsersState);
+  const [selectedRoom] = useAtom(selectedRoomState);
   createEffect(async () => {
     const match = roomid.match(/^g\{([^}]+)\}@(.+)$/);
     if (!match) {
@@ -295,99 +307,36 @@ function TalkGroup({
   const setIsSelectRoom = useSetAtom(isSelectRoomState);
   const setMessageList = useSetAtom(messageListState);
   const setSelectedChannel = useSetAtom(selectedChannelState);
-  const handelSelectRoomFriend = async (talk: any) => {
-    const match = roomid.match(/^g\{([^}]+)\}@(.+)$/);
-    if (!match) {
-      return;
-    }
-    const friendUserName = match[1];
-    const domainFromRoom = match[2];
-    const baseUrl = `https://${domainFromRoom}/_takos/v1/group`;
-    const channelsPromise = fetch(
-      `${baseUrl}/channels/${friendUserName + "@" + domainFromRoom}`,
-    ).then((res) => res.json());
-    const rolePromise = fetch(
-      `${baseUrl}/role/${friendUserName + "@" + domainFromRoom}`,
-    ).then((res) => res.json());
-    const membersPromise = fetch(
-      `${baseUrl}/members/${friendUserName + "@" + domainFromRoom}`,
-    ).then((res) => res.json());
-    const ownerPromise = fetch(
-      `${baseUrl}/owner/${friendUserName + "@" + domainFromRoom}`,
-    ).then((res) => res.json());
-    const defaultChannelPromise = fetch(
-      `${baseUrl}/defaultChannel/${friendUserName + "@" + domainFromRoom}`,
-    ).then((res) => res.json());
-
-    const [
-      channelsResult,
-      roleResult,
-      membersResult,
-      ownerResult,
-      defaultChannelResult,
-    ] = await Promise.all([
-      channelsPromise,
-      rolePromise,
-      membersPromise,
-      ownerPromise,
-      defaultChannelPromise,
-    ]);
-
-    const { channels, categories }: {
-      categories: {
-        id: string;
-        name: string;
-        permissions: { roleId: string; permissions: string[] }[];
-        order: number;
-      }[];
-      channels: {
-        category: string;
-        id: string;
-        name: string;
-        permissions: { roleId: string; permissions: string[] }[];
-        order: number;
-      }[];
-    } = channelsResult.channels;
-    const role: {
-      color: string;
-      id: string;
-      name: string;
-      permissions: string[];
-    }[] = roleResult.roles;
-    const members: { userId: string; role: string[] }[] = membersResult.members;
-    const owner: string = ownerResult.owner;
-    const defaultChannelId = defaultChannelResult.defaultChannel;
-    setGroupChannel({
-      members: members,
-      channels: channels,
-      roles: role,
-      categories,
-      owner,
-    });
-    const messages = await fetch(
-      "/api/v2/message/group/" + talk.roomid + "/" + defaultChannelId,
-    );
-    const messagesJson = (((await messages.json()).messages) as {
-      userName: string;
-      messageid: string;
-      timestamp: string;
-    }[]).sort((a, b) =>
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
-    setTimeout(() => {
-      setLoadedMessageList(false);
-      setMessageList(messagesJson);
-      setIsSelectRoom(true);
-      setSelectedRoom(talk);
-      setRoomNickName(nickName());
-      setSelectedChannel(defaultChannelId);
-    }, 10);
-  };
+  
+  // 新しいルーム選択関数を作成
+  const selectRoom = createRoomSelector({
+    setRoomNickName,
+    setSelectedRoom,
+    setIsSelectRoom,
+    setMessageList,
+    setLoadedMessageList,
+    setSelectedChannel,
+    setGroupChannel
+  });
+  
+  // 選択状態をリアクティブな関数として定義
+  const isSelected = createMemo(() => {
+    const current = selectedRoom();
+    return current?.roomid === roomid
+  });
+  
   return (
     <div
-      class="flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-[#282828]"
+      class={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
+        isSelected() ? "bg-[#3a3a3a]" : "hover:bg-[#282828]"
+      }`}
       onClick={async () => {
-        handelSelectRoomFriend({ roomid, latestMessage, type: "group" });
+        selectRoom({
+          roomid,
+          latestMessage,
+          type: "group",
+          nickName: nickName()
+        });
       }}
     >
       <img
@@ -434,6 +383,14 @@ function TalkList() {
       }
     }
   });
+  
+  // 選択状態の変更を監視する効果
+  createEffect(() => {
+    // selectedRoomの変更を検知するために依存関係として使用
+    const currentRoom = selectedRoom();
+    console.log("Selected room changed:", currentRoom?.roomid);
+  });
+  
   return (
     <>
       {talkList()?.map((talk) => {

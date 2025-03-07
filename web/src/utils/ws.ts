@@ -199,7 +199,7 @@ export function createWebsocket(loadedFn: () => void) {
                 localStorage.getItem("sessionUUID")!,
               );
               if (!shareKey) return;
-              const res = await fetch("./api/v2/sessions/encrypt/success", {
+              const res = await fetch("/api/v2/sessions/encrypt/success", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",

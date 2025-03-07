@@ -44,16 +44,16 @@ export function Chat() {
           <div class="p-talk-list min-h-screen">
             <TalkListHeader />
             <div class="p-talk-list-rooms pb-14">
-              <ul class="p-talk-list-rooms__ul h-[calc(100vh-120px)] overflow-y-auto pb-[70px]">
+              <ul class="p-talk-list-rooms__ul h-[calc(100vh-120px)] pb-[70px]">
                 <SideBer />
               </ul>
             </div>
           </div>
           <div class="p-talk-chat">
             <div class="p-talk-chat-container min-h-dvh">
-              <div class="p-talk-chat-main overflow-y-auto h-[300px]">
+              <div class="p-talk-chat-main h-[300px] scrollbar">
                 <div
-                  class={`p-talk-chat-title ${isSelectRoom() ? "" : "hidden"}`}
+                  class={`p-talk-chat-title  ${isSelectRoom() ? "" : "hidden"}`}
                   id="chatHeader"
                 >
                   <div class="p-1 h-full">
