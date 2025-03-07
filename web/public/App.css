@@ -664,7 +664,7 @@ html, body {
 }
 
 .p-talk-chat-main {
-  overflow-y: hidden;
+  overflow-y: auto;
   flex-grow: 1;
   scroll-padding-block-start: 200px;
 }

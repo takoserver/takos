@@ -274,14 +274,11 @@ function ChatTalkMain() {
   return (
     <div class="relative h-full">
       <div
-        class="pl-2 h-full overflow-y-auto flex flex-col scroll-smooth"
+        class="pl-2 h-full flex flex-col scroll-smooth" // "overflow-y-auto" 削除
         id="chatList"
         ref={setChatListRef}
         onScroll={handleScroll}
-        style={{
-          "max-height": "calc(100vh - 120px)",
-          "scroll-behavior": "smooth",
-        }}
+        /* インラインスタイル "max-height" と "scroll-behavior" を削除 */
       >
         {loaded()
           ? (

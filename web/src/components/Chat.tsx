@@ -51,7 +51,7 @@ export function Chat() {
           </div>
           <div class="p-talk-chat">
             <div class="p-talk-chat-container min-h-dvh">
-              <div class="p-talk-chat-main h-[300px] scrollbar">
+              <div class="p-talk-chat-main h-[300px]">
                 <div
                   class={`p-talk-chat-title  ${isSelectRoom() ? "" : "hidden"}`}
                   id="chatHeader"
