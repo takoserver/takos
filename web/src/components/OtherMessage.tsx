@@ -5,7 +5,8 @@ import { iconsState, nickNamesState } from "../utils/state";
 import { ContextMenu } from "./ContextMenu";
 import { getMessage } from "../utils/getMessage";
 import { selectedRoomState } from "../utils/roomState";
-import { convertTime } from "../utils/messageUtils";
+import { convertTime, copyMessageContent } from "../utils/messageUtils.tsx";
+
 import { renderMessageContent } from "./MessageContent";
 import {
   mentionEveryone,
@@ -65,11 +66,12 @@ const ChatOtherMessage = ({
   };
 
   // メッセージをコピー
-  const copyMessage = () => {
-    if (content.content) {
-      navigator.clipboard.writeText(content.content)
-        .then(() => alert("メッセージをクリップボードにコピーしました"))
-        .catch((err) => console.error("コピーに失敗しました:", err));
+  const copyMessage = async () => {
+    const success = await copyMessageContent(content);
+    if (success) {
+      alert("メッセージをクリップボードにコピーしました");
+    } else {
+      alert("メッセージのコピーに失敗しました");
     }
   };
 

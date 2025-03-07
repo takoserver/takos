@@ -1,6 +1,6 @@
 import { createSignal } from "solid-js";
 import { ContextMenu } from "./ContextMenu";
-import { convertTime } from "../utils/messageUtils";
+import { convertTime, copyMessageContent } from "../utils/messageUtils.tsx";
 import { renderMessageContent } from "./MessageContent";
 import { setReplyToMessage } from "../utils/mentionReply";
 
@@ -43,11 +43,12 @@ const ChatSendMessage = (
   };
 
   // メッセージをコピー
-  const copyMessage = () => {
-    if (content.content) {
-      navigator.clipboard.writeText(content.content)
-        .then(() => alert("メッセージをクリップボードにコピーしました"))
-        .catch((err) => console.error("コピーに失敗しました:", err));
+  const copyMessage = async () => {
+    const success = await copyMessageContent(content);
+    if (success) {
+      alert("メッセージをクリップボードにコピーしました");
+    } else {
+      alert("メッセージのコピーに失敗しました");
     }
   };
 

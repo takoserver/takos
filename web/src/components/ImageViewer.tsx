@@ -1,4 +1,4 @@
-import { atom, useAtom } from "solid-jotai";
+import { atom, useAtom, useAtomValue } from "solid-jotai";
 import { createSignal } from "solid-js";
 import { getMessage } from "../utils/getMessage";
 import { selectedRoomState } from "../utils/roomState";
@@ -9,18 +9,20 @@ export const zoomedImageState = atom<{
   original?: string | null;
   imageUrl: string | null;
   senderId: string | null;
+  filename?: string | null;
 }>({
   isOpen: false,
   senderId: null,
   original: null,
   imageUrl: null,
+  filename: null,
 });
 
 export function ImageViewer() {
   const [zoomedImage, setZoomedImage] = useAtom(zoomedImageState);
   const [isShowingOriginal, setIsShowingOriginal] = createSignal(false);
   const [isLoading, setIsLoading] = createSignal(false);
-  const sellectedRoom = () => useAtom(selectedRoomState)[0];
+  const sellectedRoom = useAtomValue(selectedRoomState);
 
   const closeViewer = () => {
     setZoomedImage({
@@ -28,6 +30,7 @@ export function ImageViewer() {
       original: null,
       imageUrl: null,
       senderId: null,
+      filename: null,
     });
     setIsShowingOriginal(false);
     setIsLoading(false);
@@ -47,8 +50,11 @@ export function ImageViewer() {
     //@ts-ignore
     const type = room.type;
     const senderId = zoomedImage().senderId;
-    if (!originalMessageId || !roomId || !type || !senderId) return;
-
+    if (!originalMessageId || !roomId || !type || !senderId) {
+      console.error("画像のオリジナルを取得するための情報が不足しています");
+      console.log(originalMessageId, roomId, type, senderId);
+      return;
+    }
     setIsLoading(true);
     try {
       const originalImage = await getMessage({
@@ -62,6 +68,7 @@ export function ImageViewer() {
         ...zoomedImage(),
         imageUrl:
           `data:${imageValue.metadata.mimeType};base64,${imageValue.uri}`,
+        filename: imageValue.metadata.filename,
       });
       setIsShowingOriginal(true);
     } catch (error) {
@@ -69,6 +76,23 @@ export function ImageViewer() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDownload = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+    if (!zoomedImage().imageUrl) return;
+    
+    const link = document.createElement('a');
+    link.href = zoomedImage().imageUrl as string;
+    
+    // ファイル名設定（filenameがなければ日時を使用）
+    const filename = zoomedImage().filename || 
+      `image_${new Date().toISOString().replace(/[:.]/g, '-')}`;
+    
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -98,15 +122,27 @@ export function ImageViewer() {
             >
               ✕
             </button>
-            {zoomedImage().original && (
+            <div class="absolute bottom-2 right-2 flex space-x-2">
               <button
-                class="absolute bottom-2 right-2 bg-white bg-opacity-70 rounded-md px-3 py-1 text-black hover:bg-opacity-100 text-sm"
-                onClick={toggleOriginal}
-                disabled={isLoading()}
+                class="bg-white bg-opacity-70 rounded-md px-3 py-1 text-black hover:bg-opacity-100 text-sm flex items-center"
+                onClick={handleDownload}
               >
-                {isShowingOriginal() ? "サムネイルを表示" : "オリジナルを表示"}
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10 12l-5-5 1.41-1.41L10 9.17l3.59-3.58L15 7l-5 5z"/>
+                  <path d="M10 12v6H8v-6H3l7-7 7 7h-5z" fill="none"/>
+                </svg>
+                保存
               </button>
-            )}
+              {zoomedImage().original && (
+                <button
+                  class="bg-white bg-opacity-70 rounded-md px-3 py-1 text-black hover:bg-opacity-100 text-sm"
+                  onClick={toggleOriginal}
+                  disabled={isLoading()}
+                >
+                  {isShowingOriginal() ? "サムネイルを表示" : "オリジナルを表示"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -118,15 +154,17 @@ export function ImageCompornent({
   src,
   original,
   senderId,
+  filename,
 }: {
   src: string;
   original?: string;
   senderId: string;
+  filename?: string;
 }) {
   const [, setZoomedImage] = useAtom(zoomedImageState);
 
   const handleImageClick = () => {
-    setZoomedImage({ isOpen: true, original, imageUrl: src, senderId });
+    setZoomedImage({ isOpen: true, original, imageUrl: src, senderId, filename });
   };
 
   return (
@@ -141,8 +179,8 @@ export function ImageCompornent({
         style={{
           width: "100%",
           height: "auto",
-          "max-width": "250px",
-          "max-height": "300px",
+          "max-width": "300px",
+          "max-height": "500px",
           "object-fit": "contain",
         }}
         onClick={handleImageClick}

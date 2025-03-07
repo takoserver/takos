@@ -33,6 +33,7 @@ export function renderMessageContent(
         src:
           `data:${contentValue.metadata.mimeType};base64,${contentValue.uri}`,
         senderId: name,
+        filename: contentValue.metadata.filename,
       });
     }
     case "video": {

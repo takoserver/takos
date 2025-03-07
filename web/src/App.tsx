@@ -14,13 +14,13 @@ import {
 import { CreateGroupPopUp } from "./components/CreateGroup.tsx";
 import { MigrateKey } from "./components/MigrateKeys.tsx";
 import {
-  ChannelEditModal,
   contextMenuPositionState,
-  CreateChannelModal,
   showEditChannelModalState,
 } from "./components/ChatTalkContent.tsx";
 import { ImageViewer } from "./components/ImageViewer.tsx";
 import { VideoPlayer } from "./components/VideoPlayer.tsx";
+import { ChannelEditModal } from "./components/ChannelEditModal.tsx";
+import { CreateChannelModal } from "./components/CreateChannelModal.tsx";
 
 function App(
   { page }: { page?: "home" | "talk" | "friend" | "setting" | "notification" },

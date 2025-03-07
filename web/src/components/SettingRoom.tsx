@@ -83,9 +83,9 @@ export function SettingRoom() {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
     };
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
     };
   });
 
@@ -223,7 +223,8 @@ export function SettingRoom() {
             {selectedRoom()!.type === "group" ? "グループ" : "友達"}
           </h2>
           <button
-            onClick={() => setShowGroupPopUp(false)}
+            onClick={() =>
+              setShowGroupPopUp(false)}
             aria-label="戻る"
             class="text-gray-400 hover:text-white text-2xl transition-colors"
           >
@@ -240,17 +241,21 @@ export function SettingRoom() {
   // デスクトップ表示用の設定サイドバー
   const DesktopSettingPanel = () => (
     <Show when={isSelectRoom()}>
-      <div class="h-screen border"
-      style={{     "border-left": "1px solid #ededed" , "border-color" : "#2b2b2b" }}
+      <div
+        class="h-screen border"
+        style={{
+          "border-left": "1px solid #ededed",
+          "border-color": "#2b2b2b",
+        }}
       >
         <div class="bg-[#181818] w-[320px] flex-shrink-0 overflow-y-auto">
-        <div class="flex items-center justify-between border-b px-5 py-3 sticky top-0 bg-[#181818] z-10">
+          <div class="flex items-center justify-between border-b px-5 py-3 sticky top-0 bg-[#181818] z-10">
             <h2 class="text-xl font-semibold text-white">
               {selectedRoom()?.type === "group" ? "グループ" : "友達"}
             </h2>
           </div>
           <div class="overflow-y-auto custom-scrollbar flex-1 h-full">
-          {selectedRoom()?.type === "group" && <GroupSetting />}
+            {selectedRoom()?.type === "group" && <GroupSetting />}
           </div>
         </div>
       </div>

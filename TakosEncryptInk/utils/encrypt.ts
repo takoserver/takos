@@ -26,9 +26,9 @@ export async function encrypt(
     new TextEncoder().encode(data),
   );
   return {
-    encryptedData: arrayBufferToBase64(encryptedData), // 修正: Base64エンコード
-    chipherText: arrayBufferToBase64(cipherText),
-    vi: arrayBufferToBase64(vi),
+    encryptedData: arrayBufferToBase64(encryptedData),
+    chipherText: arrayBufferToBase64(cipherText as unknown as ArrayBuffer),
+    vi: arrayBufferToBase64(vi as unknown as ArrayBuffer),
   };
 }
 

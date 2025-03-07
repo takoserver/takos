@@ -33,27 +33,86 @@ export async function getMessage({
   type,
   roomId,
   senderId,
+  // 進捗を追跡するか
+  isProgress,
+  onProgress,
 }: {
   messageid: string;
   type: string;
   roomId: string;
   senderId: string;
+  isProgress?: boolean;
+  onProgress?: (loaded: number, total: number) => void;
 }): Promise<MessageResponse> {
   const [deviceKey] = useAtom(deviceKeyState);
   const deviceKeyVal = deviceKey();
   if (!deviceKeyVal) throw new Error("DeviceKey not found");
-
-  const encryptedMessageRes = await fetch(
-    `https://${messageid.split("@")[1]}/_takos/v1/message/${messageid}`,
-    { cache: "force-cache" }, // キャッシュを積極的に使用
-  );
-  if (encryptedMessageRes.status !== 200) {
-    throw new Error("Unauthorized");
+  if(!isProgress && onProgress) {
+    throw new Error("onProgress is only available when isProgress is true");
   }
+  // fetch APIの代わりにXMLHttpRequestを使用して進捗を追跡
+  let encryptedMessage
 
-  const encryptedMessage = await encryptedMessageRes.json();
+  if(isProgress) {
+    encryptedMessage = await new Promise<any>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', `https://${messageid.split("@")[1]}/_takos/v1/message/${messageid}`);
+      
+      // ヘッダー取得用のフラグ
+      let headersFetched = false;
+      
+      // readystatechangeイベントでヘッダーを取得
+      xhr.onreadystatechange = () => {
+        // readyStateが2（HEADERS_RECEIVED）以上になったらヘッダー取得可能
+        if (xhr.readyState >= 2 && !headersFetched) {
+          headersFetched = true;
+          const contentLength = xhr.getResponseHeader('Content-Length');
+          console.log("Content-Length:", contentLength);
+          // ここで必要に応じて取得したヘッダー情報を保存/処理できます
+        }
+      };
+      
+      // 進捗イベントの設定
+      xhr.onprogress = (event) => {
+        if (onProgress) {
+          if(event.lengthComputable) {
+            console.log("進捗:", event.loaded, "/", event.total);
+          } else if (xhr.getResponseHeader('Content-Length')) {
+            // event.totalが利用できない場合、Content-Lengthから取得
+            const total = parseInt(xhr.getResponseHeader('Content-Length') || '0', 10);
+            onProgress(event.loaded, total);
+          }
+        }
+      };
+      
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response);
+          } catch (error) {
+            reject(new Error("Failed to parse response"));
+          }
+        } else {
+          reject(new Error("Unauthorized"));
+        }
+      };
+      
+      xhr.onerror = () => reject(new Error("Network error"));
+      xhr.send();
+    });
+  } else {
+    const res = await fetch(`https://${messageid.split("@")[1]}/_takos/v1/message/${messageid}`,
+      { cache: "force-cache"}
+  );
+    if (!res || res.status !== 200) {
+      throw new Error("Unauthorized");
+    }
+    encryptedMessage = await res.json();
+  }
   const parsedMessage = JSON.parse(encryptedMessage.message);
 
+  // 以下、既存のコードと同様...
   // 非暗号化メッセージの処理
   if (!parsedMessage.encrypted) {
     return {
@@ -140,7 +199,6 @@ export async function getMessage({
 
   // 復号したメッセージをパース
   const decryptedContent = JSON.parse(decryptedMessage);
-  console.log(parsedMessage);
   return {
     verified: false, // 署名検証が実装されていない場合はfalse
     encrypted: true,
@@ -185,28 +243,6 @@ export function createMediaContent({
     metadata,
   });
 }
-
-/*
-// 6. thumbnailタイプのコンテンツ
-interface TextThumbnail {
-    originalType: "text";
-    thumbnailText: string;
-}
-
-// 画像・動画用のサムネイル
-interface MediaThumbnail {
-    originalType: "image" | "video";
-    thumbnailUri: string;       // 実際の画像/動画サムネイル
-    thumbnailMimeType: string;
-}
-
-interface FilesThumbnail {
-    originalType: "file" | "audio";
-    thumbnailText: string;
-}
-
-export type ThumbnailContent = TextThumbnail | MediaThumbnail | FilesThumbnail;
-*/
 
 export function createThumbnailContent({
   originalType,

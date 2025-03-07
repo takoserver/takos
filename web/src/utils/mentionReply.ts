@@ -14,7 +14,7 @@ const replyTargetState = atom<
 >(null);
 
 // everyoneメンション用の特別な識別子
-export const EVERYONE_MENTION_ID = "@everyone";
+export const EVERYONE_MENTION_ID = "everyone";
 
 function toggleMention(userId: string) {
   createRoot(() => {
