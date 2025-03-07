@@ -7,15 +7,17 @@ import { messageListState, messageValueState } from "../utils/state.ts";
 import { atom, useAtom } from "solid-jotai";
 import ChatSendMessage from "./SendMessage.tsx";
 import ChatOtherMessage from "./OtherMessage.tsx";
-import { createEffect, createSignal, onMount, For } from "solid-js";
-import { groupChannelState } from "./Chat/SideBar.tsx";
-import { MessageData, MessageContentType } from "../types/message";
+import { createEffect, createSignal, For, onMount, Show } from "solid-js";
+import { groupChannelState } from "./SideBar.tsx";
+import { MessageContentType, MessageData } from "../types/message";
 import { getCachedMessage } from "../utils/messageCache";
 import { ChannelSideBar } from "./ChannelSideBar.tsx";
 import { Transition } from "solid-transition-group";
+import LoadingAnimation from "./LoadingAnimation";
 
 // ローカルユーザー名を取得
-const myuserName = localStorage.getItem("userName") + "@" + document.location.hostname;
+const myuserName = localStorage.getItem("userName") + "@" +
+  document.location.hostname;
 
 // 状態管理
 export const messagesState = atom<MessageData[]>([]);
@@ -30,7 +32,9 @@ export const contextMenuPositionState = atom<
 
 // メッセージロード処理
 function useMessageLoader() {
-  const [processedMessageIds, setProcessedMessageIds] = useAtom(processedMessageIdsState);
+  const [processedMessageIds, setProcessedMessageIds] = useAtom(
+    processedMessageIdsState,
+  );
   const [messageList] = useAtom(messageListState);
   const [loaded, setLoaded] = useAtom(isLoadedMessageState);
   const [selectedRoom] = useAtom(selectedRoomState);
@@ -41,7 +45,7 @@ function useMessageLoader() {
     const currentMessageList = messageList();
     const roomid = selectedRoom()?.roomid;
     const type = selectedRoom()?.type;
-    
+
     // 基本チェック
     if (currentMessageList.length === 0) {
       setMessageTimeLine([]);
@@ -68,10 +72,10 @@ function useMessageLoader() {
     if (newMessages.length === 0) {
       setLoaded(true);
       // 既存メッセージから情報を取得
-      const result = messageList().map((messageIds) => 
+      const result = messageList().map((messageIds) =>
         messages().find((msg) => msg.messageid === messageIds.messageid)
       ).filter(Boolean) as MessageData[];
-      
+
       setMessageTimeLine(result);
       return;
     }
@@ -82,21 +86,26 @@ function useMessageLoader() {
       newMessages.map(async (message) => {
         // 処理済みとしてマーク
         processedIds.add(`${message.messageid}-${roomid}`);
-        return getCachedMessage(message.messageid, roomid, type, message.userName);
+        return getCachedMessage(
+          message.messageid,
+          roomid,
+          type,
+          message.userName,
+        );
       }),
     );
 
     // 新しいメッセージを既存のメッセージに追加
     setProcessedMessageIds(processedIds);
     const validMessages = messagesResult.filter(Boolean);
-    
+
     if (validMessages.length > 0) {
       setMessages((prev) => [...prev, ...validMessages]);
 
       // タイムラインの構築
       const allMessages = [...messages(), ...validMessages];
       const uniqueMessages = new Map<string, MessageData>();
-      
+
       // 重複を排除して最新のメッセージを保持
       allMessages.forEach((msg) => uniqueMessages.set(msg.messageid, msg));
 
@@ -107,7 +116,7 @@ function useMessageLoader() {
 
       setMessageTimeLine(result);
     }
-    
+
     setLoaded(true);
   };
 
@@ -117,12 +126,12 @@ function useMessageLoader() {
 // メッセージ表示コンポーネント
 function MessageDisplay({ message }: { message: MessageData }) {
   const [show, setShow] = createSignal(false);
-  
+
   // コンポーネントがマウントされたら表示アニメーションを開始
   onMount(() => {
     setTimeout(() => setShow(true), 50);
   });
-  
+
   const messageContent = () => {
     if (message.serverData.userName === myuserName) {
       return (
@@ -161,15 +170,15 @@ function MessageDisplay({ message }: { message: MessageData }) {
       );
     }
   };
-  
+
   return (
-    <div 
-      class="message-container" 
+    <div
+      class="message-container"
       classList={{ "message-show": show() }}
       style={{
         "opacity": show() ? "1" : "0",
         "transform": show() ? "translateY(0)" : "translateY(10px)",
-        "transition": "opacity 0.3s ease, transform 0.3s ease"
+        "transition": "opacity 0.3s ease, transform 0.3s ease",
       }}
     >
       {messageContent()}
@@ -185,7 +194,8 @@ function ChatTalkMain() {
   const [messageTimeLine] = useAtom(messageTimeLineState);
   const [prevMessageCount, setPrevMessageCount] = createSignal(0);
   const [shouldAutoScroll, setShouldAutoScroll] = createSignal(true);
-  
+  const [hasNewMessages, setHasNewMessages] = createSignal(false);
+
   // SolidJSの正しいref設定方法
   const [chatListRef, setChatListRef] = createSignal<HTMLDivElement>();
 
@@ -197,50 +207,103 @@ function ChatTalkMain() {
   // スクロール位置検出
   const handleScroll = (e: Event) => {
     const element = e.target as HTMLDivElement;
-    const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 100;
+    const isNearBottom =
+      element.scrollHeight - element.scrollTop - element.clientHeight < 100;
     setShouldAutoScroll(isNearBottom);
+
+    // 最下部までスクロールしたら通知を消す
+    if (isNearBottom && hasNewMessages()) {
+      setHasNewMessages(false);
+    }
   };
 
-  // スクロール管理の修正
+  // 最新メッセージへスクロールする関数
+  const scrollToBottom = () => {
+    const element = chatListRef();
+    if (element) {
+      element.scrollTo({
+        top: element.scrollHeight,
+        behavior: "smooth",
+      });
+      setHasNewMessages(false);
+    }
+  };
+
+  // スクロール管理の改善
   createEffect(() => {
     const currentMessageCount = messageTimeLine().length;
     const element = chatListRef();
-    
+
     if (element && currentMessageCount > 0) {
-      // 新しいメッセージが追加された場合のみ自動スクロール
-      if (currentMessageCount > prevMessageCount() && shouldAutoScroll()) {
-        setTimeout(() => {
-          element.scrollTo({
-            top: element.scrollHeight,
-            behavior: "smooth"
-          });
-        }, 100);
+      // 新しいメッセージが追加された場合
+      if (currentMessageCount > prevMessageCount()) {
+        // 最新のメッセージが自分のメッセージか確認
+        const lastMessage = messageTimeLine()[currentMessageCount - 1];
+        const isOwnMessage = lastMessage?.serverData.userName === myuserName;
+
+        // 自分のメッセージまたはスクロールが下にある場合は自動スクロール
+        if (shouldAutoScroll() || isOwnMessage) {
+          setTimeout(() => {
+            element.scrollTo({
+              top: element.scrollHeight,
+              behavior: "smooth",
+            });
+            // スクロールしたので通知は不要
+            setHasNewMessages(false);
+          }, 100);
+        } else {
+          // それ以外の場合は新しいメッセージがあることを通知
+          setHasNewMessages(true);
+        }
       }
-      
+
       setPrevMessageCount(currentMessageCount);
     }
   });
 
   return (
-    <div 
-      class="pl-2 h-full overflow-y-auto flex flex-col scroll-smooth" 
-      id="chatList" 
-      ref={setChatListRef}
-      onScroll={handleScroll}
-      style={{ 
-        "max-height": "calc(100vh - 120px)",
-        "scroll-behavior": "smooth"
-      }}
-    >
-      {loaded() ? (
-        <For each={messageTimeLine()}>
-          {(message) => <MessageDisplay message={message} />}
-        </For>
-      ) : (
-        <div class="flex w-full h-full">
-          <p class="m-auto">読み込み中...</p>
+    <div class="relative h-full">
+      <div
+        class="pl-2 h-full overflow-y-auto flex flex-col scroll-smooth"
+        id="chatList"
+        ref={setChatListRef}
+        onScroll={handleScroll}
+        style={{
+          "max-height": "calc(100vh - 120px)",
+          "scroll-behavior": "smooth",
+        }}
+      >
+        {loaded()
+          ? (
+            <For each={messageTimeLine()}>
+              {(message) => <MessageDisplay message={message} />}
+            </For>
+          )
+          : <LoadingAnimation />}
+      </div>
+
+      {/* 新しいメッセージがある場合に表示するボタン */}
+      <Show when={hasNewMessages()}>
+        <div
+          class="absolute bottom-4 right-6 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg cursor-pointer z-10 flex items-center transition-opacity duration-300 opacity-90 hover:opacity-100"
+          onClick={scrollToBottom}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 mr-2"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a 1 1 0 010 1.414z"
+              clip-rule="evenodd"
+              transform="rotate(180, 10, 10)"
+            />
+          </svg>
+          最新のメッセージ
         </div>
-      )}
+      </Show>
     </div>
   );
 }
@@ -248,22 +311,23 @@ function ChatTalkMain() {
 // メインコンポーネント
 function ChatTalk() {
   const [isChoiceUser] = useAtom(isSelectRoomState);
-  
+
   return (
     <>
-      {isChoiceUser() ? (
-        <ul class="c-talk-chat-list">
-          <ChannelSideBar />
-          <ChatTalkMain />
-        </ul>
-      ) : (
-        <div class="flex w-full h-full">
-          <p class="m-auto">友達を選択してください</p>
-        </div>
-      )}
+      {isChoiceUser()
+        ? (
+          <ul class="c-talk-chat-list">
+            <ChannelSideBar />
+            <ChatTalkMain />
+          </ul>
+        )
+        : (
+          <div class="flex w-full h-full">
+            <p class="m-auto">友達を選択してください</p>
+          </div>
+        )}
     </>
   );
 }
 
 export default ChatTalk;
-

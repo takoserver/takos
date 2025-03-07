@@ -1,4 +1,4 @@
-import { Show, createSignal } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { atom } from "solid-jotai";
 
 // 確認モーダルの状態管理
@@ -19,15 +19,15 @@ const ImagePasteConfirmModal = (props: ImagePasteConfirmModalProps) => {
       <div class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
         <div class="bg-[#333] p-6 rounded-lg shadow-lg max-w-md w-full">
           <h3 class="text-xl mb-3">画像を送信しますか？</h3>
-          
+
           <div class="my-4 flex justify-center">
-            <img 
-              src={props.imagePreview!} 
-              alt="プレビュー" 
+            <img
+              src={props.imagePreview!}
+              alt="プレビュー"
               class="max-h-60 max-w-full rounded-md object-contain bg-[#222]"
             />
           </div>
-          
+
           <div class="flex justify-end space-x-3 mt-4">
             <button
               class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md"

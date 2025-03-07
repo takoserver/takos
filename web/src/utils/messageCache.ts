@@ -1,5 +1,5 @@
-import { MessageData } from '../types/message';
-import { getMessage } from './getMessage';
+import { MessageData } from "../types/message";
+import { getMessage } from "./getMessage";
 
 // メッセージキャッシュ
 const messageCache = new Map<string, MessageData>();
@@ -8,7 +8,7 @@ export const getCachedMessage = async (
   messageid: string,
   roomId: string,
   type: string,
-  senderId: string
+  senderId: string,
 ): Promise<MessageData> => {
   // キャッシュキーを作成
   const cacheKey = `${messageid}-${roomId}`;
@@ -69,12 +69,12 @@ export const getCachedMessage = async (
 export const clearRoomCache = (roomId: string) => {
   // 指定されたルームのキャッシュをクリア
   const keysToDelete: string[] = [];
-  
+
   messageCache.forEach((_, key) => {
     if (key.endsWith(`-${roomId}`)) {
       keysToDelete.push(key);
     }
   });
-  
-  keysToDelete.forEach(key => messageCache.delete(key));
+
+  keysToDelete.forEach((key) => messageCache.delete(key));
 };

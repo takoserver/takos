@@ -1,7 +1,7 @@
 import { useAtom } from "solid-jotai";
 import HeaderButton from "./headerButton.tsx";
-import { iconState } from "../../utils/state.ts";
-import { isSelectRoomState } from "../../utils/roomState.ts";
+import { iconState } from "../utils/state.ts";
+import { isSelectRoomState } from "../utils/roomState.ts";
 export default function ChatHeader() {
   const [icon] = useAtom(iconState);
   const [isSelectRoom] = useAtom(isSelectRoomState);

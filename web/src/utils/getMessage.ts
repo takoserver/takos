@@ -47,44 +47,50 @@ export async function getMessage({
   const [deviceKey] = useAtom(deviceKeyState);
   const deviceKeyVal = deviceKey();
   if (!deviceKeyVal) throw new Error("DeviceKey not found");
-  if(!isProgress && onProgress) {
+  if (!isProgress && onProgress) {
     throw new Error("onProgress is only available when isProgress is true");
   }
   // fetch APIの代わりにXMLHttpRequestを使用して進捗を追跡
-  let encryptedMessage
+  let encryptedMessage;
 
-  if(isProgress) {
+  if (isProgress) {
     encryptedMessage = await new Promise<any>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('GET', `https://${messageid.split("@")[1]}/_takos/v1/message/${messageid}`);
-      
+      xhr.open(
+        "GET",
+        `https://${messageid.split("@")[1]}/_takos/v1/message/${messageid}`,
+      );
+
       // ヘッダー取得用のフラグ
       let headersFetched = false;
-      
+
       // readystatechangeイベントでヘッダーを取得
       xhr.onreadystatechange = () => {
         // readyStateが2（HEADERS_RECEIVED）以上になったらヘッダー取得可能
         if (xhr.readyState >= 2 && !headersFetched) {
           headersFetched = true;
-          const contentLength = xhr.getResponseHeader('Content-Length');
+          const contentLength = xhr.getResponseHeader("Content-Length");
           console.log("Content-Length:", contentLength);
           // ここで必要に応じて取得したヘッダー情報を保存/処理できます
         }
       };
-      
+
       // 進捗イベントの設定
       xhr.onprogress = (event) => {
         if (onProgress) {
-          if(event.lengthComputable) {
+          if (event.lengthComputable) {
             console.log("進捗:", event.loaded, "/", event.total);
-          } else if (xhr.getResponseHeader('Content-Length')) {
+          } else if (xhr.getResponseHeader("Content-Length")) {
             // event.totalが利用できない場合、Content-Lengthから取得
-            const total = parseInt(xhr.getResponseHeader('Content-Length') || '0', 10);
+            const total = parseInt(
+              xhr.getResponseHeader("Content-Length") || "0",
+              10,
+            );
             onProgress(event.loaded, total);
           }
         }
       };
-      
+
       xhr.onload = () => {
         if (xhr.status === 200) {
           try {
@@ -97,14 +103,15 @@ export async function getMessage({
           reject(new Error("Unauthorized"));
         }
       };
-      
+
       xhr.onerror = () => reject(new Error("Network error"));
       xhr.send();
     });
   } else {
-    const res = await fetch(`https://${messageid.split("@")[1]}/_takos/v1/message/${messageid}`,
-      { cache: "force-cache"}
-  );
+    const res = await fetch(
+      `https://${messageid.split("@")[1]}/_takos/v1/message/${messageid}`,
+      { cache: "force-cache" },
+    );
     if (!res || res.status !== 200) {
       throw new Error("Unauthorized");
     }

@@ -81,14 +81,14 @@ export function ImageViewer() {
   const handleDownload = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
     if (!zoomedImage().imageUrl) return;
-    
-    const link = document.createElement('a');
+
+    const link = document.createElement("a");
     link.href = zoomedImage().imageUrl as string;
-    
+
     // ファイル名設定（filenameがなければ日時を使用）
-    const filename = zoomedImage().filename || 
-      `image_${new Date().toISOString().replace(/[:.]/g, '-')}`;
-    
+    const filename = zoomedImage().filename ||
+      `image_${new Date().toISOString().replace(/[:.]/g, "-")}`;
+
     link.download = filename;
     document.body.appendChild(link);
     link.click();
@@ -127,9 +127,14 @@ export function ImageViewer() {
                 class="bg-white bg-opacity-70 rounded-md px-3 py-1 text-black hover:bg-opacity-100 text-sm flex items-center"
                 onClick={handleDownload}
               >
-                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M10 12l-5-5 1.41-1.41L10 9.17l3.59-3.58L15 7l-5 5z"/>
-                  <path d="M10 12v6H8v-6H3l7-7 7 7h-5z" fill="none"/>
+                <svg
+                  class="w-4 h-4 mr-1"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M10 12l-5-5 1.41-1.41L10 9.17l3.59-3.58L15 7l-5 5z" />
+                  <path d="M10 12v6H8v-6H3l7-7 7 7h-5z" fill="none" />
                 </svg>
                 保存
               </button>
@@ -139,7 +144,9 @@ export function ImageViewer() {
                   onClick={toggleOriginal}
                   disabled={isLoading()}
                 >
-                  {isShowingOriginal() ? "サムネイルを表示" : "オリジナルを表示"}
+                  {isShowingOriginal()
+                    ? "サムネイルを表示"
+                    : "オリジナルを表示"}
                 </button>
               )}
             </div>
@@ -164,7 +171,13 @@ export function ImageCompornent({
   const [, setZoomedImage] = useAtom(zoomedImageState);
 
   const handleImageClick = () => {
-    setZoomedImage({ isOpen: true, original, imageUrl: src, senderId, filename });
+    setZoomedImage({
+      isOpen: true,
+      original,
+      imageUrl: src,
+      senderId,
+      filename,
+    });
   };
 
   return (
@@ -182,6 +195,7 @@ export function ImageCompornent({
           "max-width": "300px",
           "max-height": "500px",
           "object-fit": "contain",
+          "box-shadow": "0 4px 8px rgba(0, 0, 0, 0.5)",
         }}
         onClick={handleImageClick}
       />

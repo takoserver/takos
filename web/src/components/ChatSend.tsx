@@ -2,42 +2,42 @@ import {
   deviceKeyState,
   inputMessageState,
   isValidInputState,
-} from "../../utils/state";
+} from "../utils/state.ts";
 import { atom, useAtom } from "solid-jotai";
 import { createEffect, Show } from "solid-js";
-import { selectedChannelState, selectedRoomState } from "../../utils/roomState";
-import { groupChannelState } from "./SideBar";
+import { selectedChannelState, selectedRoomState } from "../utils/roomState.ts";
+import { groupChannelState } from "./SideBar.tsx";
 import EncryptionSettingsModal, {
   showEncryptionSettingsState,
-} from "./EncryptionSettingsModal";
+} from "./EncryptionSettingsModal.tsx";
 import {
   clearMentionReplyState,
   EVERYONE_MENTION_ID,
   mentionEveryone,
   mentionListState,
   replyTargetState,
-} from "../../utils/mentionReply";
-import MentionReplyDisplay from "../MentionReplyDisplay";
+} from "../utils/mentionReply.ts";
+import MentionReplyDisplay from "./MentionReplyDisplay.tsx";
 
-import { 
-  currentOperationAtom, 
-  isEncryptedAtom, 
-  isMenuOpenAtom, 
-  isSendingAtom, 
-  menuPositionAtom, 
-  sendingProgressAtom, 
-  sendTextHandler 
-} from "../../utils/messageUtils.tsx";
-import { 
-  cancelPastedImage, 
-  confirmAndSendPastedImage, 
-  handleMediaSelect, 
-  handlePastedImage 
-} from "../../utils/mediaHandler";
-import ImagePasteConfirmModal, { 
-  pasteImagePreviewAtom, 
-  showPasteConfirmAtom 
-} from "../../components/ImagePasteConfirmModal";
+import {
+  currentOperationAtom,
+  isEncryptedAtom,
+  isMenuOpenAtom,
+  isSendingAtom,
+  menuPositionAtom,
+  sendingProgressAtom,
+  sendTextHandler,
+} from "../utils/messageUtils.tsx";
+import {
+  cancelPastedImage,
+  confirmAndSendPastedImage,
+  handleMediaSelect,
+  handlePastedImage,
+} from "../utils/mediaHandler.ts";
+import ImagePasteConfirmModal, {
+  pasteImagePreviewAtom,
+  showPasteConfirmAtom,
+} from "./ImagePasteConfirmModal.tsx";
 
 const userId = localStorage.getItem("userName") + "@" +
   new URL(window.location.href).hostname;
@@ -332,7 +332,7 @@ function ChatSend() {
           </div>
         </div>
       </form>
-      
+
       {/* 画像貼り付け確認モーダル */}
       <ImagePasteConfirmModal
         isOpen={showPasteConfirm()}
@@ -340,7 +340,7 @@ function ChatSend() {
         onConfirm={confirmAndSendPastedImage}
         onCancel={cancelPastedImage}
       />
-      
+
       <EncryptionSettingsModal
         isOpen={showEncryptionSettings()}
         onClose={() => setShowEncryptionSettings(false)}

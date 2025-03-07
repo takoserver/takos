@@ -10,19 +10,19 @@ import {
   notificationState,
   pageState,
   talkListState,
-} from "../../utils/state";
+} from "../utils/state";
 import {
   isSelectRoomState,
   nickNameState,
   roomKeyState,
   selectedChannelState,
   selectedRoomState,
-} from "../../utils/roomState";
-import { Home } from "./home";
-import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "../popUpFrame";
+} from "../utils/roomState";
+import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "./popUpFrame";
 import { createEffect, createSignal } from "solid-js";
-import { createTakosDB } from "../../utils/idb";
-import { isLoadedMessageState } from "../ChatTalkContent";
+import { createTakosDB } from "../utils/idb";
+import { isLoadedMessageState } from "./ChatTalkContent";
+import { Home } from "./home";
 export function SideBer() {
   const [page] = useAtom(pageState);
 

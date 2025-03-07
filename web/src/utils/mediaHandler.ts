@@ -1,17 +1,30 @@
 import { createRoot } from "solid-js";
 import { useAtom } from "solid-jotai";
 import { createMediaContent, createThumbnailContent } from "./getMessage";
-import { readFileAsBase64, currentOperationAtom, isSendingAtom, isMenuOpenAtom, sendHandler, sendingProgressAtom } from "./messageUtils.tsx";
-import { resizeBase64Image, getBase64SizeKB } from "./resizeImage";
+import {
+  currentOperationAtom,
+  isMenuOpenAtom,
+  isSendingAtom,
+  readFileAsBase64,
+  sendHandler,
+  sendingProgressAtom,
+} from "./messageUtils.tsx";
+import { getBase64SizeKB, resizeBase64Image } from "./resizeImage";
 import { generateThumbnailFromFile } from "./getVideoThumbnail";
-import { pasteImageDataAtom, pasteImagePreviewAtom, showPasteConfirmAtom } from "../components/ImagePasteConfirmModal";
+import {
+  pasteImageDataAtom,
+  pasteImagePreviewAtom,
+  showPasteConfirmAtom,
+} from "../components/ImagePasteConfirmModal";
 
 export const handleImageFile = async (file: File) => {
   return createRoot(async () => {
     const [isSending, setIsSending] = useAtom(isSendingAtom);
     const [sendingProgress, setSendingProgress] = useAtom(sendingProgressAtom);
-    const [currentOperation, setCurrentOperation] = useAtom(currentOperationAtom);
-    
+    const [currentOperation, setCurrentOperation] = useAtom(
+      currentOperationAtom,
+    );
+
     const fileSizeKB = file.size / 1024;
 
     if (fileSizeKB > 256) {
@@ -89,17 +102,19 @@ export const handleVideoFile = async (file: File) => {
   return createRoot(async () => {
     const [isSending, setIsSending] = useAtom(isSendingAtom);
     const [sendingProgress, setSendingProgress] = useAtom(sendingProgressAtom);
-    const [currentOperation, setCurrentOperation] = useAtom(currentOperationAtom);
-    
+    const [currentOperation, setCurrentOperation] = useAtom(
+      currentOperationAtom,
+    );
+
     const maxVideoSizeMB = 10000;
     const fileSizeMB = file.size / (1024 * 1024);
     const fileSizeKB = file.size / 1024;
-  
+
     if (fileSizeMB > maxVideoSizeMB) {
       console.error(`動画サイズが上限（${maxVideoSizeMB}MB）を超えています`);
       return;
     }
-  
+
     // 256KB以下の場合は圧縮せずにサムネイルなしで直接送信
     if (fileSizeKB <= 256) {
       console.log("動画サイズが256KB以下のため圧縮せずに送信します");
@@ -117,19 +132,19 @@ export const handleVideoFile = async (file: File) => {
       });
       return;
     }
-  
+
     // 256KB以上の場合の処理
     setIsSending(true);
     setCurrentOperation("動画を処理中...");
     setSendingProgress(10);
-  
+
     const base64Video = await readFileAsBase64(file);
     setSendingProgress(40);
-  
+
     const videoContent = base64Video.replace(/^data:.*?;base64,/, "");
     setCurrentOperation("動画を送信中...");
     setSendingProgress(50);
-  
+
     // 元の動画を送信
     const messageId = await sendHandler({
       type: "video",
@@ -142,22 +157,22 @@ export const handleVideoFile = async (file: File) => {
       }),
       isLarge: true,
     });
-  
+
     // 動画のサムネイル生成と送信
     try {
       setCurrentOperation("サムネイルを生成中...");
       setSendingProgress(80);
-  
+
       const thumbnailBase64 = await generateThumbnailFromFile(file, 0);
       // 256KB以上の場合は圧縮
       let resizedThumbnailBase64 = thumbnailBase64;
       if (getBase64SizeKB(thumbnailBase64) > 256) {
         resizedThumbnailBase64 = await resizeBase64Image(thumbnailBase64, 256);
       }
-  
+
       setCurrentOperation("サムネイルを送信中...");
       setSendingProgress(90);
-  
+
       const thumbnailContent = createThumbnailContent({
         originalType: "video",
         thumbnailMimeType: "image/jpeg",
@@ -181,7 +196,7 @@ export const handleVideoFile = async (file: File) => {
 export const handleMediaSelect = () => {
   createRoot(() => {
     const [isMenuOpen, setIsMenuOpen] = useAtom(isMenuOpenAtom);
-    
+
     setIsMenuOpen(false);
 
     // ファイル入力要素の作成
@@ -244,41 +259,44 @@ export const handlePastedImage = async (event: ClipboardEvent) => {
 
   // クリップボードアイテムを取得
   const items = event.clipboardData.items;
-  
+
   for (let i = 0; i < items.length; i++) {
     // 画像データを探す
-    if (items[i].type.indexOf('image') !== -1) {
+    if (items[i].type.indexOf("image") !== -1) {
       // 画像データをファイルとして取得
       const file = items[i].getAsFile();
-      
+
       if (file) {
         // デフォルトのイベントをキャンセル（テキストエリアへの貼り付けを防止）
         event.preventDefault();
-        
+
         try {
           // 確認モーダル用に画像データを保存
           createRoot(async () => {
             const [, setPasteImageData] = useAtom(pasteImageDataAtom);
             const [, setPasteImagePreview] = useAtom(pasteImagePreviewAtom);
             const [, setShowPasteConfirm] = useAtom(showPasteConfirmAtom);
-            
+
             // 画像プレビュー用にデータURLを生成
             const imageUrl = URL.createObjectURL(file);
-            
+
             // ファイルとプレビューURLを状態に保存
             setPasteImageData(file);
             setPasteImagePreview(imageUrl);
             setShowPasteConfirm(true);
           });
-          
+
           return true; // 画像処理成功
         } catch (error) {
-          console.error("クリップボード画像の処理中にエラーが発生しました:", error);
+          console.error(
+            "クリップボード画像の処理中にエラーが発生しました:",
+            error,
+          );
         }
       }
     }
   }
-  
+
   return false; // 画像が見つからなかったか、処理に失敗した
 };
 
@@ -286,9 +304,11 @@ export const handlePastedImage = async (event: ClipboardEvent) => {
 export const confirmAndSendPastedImage = async () => {
   return createRoot(async () => {
     const [pasteImageData] = useAtom(pasteImageDataAtom);
-    const [pasteImagePreview, setPasteImagePreview] = useAtom(pasteImagePreviewAtom);
+    const [pasteImagePreview, setPasteImagePreview] = useAtom(
+      pasteImagePreviewAtom,
+    );
     const [, setShowPasteConfirm] = useAtom(showPasteConfirmAtom);
-    
+
     if (pasteImageData) {
       try {
         // 既存の画像処理関数を使用して送信
@@ -310,16 +330,18 @@ export const confirmAndSendPastedImage = async () => {
 // 貼り付け確認キャンセル時の処理
 export const cancelPastedImage = () => {
   createRoot(() => {
-    const [pasteImagePreview, setPasteImagePreview] = useAtom(pasteImagePreviewAtom);
+    const [pasteImagePreview, setPasteImagePreview] = useAtom(
+      pasteImagePreviewAtom,
+    );
     const [, setPasteImageData] = useAtom(pasteImageDataAtom);
     const [, setShowPasteConfirm] = useAtom(showPasteConfirmAtom);
-    
+
     // リソース解放
     if (pasteImagePreview) {
       URL.revokeObjectURL(pasteImagePreview()!);
       setPasteImagePreview(null);
     }
-    
+
     setPasteImageData(null);
     setShowPasteConfirm(false);
   });

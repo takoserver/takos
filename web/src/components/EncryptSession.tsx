@@ -5,7 +5,7 @@ import {
   IdentityKeyAndAccountKeyState,
   sessionidState,
   setUpState,
-} from "../../utils/state";
+} from "../utils/state";
 import {
   migrateKeyPrivateState,
   migrateKeyPublicState,
@@ -14,13 +14,13 @@ import {
   migrateSignKeyPrivateState,
   migrateSignKeyPublicState,
   showMigrateRequest,
-} from "../../utils/migrateState";
+} from "../utils/migrateState";
 import { atom, useAtom, useSetAtom } from "solid-jotai";
 import { PopUpFrame } from "./setupPopup/popUpFrame";
 import { createEffect, createSignal } from "solid-js";
-import { requester } from "../../utils/requester";
+import { requester } from "../utils/requester";
 import fnv1a from "fnv1a";
-import { createTakosDB, encryptAccountKey } from "../../utils/idb";
+import { createTakosDB, encryptAccountKey } from "../utils/idb";
 import {
   decryptDataDeviceKey,
   encryptDataDeviceKey,

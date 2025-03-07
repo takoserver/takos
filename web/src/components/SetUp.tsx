@@ -3,13 +3,13 @@ import {
   domainState,
   sessionidState,
   setUpState,
-} from "../../utils/state";
+} from "../utils/state.ts";
 import { useAtom, useSetAtom } from "solid-jotai";
-import { PopUpFrame } from "./setupPopup/popUpFrame";
+import { PopUpFrame } from "./setupPopup/popUpFrame.tsx";
 import { createEffect, createSignal } from "solid-js";
-import { arrayBufferToBase64 } from "../../utils/buffers";
-import { createTakosDB, encryptAccountKey } from "../../utils/idb";
-import { isLoadedMessageState } from "../ChatTalkContent.tsx";
+import { arrayBufferToBase64 } from "../utils/buffers.ts";
+import { createTakosDB, encryptAccountKey } from "../utils/idb.ts";
+import { isLoadedMessageState } from "./ChatTalkContent.tsx";
 import {
   encryptDataDeviceKey,
   generateAccountKey,

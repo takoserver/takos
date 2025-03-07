@@ -1,9 +1,8 @@
-import ChatHeader from "./Chat/header.tsx";
-import TalkListHeader from "./Chat/talkListHeader";
-import { SideBer } from "./Chat/SideBar.tsx";
-import { SetUp } from "./Chat/SetUp.tsx";
-import { EncryptSession } from "./Chat/EncryptSession.tsx";
-import ChatSend from "./Chat/ChatSend.tsx";
+
+import { SideBer } from "./SideBar.tsx";
+import { SetUp } from "./SetUp.tsx";
+import { EncryptSession } from "./EncryptSession.tsx";
+import ChatSend from "./ChatSend.tsx";
 import ChatTalkTitle from "./ChatTalkTitle.tsx";
 import ChatTalkContent from "./ChatTalkContent.tsx";
 import ChatTalkTitleContent from "./ChatTalkTitleContent.tsx";
@@ -11,6 +10,8 @@ import { isSelectRoomState } from "../utils/roomState.ts";
 import { atom, useAtom } from "solid-jotai";
 import { SettingRoom } from "./SettingRoom.tsx";
 import { createSignal, onMount } from "solid-js";
+import TalkListHeader from "./talkListHeader.tsx";
+import ChatHeader from "./header.tsx";
 
 export const openConfig = atom(false);
 

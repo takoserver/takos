@@ -6,9 +6,14 @@ import { createTakosDB } from "./idb";
 import { decryptDataDeviceKey, encryptMessage } from "@takos/takos-encrypt-ink";
 import { createRoomKey } from "./createRoomKey";
 import { getIdentityKeys } from "./getIdentityKeys";
-import { groupChannelState } from "../components/Chat/SideBar";
+import { groupChannelState } from "../components/SideBar";
 import { createTextContent } from "./getMessage";
-import { clearMentionReplyState, EVERYONE_MENTION_ID, mentionListState, replyTargetState } from "./mentionReply";
+import {
+  clearMentionReplyState,
+  EVERYONE_MENTION_ID,
+  mentionListState,
+  replyTargetState,
+} from "./mentionReply";
 
 const userId = localStorage.getItem("userName") + "@" +
   new URL(window.location.href).hostname;
@@ -233,8 +238,10 @@ export const sendHandler = async ({
     const [selectedChannel] = useAtom(selectedChannelState);
     const [isSending, setIsSending] = useAtom(isSendingAtom);
     const [sendingProgress, setSendingProgress] = useAtom(sendingProgressAtom);
-    const [currentOperation, setCurrentOperation] = useAtom(currentOperationAtom);
-    
+    const [currentOperation, setCurrentOperation] = useAtom(
+      currentOperationAtom,
+    );
+
     try {
       if (isLarge) {
         setIsSending(true);
@@ -332,32 +339,31 @@ export const sendHandler = async ({
 };
 
 export function convertLineBreak(message: string | null | undefined) {
-    if (message === null || message === undefined) return;
-    const messageValue = JSON.parse(message) as { text: string; format: string };
-    if (messageValue.format === "text") {
-      return messageValue.text.split("\n").map((line, index) => (
-        <span>
-          {line}
-          <br />
-        </span>
-      ));
-    }
-    if (messageValue.format === "markdown") {
-      return messageValue.text;
-    }
+  if (message === null || message === undefined) return;
+  const messageValue = JSON.parse(message) as { text: string; format: string };
+  if (messageValue.format === "text") {
+    return messageValue.text.split("\n").map((line, index) => (
+      <span>
+        {line}
+        <br />
+      </span>
+    ));
   }
-  
-  export function convertTime(time: string | number | Date) {
-    const date = new Date(time);
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    const ampm = hours >= 12 ? "午後" : "午前";
-    const hour = hours % 12;
-    const zeroPaddingHour = hour === 0 ? 12 : hour;
-    const zeroPaddingMinutes = String(minutes).padStart(2, "0");
-    return `${ampm} ${zeroPaddingHour}:${zeroPaddingMinutes}`;
+  if (messageValue.format === "markdown") {
+    return messageValue.text;
   }
-  
+}
+
+export function convertTime(time: string | number | Date) {
+  const date = new Date(time);
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? "午後" : "午前";
+  const hour = hours % 12;
+  const zeroPaddingHour = hour === 0 ? 12 : hour;
+  const zeroPaddingMinutes = String(minutes).padStart(2, "0");
+  return `${ampm} ${zeroPaddingHour}:${zeroPaddingMinutes}`;
+}
 
 export const sendTextHandler = async () => {
   return createRoot(async () => {
@@ -403,7 +409,10 @@ export async function copyMessageContent(content: {
   try {
     switch (content.type) {
       case "text": {
-        const messageValue = JSON.parse(content.content) as { text: string; format: string };
+        const messageValue = JSON.parse(content.content) as {
+          text: string;
+          format: string;
+        };
         await navigator.clipboard.writeText(messageValue.text);
         return true;
       }
@@ -413,16 +422,19 @@ export async function copyMessageContent(content: {
           uri: string;
           metadata: { filename: string; mimeType: string };
         };
-        
+
         // 通知用のテキストを準備
         const imageText = `[画像: ${imageContent.metadata.filename}]`;
         await navigator.clipboard.writeText(imageText);
-        
+
         // ブラウザによっては画像自体をクリップボードにコピーできない場合がある
         try {
-          const dataUrl = `data:${imageContent.metadata.mimeType};base64,${imageContent.uri}`;
-          const blob = await fetch(dataUrl).then(res => res.blob());
-          const clipboardItem = new ClipboardItem({ [imageContent.metadata.mimeType]: blob });
+          const dataUrl =
+            `data:${imageContent.metadata.mimeType};base64,${imageContent.uri}`;
+          const blob = await fetch(dataUrl).then((res) => res.blob());
+          const clipboardItem = new ClipboardItem({
+            [imageContent.metadata.mimeType]: blob,
+          });
           await navigator.clipboard.write([clipboardItem]);
         } catch (e) {
           console.log("画像のコピーはテキスト形式のみサポートされています", e);
@@ -444,14 +456,18 @@ export async function copyMessageContent(content: {
         const thumbnailContent = JSON.parse(content.content) as {
           originalType: "image" | "video";
         };
-        
-        const mediaType = thumbnailContent.originalType === "image" ? "画像" : "動画";
+
+        const mediaType = thumbnailContent.originalType === "image"
+          ? "画像"
+          : "動画";
         await navigator.clipboard.writeText(`[${mediaType}]`);
         return true;
       }
 
       default:
-        await navigator.clipboard.writeText(`[サポートされていないメッセージタイプ: ${content.type}]`);
+        await navigator.clipboard.writeText(
+          `[サポートされていないメッセージタイプ: ${content.type}]`,
+        );
         return true;
     }
   } catch (err) {

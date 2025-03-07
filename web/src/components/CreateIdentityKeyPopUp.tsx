@@ -1,5 +1,5 @@
 import { atom, useAtom } from "solid-jotai";
-import { PopUpFrame } from "./Chat/setupPopup/popUpFrame";
+import { PopUpFrame } from "./setupPopup/popUpFrame";
 import { createEffect, createSignal } from "solid-js";
 import {
   createTakosDB,

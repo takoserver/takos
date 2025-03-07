@@ -7,14 +7,14 @@ import {
   iconState,
   nicknameState,
   talkListState,
-} from "../../utils/state";
+} from "../utils/state";
 import { createEffect, createSignal, onMount, Show } from "solid-js";
 import {
   clearDB,
   createTakosDB,
   decryptShareSignKey,
   encryptAccountKey,
-} from "../../utils/idb";
+} from "../utils/idb";
 import {
   decryptDataDeviceKey,
   encryptDataDeviceKey,
@@ -26,7 +26,7 @@ import {
 } from "@takos/takos-encrypt-ink";
 import hash from "fnv1a";
 import { fetchingUsersState } from "./SideBar";
-import { PopUpFrame, PopUpInput, PopUpTitle } from "../popUpFrame";
+import { PopUpFrame, PopUpInput, PopUpTitle } from "./popUpFrame";
 
 const userId = localStorage.getItem("userName") + "@" +
   new URL(window.location.href).hostname;
@@ -1433,7 +1433,7 @@ function ProfileSettings() {
   );
 }
 
-import { showShareSignKeyPopUp } from "../CreateIdentityKeyPopUp";
+import { showShareSignKeyPopUp } from "./CreateIdentityKeyPopUp";
 
 // 鍵の管理コンポーネント
 function KeyManagement() {

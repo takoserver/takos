@@ -2,7 +2,7 @@ import { useAtom, useAtomValue, useSetAtom } from "solid-jotai";
 import { openConfig } from "../components/Chat.tsx";
 import { isSelectRoomState, selectedRoomState } from "../utils/roomState";
 import { createEffect, createSignal, For, Show } from "solid-js";
-import { groupChannelState } from "./Chat/SideBar.tsx";
+import { groupChannelState } from "./SideBar.tsx";
 import { PopUpFrame } from "./popUpFrame.tsx";
 import { uuidv7 } from "uuidv7";
 // 新しく作成した外部ステートをインポート
