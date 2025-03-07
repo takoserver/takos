@@ -56,3 +56,39 @@ html {
     animation: fadeIn 0.3s ease-in-out;
   }
 }
+
+/* メッセージアニメーション用スタイル */
+.message-container {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.message-show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* スムーズスクロール */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}
+
+/* ローディングアニメーション */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.slide-up {
+  animation: slideUp 0.5s ease forwards;
+}
