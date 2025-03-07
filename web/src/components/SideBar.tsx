@@ -165,15 +165,8 @@ function TalkListFriend({
           {nickName()}
         </div>
         <div class="text-xs text-gray-400">
-          {(() => {
-            const match = roomid.match(/^m\{([^}]+)\}@(.+)$/);
-            if (!match) {
-              return;
-            }
-            return match[1] + "@" + match[2];
-          })()!}
+        {latestMessage}
         </div>
-        <div class="text-sm text-gray-500">{latestMessage}</div>
       </div>
       {encrypted().includes(
         (() => {
@@ -349,15 +342,8 @@ function TalkGroup({
           {nickName()}
         </div>
         <div class="text-xs text-gray-400">
-          {(() => {
-            const match = roomid.match(/^g\{([^}]+)\}@(.+)$/);
-            if (!match) {
-              return;
-            }
-            return match[1] + "@" + match[2];
-          })()!}
+        {latestMessage}
         </div>
-        <div class="text-sm text-gray-500">{latestMessage}</div>
       </div>
     </div>
   );

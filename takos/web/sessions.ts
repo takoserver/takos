@@ -682,40 +682,32 @@ async function getLatestFriendMessageId(
 ): Promise<string | null> {
   const projection = { messageid: 1, timestamp: 1, userName: 1, _id: 0 };
 
-  // 自分の送信メッセージ条件
   const myRoomCondition = {
-    roomId,
+    roomId: `m{${roomId.split("@")[0]}}@${roomId.split("@")[1]}`,
     userName: `${userName}@${domain}`,
     isLarge: false,
   };
-
-  // 友だち側の送信メッセージ条件
+  
   const friendRoomCondition = {
     roomId: `m{${userName}}@${domain}`,
     userName: `${friendUserName}@${friendDomain}`,
     isLarge: false,
   };
+  
+  // 並列に最新のメッセージをそれぞれ取得
+  const [myMessage, friendMessage] = await Promise.all([
+    Message.findOne(myRoomCondition, projection).sort({ timestamp: -1 }),
+    Message.findOne(friendRoomCondition, projection).sort({ timestamp: -1 }),
+  ]);
 
-  // 自分と友だちそれぞれの最新メッセージを1件ずつ取得
-  const [myMessage] = await Message.find(myRoomCondition, projection)
-    .limit(1)
-    .sort({ timestamp: -1 });
-  const [friendMessage] = await Message.find(friendRoomCondition, projection)
-    .limit(1)
-    .sort({ timestamp: -1 });
-
-  let latestMessage: typeof myMessage | typeof friendMessage | null = null;
+  let latestMessage = null;
   if (myMessage && friendMessage) {
-    latestMessage =
-      myMessage.timestamp.getTime() >= friendMessage.timestamp.getTime()
-        ? myMessage
-        : friendMessage;
-  } else if (myMessage) {
-    latestMessage = myMessage;
-  } else if (friendMessage) {
-    latestMessage = friendMessage;
+    latestMessage = myMessage.timestamp.getTime() >= friendMessage.timestamp.getTime()
+      ? myMessage
+      : friendMessage;
+  } else {
+    latestMessage = myMessage || friendMessage;
   }
-
   return latestMessage ? latestMessage.messageid : null;
 }
 
@@ -727,15 +719,12 @@ async function getLatestGroupMessageId(
   const groupIds = roomId.split("@");
 
   const groupCondition = {
-    roomId: "m{" + groupIds[1] + "}" + groupIds[0],
+    roomId: "g{" + groupIds[0] + "}@" + groupIds[1],
     isLarge: false,
   };
 
   const latestMessage = await Message.findOne(groupCondition, projection)
     .sort({ timestamp: -1 });
-
-    console.log(latestMessage)
-  
   return latestMessage ? latestMessage.messageid : null;
 }
 

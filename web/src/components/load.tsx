@@ -38,6 +38,7 @@ import { Room, createRoomSelector, GroupChannel } from "../utils/roomUtils";
 import { isLoadedMessageState } from "./ChatTalkContent";
 import { createEffect } from "solid-js";
 import { groupChannelState } from "./SideBar";
+import { getMessage } from "../utils/getMessage";
 
 export function Loading() {
   return (
@@ -214,9 +215,47 @@ export function Load() {
     const friends: string[] = [];
     if (session.friendInfo) {
       for (const talk of session.friendInfo) {
+        let latestMessage = "";
+        if(talk[1]) {
+          try {
+            const latestMessageRaw = await getMessage({
+              messageid: talk[1],
+              type: "friend",
+              roomId: talk[0],
+              senderId: talk[2],
+            });
+            if(latestMessageRaw.value.type === "text") {
+              latestMessage = JSON.parse(latestMessageRaw.value.content).text
+            } else {
+              switch (latestMessageRaw.value.type) {
+                case "image":
+                  latestMessage = "画像";
+                  break;
+                case "video":
+                  latestMessage = "動画";
+                  break;
+                case "audio":
+                  latestMessage = "音声";
+                  break;
+                case "file":
+                  latestMessage = "ファイル";
+                  break;
+                default:
+                  latestMessage = "不明なメッセージ";
+                  break;
+              }
+            }
+          } catch (error) {
+            latestMessage = "解読に失敗しました";
+          }
+        } else {
+          latestMessage = "メッセージはありません";
+        }
+        //console.log("latestMessageRaw", latestMessageRaw);
+
         talkList.push({
           timestamp: "nodata",
-          latestMessage: "",
+          latestMessage,
           type: "friend",
           roomid: `m{${talk[0].split("@")[0]}}@${talk[0].split("@")[1]}`,
         });
@@ -230,9 +269,45 @@ export function Load() {
     }
     if (session.groupInfo) {
       for (const talk of session.groupInfo) {
+        let latestMessage = "";
+        if (talk[1]) {
+          try {
+            const latestMessageRaw = await getMessage({
+              messageid: talk[1],
+              type: "group", // グループの場合はこちら
+              roomId: talk[0],
+              senderId: talk[2],
+            });
+            if (latestMessageRaw.value.type === "text") {
+              latestMessage = JSON.parse(latestMessageRaw.value.content).text;
+            } else {
+              switch (latestMessageRaw.value.type) {
+                case "image":
+                  latestMessage = "画像";
+                  break;
+                case "video":
+                  latestMessage = "動画";
+                  break;
+                case "audio":
+                  latestMessage = "音声";
+                  break;
+                case "file":
+                  latestMessage = "ファイル";
+                  break;
+                default:
+                  latestMessage = "不明なメッセージ";
+                  break;
+              }
+            }
+          } catch (error) {
+            latestMessage = "解読に失敗しました";
+          }
+        } else {
+          latestMessage = "メッセージはありません";
+        }
         talkList.push({
           timestamp: "nodata",
-          latestMessage: "",
+          latestMessage,
           type: "group",
           roomid: `g{${talk[0].split("@")[0]}}@${talk[0].split("@")[1]}`,
         });
