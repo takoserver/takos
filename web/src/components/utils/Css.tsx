@@ -1,4 +1,4 @@
-import { loginState } from "../utils/state";
+import { loginState } from "../../utils/state";
 import { useAtom } from "solid-jotai";
 import { Link } from "@solidjs/meta";
 import { MetaProvider } from "@solidjs/meta";

@@ -1,9 +1,9 @@
 import { loadState, loginState, pageState } from "./utils/state.ts";
 import { useAtom } from "solid-jotai";
 import { Load, Loading } from "./components/load.tsx";
-import { Css } from "./components/Css.tsx";
+import { Css } from "./components/utils/Css.tsx";
 import "./App.css";
-import { ChangeURL } from "./components/ChangeURL.tsx";
+import { ChangeURL } from "./components/utils/ChangeURL.tsx";
 import { Register } from "./components/register/index.tsx";
 import { Chat } from "./components/Chat.tsx";
 import { createEffect, createSignal } from "solid-js";
@@ -11,7 +11,7 @@ import {
   CreateIdentityKeyPopUp,
   CreateShareSignKeyPopUp,
 } from "./components/encrypted/CreateIdentityKeyPopUp.tsx";
-import { CreateGroupPopUp } from "./components/CreateGroup.tsx";
+import { CreateGroupPopUp } from "./components/utils/CreateGroup.tsx";
 import { MigrateKey } from "./components/encrypted/MigrateKeys.tsx";
 import {
   contextMenuPositionState,

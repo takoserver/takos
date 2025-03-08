@@ -1,6 +1,5 @@
 import { createRoot } from "solid-js";
 import { useAtom, useSetAtom } from "solid-jotai";
-import { createMediaContent, createThumbnailContent } from "./getMessage";
 import {
   currentOperationAtom,
   isMenuOpenAtom,
@@ -8,7 +7,7 @@ import {
   readFileAsBase64,
   sendHandler,
   sendingProgressAtom,
-} from "./messageUtils.tsx";
+} from "./message/messageUtils.tsx";
 import { getBase64SizeKB, resizeBase64Image } from "./resizeImage";
 import { generateThumbnailFromFile } from "./getVideoThumbnail";
 import {
@@ -16,6 +15,7 @@ import {
   pasteImagePreviewAtom,
   showPasteConfirmAtom,
 } from "../components/talk/send/ImagePasteConfirmModal.tsx";
+import { createMediaContent, createThumbnailContent } from "./message/getMessage.ts";
 
 export const handleImageFile = async (file: File) => {
   return createRoot(async () => {

@@ -13,7 +13,7 @@ import {
 import { selectedRoomState } from "../../../utils/roomState";
 import { groupChannelState } from "../../sidebar/SideBar";
 import { For } from "solid-js";
-import { PopUpFrame } from "../../popUpFrame";
+import { PopUpFrame } from "../../utils/popUpFrame";
 
 export function GroupSettingMember() {
   const [selected, setSelected] = useAtom(selectedTabState);

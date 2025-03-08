@@ -1,6 +1,6 @@
 import { pageState } from "../../utils/state";
 import { useAtom } from "solid-jotai";
-import { shoowGroupPopUp, showGroupfindPopUp } from "../CreateGroup";
+import { shoowGroupPopUp, showGroupfindPopUp } from "../utils/CreateGroup";
 export default function talkListHeader() {
   const [page] = useAtom(pageState);
   return (

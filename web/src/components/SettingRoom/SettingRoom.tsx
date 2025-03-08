@@ -1,9 +1,9 @@
 import { useAtom, useAtomValue, useSetAtom } from "solid-jotai";
-import { openConfig } from "../components/Chat.tsx";
-import { isSelectRoomState, selectedRoomState } from "../utils/roomState";
+import { openConfig } from "../Chat.tsx";
+import { isSelectRoomState, selectedRoomState } from "../../utils/roomState.ts";
 import { createEffect, createSignal, For, Show } from "solid-js";
-import { groupChannelState } from "./sidebar/SideBar.tsx";
-import { PopUpFrame } from "./popUpFrame.tsx";
+import { groupChannelState } from "../sidebar/SideBar.tsx";
+import { PopUpFrame } from "../utils/popUpFrame.tsx";
 import { uuidv7 } from "uuidv7";
 // 新しく作成した外部ステートをインポート
 import {
@@ -36,9 +36,9 @@ import {
   updatedGroupIconState,
   updatedGroupIsPrivateState,
   updatedGroupNameState,
-} from "../utils/settingRoomState";
-import { GroupSetting } from "./SettingRoom/Group/Group.tsx";
-import { FriendSetting } from "./SettingRoom/Friends/Setting.tsx";
+} from "../../utils/settingRoomState.ts";
+import { GroupSetting } from "./Group/Group.tsx";
+import { FriendSetting } from "./Friends/Setting.tsx";
 
 export function SettingRoom() {
   const [showGroupPopUp, setShowGroupPopUp] = useAtom(openConfig);

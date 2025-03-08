@@ -18,7 +18,7 @@ import {
 import { createEffect, createMemo, createSignal } from "solid-js";
 import { createTakosDB } from "../../utils/idb";
 import { isLoadedMessageState } from "../talk/Content";
-import { Home } from "../home";
+import { Home } from "../home/home";
 import { createRoomSelector } from "../../utils/roomUtils";
 
 export function SideBer() {

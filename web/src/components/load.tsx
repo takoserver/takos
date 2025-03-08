@@ -38,7 +38,7 @@ import { createRoomSelector, GroupChannel, Room } from "../utils/roomUtils";
 import { isLoadedMessageState } from "./talk/Content";
 import { createEffect } from "solid-js";
 import { groupChannelState } from "./sidebar/SideBar";
-import { getMessage } from "../utils/getMessage";
+import { getMessage } from "../utils/message/getMessage";
 
 export function Loading() {
   return (

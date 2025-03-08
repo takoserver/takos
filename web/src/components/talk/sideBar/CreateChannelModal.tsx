@@ -1,5 +1,5 @@
 import { createSignal } from "solid-js";
-import { PopUpFrame } from "../../popUpFrame";
+import { PopUpFrame } from "../../utils/popUpFrame";
 import { selectedRoomState } from "../../../utils/roomState";
 import { useAtom } from "solid-jotai";
 import { uuidv7 } from "uuidv7";

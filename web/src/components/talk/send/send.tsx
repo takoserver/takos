@@ -13,7 +13,7 @@ import {
   mentionEveryone,
   mentionListState,
   replyTargetState,
-} from "../../../utils/mentionReply.ts";
+} from "../../../utils/message/mentionReply.ts";
 import MentionReplyDisplay from "./MentionReplyDisplay.tsx";
 
 import {
@@ -24,7 +24,7 @@ import {
   menuPositionAtom,
   sendingProgressAtom,
   sendTextHandler,
-} from "../../../utils/messageUtils.tsx";
+} from "../../../utils/message/messageUtils.tsx";
 import {
   cancelPastedImage,
   confirmAndSendPastedImage,

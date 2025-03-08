@@ -1,5 +1,5 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "solid-jotai";
-import { PopUpFrame, PopUpTitle } from "../popUpFrame";
+import { PopUpFrame, PopUpTitle } from "../utils/popUpFrame";
 import {
   migrateKeyPublicState,
   migrateRequestPage,

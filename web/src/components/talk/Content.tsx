@@ -10,7 +10,7 @@ import ChatOtherMessage from "./message/OtherMessage.tsx";
 import { createEffect, createSignal, For, onMount, Show } from "solid-js";
 import { groupChannelState } from "../sidebar/SideBar.tsx";
 import { MessageContentType, MessageData } from "../../types/message.ts";
-import { getCachedMessage } from "../../utils/messageCache.ts";
+import { getCachedMessage } from "../../utils/message/messageCache.ts";
 import { ChannelSideBar } from "./sideBar/ChannelSideBar.tsx";
 import { Transition } from "solid-transition-group";
 import LoadingAnimation from "./LoadingAnimation.tsx";

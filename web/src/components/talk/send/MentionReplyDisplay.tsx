@@ -5,8 +5,8 @@ import {
   mentionListState,
   removeMention,
   replyTargetState,
-} from "../../../utils/mentionReply";
-import { DEFAULT_ICON } from "../../defaultIcon";
+} from "../../../utils/message/mentionReply";
+import { DEFAULT_ICON } from "../../utils/defaultIcon";
 import { iconsState, nickNamesState } from "../../../utils/state";
 
 export const MentionReplyDisplay = () => {

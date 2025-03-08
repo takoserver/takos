@@ -1,4 +1,4 @@
-import { MessageData } from "../types/message";
+import { MessageData } from "../../types/message";
 import { getMessage } from "./getMessage";
 
 // メッセージキャッシュ

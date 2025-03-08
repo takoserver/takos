@@ -13,7 +13,7 @@ import {
 import { selectedRoomState } from "../../../utils/roomState";
 import { For } from "solid-js";
 import { groupChannelState } from "../../sidebar/SideBar.tsx";
-import { PopUpFrame } from "../../popUpFrame";
+import { PopUpFrame } from "../../utils/popUpFrame.tsx";
 import { availablePermissions } from "./Group.tsx";
 import { uuidv7 } from "uuidv7";
 

@@ -1,5 +1,5 @@
 import { createEffect } from "solid-js";
-import { loadState, loginState, pageState } from "../utils/state";
+import { loadState, loginState, pageState } from "../../utils/state";
 import { useAtom } from "solid-jotai";
 
 function getExpectedUrl(page: string): string {

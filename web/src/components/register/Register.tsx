@@ -3,7 +3,7 @@ import {
   PopUpInput,
   PopUpLabel,
   PopUpTitle,
-} from "../popUpFrame";
+} from "../utils/popUpFrame";
 import { Accessor, createSignal } from "solid-js";
 import { requester } from "../../utils/requester";
 export function Register() {
