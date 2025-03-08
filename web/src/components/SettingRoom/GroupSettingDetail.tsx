@@ -1,29 +1,39 @@
 import { useAtom } from "solid-jotai";
 import { selectedRoomState } from "../../utils/roomState";
-import { groupDescriptionState, groupIconState, groupIsPrivateState, groupNameState, selectedTabState, updatedGroupDescriptionState, updatedGroupIconState, updatedGroupIsPrivateState, updatedGroupNameState } from "../../utils/settingRoomState";
+import {
+  groupDescriptionState,
+  groupIconState,
+  groupIsPrivateState,
+  groupNameState,
+  selectedTabState,
+  updatedGroupDescriptionState,
+  updatedGroupIconState,
+  updatedGroupIsPrivateState,
+  updatedGroupNameState,
+} from "../../utils/settingRoomState";
 
 export function GroupSettingDetail() {
   const [selectedRoom] = useAtom(selectedRoomState);
   const [selected, setSelected] = useAtom(selectedTabState);
-    const [groupName, setGroupName] = useAtom(groupNameState);
-    const [groupDescription, setGroupDescription] = useAtom(
-      groupDescriptionState,
-    );
-    const [groupIcon, setGroupIcon] = useAtom(groupIconState);
-    const [groupIsPrivate, setGroupIsPrivate] = useAtom(groupIsPrivateState);
-    const [updatedGroupName, setUpdatedGroupName] = useAtom(
-      updatedGroupNameState,
-    );
-    const [updatedGroupDescription, setUpdatedGroupDescription] = useAtom(
-      updatedGroupDescriptionState,
-    );
-    const [updatedGroupIcon, setUpdatedGroupIcon] = useAtom(
-      updatedGroupIconState,
-    );
-    const [updatedGroupIsPrivate, setUpdatedGroupIsPrivate] = useAtom(
-      updatedGroupIsPrivateState,
-    );
-  
+  const [groupName, setGroupName] = useAtom(groupNameState);
+  const [groupDescription, setGroupDescription] = useAtom(
+    groupDescriptionState,
+  );
+  const [groupIcon, setGroupIcon] = useAtom(groupIconState);
+  const [groupIsPrivate, setGroupIsPrivate] = useAtom(groupIsPrivateState);
+  const [updatedGroupName, setUpdatedGroupName] = useAtom(
+    updatedGroupNameState,
+  );
+  const [updatedGroupDescription, setUpdatedGroupDescription] = useAtom(
+    updatedGroupDescriptionState,
+  );
+  const [updatedGroupIcon, setUpdatedGroupIcon] = useAtom(
+    updatedGroupIconState,
+  );
+  const [updatedGroupIsPrivate, setUpdatedGroupIsPrivate] = useAtom(
+    updatedGroupIsPrivateState,
+  );
+
   return (
     <>
       {selected() === "detail" && (

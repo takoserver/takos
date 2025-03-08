@@ -53,13 +53,13 @@ export function createRoomSelector({
   setMessageList,
   setLoadedMessageList,
   setSelectedChannel,
-  setGroupChannel
+  setGroupChannel,
 }: RoomSelectorParams) {
   return async function selectRoom({
     roomid,
     latestMessage,
     type,
-    nickName
+    nickName,
   }: {
     roomid: string;
     latestMessage: string;
@@ -70,21 +70,26 @@ export function createRoomSelector({
     setIsSelectRoom(true);
     setSelectedRoom({ roomid, roomName: latestMessage, type });
     setRoomNickName(nickName);
-    
+
     // 強制的にロード状態をリセット
     setLoadedMessageList(false);
     setMessageList([]);
 
     if (type === "friend") {
       const messages = await fetch("/api/v2/message/friend/" + roomid);
-      const messagesJson = (((await messages.json()).messages) as Message[]).sort((a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
+      const messagesJson = (((await messages.json()).messages) as Message[])
+        .sort((a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
       setMessageList(messagesJson);
-      
+
       const currentPath = window.location.pathname;
-      const pageSegment = currentPath.split('/').filter(Boolean)[0] || 'talk';
-      window.history.pushState({}, "", `/${pageSegment}/${encodeURIComponent(roomid)}`);
+      const pageSegment = currentPath.split("/").filter(Boolean)[0] || "talk";
+      window.history.pushState(
+        {},
+        "",
+        `/${pageSegment}/${encodeURIComponent(roomid)}`,
+      );
     } else if (type === "group") {
       const match = roomid.match(/^g\{([^}]+)\}@(.+)$/);
       if (!match) {
@@ -93,7 +98,7 @@ export function createRoomSelector({
       const groupName = match[1];
       const domainFromRoom = match[2];
       const groupId = groupName + "@" + domainFromRoom;
-      
+
       const baseUrl = `https://${domainFromRoom}/_takos/v1/group`;
       const channelsPromise = fetch(
         `${baseUrl}/channels/${groupId}`,
@@ -130,7 +135,7 @@ export function createRoomSelector({
       const members = membersResult.members;
       const owner = ownerResult.owner;
       const defaultChannelId = defaultChannelResult.defaultChannel;
-      
+
       setGroupChannel({
         members,
         channels,
@@ -138,20 +143,25 @@ export function createRoomSelector({
         categories,
         owner,
       });
-      
+
       const messages = await fetch(
         "/api/v2/message/group/" + roomid + "/" + defaultChannelId,
       );
-      const messagesJson = (((await messages.json()).messages) as Message[]).sort((a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-      
+      const messagesJson = (((await messages.json()).messages) as Message[])
+        .sort((a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+
       setMessageList(messagesJson);
       setSelectedChannel(defaultChannelId);
-      
+
       const currentPath = window.location.pathname;
-      const pageSegment = currentPath.split('/').filter(Boolean)[0] || 'talk';
-      window.history.pushState({}, "", `/${pageSegment}/${encodeURIComponent(roomid)}`);
+      const pageSegment = currentPath.split("/").filter(Boolean)[0] || "talk";
+      window.history.pushState(
+        {},
+        "",
+        `/${pageSegment}/${encodeURIComponent(roomid)}`,
+      );
     }
   };
 }

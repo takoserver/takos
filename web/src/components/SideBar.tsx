@@ -19,7 +19,7 @@ import {
   selectedRoomState,
 } from "../utils/roomState";
 import { PopUpFrame, PopUpInput, PopUpLabel, PopUpTitle } from "./popUpFrame";
-import { createEffect, createSignal, createMemo } from "solid-js";
+import { createEffect, createMemo, createSignal } from "solid-js";
 import { createTakosDB } from "../utils/idb";
 import { isLoadedMessageState } from "./ChatTalkContent";
 import { Home } from "./home";
@@ -123,7 +123,7 @@ function TalkListFriend({
   const setIsSelectRoom = useSetAtom(isSelectRoomState);
   const setMessageList = useSetAtom(messageListState);
   const setLoadedMessageList = useSetAtom(isLoadedMessageState);
-  
+
   // 新しいルーム選択関数を作成
   const selectRoom = createRoomSelector({
     setRoomNickName,
@@ -134,13 +134,13 @@ function TalkListFriend({
     setSelectedChannel: () => {}, // フレンドチャットではチャンネルを使用しないので空関数
     setGroupChannel: () => {}, // フレンドチャットではグループチャンネルを使用しないので空関数
   });
-  
+
   // 選択状態をリアクティブな関数として定義
   const isSelected = createMemo(() => {
     const current = selectedRoom();
     return current?.roomid === roomid;
   });
-  
+
   return (
     <div
       class={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
@@ -148,10 +148,10 @@ function TalkListFriend({
       }`}
       onClick={async () => {
         selectRoom({
-          roomid, 
-          latestMessage, 
-          type: "friend", 
-          nickName: nickName()
+          roomid,
+          latestMessage,
+          type: "friend",
+          nickName: nickName(),
         });
       }}
     >
@@ -165,7 +165,7 @@ function TalkListFriend({
           {nickName()}
         </div>
         <div class="text-xs text-gray-400">
-        {latestMessage}
+          {latestMessage}
         </div>
       </div>
       {encrypted().includes(
@@ -300,7 +300,7 @@ function TalkGroup({
   const setIsSelectRoom = useSetAtom(isSelectRoomState);
   const setMessageList = useSetAtom(messageListState);
   const setSelectedChannel = useSetAtom(selectedChannelState);
-  
+
   // 新しいルーム選択関数を作成
   const selectRoom = createRoomSelector({
     setRoomNickName,
@@ -309,15 +309,15 @@ function TalkGroup({
     setMessageList,
     setLoadedMessageList,
     setSelectedChannel,
-    setGroupChannel
+    setGroupChannel,
   });
-  
+
   // 選択状態をリアクティブな関数として定義
   const isSelected = createMemo(() => {
     const current = selectedRoom();
-    return current?.roomid === roomid
+    return current?.roomid === roomid;
   });
-  
+
   return (
     <div
       class={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
@@ -328,7 +328,7 @@ function TalkGroup({
           roomid,
           latestMessage,
           type: "group",
-          nickName: nickName()
+          nickName: nickName(),
         });
       }}
     >
@@ -342,7 +342,7 @@ function TalkGroup({
           {nickName()}
         </div>
         <div class="text-xs text-gray-400">
-        {latestMessage}
+          {latestMessage}
         </div>
       </div>
     </div>
@@ -369,14 +369,14 @@ function TalkList() {
       }
     }
   });
-  
+
   // 選択状態の変更を監視する効果
   createEffect(() => {
     // selectedRoomの変更を検知するために依存関係として使用
     const currentRoom = selectedRoom();
     console.log("Selected room changed:", currentRoom?.roomid);
   });
-  
+
   return (
     <>
       {talkList()?.map((talk) => {

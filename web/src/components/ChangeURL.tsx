@@ -10,16 +10,16 @@ function getExpectedUrl(page: string): string {
     setting: "/setting",
     notification: "/notification",
   };
-  
+
   // 現在のURLからページタイプとパスパラメータを抽出
   const currentUrl = window.location.pathname;
   const baseUrl = mapping[page] || "/";
-  
+
   // 現在のURLが同じページタイプで始まっている場合、そのURLを優先する
   if (currentUrl.startsWith(`/${page}/`)) {
     return currentUrl;
   }
-  
+
   return baseUrl;
 }
 

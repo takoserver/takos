@@ -37,7 +37,8 @@ import {
   updatedGroupIsPrivateState,
   updatedGroupNameState,
 } from "../utils/settingRoomState";
-import { GroupSetting } from "./SettingGroup.tsx";
+import { GroupSetting } from "./SettingRoom/SettingGroup.tsx";
+import { FriendSetting } from "./SettingRoom/FriendSetting.tsx";
 
 export function SettingRoom() {
   const [showGroupPopUp, setShowGroupPopUp] = useAtom(openConfig);
@@ -232,7 +233,9 @@ export function SettingRoom() {
           </button>
         </div>
         <div class="overflow-y-auto custom-scrollbar flex-1">
-          {selectedRoom()!.type === "group" && <GroupSetting />}
+          {selectedRoom()?.type === "group"
+            ? <GroupSetting />
+            : <FriendSetting />}
         </div>
       </div>
     </Show>
@@ -255,7 +258,9 @@ export function SettingRoom() {
             </h2>
           </div>
           <div class="overflow-y-auto custom-scrollbar flex-1 h-full">
-            {selectedRoom()?.type === "group" && <GroupSetting />}
+            {selectedRoom()?.type === "group"
+              ? <GroupSetting />
+              : <FriendSetting />}
           </div>
         </div>
       </div>

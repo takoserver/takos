@@ -137,7 +137,7 @@ export const MentionReplyDisplay = () => {
 
   return (
     <Show when={mentionList().length > 0 || replyTarget()}>
-      <div class="p-talk-mention-reply bg-[#2a2a2a] rounded-md mb-2 p-2">
+      <div class="p-talk-mention-reply bg-[#2a2a2a] rounded-md mb-2 p-2 mx-2">
         {/* メンションリスト表示 */}
         <Show when={mentionList().length > 0}>
           <div class="mb-2">
@@ -193,9 +193,9 @@ export const MentionReplyDisplay = () => {
 
         {/* リプライ表示 */}
         <Show when={replyTarget()}>
-          <div class="relative">
+          <div>
             <div class="text-xs text-gray-400 mb-1">リプライ先:</div>
-            <div class="flex items-start bg-[#3a3a3a] rounded p-2 pr-8">
+            <div class="flex items-start bg-[#3a3a3a] rounded p-3 pr-10 relative">
               <Show when={replyTarget()}>
                 {(reply) => (
                   <>
@@ -210,7 +210,7 @@ export const MentionReplyDisplay = () => {
                       <div class="text-sm font-medium mb-1">ユーザー</div>
                       <div class="text-sm break-words overflow-hidden text-ellipsis max-h-14">
                         {reply().type === "text"
-                          ? <span>{reply().content || "メッセージ"}</span>
+                          ? <span>{(JSON.parse(reply().content!)).text || "メッセージ"}</span>
                           : (
                             <div class="flex items-center">
                               {getContentTypeIcon(reply().type)}
@@ -228,7 +228,7 @@ export const MentionReplyDisplay = () => {
                       </div>
                     </div>
                     <button
-                      class="absolute top-2 right-2 text-gray-400 hover:text-white"
+                      class="absolute top-3 right-3 text-gray-400 hover:text-white"
                       onClick={clearReplyTarget}
                       title="リプライをキャンセル"
                     >

@@ -3,6 +3,8 @@ import { uuidv7 } from "uuidv7";
 
 // 選択中のタブ/セクション
 export const selectedTabState = atom<false | string>(false);
+// フレンド設定用の選択中タブ
+export const selectedFriendTabState = atom<false | string>(false);
 
 // ユーザーリスト
 export const friendListState = atom<string[]>([]);

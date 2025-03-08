@@ -28,5 +28,5 @@ export default function ChatTalkTitleContent() {
       return setNickName(selectedRoom()?.roomName || "");
     }
   });
-  return <p>{nickName()}</p>;
+  return <h2>{nickName()}</h2>;
 }

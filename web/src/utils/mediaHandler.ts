@@ -1,5 +1,5 @@
 import { createRoot } from "solid-js";
-import { useAtom } from "solid-jotai";
+import { useAtom, useSetAtom } from "solid-jotai";
 import { createMediaContent, createThumbnailContent } from "./getMessage";
 import {
   currentOperationAtom,

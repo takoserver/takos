@@ -634,21 +634,21 @@ app.get(
     const groupInfo = await Promise.all(groupListUnique.map(async (g) => {
       const latestMessageId = await getLatestGroupMessageId(g);
       return [g, latestMessageId];
-  }));
-  
-  const friendInfo = await Promise.all(friendList.map(async (f) => {
+    }));
+
+    const friendInfo = await Promise.all(friendList.map(async (f) => {
       console.log(f);
       // friendIdは "username@domain" の形式と仮定
       const [friendUser, friendDomain] = f.split("@");
       const latestMessageId = await getLatestFriendMessageId(
-          userInfo.userName,
-          env["domain"],
-          friendUser,
-          friendDomain,
-          f
+        userInfo.userName,
+        env["domain"],
+        friendUser,
+        friendDomain,
+        f,
       );
       return [f, latestMessageId];
-  }));
+    }));
     const shareKeys = await shareAccountKey.find({
       userName: userInfo.userName,
       sessionid: session.sessionid,
@@ -687,13 +687,13 @@ async function getLatestFriendMessageId(
     userName: `${userName}@${domain}`,
     isLarge: false,
   };
-  
+
   const friendRoomCondition = {
     roomId: `m{${userName}}@${domain}`,
     userName: `${friendUserName}@${friendDomain}`,
     isLarge: false,
   };
-  
+
   // 並列に最新のメッセージをそれぞれ取得
   const [myMessage, friendMessage] = await Promise.all([
     Message.findOne(myRoomCondition, projection).sort({ timestamp: -1 }),
@@ -702,9 +702,10 @@ async function getLatestFriendMessageId(
 
   let latestMessage = null;
   if (myMessage && friendMessage) {
-    latestMessage = myMessage.timestamp.getTime() >= friendMessage.timestamp.getTime()
-      ? myMessage
-      : friendMessage;
+    latestMessage =
+      myMessage.timestamp.getTime() >= friendMessage.timestamp.getTime()
+        ? myMessage
+        : friendMessage;
   } else {
     latestMessage = myMessage || friendMessage;
   }

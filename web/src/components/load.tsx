@@ -34,7 +34,7 @@ import {
   selectedChannelState,
   selectedRoomState,
 } from "../utils/roomState";
-import { Room, createRoomSelector, GroupChannel } from "../utils/roomUtils";
+import { createRoomSelector, GroupChannel, Room } from "../utils/roomUtils";
 import { isLoadedMessageState } from "./ChatTalkContent";
 import { createEffect } from "solid-js";
 import { groupChannelState } from "./SideBar";
@@ -92,7 +92,7 @@ export function Load() {
   const setIcon = useSetAtom(iconState);
   const setDiscription = useSetAtom(descriptionState);
   const setFriends = useSetAtom(friendsState);
-  
+
   // ルーム選択のための状態
   const setRoomNickName = useSetAtom(nickNameState);
   const setSelectedRoom = useSetAtom(selectedRoomState);
@@ -101,19 +101,19 @@ export function Load() {
   const setLoadedMessageList = useSetAtom(isLoadedMessageState);
   const setSelectedChannel = useSetAtom(selectedChannelState);
   const setGroupChannel = useSetAtom(groupChannelState);
-  
+
   // URLからルームIDを取得する関数
   const getRoomIdFromPath = () => {
     const path = window.location.pathname;
-    const segments = path.split('/').filter(Boolean);
-    
+    const segments = path.split("/").filter(Boolean);
+
     // URLパスが /talk/{roomId} の形式か確認
-    if (segments.length >= 2 && segments[0] === 'talk') {
+    if (segments.length >= 2 && segments[0] === "talk") {
       return decodeURIComponent(segments[1]); // URLデコードを追加
     }
     return null;
   };
-  
+
   // ルーム選択関数を作成
   const selectRoom = createRoomSelector({
     setRoomNickName,
@@ -122,7 +122,7 @@ export function Load() {
     setMessageList,
     setLoadedMessageList,
     setSelectedChannel,
-    setGroupChannel
+    setGroupChannel,
   });
 
   async function loadSession() {
@@ -216,7 +216,7 @@ export function Load() {
     if (session.friendInfo) {
       for (const talk of session.friendInfo) {
         let latestMessage = "";
-        if(talk[1]) {
+        if (talk[1]) {
           try {
             const latestMessageRaw = await getMessage({
               messageid: talk[1],
@@ -224,8 +224,8 @@ export function Load() {
               roomId: talk[0],
               senderId: talk[2],
             });
-            if(latestMessageRaw.value.type === "text") {
-              latestMessage = JSON.parse(latestMessageRaw.value.content).text
+            if (latestMessageRaw.value.type === "text") {
+              latestMessage = JSON.parse(latestMessageRaw.value.content).text;
             } else {
               switch (latestMessageRaw.value.type) {
                 case "image":
@@ -325,49 +325,58 @@ export function Load() {
     if (session.login) {
       createWebsocket(() => {
         setLoad(true);
-        
+
         // URLからルームIDを取得して接続を試みる
         const roomIdFromPath = getRoomIdFromPath();
         if (roomIdFromPath) {
           // トークリストからマッチするルームを探す
           setTimeout(() => {
             // URLデコードされたルームIDとの比較
-            const matchedRoom = talkList.find(room => room.roomid === roomIdFromPath);
+            const matchedRoom = talkList.find((room) =>
+              room.roomid === roomIdFromPath
+            );
             if (matchedRoom) {
               // ルームタイプに応じてニックネームを取得
-              const getRoomNickName = async (roomid: string, type: "friend" | "group") => {
+              const getRoomNickName = async (
+                roomid: string,
+                type: "friend" | "group",
+              ) => {
                 try {
-                  const match = roomid.match(type === "friend" 
-                    ? /^m\{([^}]+)\}@(.+)$/ 
-                    : /^g\{([^}]+)\}@(.+)$/);
-                  
+                  const match = roomid.match(
+                    type === "friend"
+                      ? /^m\{([^}]+)\}@(.+)$/
+                      : /^g\{([^}]+)\}@(.+)$/,
+                  );
+
                   if (!match) return roomid;
-                  
+
                   const name = match[1];
                   const domain = match[2];
                   const fullId = name + "@" + domain;
-                  
-                  const endpoint = type === "friend" 
+
+                  const endpoint = type === "friend"
                     ? `https://${domain}/_takos/v1/user/nickName/${fullId}`
                     : `https://${domain}/_takos/v1/group/name/${fullId}`;
-                    
+
                   const response = await fetch(endpoint);
                   const data = await response.json();
-                  
+
                   return type === "friend" ? data.nickName : data.name;
                 } catch (error) {
                   console.error("Error fetching nickname:", error);
                   return roomid;
                 }
               };
-              getRoomNickName(matchedRoom.roomid, matchedRoom.type).then(nickName => {
-                selectRoom({
-                  roomid: matchedRoom.roomid,
-                  latestMessage: matchedRoom.latestMessage, 
-                  type: matchedRoom.type,
-                  nickName
-                });
-              });
+              getRoomNickName(matchedRoom.roomid, matchedRoom.type).then(
+                (nickName) => {
+                  selectRoom({
+                    roomid: matchedRoom.roomid,
+                    latestMessage: matchedRoom.latestMessage,
+                    type: matchedRoom.type,
+                    nickName,
+                  });
+                },
+              );
             }
           }, 50); // talkListの処理完了を待つための小さな遅延
         }
@@ -377,7 +386,7 @@ export function Load() {
       setLoad(true);
     }
   }
-  
+
   loadSession();
   return <></>;
 }

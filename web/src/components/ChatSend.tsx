@@ -4,7 +4,7 @@ import {
   isValidInputState,
 } from "../utils/state.ts";
 import { atom, useAtom } from "solid-jotai";
-import { createEffect, Show } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { selectedChannelState, selectedRoomState } from "../utils/roomState.ts";
 import { groupChannelState } from "./SideBar.tsx";
 import EncryptionSettingsModal, {
@@ -58,6 +58,8 @@ function ChatSend() {
   const [menuPosition, setMenuPosition] = useAtom(menuPositionAtom);
   const [showPasteConfirm] = useAtom(showPasteConfirmAtom);
   const [pasteImagePreview] = useAtom(pasteImagePreviewAtom);
+  const [isIOS] = createSignal(/iPad|iPhone|iPod/.test(navigator.userAgent));
+  const [textareaRef, setTextareaRef] = createSignal<HTMLTextAreaElement>();
 
   // 暗号化切り替え処理
   const toggleEncryption = () => {
@@ -90,6 +92,39 @@ function ChatSend() {
     }
   };
 
+  // iOS向けのキーボード対応
+  onMount(() => {
+    if (isIOS()) {
+      const handleFocus = () => {
+        // フォーカス時にビューポートを調整
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          document.body.scrollTop = 0;
+        }, 300);
+      };
+
+      const handleBlur = () => {
+        // フォーカスが外れたら少し待って元に戻す
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+        }, 100);
+      };
+
+      const textarea = textareaRef();
+      if (textarea) {
+        textarea.addEventListener("focus", handleFocus);
+        textarea.addEventListener("blur", handleBlur);
+      }
+
+      onCleanup(() => {
+        if (textarea) {
+          textarea.removeEventListener("focus", handleFocus);
+          textarea.removeEventListener("blur", handleBlur);
+        }
+      });
+    }
+  });
+
   // コンポーネントのマウント時にドキュメント全体のクリックイベントを設定
   createEffect(() => {
     if (isMenuOpen()) {
@@ -117,8 +152,6 @@ function ChatSend() {
     setIsMenuOpen(false);
     setShowEncryptionSettings(true);
   };
-
-  //UI
 
   // メニュー項目に「全員をメンション」ボタンを追加
   const menuItems = [
@@ -196,12 +229,14 @@ function ChatSend() {
   ];
 
   return (
-    <div class="p-talk-chat-send relative">
-      {/* メンションとリプライ表示コンポーネント */}
-      <MentionReplyDisplay />
-
+    <div
+      class="p-talk-chat-send relative bg-[#1e1e1e] py-2 px-4"
+      style={{
+        "padding-bottom": "calc(env(safe-area-inset-bottom, 8px) + 8px)",
+      }}
+    >
       <form class="p-talk-chat-send__form" onSubmit={(e) => e.preventDefault()}>
-        <div class="p-talk-chat-send__msg">
+        <div class="p-talk-chat-send__msg flex items-center">
           <div
             class="p-talk-chat-send__dummy"
             aria-hidden="true"
@@ -213,11 +248,12 @@ function ChatSend() {
               </>
             ))}
           </div>
-          <label>
+          <label class="flex-1">
             <textarea
-              class="p-talk-chat-send__textarea"
+              class="p-talk-chat-send__textarea w-full py-2 px-3"
               placeholder="メッセージを入力"
               value={inputMessage()}
+              ref={setTextareaRef}
               onInput={(e) => {
                 if (e.target) {
                   //0文字以上の場合はtrue
@@ -240,7 +276,7 @@ function ChatSend() {
             </textarea>
           </label>
         </div>
-        <div class="flex items-center">
+        <div class="flex items-center mt-2">
           {/* メニューボタン */}
           <div class="relative">
             <div

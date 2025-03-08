@@ -4,7 +4,7 @@ import {
   selectedRoomState,
 } from "../utils/roomState";
 import { messageListState, messageValueState } from "../utils/state.ts";
-import { atom, useAtom } from "solid-jotai";
+import { atom, useAtom, useSetAtom } from "solid-jotai";
 import ChatSendMessage from "./SendMessage.tsx";
 import ChatOtherMessage from "./OtherMessage.tsx";
 import { createEffect, createSignal, For, onMount, Show } from "solid-js";
@@ -14,6 +14,7 @@ import { getCachedMessage } from "../utils/messageCache";
 import { ChannelSideBar } from "./ChannelSideBar.tsx";
 import { Transition } from "solid-transition-group";
 import LoadingAnimation from "./LoadingAnimation";
+import MentionReplyDisplay from "./MentionReplyDisplay.tsx";
 
 // ローカルユーザー名を取得
 const myuserName = localStorage.getItem("userName") + "@" +
@@ -68,8 +69,10 @@ function useMessageLoader() {
     }
 
     // ルームが変わったらか、強制リロードフラグが立っていれば処理済みIDリストをリセット
-    if (messages().length > 0 && 
-        (messages()[0].roomid !== roomid || !loaded())) {
+    if (
+      messages().length > 0 &&
+      (messages()[0].roomid !== roomid || !loaded())
+    ) {
       setMessages([]);
       setProcessedMessageIds(() => new Set<string>());
     }
@@ -205,6 +208,7 @@ function ChatTalkMain() {
   const [prevMessageCount, setPrevMessageCount] = createSignal(0);
   const [shouldAutoScroll, setShouldAutoScroll] = createSignal(true);
   const [hasNewMessages, setHasNewMessages] = createSignal(false);
+  const [isIOS] = createSignal(/iPad|iPhone|iPod/.test(navigator.userAgent));
 
   // SolidJSの正しいref設定方法
   const [chatListRef, setChatListRef] = createSignal<HTMLDivElement>();
@@ -256,7 +260,7 @@ function ChatTalkMain() {
           setTimeout(() => {
             element.scrollTo({
               top: element.scrollHeight,
-              behavior: "smooth",
+              behavior: isIOS() ? "auto" : "smooth", // iOSはsmoothが重いので
             });
             // スクロールしたので通知は不要
             setHasNewMessages(false);
@@ -271,14 +275,37 @@ function ChatTalkMain() {
     }
   });
 
+  // リサイズ時にも必要に応じてスクロールする
+  createEffect(() => {
+    const handleResize = () => {
+      if (shouldAutoScroll()) {
+        const element = chatListRef();
+        if (element) {
+          setTimeout(() => {
+            element.scrollTo({
+              top: element.scrollHeight,
+              behavior: isIOS() ? "auto" : "smooth",
+            });
+          }, 100);
+        }
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  });
+
   return (
-    <div class="relative h-full">
+    <div class="relative flex flex-col h-full w-full">
       <div
-        class="pl-2 h-full flex flex-col scroll-smooth" // "overflow-y-auto" 削除
+        class="pl-2 flex-1 overflow-y-auto pb-4 overscroll-contain"
         id="chatList"
         ref={setChatListRef}
         onScroll={handleScroll}
-        /* インラインスタイル "max-height" と "scroll-behavior" を削除 */
+        style={{
+          "-webkit-overflow-scrolling": "touch", // iOSでのスムーズスクロール
+          "padding-bottom": "env(safe-area-inset-bottom, 16px)", // ノッチ対応
+        }}
       >
         {loaded()
           ? (
@@ -292,7 +319,7 @@ function ChatTalkMain() {
       {/* 新しいメッセージがある場合に表示するボタン */}
       <Show when={hasNewMessages()}>
         <div
-          class="absolute bottom-4 right-6 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg cursor-pointer z-10 flex items-center transition-opacity duration-300 opacity-90 hover:opacity-100"
+          class="absolute bottom-16 right-6 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg cursor-pointer z-10 flex items-center transition-opacity duration-300 opacity-90 hover:opacity-100"
           onClick={scrollToBottom}
         >
           <svg
@@ -323,10 +350,13 @@ function ChatTalk() {
     <>
       {isChoiceUser()
         ? (
-          <ul class="c-talk-chat-list">
+          <div class="h-full w-full overflow-hidden flex flex-col">
             <ChannelSideBar />
-            <ChatTalkMain />
-          </ul>
+            <div class="flex-1 overflow-hidden flex flex-col">
+              <ChatTalkMain />
+            </div>
+            <MentionReplyDisplay />
+          </div>
         )
         : (
           <div class="flex w-full h-full">
