@@ -1,5 +1,5 @@
 import { useAtom } from "solid-jotai";
-import { selectedFriendTabState } from "../../../utils/settingRoomState";
+import { selectedFriendTabState } from "../../../utils/room/settingRoomState";
 import { createSignal } from "solid-js";
 
 export function FriendSettingMenu() {

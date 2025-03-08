@@ -26,15 +26,15 @@ import {
   verifyDataShareSignKey,
   verifyMasterKey,
 } from "@takos/takos-encrypt-ink";
-import { createTakosDB } from "../utils/idb";
+import { createTakosDB } from "../utils/storage/idb";
 import {
   isSelectRoomState,
   nickNameState,
   roomKeyState,
   selectedChannelState,
   selectedRoomState,
-} from "../utils/roomState";
-import { createRoomSelector, GroupChannel, Room } from "../utils/roomUtils";
+} from "../utils/room/roomState";
+import { createRoomSelector, GroupChannel, Room } from "../utils/room/roomUtils";
 import { isLoadedMessageState } from "./talk/Content";
 import { createEffect } from "solid-js";
 import { groupChannelState } from "./sidebar/SideBar";

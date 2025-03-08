@@ -1,6 +1,6 @@
 import { useAtom, useAtomValue, useSetAtom } from "solid-jotai";
 import { openConfig } from "../Chat.tsx";
-import { isSelectRoomState, selectedRoomState } from "../../utils/roomState.ts";
+import { isSelectRoomState, selectedRoomState } from "../../utils/room/roomState.ts";
 import { createEffect, createSignal, For, Show } from "solid-js";
 import { groupChannelState } from "../sidebar/SideBar.tsx";
 import { PopUpFrame } from "../utils/popUpFrame.tsx";
@@ -36,7 +36,7 @@ import {
   updatedGroupIconState,
   updatedGroupIsPrivateState,
   updatedGroupNameState,
-} from "../../utils/settingRoomState.ts";
+} from "../../utils/room/settingRoomState.ts";
 import { GroupSetting } from "./Group/Group.tsx";
 import { FriendSetting } from "./Friends/Setting.tsx";
 

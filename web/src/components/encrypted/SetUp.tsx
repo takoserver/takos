@@ -8,7 +8,7 @@ import { useAtom, useSetAtom } from "solid-jotai";
 import { PopUpFrame } from "./SetUpFrame.tsx";
 import { createEffect, createSignal } from "solid-js";
 import { arrayBufferToBase64 } from "../../utils/buffers.ts";
-import { createTakosDB, encryptAccountKey } from "../../utils/idb.ts";
+import { createTakosDB, encryptAccountKey } from "../../utils/storage/idb.ts";
 import { isLoadedMessageState } from "../talk/Content.tsx";
 import {
   encryptDataDeviceKey,

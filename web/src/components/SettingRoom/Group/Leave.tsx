@@ -1,6 +1,6 @@
 import { useAtom } from "solid-jotai";
-import { selectedTabState } from "../../../utils/settingRoomState";
-import { selectedRoomState } from "../../../utils/roomState";
+import { selectedTabState } from "../../../utils/room/settingRoomState";
+import { selectedRoomState } from "../../../utils/room/roomState";
 
 export function GroupSettingLeave() {
   const [selected, setSelected] = useAtom(selectedTabState);

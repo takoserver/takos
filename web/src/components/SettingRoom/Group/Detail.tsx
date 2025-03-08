@@ -1,5 +1,5 @@
 import { useAtom } from "solid-jotai";
-import { selectedRoomState } from "../../../utils/roomState";
+import { selectedRoomState } from "../../../utils/room/roomState";
 import {
   groupDescriptionState,
   groupIconState,
@@ -10,7 +10,7 @@ import {
   updatedGroupIconState,
   updatedGroupIsPrivateState,
   updatedGroupNameState,
-} from "../../../utils/settingRoomState";
+} from "../../../utils/room/settingRoomState";
 
 export function GroupSettingDetail() {
   const [selectedRoom] = useAtom(selectedRoomState);

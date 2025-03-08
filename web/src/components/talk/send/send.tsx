@@ -5,7 +5,7 @@ import {
 } from "../../../utils/state.ts";
 import { atom, useAtom } from "solid-jotai";
 import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
-import { selectedChannelState, selectedRoomState } from "../../../utils/roomState.ts";
+import { selectedChannelState, selectedRoomState } from "../../../utils/room/roomState.ts";
 import { groupChannelState } from "../../sidebar/SideBar.tsx";
 import {
   clearMentionReplyState,
@@ -30,7 +30,7 @@ import {
   confirmAndSendPastedImage,
   handleMediaSelect,
   handlePastedImage,
-} from "../../../utils/mediaHandler.ts";
+} from "../../../utils/media/mediaHandler.ts";
 import ImagePasteConfirmModal, {
   pasteImagePreviewAtom,
   showPasteConfirmAtom,

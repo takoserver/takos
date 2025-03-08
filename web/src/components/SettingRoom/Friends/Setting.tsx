@@ -3,7 +3,7 @@ import { useAtom } from "solid-jotai";
 import {
   selectedFriendTabState,
   selectedTabState,
-} from "../../../utils/settingRoomState";
+} from "../../../utils/room/settingRoomState";
 import { FriendSettingMenu } from "./Menu";
 import { FriendSettingChat } from "./Chat";
 import SettingEncryption from "../SettingEncryption";

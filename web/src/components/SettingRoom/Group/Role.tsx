@@ -9,8 +9,8 @@ import {
   showCreateRoleState,
   showDeleteRoleConfirmState,
   showEditRoleState,
-} from "../../../utils/settingRoomState";
-import { selectedRoomState } from "../../../utils/roomState";
+} from "../../../utils/room/settingRoomState.ts";
+import { selectedRoomState } from "../../../utils/room/roomState.ts";
 import { For } from "solid-js";
 import { groupChannelState } from "../../sidebar/SideBar.tsx";
 import { PopUpFrame } from "../../utils/popUpFrame.tsx";

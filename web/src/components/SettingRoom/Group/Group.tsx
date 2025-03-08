@@ -1,6 +1,6 @@
 import { createEffect } from "solid-js";
 import { useAtom } from "solid-jotai";
-import { selectedFriendTabState } from "../../../utils/settingRoomState.ts";
+import { selectedFriendTabState } from "../../../utils/room/settingRoomState.ts";
 import { GroupSettingMenu } from "./Menu.tsx";
 import { GroupSettingDetail } from "./Detail.tsx";
 import { GroupSettingInvite } from "./Invite.tsx";

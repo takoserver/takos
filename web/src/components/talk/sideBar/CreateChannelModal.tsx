@@ -1,6 +1,6 @@
 import { createSignal } from "solid-js";
 import { PopUpFrame } from "../../utils/popUpFrame";
-import { selectedRoomState } from "../../../utils/roomState";
+import { selectedRoomState } from "../../../utils/room/roomState";
 import { useAtom } from "solid-jotai";
 import { uuidv7 } from "uuidv7";
 import { showCreateChannelModalState } from "../Content";

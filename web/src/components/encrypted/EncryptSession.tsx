@@ -18,9 +18,8 @@ import {
 import { atom, useAtom, useSetAtom } from "solid-jotai";
 import { PopUpFrame } from "./SetUpFrame";
 import { createEffect, createSignal } from "solid-js";
-import { requester } from "../../utils/requester";
 import fnv1a from "fnv1a";
-import { createTakosDB, encryptAccountKey } from "../../utils/idb";
+import { createTakosDB, encryptAccountKey } from "../../utils/storage/idb";
 import {
   decryptDataDeviceKey,
   encryptDataDeviceKey,

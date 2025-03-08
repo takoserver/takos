@@ -1,6 +1,6 @@
-import { createTakosDB, decryptAccountKey } from "./idb";
+import { createTakosDB, decryptAccountKey } from "../storage/idb";
 import { useAtom } from "solid-jotai";
-import { deviceKeyState } from "./state";
+import { deviceKeyState } from "../state";
 import {
   decryptDataAccountKey,
   decryptDataDeviceKey,

@@ -1,10 +1,10 @@
 import { useAtom } from "solid-jotai";
-import { selectedRoomState } from "../../../utils/roomState";
+import { selectedRoomState } from "../../../utils/room/roomState";
 import {
   isLoadingRequestsState,
   joinRequestsState,
   selectedTabState,
-} from "../../../utils/settingRoomState";
+} from "../../../utils/room/settingRoomState";
 import { groupChannelState } from "../../sidebar/SideBar";
 import { For } from "solid-js";
 

@@ -1,8 +1,8 @@
 import { createEffect, createSignal, For, Show } from "solid-js";
 import { useAtom } from "solid-jotai";
-import { getEncryptSetting } from "../../utils/idb";
-import { selectedFriendTabState, selectedTabState } from "../../utils/settingRoomState";
-import { selectedRoomState } from "../../utils/roomState";
+import { getEncryptSetting } from "../../utils/storage/idb";
+import { selectedFriendTabState, selectedTabState } from "../../utils/room/settingRoomState";
+import { selectedRoomState } from "../../utils/room/roomState";
 
 type SettingEncryptionProps = {
   type: "group" | "friend";

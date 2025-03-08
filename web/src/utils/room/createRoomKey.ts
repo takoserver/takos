@@ -7,7 +7,7 @@ import {
   keyHash,
   verifyMasterKey,
 } from "@takos/takos-encrypt-ink";
-import { createTakosDB } from "./idb";
+import { createTakosDB } from "../storage/idb";
 
 export async function createRoomKey(
   roomId: string,

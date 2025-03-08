@@ -16,7 +16,7 @@ import {
 } from "./migrateState.ts";
 
 import { messageListState, messageValueState } from "../utils/state.ts";
-import { selectedRoomState } from "./roomState.ts";
+import { selectedRoomState } from "./room/roomState.ts";
 
 import { migrateRequestState } from "../components/encrypted/MigrateKeys.tsx";
 import {
@@ -26,7 +26,7 @@ import {
   keyHash,
   verifyDataMigrateSignKey,
 } from "@takos/takos-encrypt-ink";
-import { createTakosDB } from "./idb.ts";
+import { createTakosDB } from "./storage/idb.ts";
 
 export function createWebsocket(loadedFn: () => void) {
   createRoot(() => {

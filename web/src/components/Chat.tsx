@@ -5,7 +5,7 @@ import ChatSend from "./talk/send/send.tsx";
 import ChatTalkTitle from "./talk/header/ChatTalkTitle.tsx";
 import ChatTalkContent from "./talk/Content.tsx";
 import ChatTalkTitleContent from "./talk/header/ChatTalkTitleContent.tsx";
-import { isSelectRoomState } from "../utils/roomState.ts";
+import { isSelectRoomState } from "../utils/room/roomState.ts";
 import { atom, useAtom } from "solid-jotai";
 import { SettingRoom } from "./SettingRoom/SettingRoom.tsx";
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";

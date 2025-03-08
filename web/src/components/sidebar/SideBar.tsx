@@ -14,12 +14,12 @@ import {
   roomKeyState,
   selectedChannelState,
   selectedRoomState,
-} from "../../utils/roomState";
+} from "../../utils/room/roomState";
 import { createEffect, createMemo, createSignal } from "solid-js";
-import { createTakosDB } from "../../utils/idb";
+import { createTakosDB } from "../../utils/storage/idb";
 import { isLoadedMessageState } from "../talk/Content";
 import { Home } from "../home/home";
-import { createRoomSelector } from "../../utils/roomUtils";
+import { createRoomSelector } from "../../utils/room/roomUtils";
 
 export function SideBer() {
   const [page] = useAtom(pageState);

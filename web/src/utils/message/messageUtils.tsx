@@ -1,11 +1,11 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from "solid-jotai";
 import { createRoot } from "solid-js";
-import { selectedChannelState, selectedRoomState } from "../roomState";
+import { selectedChannelState, selectedRoomState } from "../room/roomState";
 import { deviceKeyState, inputMessageState } from "../state";
-import { createTakosDB } from "../idb";
+import { createTakosDB } from "../storage/idb";
 import { decryptDataDeviceKey, encryptMessage } from "@takos/takos-encrypt-ink";
-import { createRoomKey } from "../createRoomKey";
-import { getIdentityKeys } from "../getIdentityKeys";
+import { createRoomKey } from "../room/createRoomKey";
+import { getIdentityKeys } from "../crypto/getIdentityKeys";
 import { groupChannelState } from "../../components/sidebar/SideBar";
 import { createTextContent } from "./getMessage";
 import {

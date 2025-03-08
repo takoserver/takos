@@ -1,5 +1,5 @@
 import { useAtom } from "solid-jotai";
-import { isSelectRoomState, selectedRoomState } from "../../../utils/roomState";
+import { isSelectRoomState, selectedRoomState } from "../../../utils/room/roomState";
 
 export default function ChatTalkTitle() {
   const [isSelectRoom, setIsSelectedRoom] = useAtom(isSelectRoomState);

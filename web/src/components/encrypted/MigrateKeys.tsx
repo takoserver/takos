@@ -17,7 +17,7 @@ import {
 import { createSignal } from "solid-js";
 import fnv1a from "fnv1a";
 import { deviceKeyState } from "../../utils/state";
-import { createTakosDB } from "../../utils/idb";
+import { createTakosDB } from "../../utils/storage/idb";
 export const migrateRequestState = atom<boolean>(false);
 const [migrateRequestInput, setMigrateRequestInput] = createSignal(false);
 

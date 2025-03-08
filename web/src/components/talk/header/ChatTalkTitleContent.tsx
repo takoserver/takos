@@ -8,7 +8,7 @@ import {
   nickNameState,
   roomKeyState,
   selectedRoomState,
-} from "../../../utils/roomState";
+} from "../../../utils/room/roomState";
 export default function ChatTalkTitleContent() {
   const [nickName, setNickName] = useAtom(nickNameState);
   const [domain] = useAtom(domainState);

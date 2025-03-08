@@ -7,15 +7,15 @@ import {
   readFileAsBase64,
   sendHandler,
   sendingProgressAtom,
-} from "./message/messageUtils.tsx";
-import { getBase64SizeKB, resizeBase64Image } from "./resizeImage";
-import { generateThumbnailFromFile } from "./getVideoThumbnail";
+} from "../message/messageUtils.tsx";
+import { getBase64SizeKB, resizeBase64Image } from "./resizeImage.ts";
+import { generateThumbnailFromFile } from "./getVideoThumbnail.ts";
 import {
   pasteImageDataAtom,
   pasteImagePreviewAtom,
   showPasteConfirmAtom,
-} from "../components/talk/send/ImagePasteConfirmModal.tsx";
-import { createMediaContent, createThumbnailContent } from "./message/getMessage.ts";
+} from "../../components/talk/send/ImagePasteConfirmModal.tsx";
+import { createMediaContent, createThumbnailContent } from "../message/getMessage.ts";
 
 export const handleImageFile = async (file: File) => {
   return createRoot(async () => {

@@ -9,8 +9,8 @@ import {
   showKickConfirmState,
   showTimeoutModalState,
   timeoutDurationState,
-} from "../../../utils/settingRoomState";
-import { selectedRoomState } from "../../../utils/roomState";
+} from "../../../utils/room/settingRoomState";
+import { selectedRoomState } from "../../../utils/room/roomState";
 import { groupChannelState } from "../../sidebar/SideBar";
 import { For } from "solid-js";
 import { PopUpFrame } from "../../utils/popUpFrame";

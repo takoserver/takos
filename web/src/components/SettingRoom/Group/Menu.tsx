@@ -1,6 +1,6 @@
 import { useAtom } from "solid-jotai";
-import { selectedTabState,} from "../../../utils/settingRoomState";
-import { getNotificationSetting, saveEncryptSetting } from "../../../utils/idb";
+import { selectedTabState,} from "../../../utils/room/settingRoomState";
+import { getNotificationSetting, saveEncryptSetting } from "../../../utils/storage/idb";
 import { createSignal } from "solid-js";
 
 export function GroupSettingMenu() {

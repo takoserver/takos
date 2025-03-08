@@ -2,7 +2,7 @@ import {
   isSelectRoomState,
   selectedChannelState,
   selectedRoomState,
-} from "../../utils/roomState.ts";
+} from "../../utils/room/roomState.ts";
 import { messageListState, messageValueState } from "../../utils/state.ts";
 import { atom, useAtom, useSetAtom } from "solid-jotai";
 import ChatSendMessage from "./message/SendMessage.tsx";

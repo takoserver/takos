@@ -4,7 +4,7 @@ import { DEFAULT_ICON } from "../../utils/defaultIcon.ts";
 import { iconsState, nickNamesState } from "../../../utils/state.ts";
 import { ContextMenu } from "./ContextMenu.tsx";
 import { getMessage } from "../../../utils/message/getMessage.ts";
-import { selectedRoomState } from "../../../utils/roomState.ts";
+import { selectedRoomState } from "../../../utils/room/roomState.ts";
 import { convertTime, copyMessageContent } from "../../../utils/message/messageUtils.tsx";
 
 import { renderMessageContent } from "./MessageContent.tsx";

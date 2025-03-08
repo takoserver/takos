@@ -14,7 +14,7 @@ import {
   createTakosDB,
   decryptShareSignKey,
   encryptAccountKey,
-} from "../../utils/idb";
+} from "../../utils/storage/idb";
 import {
   decryptDataDeviceKey,
   encryptDataDeviceKey,

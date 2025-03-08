@@ -3,8 +3,8 @@ import { For, Show } from "solid-js";
 import {
   friendListState,
   selectedTabState,
-} from "../../../utils/settingRoomState";
-import { selectedRoomState } from "../../../utils/roomState";
+} from "../../../utils/room/settingRoomState";
+import { selectedRoomState } from "../../../utils/room/roomState";
 
 export function GroupSettingInvite() {
   const [selected, setSelected] = useAtom(selectedTabState);
