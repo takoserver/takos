@@ -5,9 +5,9 @@ import {
   mentionListState,
   removeMention,
   replyTargetState,
-} from "../utils/mentionReply";
-import { DEFAULT_ICON } from "./defaultIcon";
-import { iconsState, nickNamesState } from "../utils/state";
+} from "../../../utils/mentionReply";
+import { DEFAULT_ICON } from "../../defaultIcon";
+import { iconsState, nickNamesState } from "../../../utils/state";
 
 export const MentionReplyDisplay = () => {
   const [mentionList] = useAtom(mentionListState);

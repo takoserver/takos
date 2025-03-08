@@ -15,7 +15,7 @@ import {
   pasteImageDataAtom,
   pasteImagePreviewAtom,
   showPasteConfirmAtom,
-} from "../components/ImagePasteConfirmModal";
+} from "../components/talk/send/ImagePasteConfirmModal.tsx";
 
 export const handleImageFile = async (file: File) => {
   return createRoot(async () => {

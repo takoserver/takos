@@ -35,7 +35,7 @@ import {
   selectedRoomState,
 } from "../utils/roomState";
 import { createRoomSelector, GroupChannel, Room } from "../utils/roomUtils";
-import { isLoadedMessageState } from "./talk/ChatTalkContent";
+import { isLoadedMessageState } from "./talk/Content";
 import { createEffect } from "solid-js";
 import { groupChannelState } from "./sidebar/SideBar";
 import { getMessage } from "../utils/getMessage";

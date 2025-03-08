@@ -1,14 +1,14 @@
 import { createEffect } from "solid-js";
 import { createSignal } from "solid-js";
 import { useAtom } from "solid-jotai";
-import { requester } from "../../utils/requester";
-import { domainState } from "../../utils/state";
+import { requester } from "../../../utils/requester";
+import { domainState } from "../../../utils/state";
 import {
   isSelectRoomState,
   nickNameState,
   roomKeyState,
   selectedRoomState,
-} from "../../utils/roomState";
+} from "../../../utils/roomState";
 export default function ChatTalkTitleContent() {
   const [nickName, setNickName] = useAtom(nickNameState);
   const [domain] = useAtom(domainState);

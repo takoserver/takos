@@ -11,16 +11,16 @@ import {
   CreateIdentityKeyPopUp,
   CreateShareSignKeyPopUp,
 } from "./components/encrypted/CreateIdentityKeyPopUp.tsx";
-import { CreateGroupPopUp } from "./components/talk/CreateGroup.tsx";
+import { CreateGroupPopUp } from "./components/CreateGroup.tsx";
 import { MigrateKey } from "./components/encrypted/MigrateKeys.tsx";
 import {
   contextMenuPositionState,
   showEditChannelModalState,
-} from "./components/talk/ChatTalkContent.tsx";
-import { ImageViewer } from "./components/ImageViewer.tsx";
-import { VideoPlayer } from "./components/talk/VideoPlayer.tsx";
-import { ChannelEditModal } from "./components/talk/ChannelEditModal.tsx";
-import { CreateChannelModal } from "./components/talk/CreateChannelModal.tsx";
+} from "./components/talk/Content.tsx";
+import { ImageViewer } from "./components/talk/message/ImageViewer.tsx";
+import { VideoPlayer } from "./components/talk/message/VideoPlayer.tsx";
+import { ChannelEditModal } from "./components/talk/sideBar/ChannelEditModal.tsx";
+import { CreateChannelModal } from "./components/talk/sideBar/CreateChannelModal.tsx";
 
 function App(
   { page }: { page?: "home" | "talk" | "friend" | "setting" | "notification" },

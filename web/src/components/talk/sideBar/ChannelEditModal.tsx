@@ -1,8 +1,8 @@
 import { createSignal, Setter } from "solid-js";
-import { PopUpFrame } from "../popUpFrame";
+import { PopUpFrame } from "../../popUpFrame";
 import { useAtom } from "solid-jotai";
-import { groupChannelState } from "../sidebar/SideBar";
-import { selectedRoomState } from "../../utils/roomState";
+import { groupChannelState } from "../../sidebar/SideBar";
+import { selectedRoomState } from "../../../utils/roomState";
 
 export function ChannelEditModal(props: {
   channel: string;

@@ -1,7 +1,7 @@
 import { createEffect, createSignal } from "solid-js";
 import { ImageCompornent } from "./ImageViewer"; // ImageViewer.tsx 内で定義したコンポーネントを利用
-import { DirectVideoPlayer } from "./talk/VideoPlayer"; // VideoPlayer.tsx 内のコンポーネントを利用
-import { VideoPlayerComponent } from "./talk/VideoPlayer";
+import { DirectVideoPlayer } from "./VideoPlayer"; // VideoPlayer.tsx 内のコンポーネントを利用
+import { VideoPlayerComponent } from "./VideoPlayer";
 
 export function renderMessageContent(
   content: {

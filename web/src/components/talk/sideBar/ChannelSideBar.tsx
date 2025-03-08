@@ -6,11 +6,11 @@ import {
   processedMessageIdsState,
   showCreateChannelModalState,
   showEditChannelModalState,
-} from "./ChatTalkContent";
+} from "../Content";
 import { createSignal, JSX, onCleanup, onMount } from "solid-js";
-import { selectedChannelState, selectedRoomState } from "../../utils/roomState";
-import { groupChannelState } from "../sidebar/SideBar";
-import { messageListState } from "../../utils/state";
+import { selectedChannelState, selectedRoomState } from "../../../utils/roomState";
+import { groupChannelState } from "../../sidebar/SideBar";
+import { messageListState } from "../../../utils/state";
 
 export function ChannelSideBar() {
   const [showCreateChannelModal, setShowCreateChannelModal] = useAtom(

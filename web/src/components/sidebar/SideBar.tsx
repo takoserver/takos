@@ -17,7 +17,7 @@ import {
 } from "../../utils/roomState";
 import { createEffect, createMemo, createSignal } from "solid-js";
 import { createTakosDB } from "../../utils/idb";
-import { isLoadedMessageState } from "../talk/ChatTalkContent";
+import { isLoadedMessageState } from "../talk/Content";
 import { Home } from "../home";
 import { createRoomSelector } from "../../utils/roomUtils";
 

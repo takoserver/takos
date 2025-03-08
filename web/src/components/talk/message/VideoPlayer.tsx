@@ -1,7 +1,7 @@
 import { atom, useAtom } from "solid-jotai";
 import { createEffect, createSignal } from "solid-js";
-import { getMessage } from "../../utils/getMessage";
-import { selectedRoomState } from "../../utils/roomState";
+import { getMessage } from "../../../utils/getMessage";
+import { selectedRoomState } from "../../../utils/roomState";
 
 // ビデオプレーヤーの状態管理用のatom
 export const videoPlayerState = atom<{

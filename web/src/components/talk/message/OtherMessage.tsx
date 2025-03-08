@@ -1,18 +1,18 @@
 import { createEffect, createSignal } from "solid-js";
 import { useAtom } from "solid-jotai";
-import { DEFAULT_ICON } from "./defaultIcon";
-import { iconsState, nickNamesState } from "../utils/state";
-import { ContextMenu } from "./talk/ContextMenu.tsx";
-import { getMessage } from "../utils/getMessage";
-import { selectedRoomState } from "../utils/roomState";
-import { convertTime, copyMessageContent } from "../utils/messageUtils.tsx";
+import { DEFAULT_ICON } from "../../defaultIcon.ts";
+import { iconsState, nickNamesState } from "../../../utils/state.ts";
+import { ContextMenu } from "./ContextMenu.tsx";
+import { getMessage } from "../../../utils/getMessage.ts";
+import { selectedRoomState } from "../../../utils/roomState.ts";
+import { convertTime, copyMessageContent } from "../../../utils/messageUtils.tsx";
 
-import { renderMessageContent } from "./MessageContent";
+import { renderMessageContent } from "./MessageContent.tsx";
 import {
   mentionEveryone,
   setReplyToMessage,
   toggleMention,
-} from "../utils/mentionReply";
+} from "../../../utils/mentionReply.ts";
 
 // ユーザー情報の取得状態を追跡するグローバルMap
 const fetchingUsers = new Map<

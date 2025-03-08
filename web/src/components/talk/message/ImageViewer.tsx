@@ -1,7 +1,7 @@
 import { atom, useAtom, useAtomValue } from "solid-jotai";
 import { createSignal } from "solid-js";
-import { getMessage } from "../utils/getMessage";
-import { selectedRoomState } from "../utils/roomState";
+import { getMessage } from "../../../utils/getMessage";
+import { selectedRoomState } from "../../../utils/roomState";
 
 // 画像拡大表示用の状態管理
 export const zoomedImageState = atom<{

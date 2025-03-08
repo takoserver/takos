@@ -1,4 +1,4 @@
-import ChatOtherMessage from "../OtherMessage.tsx";
+import ChatOtherMessage from "../talk/message/OtherMessage.tsx";
 import {
   defaultServerState,
   exproleServerState,

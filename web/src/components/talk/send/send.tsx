@@ -2,19 +2,19 @@ import {
   deviceKeyState,
   inputMessageState,
   isValidInputState,
-} from "../../utils/state.ts";
+} from "../../../utils/state.ts";
 import { atom, useAtom } from "solid-jotai";
 import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
-import { selectedChannelState, selectedRoomState } from "../../utils/roomState.ts";
-import { groupChannelState } from "../sidebar/SideBar.tsx";
+import { selectedChannelState, selectedRoomState } from "../../../utils/roomState.ts";
+import { groupChannelState } from "../../sidebar/SideBar.tsx";
 import {
   clearMentionReplyState,
   EVERYONE_MENTION_ID,
   mentionEveryone,
   mentionListState,
   replyTargetState,
-} from "../../utils/mentionReply.ts";
-import MentionReplyDisplay from "../MentionReplyDisplay.tsx";
+} from "../../../utils/mentionReply.ts";
+import MentionReplyDisplay from "./MentionReplyDisplay.tsx";
 
 import {
   currentOperationAtom,
@@ -24,17 +24,17 @@ import {
   menuPositionAtom,
   sendingProgressAtom,
   sendTextHandler,
-} from "../../utils/messageUtils.tsx";
+} from "../../../utils/messageUtils.tsx";
 import {
   cancelPastedImage,
   confirmAndSendPastedImage,
   handleMediaSelect,
   handlePastedImage,
-} from "../../utils/mediaHandler.ts";
+} from "../../../utils/mediaHandler.ts";
 import ImagePasteConfirmModal, {
   pasteImagePreviewAtom,
   showPasteConfirmAtom,
-} from "../ImagePasteConfirmModal.tsx";
+} from "./ImagePasteConfirmModal.tsx";
 
 const userId = localStorage.getItem("userName") + "@" +
   new URL(window.location.href).hostname;

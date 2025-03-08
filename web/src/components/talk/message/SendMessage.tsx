@@ -1,8 +1,8 @@
 import { createSignal } from "solid-js";
-import { ContextMenu } from "./talk/ContextMenu.tsx";
-import { convertTime, copyMessageContent } from "../utils/messageUtils.tsx";
-import { renderMessageContent } from "./MessageContent";
-import { setReplyToMessage } from "../utils/mentionReply";
+import { ContextMenu } from "./ContextMenu.tsx";
+import { convertTime, copyMessageContent } from "../../../utils/messageUtils.tsx";
+import { renderMessageContent } from "./MessageContent.tsx";
+import { setReplyToMessage } from "../../../utils/mentionReply.ts";
 
 const userId = localStorage.getItem("userName") + "@" +
   new URL(window.location.href).hostname;

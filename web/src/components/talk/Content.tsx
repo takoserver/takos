@@ -5,16 +5,16 @@ import {
 } from "../../utils/roomState.ts";
 import { messageListState, messageValueState } from "../../utils/state.ts";
 import { atom, useAtom, useSetAtom } from "solid-jotai";
-import ChatSendMessage from "../SendMessage.tsx";
-import ChatOtherMessage from "../OtherMessage.tsx";
+import ChatSendMessage from "./message/SendMessage.tsx";
+import ChatOtherMessage from "./message/OtherMessage.tsx";
 import { createEffect, createSignal, For, onMount, Show } from "solid-js";
 import { groupChannelState } from "../sidebar/SideBar.tsx";
 import { MessageContentType, MessageData } from "../../types/message.ts";
 import { getCachedMessage } from "../../utils/messageCache.ts";
-import { ChannelSideBar } from "./ChannelSideBar.tsx";
+import { ChannelSideBar } from "./sideBar/ChannelSideBar.tsx";
 import { Transition } from "solid-transition-group";
-import LoadingAnimation from "../LoadingAnimation.tsx";
-import MentionReplyDisplay from "../MentionReplyDisplay.tsx";
+import LoadingAnimation from "./LoadingAnimation.tsx";
+import MentionReplyDisplay from "./send/MentionReplyDisplay.tsx";
 
 // ローカルユーザー名を取得
 const myuserName = localStorage.getItem("userName") + "@" +

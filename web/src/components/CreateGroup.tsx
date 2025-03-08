@@ -1,6 +1,6 @@
 import { atom, useAtom } from "solid-jotai";
 import { createEffect, createSignal } from "solid-js";
-import { arrayBufferToBase64, base64ToArrayBuffer } from "../../utils/buffers";
+import { arrayBufferToBase64, base64ToArrayBuffer } from "../utils/buffers";
 
 export const shoowGroupPopUp = atom(false);
 export const showGroupfindPopUp = atom(false);
