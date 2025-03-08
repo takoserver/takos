@@ -995,6 +995,3 @@ html, body {
     fill: #4d4d4d;
   }
 }
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
