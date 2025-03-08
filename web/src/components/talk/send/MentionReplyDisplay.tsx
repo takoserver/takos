@@ -210,7 +210,12 @@ export const MentionReplyDisplay = () => {
                       <div class="text-sm font-medium mb-1">ユーザー</div>
                       <div class="text-sm break-words overflow-hidden text-ellipsis max-h-14">
                         {reply().type === "text"
-                          ? <span>{(JSON.parse(reply().content!)).text || "メッセージ"}</span>
+                          ? (
+                            <span>
+                              {(JSON.parse(reply().content!)).text ||
+                                "メッセージ"}
+                            </span>
+                          )
                           : (
                             <div class="flex items-center">
                               {getContentTypeIcon(reply().type)}

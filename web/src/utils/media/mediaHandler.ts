@@ -15,7 +15,10 @@ import {
   pasteImagePreviewAtom,
   showPasteConfirmAtom,
 } from "../../components/talk/send/ImagePasteConfirmModal.tsx";
-import { createMediaContent, createThumbnailContent } from "../message/getMessage.ts";
+import {
+  createMediaContent,
+  createThumbnailContent,
+} from "../message/getMessage.ts";
 
 export const handleImageFile = async (file: File) => {
   return createRoot(async () => {

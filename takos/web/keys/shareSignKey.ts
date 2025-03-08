@@ -7,31 +7,37 @@ import { z } from "zod";
 
 const app = new Hono<MyEnv>();
 
-app.post("/", zValidator(
-  "json",
-  z.object({
-    shareSignKey: z.string(),
-    shareSignKeySign: z.string(),
-  }),
-), async (c) => {
-  const user = c.get("user");
-  if (!user || !user.masterKey) {
-    return c.json({ message: "Unauthorized" }, 401);
-  }
-  const { shareSignKey: shareSignKeyValue, shareSignKeySign } = c.req.valid("json");
-  if (!verifyMasterKey(user.masterKey, shareSignKeySign, shareSignKeyValue)) {
-    return c.json({ message: "Invalid share sign key" }, 400);
-  }
-  await shareSignKey.create({
-    userName: user.userName,
-    sessionid: c.get("session").sessionid,
-    sign: shareSignKeySign,
-    timestamp: Date.now(),
-    hash: await keyHash(shareSignKeyValue),
-    shareSignKey: shareSignKeyValue,
-  });
-  return c.json({ message: "success" });
-});
+app.post(
+  "/",
+  zValidator(
+    "json",
+    z.object({
+      shareSignKey: z.string(),
+      shareSignKeySign: z.string(),
+    }),
+  ),
+  async (c) => {
+    const user = c.get("user");
+    if (!user || !user.masterKey) {
+      return c.json({ message: "Unauthorized" }, 401);
+    }
+    const { shareSignKey: shareSignKeyValue, shareSignKeySign } = c.req.valid(
+      "json",
+    );
+    if (!verifyMasterKey(user.masterKey, shareSignKeySign, shareSignKeyValue)) {
+      return c.json({ message: "Invalid share sign key" }, 400);
+    }
+    await shareSignKey.create({
+      userName: user.userName,
+      sessionid: c.get("session").sessionid,
+      sign: shareSignKeySign,
+      timestamp: Date.now(),
+      hash: await keyHash(shareSignKeyValue),
+      shareSignKey: shareSignKeyValue,
+    });
+    return c.json({ message: "success" });
+  },
+);
 
 app.get("/", async (c) => {
   const user = c.get("user");

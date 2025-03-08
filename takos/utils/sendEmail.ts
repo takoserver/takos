@@ -32,8 +32,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-
-export const sendEmail = async (to: string, subject: string, body: string): Promise<boolean> => {
+export const sendEmail = async (
+  to: string,
+  subject: string,
+  body: string,
+): Promise<boolean> => {
   try {
     await transporter.sendMail(
       buildMessage(

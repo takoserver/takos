@@ -8,7 +8,6 @@ import { FriendSettingMenu } from "./Menu";
 import { FriendSettingChat } from "./Chat";
 import SettingEncryption from "../SettingEncryption";
 
-
 export function FriendSetting() {
   const [_, setSelectedTab] = useAtom(selectedTabState);
 

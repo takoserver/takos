@@ -1,12 +1,15 @@
 import { useAtom } from "solid-jotai";
-import { selectedTabState,} from "../../../utils/room/settingRoomState";
-import { getNotificationSetting, saveEncryptSetting } from "../../../utils/storage/idb";
+import { selectedTabState } from "../../../utils/room/settingRoomState";
+import {
+  getNotificationSetting,
+  saveEncryptSetting,
+} from "../../../utils/storage/idb";
 import { createSignal } from "solid-js";
 
 export function GroupSettingMenu() {
   const [selected, setSelected] = useAtom(selectedTabState);
   const [notificationEnabled, setNotificationEnabled] = createSignal<boolean>();
-  
+
   return (
     <>
       {!selected() && (
@@ -34,7 +37,8 @@ export function GroupSettingMenu() {
                 </svg>
                 {!notificationEnabled() && (
                   <div class="absolute inset-0 flex items-center justify-center">
-                    <div class="w-0.5 h-10 bg-red-500 transform rotate-45 rounded-full"></div>
+                    <div class="w-0.5 h-10 bg-red-500 transform rotate-45 rounded-full">
+                    </div>
                   </div>
                 )}
               </div>
@@ -183,7 +187,7 @@ export function GroupSettingMenu() {
               </svg>
               <span class="text-white">BANリスト</span>
             </div>
-            
+
             {/* プライバシー設定 */}
             <div
               class="flex items-center p-3 rounded hover:bg-gray-700 transition-colors duration-200 cursor-pointer"

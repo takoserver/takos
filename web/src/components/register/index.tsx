@@ -9,7 +9,6 @@ import { useAtom } from "solid-jotai";
 import { Loading } from "../load.tsx";
 import { Register as RegisterComponent } from "./Register.tsx";
 import { Login as LoginComponent } from "./Login.tsx";
-import { requester } from "../../utils/requester.ts";
 const sampleChatData = {
   roomName: "たこたこチャット",
   talkData: [

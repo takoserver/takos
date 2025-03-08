@@ -1,6 +1,9 @@
 import { createSignal } from "solid-js";
 import { ContextMenu } from "./ContextMenu.tsx";
-import { convertTime, copyMessageContent } from "../../../utils/message/messageUtils.tsx";
+import {
+  convertTime,
+  copyMessageContent,
+} from "../../../utils/message/messageUtils.tsx";
 import { renderMessageContent } from "./MessageContent.tsx";
 import { setReplyToMessage } from "../../../utils/message/mentionReply.ts";
 

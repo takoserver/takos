@@ -20,22 +20,20 @@ import {
 import { load } from "@std/dotenv";
 import User from "../models/users/users.ts";
 import publish from "../utils/redisClient.ts";
-import {
-  createRemoteGroup,
-  handleAcceptJoinRequest,
-  handleAddCategory,
-  handleAddChannel,
-  handleAddRole,
-  handleBanUser,
-  handleGiveRole,
-  handleKickUser,
-  handleReCreateGroup,
-  handleRemoveCategory,
-  handleRemoveChannel,
-  handleRemoveRole,
-  handleSettings,
-  handleUnbanUser,
-} from "../web/groups/group.ts";
+import { createRemoteGroup, handleReCreateGroup } from "../web/groups/utils.ts";
+import { handleAddChannel } from "../web/groups/channel/add.ts";
+import { handleRemoveChannel } from "../web/groups/channel/delete.ts";
+import { handleAddCategory } from "../web/groups/category/add.ts";
+import { handleRemoveCategory } from "../web/groups/category/delete.ts";
+import { handleAddRole } from "../web/groups/role/add.ts";
+import { handleRemoveRole } from "../web/groups/role/delete.ts";
+import { handleAcceptJoinRequest } from "../web/groups/join/accept.ts";
+import { handleKickUser } from "../web/groups/user/kick.ts";
+import { handleBanUser } from "../web/groups/user/ban.ts";
+import { handleUnbanUser } from "../web/groups/user/unban.ts";
+import { handleSettings } from "../web/groups/settings.ts";
+import { handleGiveRole } from "../web/groups/role/user.ts";
+
 
 const env = await load();
 

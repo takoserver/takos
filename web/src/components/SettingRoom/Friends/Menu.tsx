@@ -5,7 +5,7 @@ import { createSignal } from "solid-js";
 export function FriendSettingMenu() {
   const [selected, setSelected] = useAtom(selectedFriendTabState);
   const [notificationEnabled, setNotificationEnabled] = createSignal(true);
-  
+
   return (
     <>
       {!selected() && (
@@ -34,7 +34,8 @@ export function FriendSettingMenu() {
                 </svg>
                 {!notificationEnabled() && (
                   <div class="absolute inset-0 flex items-center justify-center">
-                    <div class="w-0.5 h-10 bg-red-500 transform rotate-45 rounded-full"></div>
+                    <div class="w-0.5 h-10 bg-red-500 transform rotate-45 rounded-full">
+                    </div>
                   </div>
                 )}
               </div>

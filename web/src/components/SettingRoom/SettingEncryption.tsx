@@ -1,7 +1,10 @@
 import { createEffect, createSignal, For, Show } from "solid-js";
 import { useAtom } from "solid-jotai";
 import { getEncryptSetting } from "../../utils/storage/idb";
-import { selectedFriendTabState, selectedTabState } from "../../utils/room/settingRoomState";
+import {
+  selectedFriendTabState,
+  selectedTabState,
+} from "../../utils/room/settingRoomState";
 import { selectedRoomState } from "../../utils/room/roomState";
 
 type SettingEncryptionProps = {
@@ -12,29 +15,33 @@ export function SettingEncryption(props: SettingEncryptionProps) {
   // タイプに応じた状態を選択
   const [selectedGroup, setSelectedGroup] = useAtom(selectedTabState);
   const [selectedFriend, setSelectedFriend] = useAtom(selectedFriendTabState);
-  
+
   // 選択状態と設定状態の取得関数
-  const isSelected = () => 
-    props.type === "group" ? selectedGroup() === "privacy" : selectedFriend() === "privacy";
-  
-  const setSelected = (value: any) => 
+  const isSelected = () =>
+    props.type === "group"
+      ? selectedGroup() === "privacy"
+      : selectedFriend() === "privacy";
+
+  const setSelected = (value: any) =>
     props.type === "group" ? setSelectedGroup(value) : setSelectedFriend(value);
-  
+
   // 内部の暗号化設定状態
   const [localIsEncrypted, setLocalIsEncrypted] = createSignal<boolean>();
-  const [localExcludedUsers, setLocalExcludedUsers] = createSignal<string[]>([]);
+  const [localExcludedUsers, setLocalExcludedUsers] = createSignal<string[]>(
+    [],
+  );
   const [selectedRoom] = useAtom(selectedRoomState);
-  
+
   createEffect(() => {
-    const roomId = selectedRoom()?.roomid!
-    if(!roomId) return;
-    getEncryptSetting({roomId}).then((setting) => {
+    const roomId = selectedRoom()?.roomid!;
+    if (!roomId) return;
+    getEncryptSetting({ roomId }).then((setting) => {
       setLocalIsEncrypted(setting || false);
     });
   });
-  
+
   const [newUser, setNewUser] = createSignal("");
-  
+
   const addExcludedUser = () => {
     const user = newUser().trim();
     if (user && !localExcludedUsers().includes(user)) {
@@ -42,7 +49,7 @@ export function SettingEncryption(props: SettingEncryptionProps) {
       setNewUser("");
     }
   };
-  
+
   const removeExcludedUser = (user: string) => {
     setLocalExcludedUsers(localExcludedUsers().filter((u) => u !== user));
   };
@@ -117,8 +124,7 @@ export function SettingEncryption(props: SettingEncryptionProps) {
                       placeholder="ユーザー名を入力"
                       value={newUser()}
                       onInput={(e) => setNewUser(e.currentTarget.value)}
-                      onKeyPress={(e) =>
-                        e.key === "Enter" && addExcludedUser()}
+                      onKeyPress={(e) => e.key === "Enter" && addExcludedUser()}
                     />
                     <button
                       class="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded"

@@ -8,7 +8,10 @@ import {
   showEditChannelModalState,
 } from "../Content";
 import { createSignal, JSX, onCleanup, onMount } from "solid-js";
-import { selectedChannelState, selectedRoomState } from "../../../utils/room/roomState";
+import {
+  selectedChannelState,
+  selectedRoomState,
+} from "../../../utils/room/roomState";
 import { groupChannelState } from "../../sidebar/SideBar";
 import { messageListState } from "../../../utils/state";
 

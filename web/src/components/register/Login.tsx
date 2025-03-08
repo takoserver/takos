@@ -5,7 +5,6 @@ import {
   PopUpTitle,
 } from "../utils/popUpFrame";
 import { createSignal } from "solid-js";
-import { requester } from "../../utils/requester";
 import { uuidv7 } from "uuidv7";
 import { generateDeviceKey } from "@takos/takos-encrypt-ink";
 import { clearDB, createTakosDB } from "../../utils/storage/idb";

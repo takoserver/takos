@@ -34,7 +34,7 @@ import {
   keyHash,
   signDataMigrateSignKey,
 } from "@takos/takos-encrypt-ink";
-import { uuidv7 } from "uuidv7";
+import { uuidv7 } from "npm:uuidv7";
 
 export function EncryptSession() {
   const [EncryptedSession, setEncryptedSession] = useAtom(

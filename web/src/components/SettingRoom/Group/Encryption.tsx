@@ -6,22 +6,24 @@ import { selectedRoomState } from "../../../utils/room/roomState";
 
 export function GroupSettingEncryption() {
   const [selected, setSelected] = useAtom(selectedTabState);
-  
+
   // 内部の暗号化設定状態
   const [localIsEncrypted, setLocalIsEncrypted] = createSignal<boolean>();
-  const [localExcludedUsers, setLocalExcludedUsers] = createSignal<string[]>([]);
+  const [localExcludedUsers, setLocalExcludedUsers] = createSignal<string[]>(
+    [],
+  );
   const [selectedRoom] = useAtom(selectedRoomState);
-  
+
   createEffect(() => {
-    const roomId = selectedRoom()?.roomid!
-    if(!roomId) return;
-    getEncryptSetting({roomId}).then((setting) => {
+    const roomId = selectedRoom()?.roomid!;
+    if (!roomId) return;
+    getEncryptSetting({ roomId }).then((setting) => {
       setLocalIsEncrypted(setting || false);
     });
   });
-  
+
   const [newUser, setNewUser] = createSignal("");
-  
+
   const addExcludedUser = () => {
     const user = newUser().trim();
     if (user && !localExcludedUsers().includes(user)) {
@@ -29,7 +31,7 @@ export function GroupSettingEncryption() {
       setNewUser("");
     }
   };
-  
+
   const removeExcludedUser = (user: string) => {
     setLocalExcludedUsers(localExcludedUsers().filter((u) => u !== user));
   };
@@ -104,8 +106,7 @@ export function GroupSettingEncryption() {
                       placeholder="ユーザー名を入力"
                       value={newUser()}
                       onInput={(e) => setNewUser(e.currentTarget.value)}
-                      onKeyPress={(e) =>
-                        e.key === "Enter" && addExcludedUser()}
+                      onKeyPress={(e) => e.key === "Enter" && addExcludedUser()}
                     />
                     <button
                       class="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded"

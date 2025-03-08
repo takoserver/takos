@@ -1,10 +1,13 @@
 import { useAtom, useAtomValue, useSetAtom } from "solid-jotai";
 import { openConfig } from "../Chat.tsx";
-import { isSelectRoomState, selectedRoomState } from "../../utils/room/roomState.ts";
+import {
+  isSelectRoomState,
+  selectedRoomState,
+} from "../../utils/room/roomState.ts";
 import { createEffect, createSignal, For, Show } from "solid-js";
 import { groupChannelState } from "../sidebar/SideBar.tsx";
 import { PopUpFrame } from "../utils/popUpFrame.tsx";
-import { uuidv7 } from "uuidv7";
+import { uuidv7 } from "npm:uuidv7";
 // 新しく作成した外部ステートをインポート
 import {
   bannedUsersState,

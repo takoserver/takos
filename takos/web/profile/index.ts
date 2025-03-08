@@ -2,7 +2,7 @@ import { authorizationMiddleware, MyEnv } from "../../userInfo.ts";
 import { Hono } from "hono";
 const app = new Hono<MyEnv>();
 app.use("*", authorizationMiddleware);
-import { resizeImageTo256x256 } from "../sessions/sessions.ts";
+import { resizeImageTo256x256 } from "../sessions/index.ts";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import {

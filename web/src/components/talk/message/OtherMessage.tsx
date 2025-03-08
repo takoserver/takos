@@ -5,7 +5,10 @@ import { iconsState, nickNamesState } from "../../../utils/state.ts";
 import { ContextMenu } from "./ContextMenu.tsx";
 import { getMessage } from "../../../utils/message/getMessage.ts";
 import { selectedRoomState } from "../../../utils/room/roomState.ts";
-import { convertTime, copyMessageContent } from "../../../utils/message/messageUtils.tsx";
+import {
+  convertTime,
+  copyMessageContent,
+} from "../../../utils/message/messageUtils.tsx";
 
 import { renderMessageContent } from "./MessageContent.tsx";
 import {

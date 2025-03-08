@@ -74,7 +74,7 @@ export interface TakosDB extends DBSchema {
       isEncrypte: boolean;
       timestamp: number;
     };
-  }
+  };
   notification: {
     key: string;
     value: {
@@ -120,23 +120,25 @@ export async function saveEncryptSetting({
 }) {
   const db = await createTakosDB();
   await db.put("encrypteSetting", {
-      key: roomId,
-      isEncrypte,
-      timestamp: Date.now(),
+    key: roomId,
+    isEncrypte,
+    timestamp: Date.now(),
   });
 }
 
-export async function getEncryptSetting({ roomId }: { roomId: string }): Promise<boolean> {
+export async function getEncryptSetting(
+  { roomId }: { roomId: string },
+): Promise<boolean> {
   if (!roomId) {
     throw new Error("roomId is required");
   }
   const db = await createTakosDB();
   const setting = await db.get("encrypteSetting", roomId);
-  
+
   if (setting === null || setting === undefined) {
     return true; // 設定がない場合はデフォルトでtrue
   }
-  
+
   // 明示的に値をチェック
   return setting.isEncrypte === false ? false : true;
 }
