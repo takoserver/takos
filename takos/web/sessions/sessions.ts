@@ -1,9 +1,9 @@
-import app from "../_factory.ts";
+import app from "../../_factory.ts";
 import { array, isValid, z } from "zod";
-import tempUsers from "../models/users/tempUsers.ts";
-import users from "../models/users/users.ts";
-import { sendEmail } from "../utils/sendEmail.ts";
-import { hashPassword, verifyPassword } from "../utils/password.ts";
+import tempUsers from "../../models/users/tempUsers.ts";
+import users from "../../models/users/users.ts";
+import { sendEmail } from "../../utils/sendEmail.ts";
+import { hashPassword, verifyPassword } from "../../utils/password.ts";
 import { zValidator } from "@hono/zod-validator";
 import {
   generateDeviceKey,
@@ -12,23 +12,23 @@ import {
   isValidShareKeyPublic,
   verifyMasterKey,
 } from "@takos/takos-encrypt-ink";
-import Session from "../models/users/sessions.ts";
-import shareAccountKey from "../models/crypto/shareAccountKey.ts";
+import Session from "../../models/users/sessions.ts";
+import shareAccountKey from "../../models/crypto/shareAccountKey.ts";
 import { Image } from "imagescript";
 import {
   arrayBufferToBase64,
   base64ToArrayBuffer,
 } from "https://jsr.io/@takos/takos-encrypt-ink/5.3.2/utils/buffers.ts";
 import { setCookie } from "hono/cookie";
-import request from "../models/request.ts";
+import request from "../../models/request.ts";
 import { load } from "@std/dotenv";
-import Friends from "../models/users/friends.ts";
-import { Member } from "../models/groups/groups.ts";
-import Message from "../models/message.ts";
-import MigrateData from "../models/crypto/migrateData.ts";
+import Friends from "../../models/users/friends.ts";
+import { Member } from "../../models/groups/groups.ts";
+import Message from "../../models/message.ts";
+import MigrateData from "../../models/crypto/migrateData.ts";
 import { uuidv7 } from "npm:uuidv7@^1.0.2";
-import publish from "../utils/redisClient.ts";
-import accountKeyData from "../models/crypto/accountKey.ts";
+import publish from "../../utils/redisClient.ts";
+import accountKeyData from "../../models/crypto/accountKey.ts";
 
 const env = await load();
 

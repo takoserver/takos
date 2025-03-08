@@ -1,4 +1,4 @@
-import app from "../_factory.ts";
+import app from "../../_factory.ts";
 
 const icon = await Deno.readFile("../icon.jpg");
 const background = await Deno.readFile("../backgroundImages/nya.jpg");

@@ -35,7 +35,7 @@ import {
   handleRemoveRole,
   handleSettings,
   handleUnbanUser,
-} from "../web/group.ts";
+} from "../web/groups/group.ts";
 
 const env = await load();
 

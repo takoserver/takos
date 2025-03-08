@@ -1,19 +1,19 @@
 import { zValidator } from "@hono/zod-validator";
-import { authorizationMiddleware, MyEnv } from "../userInfo.ts";
+import { authorizationMiddleware, MyEnv } from "../../userInfo.ts";
 import { Hono } from "hono";
 const app = new Hono<MyEnv>();
 app.use("*", authorizationMiddleware);
 import { z } from "zod";
-import friends from "../models/users/friends.ts";
+import friends from "../../models/users/friends.ts";
 import { load } from "@std/dotenv";
 import { isValidMessage } from "@takos/takos-encrypt-ink";
-import Message from "../models/message.ts";
+import Message from "../../models/message.ts";
 import { uuidv7 } from "npm:uuidv7@^1.0.2";
-import { fff } from "../utils/foundationReq.ts";
-import publish from "../utils/redisClient.ts";
-import { Channels, Member } from "../models/groups/groups.ts";
-import { getUserPermission } from "../foundation/server.ts";
-import { uploadFile } from "../utils/S3Client.ts";
+import { fff } from "../../utils/foundationReq.ts";
+import publish from "../../utils/redisClient.ts";
+import { Channels, Member } from "../../models/groups/groups.ts";
+import { getUserPermission } from "../../foundation/server.ts";
+import { uploadFile } from "../../utils/S3Client.ts";
 const env = await load();
 
 app.post(

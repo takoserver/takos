@@ -1,16 +1,16 @@
-import { authorizationMiddleware, MyEnv } from "../userInfo.ts";
+import { authorizationMiddleware, MyEnv } from "../../userInfo.ts";
 import { Hono } from "hono";
 const app = new Hono<MyEnv>();
 app.use("*", authorizationMiddleware);
-import { resizeImageTo256x256 } from "./sessions.ts";
+import { resizeImageTo256x256 } from "../sessions/sessions.ts";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import {
   arrayBufferToBase64,
   base64ToArrayBuffer,
 } from "https://jsr.io/@takos/takos-encrypt-ink/5.3.2/utils/buffers.ts";
-import User from "../models/users/users.ts";
-import { hashPassword, verifyPassword } from "../utils/password.ts";
+import User from "../../models/users/users.ts";
+import { hashPassword, verifyPassword } from "../../utils/password.ts";
 app.post(
   "icon",
   zValidator(

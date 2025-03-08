@@ -7,8 +7,8 @@ import {
   JoinRequest,
   Member,
   Roles,
-} from "../models/groups/groups.ts";
-import { authorizationMiddleware, MyEnv } from "../userInfo.ts";
+} from "../../models/groups/groups.ts";
+import { authorizationMiddleware, MyEnv } from "../../userInfo.ts";
 import { Context, Hono } from "hono";
 const app = new Hono<MyEnv>();
 app.use("*", authorizationMiddleware);
@@ -21,10 +21,10 @@ import {
   arrayBufferToBase64,
   base64ToArrayBuffer,
 } from "https://jsr.io/@takos/takos-encrypt-ink/5.3.2/utils/buffers.ts";
-import { resizeImageTo256x256 } from "./sessions.ts";
-import { fff } from "../utils/foundationReq.ts";
-import request from "../models/request.ts";
-import { getUserPermission } from "../foundation/server.ts";
+import { resizeImageTo256x256 } from "../sessions/sessions.ts";
+import { fff } from "../../utils/foundationReq.ts";
+import request from "../../models/request.ts";
+import { getUserPermission } from "../../foundation/server.ts";
 
 const env = await load();
 
