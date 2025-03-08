@@ -1,5 +1,5 @@
 import { signData } from "@takos/takos-encrypt-ink";
-import serverKey from "../models/serverKeys.ts";
+import serverKey from "../models/foundation/serverKeys.ts";
 import { load } from "@std/dotenv";
 import { Context } from "hono";
 

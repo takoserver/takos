@@ -7,7 +7,7 @@ import {
   JoinRequest,
   Member,
   Roles,
-} from "../models/groups.ts";
+} from "../models/groups/groups.ts";
 import { authorizationMiddleware, MyEnv } from "../userInfo.ts";
 import { Context, Hono } from "hono";
 const app = new Hono<MyEnv>();

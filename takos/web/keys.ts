@@ -4,21 +4,21 @@ import {
   keyHash,
   verifyMasterKey,
 } from "@takos/takos-encrypt-ink";
-import shareAccountKey from "../models/shareAccountKey.ts";
+import shareAccountKey from "../models/crypto/shareAccountKey.ts";
 import { authorizationMiddleware, MyEnv } from "../userInfo.ts";
 import { Hono } from "hono";
 const app = new Hono<MyEnv>();
 app.use("*", authorizationMiddleware);
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import Session from "../models/sessions.ts";
-import IdentityKey from "../models/identityKey.ts";
-import RoomKey from "../models/roomKey.ts";
-import friends from "../models/friends.ts";
+import Session from "../models/users/sessions.ts";
+import IdentityKey from "../models/crypto/identityKey.ts";
+import RoomKey from "../models/crypto/roomKey.ts";
+import friends from "../models/users/friends.ts";
 import { load } from "@std/dotenv";
-import { Member } from "../models/groups.ts";
-import accountKeyData from "../models/accountKey.ts";
-import shareSignKey from "../models/shareSignKey.ts";
+import { Member } from "../models/groups/groups.ts";
+import accountKeyData from "../models/crypto/accountKey.ts";
+import shareSignKey from "../models/crypto/shareSignKey.ts";
 
 const env = await load();
 

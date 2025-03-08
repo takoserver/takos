@@ -1,9 +1,9 @@
 import { Context, Next } from "hono";
 import { Hono } from "hono";
 import { Env } from "./_factory.ts";
-import remoteServerKey from "./models/remoteServerKey.ts";
+import remoteServerKey from "./models/foundation/remoteServerKey.ts";
 import { verifyData } from "@takos/takos-encrypt-ink";
-import EventId from "./models/eventId.ts";
+import EventId from "./models/foundation/eventId.ts";
 
 export type MyEnv = {
   Variables: {

@@ -1,10 +1,10 @@
 import { Context, Next } from "hono";
 import { Hono } from "hono";
-import User from "./models/users.ts";
-import Session from "./models/sessions.ts";
-import { sessionSchema } from "./models/sessions.ts";
+import User from "./models/users/users.ts";
+import Session from "./models/users/sessions.ts";
+import { sessionSchema } from "./models/users/sessions.ts";
 import { Env } from "./_factory.ts";
-import { userSchema } from "./models/users.ts";
+import { userSchema } from "./models/users/users.ts";
 import { InferSchemaType } from "mongoose";
 import { getCookie } from "hono/cookie";
 

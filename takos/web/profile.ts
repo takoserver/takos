@@ -9,7 +9,7 @@ import {
   arrayBufferToBase64,
   base64ToArrayBuffer,
 } from "https://jsr.io/@takos/takos-encrypt-ink/5.3.2/utils/buffers.ts";
-import User from "../models/users.ts";
+import User from "../models/users/users.ts";
 import { hashPassword, verifyPassword } from "../utils/password.ts";
 app.post(
   "icon",

@@ -11,7 +11,6 @@ import { SettingRoom } from "./SettingRoom/SettingRoom.tsx";
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import TalkListHeader from "./sidebar/talkListHeader.tsx";
 import ChatHeader from "./header/header.tsx";
-import MentionReplyDisplay from "./talk/send/MentionReplyDisplay.tsx";
 
 export const openConfig = atom(false);
 

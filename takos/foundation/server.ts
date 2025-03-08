@@ -2,7 +2,7 @@ import app from "../foundation.ts";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import Message from "../models/message.ts";
-import friends from "../models/friends.ts";
+import friends from "../models/users/friends.ts";
 import request from "../models/request.ts";
 import { uuidv7 } from "npm:uuidv7@^1.0.2";
 import { fff } from "../utils/foundationReq.ts";
@@ -16,9 +16,9 @@ import {
   JoinRequest,
   Member,
   Roles,
-} from "../models/groups.ts";
+} from "../models/groups/groups.ts";
 import { load } from "@std/dotenv";
-import User from "../models/users.ts";
+import User from "../models/users/users.ts";
 import publish from "../utils/redisClient.ts";
 import {
   createRemoteGroup,

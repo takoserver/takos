@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { load } from "@std/dotenv";
-import friends from "../models/friends.ts";
+import friends from "../models/users/friends.ts";
 import { fff } from "../utils/foundationReq.ts";
 import Request from "../models/request.ts";
 import { uuidv7 } from "npm:uuidv7@^1.0.2";

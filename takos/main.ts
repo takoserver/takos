@@ -7,7 +7,7 @@ import mongoose from "mongoose";
 import gets from "./foundation/gets.ts";
 import friend from "./web/friend.ts";
 import { load } from "@std/dotenv";
-import serverKey from "./models/serverKeys.ts";
+import serverKey from "./models/foundation/serverKeys.ts";
 import { generateServerKey } from "@takos/takos-encrypt-ink";
 import foundationApi from "./foundation/server.ts";
 import message from "./web/message.ts";

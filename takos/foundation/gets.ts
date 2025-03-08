@@ -10,7 +10,7 @@ const app = new Hono<{ Bindings: Env }>();
 
 export type { Env };
 
-import User from "../models/users.ts";
+import User from "../models/users/users.ts";
 import {
   Category,
   ChannelPermissions,
@@ -18,16 +18,16 @@ import {
   Group,
   Member,
   Roles,
-} from "../models/groups.ts";
-import IdentityKey from "../models/identityKey.ts";
+} from "../models/groups/groups.ts";
+import IdentityKey from "../models/crypto/identityKey.ts";
 import Message from "../models/message.ts";
-import RoomKey from "../models/roomKey.ts";
-import serverKey from "../models/serverKeys.ts";
+import RoomKey from "../models/crypto/roomKey.ts";
+import serverKey from "../models/foundation/serverKeys.ts";
 import { load } from "@std/dotenv";
 const env = await load();
 import { cors } from "hono/cors";
-import { CategoryPermissions } from "../models/groups.ts";
-import accountKeyData from "../models/accountKey.ts";
+import { CategoryPermissions } from "../models/groups/groups.ts";
+import accountKeyData from "../models/crypto/accountKey.ts";
 import { downloadFile } from "../utils/S3Client.ts";
 app.use(cors(
   {
