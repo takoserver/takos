@@ -18,7 +18,7 @@ import {
 import { messageListState, messageValueState } from "../utils/state.ts";
 import { selectedRoomState } from "./roomState.ts";
 
-import { migrateRequestState } from "../components/MigrateKeys.tsx";
+import { migrateRequestState } from "../components/encrypted/MigrateKeys.tsx";
 import {
   decryptDataMigrateKey,
   encryptDataDeviceKey,

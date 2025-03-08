@@ -31,12 +31,20 @@ const transporter = nodemailer.createTransport({
     pass: MAIL_SETTINGS.smtp_auth_pass,
   },
 });
-export const sendEmail = (to: string, subject: string, body: string) => {
-  transporter.sendMail(
-    buildMessage(
-      to,
-      subject,
-      body,
-    ),
-  );
+
+
+export const sendEmail = async (to: string, subject: string, body: string): Promise<boolean> => {
+  try {
+    await transporter.sendMail(
+      buildMessage(
+        to,
+        subject,
+        body,
+      ),
+    );
+    return true;
+  } catch (error) {
+    console.error("メール送信に失敗しました:", error);
+    return false;
+  }
 };

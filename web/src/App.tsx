@@ -4,23 +4,23 @@ import { Load, Loading } from "./components/load.tsx";
 import { Css } from "./components/Css.tsx";
 import "./App.css";
 import { ChangeURL } from "./components/ChangeURL.tsx";
-import { Register } from "./register/index.tsx";
+import { Register } from "./components/register/index.tsx";
 import { Chat } from "./components/Chat.tsx";
 import { createEffect, createSignal } from "solid-js";
 import {
   CreateIdentityKeyPopUp,
   CreateShareSignKeyPopUp,
-} from "./components/CreateIdentityKeyPopUp.tsx";
-import { CreateGroupPopUp } from "./components/CreateGroup.tsx";
-import { MigrateKey } from "./components/MigrateKeys.tsx";
+} from "./components/encrypted/CreateIdentityKeyPopUp.tsx";
+import { CreateGroupPopUp } from "./components/talk/CreateGroup.tsx";
+import { MigrateKey } from "./components/encrypted/MigrateKeys.tsx";
 import {
   contextMenuPositionState,
   showEditChannelModalState,
-} from "./components/ChatTalkContent.tsx";
+} from "./components/talk/ChatTalkContent.tsx";
 import { ImageViewer } from "./components/ImageViewer.tsx";
-import { VideoPlayer } from "./components/VideoPlayer.tsx";
-import { ChannelEditModal } from "./components/ChannelEditModal.tsx";
-import { CreateChannelModal } from "./components/CreateChannelModal.tsx";
+import { VideoPlayer } from "./components/talk/VideoPlayer.tsx";
+import { ChannelEditModal } from "./components/talk/ChannelEditModal.tsx";
+import { CreateChannelModal } from "./components/talk/CreateChannelModal.tsx";
 
 function App(
   { page }: { page?: "home" | "talk" | "friend" | "setting" | "notification" },

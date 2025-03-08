@@ -1,7 +1,7 @@
 import { useAtom } from "solid-jotai";
 import { createRoot } from "solid-js";
 import { createTakosDB, decryptIdentityKey } from "./idb";
-import { shoowIdentityKeyPopUp } from "../components/CreateIdentityKeyPopUp";
+import { shoowIdentityKeyPopUp } from "../components/encrypted/CreateIdentityKeyPopUp";
 
 export async function getIdentityKeys(deviceKeyVal: string) {
   return createRoot(async () => {

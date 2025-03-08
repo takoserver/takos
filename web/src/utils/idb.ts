@@ -67,6 +67,78 @@ export interface TakosDB extends DBSchema {
       timestamp: number;
     };
   };
+  encrypteSetting: {
+    key: string;
+    value: {
+      key: string; //roomid
+      isEncrypte: boolean;
+      timestamp: number;
+    };
+  }
+  notification: {
+    key: string;
+    value: {
+      key: string; //roomid
+      isNotification: boolean;
+    };
+  };
+}
+
+export async function saveNotificationSetting({
+  roomId,
+  isNotification,
+}: {
+  roomId: string;
+  isNotification: boolean;
+}) {
+  const db = await createTakosDB();
+  await db.put("notification", {
+    key: roomId,
+    isNotification,
+  });
+}
+
+export async function getNotificationSetting({
+  roomId,
+}: {
+  roomId: string;
+}): Promise<boolean> {
+  const db = await createTakosDB();
+  const setting = await db.get("notification", roomId);
+  if (setting === null || setting === undefined) {
+    return true;
+  }
+  return setting.isNotification === false ? false : true;
+}
+
+export async function saveEncryptSetting({
+  roomId,
+  isEncrypte,
+}: {
+  roomId: string;
+  isEncrypte: boolean;
+}) {
+  const db = await createTakosDB();
+  await db.put("encrypteSetting", {
+      key: roomId,
+      isEncrypte,
+      timestamp: Date.now(),
+  });
+}
+
+export async function getEncryptSetting({ roomId }: { roomId: string }): Promise<boolean> {
+  if (!roomId) {
+    throw new Error("roomId is required");
+  }
+  const db = await createTakosDB();
+  const setting = await db.get("encrypteSetting", roomId);
+  
+  if (setting === null || setting === undefined) {
+    return true; // 設定がない場合はデフォルトでtrue
+  }
+  
+  // 明示的に値をチェック
+  return setting.isEncrypte === false ? false : true;
 }
 
 export async function saveExcludeUsers({
@@ -97,7 +169,7 @@ export async function getExcludeUsers({
 }
 
 export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
-  return openDB<TakosDB>("takos-db", 15, {
+  return openDB<TakosDB>("takos-db", 17, {
     upgrade(db) {
       if (!db.objectStoreNames.contains("shareKeys")) {
         db.createObjectStore("shareKeys", { keyPath: "key" });
@@ -117,6 +189,12 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
       if (!db.objectStoreNames.contains("shareSignKeys")) {
         db.createObjectStore("shareSignKeys", { keyPath: "key" });
       }
+      if (!db.objectStoreNames.contains("excludeUsers")) {
+        db.createObjectStore("excludeUsers", { keyPath: "key" });
+      }
+      if (!db.objectStoreNames.contains("encrypteSetting")) {
+        db.createObjectStore("encrypteSetting", { keyPath: "key" });
+      }
       // 許可されたobjectStoreのみ残し、その他を削除
       const allowedStores = [
         "shareKeys",
@@ -125,6 +203,8 @@ export function createTakosDB(): Promise<IDBPDatabase<TakosDB>> {
         "RoomKeys",
         "allowKeys",
         "shareSignKeys",
+        "excludeUsers",
+        "encrypteSetting",
       ];
       for (const storeName of Array.from(db.objectStoreNames)) {
         if (!allowedStores.includes(storeName)) {

@@ -25,7 +25,7 @@ import {
   verifyMasterKey,
 } from "@takos/takos-encrypt-ink";
 import hash from "fnv1a";
-import { fetchingUsersState } from "./SideBar";
+import { fetchingUsersState } from "./sidebar/SideBar";
 import { PopUpFrame, PopUpInput, PopUpTitle } from "./popUpFrame";
 
 const userId = localStorage.getItem("userName") + "@" +
@@ -1433,7 +1433,7 @@ function ProfileSettings() {
   );
 }
 
-import { showShareSignKeyPopUp } from "./CreateIdentityKeyPopUp";
+import { showShareSignKeyPopUp } from "./encrypted/CreateIdentityKeyPopUp";
 
 // 鍵の管理コンポーネント
 function KeyManagement() {

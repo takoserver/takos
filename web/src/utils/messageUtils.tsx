@@ -6,7 +6,7 @@ import { createTakosDB } from "./idb";
 import { decryptDataDeviceKey, encryptMessage } from "@takos/takos-encrypt-ink";
 import { createRoomKey } from "./createRoomKey";
 import { getIdentityKeys } from "./getIdentityKeys";
-import { groupChannelState } from "../components/SideBar";
+import { groupChannelState } from "../components/sidebar/SideBar";
 import { createTextContent } from "./getMessage";
 import {
   clearMentionReplyState,

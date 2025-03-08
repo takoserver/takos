@@ -2,7 +2,7 @@ import { createEffect, createSignal } from "solid-js";
 import { useAtom } from "solid-jotai";
 import { DEFAULT_ICON } from "./defaultIcon";
 import { iconsState, nickNamesState } from "../utils/state";
-import { ContextMenu } from "./ContextMenu";
+import { ContextMenu } from "./talk/ContextMenu.tsx";
 import { getMessage } from "../utils/getMessage";
 import { selectedRoomState } from "../utils/roomState";
 import { convertTime, copyMessageContent } from "../utils/messageUtils.tsx";
