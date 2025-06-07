@@ -148,7 +148,11 @@ export class Takos {
       _payload: unknown,
     ) => {},
     publishToBackground: async (_name: string, _payload: unknown) => {},
-    publishToUI: async (_name: string, _payload: unknown) => {},    subscribe: (_name: string, _handler: (payload: unknown) => void): (() => void) => {
+    publishToUI: async (_name: string, _payload: unknown) => {},
+    subscribe: (
+      _name: string,
+      _handler: (payload: unknown) => void,
+    ): () => void => {
       return () => {};
     },
   };
@@ -227,14 +231,38 @@ class PackWorker {
   #pending = new Map<number, (value: unknown) => void>();
   #takos: Takos;
   #callId = 0;
-  constructor(code: string, takos: Takos, perms: Record<string, boolean>) {
+  constructor(
+    code: string,
+    takos: Takos,
+    perms: Record<string, boolean>,
+    useDeno = false,
+  ) {
     const url = URL.createObjectURL(
       new Blob([WORKER_SOURCE], { type: "application/javascript" }),
     );
-    this.#worker = new Worker(url, {
-      type: "module",
-    });
-    URL.revokeObjectURL(url);
+    if (useDeno) {
+      this.#worker = new Worker(url, {
+        type: "module",
+        deno: {
+          namespace: true,
+          permissions: {
+            read: perms.read,
+            write: perms.write,
+            net: perms.net,
+            env: perms.env,
+            run: perms.run,
+            sys: perms.sys,
+            ffi: perms.ffi,
+          },
+        },
+      });
+    } else {
+      this.#worker = new Worker(url, { type: "module" });
+    }
+    // Revoke the blob URL after the worker has initialized to avoid
+    // breaking module loading on slower environments.
+    const revoke = () => URL.revokeObjectURL(url);
+    this.#worker.addEventListener("message", revoke, { once: true });
     this.#takos = takos;
     this.#worker.onmessage = (e) => this.#onMessage(e);
     this.#worker.postMessage({ type: "init", code, takosPaths: TAKOS_PATHS });
@@ -323,7 +351,12 @@ export class TakoPack {
     for (const pack of this.packs.values()) {
       if (pack.serverCode) {
         const perms = this.#extractPermissions(pack.manifest);
-        pack.serverWorker = new PackWorker(pack.serverCode, this.takos, perms);
+        pack.serverWorker = new PackWorker(
+          pack.serverCode,
+          this.takos,
+          perms,
+          true,
+        );
       }
       if (pack.clientCode) {
         const perms: Record<string, boolean> = {
@@ -335,7 +368,12 @@ export class TakoPack {
           sys: false,
           ffi: false,
         };
-        pack.clientWorker = new PackWorker(pack.clientCode, this.takos, perms);
+        pack.clientWorker = new PackWorker(
+          pack.clientCode,
+          this.takos,
+          perms,
+          false,
+        );
       }
     }
   }
