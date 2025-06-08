@@ -272,14 +272,14 @@ export class TakopackBuilder {
         minify: !this.config.build?.dev && (this.config.build?.minify ?? true),
         sourcemap: this.config.build?.dev,
         treeShaking: true,
-        mainFields: ["module", "main"],        external: platform === "node" ? [
+        mainFields: ["module", "main"],
+        external: platform === "node" ? [
           // Node.js built-ins
           "node:*",
           "inspector",
           // Large packages that should remain external for server
           "esbuild",
           "typescript",
-          "@typescript-eslint/*",
           "debug",
           "fast-glob",
         ] : [
@@ -287,8 +287,7 @@ export class TakopackBuilder {
           "node:*",
           "inspector",
           "esbuild",
-          "typescript", 
-          "@typescript-eslint/*",
+          "typescript",
           "debug",
           "fast-glob",
         ],
