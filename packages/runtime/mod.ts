@@ -63,8 +63,6 @@ export interface TakosActivityPub {
 }
 
 const WORKER_SOURCE = `
-import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
 let takosCallId = 0;
 const takosCallbacks = new Map();
 function setPath(root, path, fn) {
