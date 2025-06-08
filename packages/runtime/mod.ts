@@ -3,6 +3,7 @@ export interface UnpackedTakoPack {
   server?: string;
   client?: string;
   ui?: string;
+  assets?: Record<string, string>;
 }
 
 export interface TakosKV {
@@ -15,6 +16,11 @@ export interface TakosKV {
 export interface TakosEvents {
   publish(name: string, payload: unknown): Promise<unknown>;
   publishToClient(name: string, payload: unknown): Promise<unknown>;
+  publishToPack(
+    identifier: string,
+    name: string,
+    payload: unknown,
+  ): Promise<unknown>;
 
   publishToClientPushNotification(
     name: string,
@@ -26,14 +32,15 @@ export interface TakosEvents {
 }
 
 export interface TakosAssets {
-  read(path: string): Promise<string>;
+  read(identifier: string, path: string): Promise<string>;
   write(
+    identifier: string,
     path: string,
     data: string | Uint8Array,
     options?: { cacheTTL?: number },
   ): Promise<string>;
-  delete(path: string): Promise<void>;
-  list(prefix?: string): Promise<string[]>;
+  delete(identifier: string, path: string): Promise<void>;
+  list(identifier: string, prefix?: string): Promise<string[]>;
 }
 
 export interface TakosActivityPub {
@@ -148,12 +155,17 @@ export interface TakosOptions {
 
 export class Takos {
   private opts: TakosOptions;
+  private builtinAssets = new Map<string, Record<string, string>>();
   constructor(opts: TakosOptions = {}) {
     this.opts = opts;
     if (opts.kv) Object.assign(this.kv, opts.kv);
     if (opts.events) Object.assign(this.events, opts.events);
     if (opts.assets) Object.assign(this.assets, opts.assets);
     if (opts.activitypub) Object.assign(this.activitypub, opts.activitypub);
+  }
+
+  setBuiltinAssets(map: Map<string, Record<string, string>>) {
+    this.builtinAssets = map;
   }
   fetch(url: string, options?: RequestInit): Promise<Response> {
     const fn = this.opts.fetch ?? fetch;
@@ -168,6 +180,12 @@ export class Takos {
   events = {
     publish: async (_name: string, _payload: unknown) => {},
     publishToClient: async (_name: string, _payload: unknown) => {},
+    publishToPack: async (
+      _from: string,
+      _identifier: string,
+      _name: string,
+      _payload: unknown,
+    ) => {},
     publishToClientPushNotification: async (
       _name: string,
       _payload: unknown,
@@ -182,14 +200,19 @@ export class Takos {
     },
   };
   assets = {
-    read: async (_path: string) => "",
+    read: async (_identifier: string, _path: string) => {
+      const files = this.builtinAssets.get(_identifier);
+      const data = files?.[_path];
+      return data ?? "";
+    },
     write: async (
+      _identifier: string,
       _path: string,
       _data: string | Uint8Array,
       _options?: { cacheTTL?: number },
     ) => "",
-    delete: async (_path: string) => {},
-    list: async (_prefix?: string) => [] as string[],
+    delete: async (_identifier: string, _path: string) => {},
+    list: async (_identifier: string, _prefix?: string) => [] as string[],
   };
   activitypub = {
     send: async (_userId: string, _activity: Record<string, unknown>) => {},
@@ -224,6 +247,7 @@ const TAKOS_PATHS: string[][] = [
   ["kv", "list"],
   ["events", "publish"],
   ["events", "publishToClient"],
+  ["events", "publishToPack"],
   ["events", "publishToClientPushNotification"],
   ["events", "publishToBackground"],
   ["events", "publishToUI"],
@@ -256,12 +280,15 @@ class PackWorker {
   #pending = new Map<number, (value: unknown) => void>();
   #takos: Takos;
   #callId = 0;
+  #identifier: string;
   constructor(
     code: string,
     takos: Takos,
     perms: Record<string, boolean>,
+    identifier: string,
     useDeno = false,
   ) {
+    this.#identifier = identifier;
     const url = URL.createObjectURL(
       new Blob([WORKER_SOURCE], { type: "application/javascript" }),
     );
@@ -331,7 +358,12 @@ class PackWorker {
     let target: any = this.#takos;
     for (const p of d.path) target = target?.[p];
     try {
-      const result = await target(...d.args);
+      const args = d.path[0] === "assets"
+        ? [this.#identifier, ...d.args]
+        : d.path[0] === "events" && d.path[1] === "publishToPack"
+        ? [this.#identifier, ...d.args]
+        : d.args;
+      const result = await target(...args);
       this.#worker.postMessage({ type: "takosResult", id: d.id, result });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -362,6 +394,11 @@ interface LoadedPack {
   serverCode?: string;
   clientCode?: string;
   ui?: string;
+  assets?: Record<string, string>;
+  eventDefinitions?: Record<
+    string,
+    { source: string; target: string; handler: string }
+  >;
   serverWorker?: PackWorker;
   clientWorker?: PackWorker;
 }
@@ -373,6 +410,7 @@ export class TakoPack {
   constructor(packs: UnpackedTakoPack[], options: TakosOptions = {}) {
     this.takos = new Takos(options);
     (globalThis as Record<string, unknown>).takos = this.takos;
+    const assetMap = new Map<string, Record<string, string>>();
     for (const p of packs) {
       const manifest = typeof p.manifest === "string"
         ? JSON.parse(p.manifest)
@@ -382,18 +420,32 @@ export class TakoPack {
         serverCode: p.server,
         clientCode: p.client,
         ui: p.ui,
+        assets: p.assets,
+        eventDefinitions: manifest.eventDefinitions as
+          | Record<string, { source: string; target: string; handler: string }>
+          | undefined,
       });
+      if (p.assets) assetMap.set(manifest.identifier as string, p.assets);
     }
+    this.takos.setBuiltinAssets(assetMap);
+    this.takos.events.publishToPack = (
+      from: string,
+      identifier: string,
+      name: string,
+      payload: unknown,
+    ) => this.publishEventToPack(from, identifier, name, payload);
   }
 
   async init(): Promise<void> {
     for (const pack of this.packs.values()) {
+      const identifier = pack.manifest.identifier as string;
       if (pack.serverCode) {
         const perms = this.#extractPermissions(pack.manifest);
         pack.serverWorker = new PackWorker(
           pack.serverCode,
           this.takos,
           perms,
+          identifier,
           true,
         );
       }
@@ -412,6 +464,7 @@ export class TakoPack {
           pack.clientCode,
           this.takos,
           perms,
+          identifier,
           false,
         );
       }
@@ -429,6 +482,30 @@ export class TakoPack {
       throw new Error(`server not loaded for ${identifier}`);
     }
     return await pack.serverWorker.call(fnName, args);
+  }
+
+  async publishEventToPack(
+    from: string,
+    identifier: string,
+    name: string,
+    payload: unknown,
+  ): Promise<unknown> {
+    const pack = this.packs.get(identifier);
+    if (!pack) throw new Error(`pack not found: ${identifier}`);
+    const def = pack.eventDefinitions?.[name];
+    if (!def) throw new Error(`event not defined: ${name}`);
+    if (def.target === "server") {
+      if (!pack.serverWorker) {
+        throw new Error(`server not loaded for ${identifier}`);
+      }
+      return await pack.serverWorker.call(def.handler, [payload, from]);
+    } else if (def.target.startsWith("client")) {
+      if (!pack.clientWorker) {
+        throw new Error(`client not loaded for ${identifier}`);
+      }
+      return await pack.clientWorker.call(def.handler, [payload, from]);
+    }
+    throw new Error(`unsupported event target: ${def.target}`);
   }
 
   #extractPermissions(

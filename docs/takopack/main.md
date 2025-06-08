@@ -54,7 +54,8 @@ awesome-pack.takopack (ZIP形式)
   ├─ manifest.json      # 必須
   ├─ server.js          # サーバー (単一ファイル、依存関係なし)
   ├─ client.js          # クライアント **バックグラウンドスクリプト** (単一ファイル、依存関係なし)
-  └─ index.html         # クライアント **UI** (UI/JS/CSS)
+  ├─ index.html         # クライアント **UI** (UI/JS/CSS)
+  └─ assets/            # 任意: 画像などの静的ファイル
 ```
 
 ### ファイル要件:
@@ -62,6 +63,7 @@ awesome-pack.takopack (ZIP形式)
 - `server.js`: Denoで動作する、依存関係のない単一JavaScriptファイル
 - `client.js`: Denoで動作する、依存関係のない単一JavaScriptファイル
 - `index.html`: ブラウザで動作する、依存関係のない単一HTMLファイル
+- `assets/`: UIやイベントで利用可能な任意の静的ファイル群
 
 <!-- 注意: `server.js` と `client.js` は、原則として関数宣言のみを記述し、トップレベルでの即時実行コードは避けてください。 -->
 <!-- 用語補足: ここでの「バックグラウンドスクリプト」は拡張機能の背景処理を指し、UIの背景色(background)とは異なります。 -->
@@ -76,6 +78,7 @@ awesome-pack.takopack (ZIP形式)
   "description": "A brief description of the extension's functionality.",
   "version": "1.2.0",
   "identifier": "com.example.awesome",
+  "icon": "./assets/icon.png",
   "apiVersion": "2.0",
   "permissions": [
     "fetch:net",
@@ -248,6 +251,7 @@ awesome-pack.takopack (ZIP形式)
 
 - `takos.events.publish(eventName: string, payload: any): Promise<[200|400|500, object]>`
 - `takos.events.publishToClient(eventName: string, payload: any): Promise<void>`
+- `takos.events.publishToPack(identifier: string, eventName: string, payload: any): Promise<any>`
 - `takos.events.publishToClientPushNotification(eventName: string, payload: any): Promise<void>`
 
 #### バックグラウンド (client.js)
@@ -357,6 +361,8 @@ const finalObject = await PackC.onReceive(afterB);
 - `server` → `client` または `client:*` (ブロードキャスト)
 - `background` → `ui`
 - `ui` → `background`
+- `server` → **他のPack**:
+  `takos.events.publishToPack(identifier, eventName, payload)`
 
 ### 実装規定 (イベント)
 

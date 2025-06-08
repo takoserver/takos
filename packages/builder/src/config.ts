@@ -23,5 +23,6 @@ export const defaultConfig: Partial<TakopackConfig> = {
     client: [],
     ui: [],
   },
+  assetsDir: undefined,
   plugins: [],
 };

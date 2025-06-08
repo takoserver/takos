@@ -12,6 +12,7 @@ Deno.test("unpack takopack archive", async () => {
   await zip.add("takos/server.js", new TextReader("console.log('server');"));
   await zip.add("takos/client.js", new TextReader("console.log('client');"));
   await zip.add("takos/index.html", new TextReader("<html></html>"));
+  await zip.add("takos/assets/icon.txt", new TextReader("icon"));
   await zip.close();
   const blob = await writer.getData();
   const buffer = new Uint8Array(await blob.arrayBuffer());
@@ -22,4 +23,5 @@ Deno.test("unpack takopack archive", async () => {
   assertEquals(result.server, "console.log('server');");
   assertEquals(result.client, "console.log('client');");
   assertEquals(result.index, "<html></html>");
+  assertEquals(result.assets?.["icon.txt"], "aWNvbg==");
 });

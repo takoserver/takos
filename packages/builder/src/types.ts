@@ -129,6 +129,7 @@ export interface ExtensionManifest {
   description?: string;
   version: string;
   identifier: string;
+  icon?: string;
   apiVersion?: string;
   permissions?: Permission[];
   server: {
@@ -200,6 +201,7 @@ export interface TakopackConfig {
     identifier: string;
     version: string;
     description?: string;
+    icon?: string;
     permissions?: Permission[];
   };
 
@@ -218,6 +220,9 @@ export interface TakopackConfig {
     outDir?: string;
     minify?: boolean;
   };
+
+  /** アセットディレクトリ */
+  assetsDir?: string;
 
   /** プラグイン設定 */
   plugins?: TakopackPlugin[];
@@ -365,6 +370,11 @@ export interface TakosServerEventsAPI {
     payload: SerializableValue,
   ): Promise<[200 | 400 | 500, SerializableObject]>;
   publishToClient(eventName: string, payload: SerializableValue): Promise<void>;
+  publishToPack(
+    identifier: string,
+    eventName: string,
+    payload: SerializableValue,
+  ): Promise<SerializableValue>;
   publishToClientPushNotification(
     eventName: string,
     payload: SerializableValue,

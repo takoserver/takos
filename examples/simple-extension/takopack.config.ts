@@ -21,4 +21,6 @@ export default defineConfig({
     analysis: true,
     outDir: "dist",
   },
+
+  assetsDir: "assets",
 });
