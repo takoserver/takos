@@ -47,6 +47,7 @@ export class ASTAnalyzer {
       const imports: ImportInfo[] = [];
       const decorators: DecoratorInfo[] = [];
       const jsDocTags: JSDocTagInfo[] = [];
+      const variables: Record<string, { instanceOf?: string }> = {};
 
       // ASTを走査
       this.traverseNode(ast, {
@@ -55,6 +56,7 @@ export class ASTAnalyzer {
         decorators,
         jsDocTags,
         comments: ast.comments || [],
+        variables,
       });
 
       return {
@@ -90,6 +92,7 @@ export class ASTAnalyzer {
       jsDocTags: JSDocTagInfo[];
       // deno-lint-ignore no-explicit-any
       comments: any[];
+      variables: Record<string, { instanceOf?: string }>;
       currentClass?: string;
     },
   ): void {
@@ -166,6 +169,23 @@ export class ASTAnalyzer {
       }
     }
 
+    // 変数宣言を収集
+    if (node.type === AST_NODE_TYPES.VariableDeclaration) {
+      // deno-lint-ignore no-explicit-any
+      node.declarations.forEach((decl: any) => {
+        if (decl.id?.name) {
+          let instanceOf: string | undefined;
+          if (
+            decl.init?.type === AST_NODE_TYPES.NewExpression &&
+            decl.init.callee?.type === AST_NODE_TYPES.Identifier
+          ) {
+            instanceOf = decl.init.callee.name;
+          }
+          context.variables[decl.id.name] = { instanceOf };
+        }
+      });
+    }
+
     // 子ノードを再帰処理
     for (const key in node) {
       const child = node[key];
@@ -183,7 +203,7 @@ export class ASTAnalyzer {
   private handleExportDeclaration(
     // deno-lint-ignore no-explicit-any
     node: any,
-    context: { exports: ExportInfo[] },
+    context: { exports: ExportInfo[]; variables: Record<string, { instanceOf?: string }> },
   ): void {
     if (node.declaration) {
       const decl = node.declaration;
@@ -233,12 +253,15 @@ export class ASTAnalyzer {
       // deno-lint-ignore no-explicit-any
       node.specifiers.forEach((spec: any) => {
         if (spec.type === AST_NODE_TYPES.ExportSpecifier) {
+          const localName = spec.local.name;
+          const info = context.variables[localName];
           context.exports.push({
             name: spec.exported.name,
             type: "const", // 型推論は困難なのでconstとする
             isDefault: false,
             line: spec.loc?.start.line || 0,
             column: spec.loc?.start.column || 0,
+            instanceOf: info?.instanceOf,
           });
         }
       });
