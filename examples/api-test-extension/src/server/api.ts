@@ -4,14 +4,7 @@ import type { SerializableObject } from "@takopack/builder";
 
 const ApiServer = new ServerExtension();
 
-ApiServer.ping = (): string => {
-  return "pong";
-};
-
-/** @event("runServerTests", { source: "ui" }) */
-ApiServer.onRunServerTests = async (): Promise<
-  [number, SerializableObject]
-> => {
+const runAllTests = async (): Promise<[number, SerializableObject]> => {
   const takos = getTakosServerAPI();
   const results: Record<string, unknown> = {};
 
@@ -95,5 +88,14 @@ ApiServer.onRunServerTests = async (): Promise<
 
   return [200, results as SerializableObject];
 };
+
+ApiServer.ping = (): string => {
+  return "pong";
+};
+
+/** @event("runServerTests", { source: "ui" }) */
+ApiServer.onRunServerTests = runAllTests;
+
+ApiServer.testAll = runAllTests;
 
 export { ApiServer };

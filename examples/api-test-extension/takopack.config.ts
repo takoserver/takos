@@ -5,7 +5,7 @@ export default defineConfig({
     name: "API Test Extension",
     identifier: "test.api",
     version: "1.0.0",
-    icon: "./icon.png",
+    // icon is optional; omitted because this example has none
     description: "docs/takopack/v3.mdのAPIを検証する拡張機能",
     permissions: [
       "kv:read",
