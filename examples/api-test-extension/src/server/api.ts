@@ -4,9 +4,11 @@ import type { SerializableObject } from "@takopack/builder";
 
 const ApiServer = new ServerExtension();
 
-ApiServer.ping = (): string => {
+export function ping(): string {
   return "pong";
-};
+}
+
+ApiServer.ping = ping;
 
 /** @event("runServerTests", { source: "ui" }) */
 ApiServer.onRunServerTests = async (): Promise<
@@ -100,4 +102,4 @@ ApiServer.onRunServerTests = async (): Promise<
   return [200, results as SerializableObject];
 };
 
-export { ApiServer };
+export { ApiServer, ping };

@@ -27,7 +27,7 @@ export default defineConfig({
       "extensions:invoke",
       "extensions:export",
     ],
-    exports: { server: ["ping", "testAll"] },
+    exports: { server: ["ping"] },
   },
 
   entries: {
