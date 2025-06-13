@@ -259,10 +259,10 @@ export class Takos {
   ) {
     this.extProvider = p;
   }
-  fetch(url: string, options?: RequestInit): Promise<Response> {
+  fetch = (url: string, options?: RequestInit): Promise<Response> => {
     const fn = this.opts.fetch ?? fetch;
     return fn(url, options);
-  }
+  };
   kv = {
     read: async (_key: string) => undefined as unknown,
     write: async (_key: string, _value: unknown) => {},
@@ -532,7 +532,7 @@ class RuntimeExtension implements Extension {
   get isActive() {
     return !!this.#pack.activated;
   }
-  async activate(): Promise<unknown> {
+  activate = async (): Promise<unknown> => {
     if (this.#pack.activated) return this.#pack.activated;
     const exportsList =
       Array.isArray((this.#pack.manifest as any)?.exports?.server)
@@ -548,7 +548,7 @@ class RuntimeExtension implements Extension {
     }
     this.#pack.activated = api;
     return api;
-  }
+  };
 }
 
 export interface TakoPackInitOptions {
