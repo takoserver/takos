@@ -82,9 +82,8 @@ ApiServer.onRunServerTests = async (): Promise<
 
   // Extensions API
   try {
-    const self = takos?.extensions.get("test.api");
-    if (self) {
-      const api = await self.activate();
+    const api = await takos?.activateExtension("test.api");
+    if (api) {
       // deno-lint-ignore no-explicit-any
       await (api as any).ping();
     }
