@@ -410,8 +410,8 @@ MyServer.onUserLogin = (data: { username: string }) => {
 export { MyServer };
 ```
 
-インスタンス名とメソッド名の組み合わせから `MyServer_onUserLogin`
-のようなラッパー関数が自動生成され、manifest の `handler` として利用されます。
+イベント名に対応した `userLogin` のラッパー関数が自動生成され、
+manifest の `handler` として利用されます。
 
 ### アプリコンテナ API
 

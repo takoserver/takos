@@ -599,7 +599,12 @@ export class TakoPack {
     if (!pack.serverWorker) {
       throw new Error(`server not loaded for ${identifier}`);
     }
-    return await pack.serverWorker.call(fnName, args);
+    let actualName = fnName;
+    const defs = (pack.manifest as any).eventDefinitions;
+    if (defs && defs[fnName] && typeof defs[fnName].handler === "string") {
+      actualName = defs[fnName].handler;
+    }
+    return await pack.serverWorker.call(actualName, args);
   }
 
   #extractPermissions(
