@@ -37,6 +37,14 @@ export async function loadExtension(
       },
     ], {
       server: {
+        fetch: (url: string, options?: RequestInit) => {
+          if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            return Promise.reject(
+              new Error("only http(s) protocol is allowed"),
+            );
+          }
+          return fetch(url, options);
+        },
         events: {
           publish: (name: string, payload: unknown) => {
             wss?.distributeEvent(name, payload);
