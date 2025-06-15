@@ -1,4 +1,4 @@
-import type { Config } from "tailwindcss";
+import type { Config } from "npm:tailwindcss";
 
 export default {
   darkMode: "class",
@@ -7,7 +7,11 @@ export default {
     "./src/**/*.{ts,tsx,html}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        base: "#181818",
+      },
+    },
   },
   plugins: [],
 } satisfies Config;

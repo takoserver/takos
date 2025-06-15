@@ -18,11 +18,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #ffffff;
-  color: #1a1a1a;
+  color: #181818;
 }
 
 html.dark body {
-  background-color: #1a1a1a;
+  background-color: #181818;
   color: #f3f4f6;
 }
 
