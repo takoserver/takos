@@ -257,7 +257,7 @@ app.get("/domains", async (c) => {
     userId: new mongoose.Types.ObjectId(userId),
   }).lean();
   return c.json({
-    domains: domains.map((d: mongoose.LeanDocument<DomainDoc>) => ({
+    domains: domains.map((d) => ({
       name: d.name,
       verified: d.verified,
     })),
@@ -271,7 +271,7 @@ async function getIndex(): Promise<{
 }> {
   const pkgs = await Package.find().lean();
   const index = {
-    packages: pkgs.map((p: mongoose.LeanDocument<PackageDoc>) => ({
+    packages: pkgs.map((p) => ({
       identifier: p.identifier,
       name: p.name,
       version: p.version,
@@ -288,7 +288,7 @@ async function getIndex(): Promise<{
   const etag = Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  const newest = pkgs.reduce((m: number, p: mongoose.LeanDocument<PackageDoc>) => {
+  const newest = pkgs.reduce((m: number, p) => {
     const t = p.updatedAt ? new Date(p.updatedAt).getTime() : 0;
     return Math.max(m, t);
   }, 0);
@@ -331,7 +331,7 @@ app.get("/search", async (c) => {
     : {};
   const pkgs = await Package.find(filter).limit(limit).lean();
   const index = {
-    packages: pkgs.map((p: mongoose.LeanDocument<PackageDoc>) => ({
+    packages: pkgs.map((p) => ({
       identifier: p.identifier,
       name: p.name,
       version: p.version,
@@ -348,7 +348,7 @@ app.get("/search", async (c) => {
   const etag = Array.from(new Uint8Array(digest)).map((b) =>
     b.toString(16).padStart(2, "0")
   ).join("");
-  const newest = pkgs.reduce((m: number, p: mongoose.LeanDocument<PackageDoc>) => {
+  const newest = pkgs.reduce((m: number, p) => {
     const t = p.updatedAt ? new Date(p.updatedAt).getTime() : 0;
     return Math.max(m, t);
   }, 0);
