@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { Context, Next } from "hono";
-import { join } from "@std/path";
+import { join, dirname, fromFileUrl } from "@std/path";
 import mongoose from "mongoose";
 
 interface UserDoc extends mongoose.Document {
@@ -71,6 +71,11 @@ const app = new Hono<{ Variables: { userId?: string } }>();
 app.use("*", auth);
 
 const rootDir = Deno.env.get("REGISTRY_DIR") ?? "./registry";
+const adminPath = join(
+  dirname(fromFileUrl(import.meta.url)),
+  "public",
+  "admin.html",
+);
 const mongoUri = Deno.env.get("MONGO_URI") ??
   "mongodb://localhost:27017/takoregistry";
 
@@ -218,7 +223,7 @@ app.post("/domains/request", async (c) => {
     console.log(
       `Verify domain ${domain} by adding TXT record takopack-verify=${token}`,
     );
-    return c.json({ ok: true });
+    return c.json({ ok: true, token });
   } catch {
     return c.json({ error: "Bad request" }, 400);
   }
@@ -255,6 +260,11 @@ app.get("/domains", async (c) => {
     userId: new mongoose.Types.ObjectId(userId),
   }).lean();
   return c.json({
+app.get("/admin", async (c) => {
+  const html = await Deno.readTextFile(adminPath);
+  return c.html(html);
+});
+
     domains: domains.map((d) => ({
       name: d.name,
       verified: d.verified,
