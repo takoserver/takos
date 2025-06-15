@@ -260,16 +260,16 @@ app.get("/domains", async (c) => {
     userId: new mongoose.Types.ObjectId(userId),
   }).lean();
   return c.json({
-app.get("/admin", async (c) => {
-  const html = await Deno.readTextFile(adminPath);
-  return c.html(html);
-});
-
     domains: domains.map((d) => ({
       name: d.name,
       verified: d.verified,
     })),
   });
+});
+
+app.get("/admin", async (c) => {
+  const html = await Deno.readTextFile(adminPath);
+  return c.html(html);
 });
 
 async function getIndex(): Promise<{
