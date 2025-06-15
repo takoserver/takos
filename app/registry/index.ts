@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { Context, Next } from "hono";
 import { join } from "@std/path";
 import mongoose from "mongoose";
 
@@ -32,7 +33,7 @@ function getCookie(req: Request, name: string): string | undefined {
   }
 }
 
-async function auth(c: any, next: any) {
+function auth(c: Context<{ Variables: { userId?: string } }>, next: Next) {
   if (
     ["/login", "/register"].includes(c.req.path) ||
     c.req.path.startsWith("/verify")
@@ -52,7 +53,7 @@ async function auth(c: any, next: any) {
   return next();
 }
 
-const app = new Hono();
+const app = new Hono<{ Variables: { userId?: string } }>();
 app.use("*", auth);
 
 const rootDir = Deno.env.get("REGISTRY_DIR") ?? "./registry";
@@ -111,7 +112,7 @@ function identifierDomain(id: string): string | null {
   return `${parts[1]}.${parts[0]}`;
 }
 
-async function sendVerificationEmail(email: string, token: string) {
+function sendVerificationEmail(email: string, token: string): void {
   const base = Deno.env.get("VERIFY_BASE_URL") ?? "http://localhost:8080";
   const url = `${base}/verify/${token}`;
   console.log(`Verify ${email}: ${url}`);
@@ -183,18 +184,22 @@ app.post("/domains/request", async (c) => {
   try {
     const { domain } = await c.req.json();
     if (!domain) return c.json({ error: "Bad request" }, 400);
-    let entry = await Domain.findOne({ name: domain });
+    const entry = await Domain.findOne({ name: domain });
     if (entry && String(entry.userId) !== String(userId)) {
       return c.json({ error: "Domain already claimed" }, 400);
     }
     const token = crypto.randomUUID();
     if (entry) {
-      entry.userId = userId;
+      entry.userId = new mongoose.Types.ObjectId(userId);
       entry.verificationToken = token;
       entry.verified = false;
       await entry.save();
     } else {
-      await Domain.create({ name: domain, userId, verificationToken: token });
+      await Domain.create({
+        name: domain,
+        userId: new mongoose.Types.ObjectId(userId),
+        verificationToken: token,
+      });
     }
     console.log(
       `Verify domain ${domain} by hosting .well-known/takopack-verify.txt with token ${token}`,
@@ -209,7 +214,10 @@ app.post("/domains/verify", async (c) => {
   const userId = c.get("userId");
   try {
     const { domain } = await c.req.json();
-    const entry = await Domain.findOne({ name: domain, userId });
+    const entry = await Domain.findOne({
+      name: domain,
+      userId: new mongoose.Types.ObjectId(userId),
+    });
     if (!entry || !entry.verificationToken) {
       return c.json({ error: "Not found" }, 404);
     }
@@ -231,9 +239,11 @@ app.post("/domains/verify", async (c) => {
 
 app.get("/domains", async (c) => {
   const userId = c.get("userId");
-  const domains = await Domain.find({ userId }).lean();
+  const domains = await Domain.find({
+    userId: new mongoose.Types.ObjectId(userId),
+  }).lean<DomainDoc>();
   return c.json({
-    domains: domains.map((d: any) => ({ name: d.name, verified: d.verified })),
+    domains: domains.map((d) => ({ name: d.name, verified: d.verified })),
   });
 });
 
@@ -242,9 +252,9 @@ async function getIndex(): Promise<{
   etag: string;
   mtime?: string;
 }> {
-  const pkgs = await Package.find().lean();
+  const pkgs = await Package.find().lean<PackageDoc>();
   const index = {
-    packages: pkgs.map((p: any) => ({
+    packages: pkgs.map((p) => ({
       identifier: p.identifier,
       name: p.name,
       version: p.version,
@@ -261,7 +271,7 @@ async function getIndex(): Promise<{
   const etag = Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  const newest = pkgs.reduce((m: number, p: any) => {
+  const newest = pkgs.reduce((m: number, p: PackageDoc) => {
     const t = p.updatedAt ? new Date(p.updatedAt).getTime() : 0;
     return Math.max(m, t);
   }, 0);
@@ -302,9 +312,9 @@ app.get("/search", async (c) => {
       ],
     }
     : {};
-  const pkgs = await Package.find(filter).limit(limit).lean();
+  const pkgs = await Package.find(filter).limit(limit).lean<PackageDoc>();
   const index = {
-    packages: pkgs.map((p: any) => ({
+    packages: pkgs.map((p) => ({
       identifier: p.identifier,
       name: p.name,
       version: p.version,
@@ -321,7 +331,7 @@ app.get("/search", async (c) => {
   const etag = Array.from(new Uint8Array(digest)).map((b) =>
     b.toString(16).padStart(2, "0")
   ).join("");
-  const newest = pkgs.reduce((m: number, p: any) => {
+  const newest = pkgs.reduce((m: number, p: PackageDoc) => {
     const t = p.updatedAt ? new Date(p.updatedAt).getTime() : 0;
     return Math.max(m, t);
   }, 0);
@@ -353,7 +363,7 @@ app.post("/packages", async (c) => {
     if (domain) {
       const domainEntry = await Domain.findOne({
         name: domain,
-        userId,
+        userId: new mongoose.Types.ObjectId(userId),
         verified: true,
       });
       if (!domainEntry) {
@@ -376,7 +386,7 @@ app.post("/packages", async (c) => {
 
 app.get("/packages/:id", async (c) => {
   const id = c.req.param("id");
-  const pkg = await Package.findOne({ identifier: id }).lean();
+  const pkg = await Package.findOne({ identifier: id }).lean<PackageDoc>();
   if (!pkg) {
     return c.json({ error: "Not found" }, 404);
   }
