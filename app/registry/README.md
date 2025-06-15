@@ -11,6 +11,7 @@
 - `GET /search?q=<keyword>&limit=<n>` - キーワードで検索
 - `GET /packages/<id>` - 指定した識別子の最新パッケージ情報
 - `POST /login` - ユーザー認証。`REGISTRY_USER` と `REGISTRY_PASS` で認証情報を設定
+  し、ドメイン登録やパッケージ公開時に使用するセッションを取得
 - `POST /register` - メールアドレスでアカウント作成（確認メール送信）
 - `GET /verify/<token>` - メールのリンクからアカウントを有効化
 - `POST /domains/request` - 逆ドメイン所有確認トークンを発行（レスポンスに `token` を含む）
@@ -29,5 +30,6 @@ deno task start
 
 `PORT` 環境変数（デフォルト `8080`）でリッスンするポートを指定できます。
 `MONGO_URI` を設定すると MongoDB の接続先を変更できます。
-`REGISTRY_USER` と `REGISTRY_PASS` を設定すると `/login` での認証に使用されます。
+`REGISTRY_USER` と `REGISTRY_PASS` を設定すると `/login` で取得するセッションに利用されます。
+このセッションはドメイン登録とパッケージ公開の際だけ必要です。
 メール認証に使用する確認リンクは `VERIFY_BASE_URL` 環境変数で生成されます。

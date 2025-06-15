@@ -68,7 +68,9 @@ async function auth(
 }
 
 const app = new Hono<{ Variables: { userId?: string } }>();
-app.use("*", auth);
+app.use('/admin', auth);
+app.use('/domains/*', auth);
+app.use('/domains', auth);
 
 const rootDir = Deno.env.get("REGISTRY_DIR") ?? "./registry";
 const adminPath = join(
@@ -356,7 +358,7 @@ app.get("/search", async (c) => {
   const etag = Array.from(new Uint8Array(digest)).map((b) =>
     b.toString(16).padStart(2, "0")
   ).join("");
-  const newest = pkgs.reduce((m: number, p) => {
+app.post("/packages", auth, async (c) => {
     const t = p.updatedAt ? new Date(p.updatedAt).getTime() : 0;
     return Math.max(m, t);
   }, 0);
