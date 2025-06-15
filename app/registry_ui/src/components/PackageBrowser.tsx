@@ -1,6 +1,7 @@
 import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import { req } from "../api.ts";
 import PackageCard, { PackageInfo } from "./PackageCard.tsx";
+import ListPackageItem from "./ListPackageItem.tsx";
 
 export default function PackageBrowser() {
   const [packages, setPackages] = createSignal<PackageInfo[]>([]);
@@ -10,6 +11,7 @@ export default function PackageBrowser() {
   const [selectedPackage, setSelectedPackage] = createSignal<
     PackageInfo | null
   >(null);
+  const [viewType, setViewType] = createSignal<"grid" | "list">("grid");
 
   const filteredAndSortedPackages = createMemo(() => {
     let filtered = packages();
@@ -185,6 +187,54 @@ export default function PackageBrowser() {
                 />
               </svg>
             </button>
+            <div class="flex space-x-1">
+              <button
+                type="button"
+                onClick={() => setViewType("grid")}
+                class={`p-2 rounded-md ${
+                  viewType() === "grid"
+                    ? "bg-purple-600 text-white"
+                    : "bg-gray-700/50 text-gray-300"
+                }`}
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 6h4v4H4V6zm6 0h4v4h-4V6zm6 0h4v4h-4V6M4 14h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4"
+                  />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewType("list")}
+                class={`p-2 rounded-md ${
+                  viewType() === "list"
+                    ? "bg-purple-600 text-white"
+                    : "bg-gray-700/50 text-gray-300"
+                }`}
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -240,17 +290,34 @@ export default function PackageBrowser() {
             </div>
           </Show>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <For each={filteredAndSortedPackages()}>
-              {(pkg) => (
-                <PackageCard
-                  package={pkg}
-                  onInstall={handleInstall}
-                  onViewDetails={handleViewDetails}
-                />
-              )}
-            </For>
-          </div>
+          <Show
+            when={viewType() === "grid"}
+            fallback={
+              <div class="space-y-4">
+                <For each={filteredAndSortedPackages()}>
+                  {(pkg) => (
+                    <ListPackageItem
+                      package={pkg}
+                      onInstall={handleInstall}
+                      onViewDetails={handleViewDetails}
+                    />
+                  )}
+                </For>
+              </div>
+            }
+          >
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <For each={filteredAndSortedPackages()}>
+                {(pkg) => (
+                  <PackageCard
+                    package={pkg}
+                    onInstall={handleInstall}
+                    onViewDetails={handleViewDetails}
+                  />
+                )}
+              </For>
+            </div>
+          </Show>
         </Show>
       </div>
 
