@@ -17,6 +17,17 @@ interface DomainDoc extends mongoose.Document {
   verificationToken?: string;
 }
 
+interface PackageDoc extends mongoose.Document {
+  identifier: string;
+  name: string;
+  version: string;
+  description?: string;
+  downloadUrl: string;
+  sha256?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 interface SessionInfo {
   expires: number;
   userId?: string;
@@ -33,12 +44,15 @@ function getCookie(req: Request, name: string): string | undefined {
   }
 }
 
-function auth(c: Context<{ Variables: { userId?: string } }>, next: Next) {
+async function auth(
+  c: Context<{ Variables: { userId?: string } }>,
+  next: Next,
+) {
   if (
     ["/login", "/register"].includes(c.req.path) ||
     c.req.path.startsWith("/verify")
   ) {
-    return next();
+    return await next();
   }
   const id = getCookie(c.req.raw, "session");
   if (!id) {
@@ -50,7 +64,7 @@ function auth(c: Context<{ Variables: { userId?: string } }>, next: Next) {
     return c.json({ error: "Unauthorized" }, 401);
   }
   c.set("userId", session.userId);
-  return next();
+  return await next();
 }
 
 const app = new Hono<{ Variables: { userId?: string } }>();
@@ -241,9 +255,12 @@ app.get("/domains", async (c) => {
   const userId = c.get("userId");
   const domains = await Domain.find({
     userId: new mongoose.Types.ObjectId(userId),
-  }).lean<DomainDoc>();
+  }).lean();
   return c.json({
-    domains: domains.map((d) => ({ name: d.name, verified: d.verified })),
+    domains: domains.map((d: mongoose.LeanDocument<DomainDoc>) => ({
+      name: d.name,
+      verified: d.verified,
+    })),
   });
 });
 
@@ -252,9 +269,9 @@ async function getIndex(): Promise<{
   etag: string;
   mtime?: string;
 }> {
-  const pkgs = await Package.find().lean<PackageDoc>();
+  const pkgs = await Package.find().lean();
   const index = {
-    packages: pkgs.map((p) => ({
+    packages: pkgs.map((p: mongoose.LeanDocument<PackageDoc>) => ({
       identifier: p.identifier,
       name: p.name,
       version: p.version,
@@ -271,7 +288,7 @@ async function getIndex(): Promise<{
   const etag = Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  const newest = pkgs.reduce((m: number, p: PackageDoc) => {
+  const newest = pkgs.reduce((m: number, p: mongoose.LeanDocument<PackageDoc>) => {
     const t = p.updatedAt ? new Date(p.updatedAt).getTime() : 0;
     return Math.max(m, t);
   }, 0);
@@ -312,9 +329,9 @@ app.get("/search", async (c) => {
       ],
     }
     : {};
-  const pkgs = await Package.find(filter).limit(limit).lean<PackageDoc>();
+  const pkgs = await Package.find(filter).limit(limit).lean();
   const index = {
-    packages: pkgs.map((p) => ({
+    packages: pkgs.map((p: mongoose.LeanDocument<PackageDoc>) => ({
       identifier: p.identifier,
       name: p.name,
       version: p.version,
@@ -331,7 +348,7 @@ app.get("/search", async (c) => {
   const etag = Array.from(new Uint8Array(digest)).map((b) =>
     b.toString(16).padStart(2, "0")
   ).join("");
-  const newest = pkgs.reduce((m: number, p: PackageDoc) => {
+  const newest = pkgs.reduce((m: number, p: mongoose.LeanDocument<PackageDoc>) => {
     const t = p.updatedAt ? new Date(p.updatedAt).getTime() : 0;
     return Math.max(m, t);
   }, 0);
@@ -386,7 +403,7 @@ app.post("/packages", async (c) => {
 
 app.get("/packages/:id", async (c) => {
   const id = c.req.param("id");
-  const pkg = await Package.findOne({ identifier: id }).lean<PackageDoc>();
+  const pkg = await Package.findOne({ identifier: id }).lean();
   if (!pkg) {
     return c.json({ error: "Not found" }, 404);
   }
