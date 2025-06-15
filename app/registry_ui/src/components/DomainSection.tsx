@@ -26,7 +26,7 @@ export default function DomainSection() {
 
   return (
     <div class="bg-white shadow rounded p-4">
-      <h2 class="text-xl font-semibold mb-4">Domains</h2>
+      <h2 class="text-xl font-semibold mb-4">Manage Domains</h2>
       <ul class="mb-4 space-y-1">
         <For each={domains()}>
           {(d) => (

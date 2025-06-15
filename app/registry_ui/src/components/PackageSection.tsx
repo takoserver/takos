@@ -1,13 +1,19 @@
-import { createSignal, For } from "solid-js";
+import { createSignal, For, onMount } from "solid-js";
 import { req } from "../api.ts";
+import PackageCard from "./PackageCard.tsx";
 
 interface Pack {
   identifier: string;
+  name?: string;
   version: string;
+  description?: string;
 }
 
 export default function PackageSection() {
   const [packages, setPackages] = createSignal<Pack[]>([]);
+  const [query, setQuery] = createSignal("");
+  const [loading, setLoading] = createSignal(false);
+
   let idInput!: HTMLInputElement;
   let nameInput!: HTMLInputElement;
   let versionInput!: HTMLInputElement;
@@ -15,10 +21,18 @@ export default function PackageSection() {
   let urlInput!: HTMLInputElement;
   let shaInput!: HTMLInputElement;
 
-  const refresh = async () => {
-    const data = await req<{ packages: Pack[] }>("/_takopack/search");
+  const search = async () => {
+    setLoading(true);
+    const q = query().trim();
+    const url = q
+      ? `/_takopack/search?q=${encodeURIComponent(q)}`
+      : "/_takopack/index.json";
+    const data = await req<{ packages: Pack[] }>(url);
     setPackages(data.packages);
+    setLoading(false);
   };
+
+  onMount(search);
 
   const add = async () => {
     await req("/api/packages", "POST", {
@@ -29,29 +43,37 @@ export default function PackageSection() {
       downloadUrl: urlInput.value,
       sha256: shaInput.value || undefined,
     });
-    refresh();
+    search();
   };
 
   return (
-    <div class="bg-white shadow rounded p-4">
-      <h2 class="text-xl font-semibold mb-4">Packages</h2>
-      <ul class="mb-4 space-y-1">
-        <For each={packages()}>
-          {(p) => (
-            <li class="flex justify-between">
-              <span>{p.identifier}</span>
-              <span class="text-gray-500">{p.version}</span>
-            </li>
-          )}
-        </For>
-      </ul>
-      <button
-        type="button"
-        class="px-3 py-1 bg-gray-500 text-white rounded mb-4"
-        onClick={refresh}
-      >
-        Refresh
-      </button>
+    <section>
+      <div class="mb-4 flex items-center gap-2">
+        <input
+          class="flex-1 border border-gray-300 p-2 rounded"
+          type="search"
+          placeholder="Search packages..."
+          value={query()}
+          onInput={(e) => setQuery(e.currentTarget.value)}
+        />
+        <button
+          type="button"
+          class="px-3 py-2 bg-blue-600 text-white rounded"
+          onClick={search}
+        >
+          Search
+        </button>
+      </div>
+      {loading() && <p class="text-gray-600 mb-2">Loading...</p>}
+      <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 mb-8">
+        <For each={packages()}>{(p) => (
+          <PackageCard
+            identifier={p.identifier}
+            version={p.version}
+            description={p.description}
+          />
+        )}</For>
+      </div>
       <h3 class="text-lg font-semibold mb-2">Add</h3>
       <div class="grid grid-cols-2 gap-2 mb-2">
         <input
@@ -92,6 +114,6 @@ export default function PackageSection() {
       >
         Add Package
       </button>
-    </div>
+    </section>
   );
 }
