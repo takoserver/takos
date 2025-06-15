@@ -16,9 +16,10 @@
   で認証情報を設定
 - `POST /register` - メールアドレスでアカウント作成（確認メール送信）
 - `GET /verify/<token>` - メールのリンクからアカウントを有効化
-- `POST /domains/request` - 逆ドメインの所有確認トークンを発行
-- `POST /domains/verify` - ドメイン確認を完了
-- `POST /packages` - パッケージ登録（ドメイン確認済みが必要）
+  - `POST /domains/request` - 逆ドメインの所有確認トークンを発行
+  - `POST /domains/verify` - ドメイン確認を完了
+    - `/domains/request` のトークンを `takopack-verify=<token>` という TXT レコードとして追加してから実行します
+  - `POST /packages` - パッケージ登録（ドメイン確認済みが必要）
 - `GET /<file>` - `.takopack` アーカイブのダウンロード
 
 サーバーの起動方法:

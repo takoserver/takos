@@ -216,7 +216,7 @@ app.post("/domains/request", async (c) => {
       });
     }
     console.log(
-      `Verify domain ${domain} by hosting .well-known/takopack-verify.txt with token ${token}`,
+      `Verify domain ${domain} by adding TXT record takopack-verify=${token}`,
     );
     return c.json({ ok: true });
   } catch {
@@ -235,12 +235,10 @@ app.post("/domains/verify", async (c) => {
     if (!entry || !entry.verificationToken) {
       return c.json({ error: "Not found" }, 404);
     }
-    const url = `https://${domain}/.well-known/takopack-verify.txt`;
-    const res = await fetch(url);
-    if (!res.ok) return c.json({ error: "Verification file missing" }, 400);
-    const text = (await res.text()).trim();
-    if (text !== entry.verificationToken) {
-      return c.json({ error: "Invalid token" }, 400);
+    const records = await Deno.resolveDns(domain, "TXT");
+    const expect = `takopack-verify=${entry.verificationToken}`;
+    if (!records.some((r) => r.includes(expect))) {
+      return c.json({ error: "TXT record missing" }, 400);
     }
     entry.verified = true;
     entry.verificationToken = undefined;

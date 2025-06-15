@@ -5,8 +5,9 @@
 `index.json` と `.takopack` アーカイブ、検索エンドポイントを公開します。
 アカウントは `/register` で作成し、メール認証後に `/login`
 でセッションを取得します。パッケージ識別子に逆ドメインを使用する場合は、
-`/domains/request` と `/domains/verify`
-でドメイン所有権を確認する必要があります。
+`/domains/request` と `/domains/verify` でドメイン所有権を確認します。
+`/domains/request` のトークンを `takopack-verify=<token>` という TXT
+レコードとして追加し、`/domains/verify` で検証します。
 
 `index.json` の構造は次のとおりです。
 

@@ -25,7 +25,7 @@ HTTP API を提供します。
   アーカイブをダウンロードします。
 
 ドメイン確認では、`/domains/request` を呼び出すとトークンが発行されます。
-`https://<domain>/.well-known/takopack-verify.txt` にそのトークンを配置し、
+対象ドメインの TXT レコードに `takopack-verify=<token>` を追加し、
 `/domains/verify` で検証します。確認済みドメインの名前空間だけが
 パッケージ識別子として利用できます。
 
