@@ -5,6 +5,7 @@ import {
   selectedExtensionState,
 } from "../../states/extensions.ts";
 import { For, onMount } from "solid-js";
+import ThemeToggle from "../ThemeToggle.tsx";
 
 export default function ChatHeader() {
   const setSelectedApp = useSetAtom(selectedAppState);
@@ -71,6 +72,9 @@ export default function ChatHeader() {
               </li>
             )}
           </For>
+          <li class="l-header__ul-item">
+            <ThemeToggle />
+          </li>
         </ul>
       </header>
     </>

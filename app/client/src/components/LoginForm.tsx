@@ -48,9 +48,9 @@ export function LoginForm(props: LoginFormProps) {
   };
 
   return (
-    <div class="min-h-screen flex flex-col bg-[#181818] text-gray-100">
+    <div class="min-h-screen flex flex-col bg-gray-50 text-gray-900 dark:bg-[#181818] dark:text-gray-100">
       <main class="flex-grow flex items-center justify-center px-4 py-12">
-        <div class="w-full max-w-md bg-[#212121] p-8 rounded-lg shadow-xl">
+        <div class="w-full max-w-md bg-white dark:bg-[#212121] p-8 rounded-lg shadow-xl">
           <div class="mb-8 text-center">
             <h2 class="text-3xl font-semibold mb-2 text-white">ようこそ</h2>
             <p class="text-gray-400">
@@ -77,7 +77,7 @@ export function LoginForm(props: LoginFormProps) {
                 id="password"
                 value={password()}
                 onInput={(e) => setPassword(e.currentTarget.value)}
-                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 transition-colors"
+                class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                 disabled={isLoading()}
                 placeholder="パスワードを入力"
                 required
@@ -123,7 +123,7 @@ export function LoginForm(props: LoginFormProps) {
         </div>
       </main>
 
-      <footer class="py-6 border-t border-gray-700">
+      <footer class="py-6 border-t border-gray-300 dark:border-gray-700">
         <div class="container mx-auto px-4 text-center">
           <p class="text-gray-500 text-sm">
             © 2023 takos. All rights reserved.

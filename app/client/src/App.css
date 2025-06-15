@@ -17,6 +17,11 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
+
+html.dark body {
   background-color: #1a1a1a;
   color: #f3f4f6;
 }
