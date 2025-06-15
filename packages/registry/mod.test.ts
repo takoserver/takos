@@ -87,7 +87,7 @@ Deno.test("search registry", async () => {
   const { signal } = controller;
   const handler = (req: Request): Response => {
     const url = new URL(req.url);
-    if (url.pathname === "/search") {
+    if (url.pathname === "/api/search") {
       const q = url.searchParams.get("q") ?? "";
       const list = [
         { identifier: "com.foo", name: "Foo", version: "1" },
@@ -104,14 +104,14 @@ Deno.test("search registry", async () => {
   const port = (server.listener.addr as Deno.NetAddr).port;
 
   const { index, etag } = await searchRegistry(
-    `http://localhost:${port}/search`,
+    `http://localhost:${port}/api/search`,
     { q: "Foo" },
   );
   if (!index) throw new Error("index should not be null");
   assertEquals(index.packages.length, 1);
   assertEquals(index.packages[0].identifier, "com.foo");
 
-  const cached = await searchRegistry(`http://localhost:${port}/search`, {
+  const cached = await searchRegistry(`http://localhost:${port}/api/search`, {
     q: "Foo",
     etag,
   });
@@ -126,7 +126,7 @@ Deno.test("fetch package info", async () => {
   const { signal } = controller;
   const handler = (req: Request): Response => {
     const url = new URL(req.url);
-    if (url.pathname === "/packages/com.test") {
+    if (url.pathname === "/api/packages/com.test") {
       return new Response(
         JSON.stringify({ identifier: "com.test", version: "1" }),
       );
@@ -137,14 +137,14 @@ Deno.test("fetch package info", async () => {
   const port = (server.listener.addr as Deno.NetAddr).port;
 
   const { pkg, etag } = await fetchPackageInfo(
-    `http://localhost:${port}`,
+    `http://localhost:${port}/api`,
     "com.test",
   );
   if (!pkg) throw new Error("pkg should not be null");
   assertEquals(pkg.identifier, "com.test");
 
   const cached = await fetchPackageInfo(
-    `http://localhost:${port}`,
+    `http://localhost:${port}/api`,
     "com.test",
     {
       etag,

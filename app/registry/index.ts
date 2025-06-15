@@ -49,8 +49,8 @@ async function auth(
   next: Next,
 ) {
   if (
-    ["/login", "/register"].includes(c.req.path) ||
-    c.req.path.startsWith("/verify")
+    ["/api/login", "/api/register"].includes(c.req.path) ||
+    c.req.path.startsWith("/api/verify")
   ) {
     return await next();
   }
@@ -69,8 +69,8 @@ async function auth(
 
 const app = new Hono<{ Variables: { userId?: string } }>();
 app.use("/admin", auth);
-app.use("/domains/*", auth);
-app.use("/domains", auth);
+app.use("/api/domains/*", auth);
+app.use("/api/domains", auth);
 
 const rootDir = Deno.env.get("REGISTRY_DIR") ?? "./registry";
 const adminPath = join(
@@ -135,11 +135,11 @@ function identifierDomain(id: string): string | null {
 
 function sendVerificationEmail(email: string, token: string): void {
   const base = Deno.env.get("VERIFY_BASE_URL") ?? "http://localhost:8080";
-  const url = `${base}/verify/${token}`;
+  const url = `${base}/api/verify/${token}`;
   console.log(`Verify ${email}: ${url}`);
 }
 
-app.post("/register", async (c) => {
+app.post("/api/register", async (c) => {
   try {
     const { email, password } = await c.req.json();
     if (!email || !password) return c.json({ error: "Bad request" }, 400);
@@ -155,7 +155,7 @@ app.post("/register", async (c) => {
   }
 });
 
-app.post("/login", async (c) => {
+app.post("/api/login", async (c) => {
   try {
     const { email, password } = await c.req.json();
     const envUser = Deno.env.get("REGISTRY_USER");
@@ -190,7 +190,7 @@ app.post("/login", async (c) => {
   }
 });
 
-app.get("/verify/:token", async (c) => {
+app.get("/api/verify/:token", async (c) => {
   const token = c.req.param("token");
   const user = await User.findOne({ verificationToken: token });
   if (!user) return c.json({ error: "Invalid token" }, 400);
@@ -200,7 +200,7 @@ app.get("/verify/:token", async (c) => {
   return c.json({ ok: true });
 });
 
-app.post("/domains/request", async (c) => {
+app.post("/api/domains/request", async (c) => {
   const userId = c.get("userId");
   try {
     const { domain } = await c.req.json();
@@ -231,7 +231,7 @@ app.post("/domains/request", async (c) => {
   }
 });
 
-app.post("/domains/verify", async (c) => {
+app.post("/api/domains/verify", async (c) => {
   const userId = c.get("userId");
   try {
     const { domain } = await c.req.json();
@@ -256,7 +256,7 @@ app.post("/domains/verify", async (c) => {
   }
 });
 
-app.get("/domains", async (c) => {
+app.get("/api/domains", async (c) => {
   const userId = c.get("userId");
   const domains = await Domain.find({
     userId: new mongoose.Types.ObjectId(userId),
@@ -330,7 +330,7 @@ app.get("/api/index.json", async (c) => {
   }
 });
 
-app.get("/search", async (c) => {
+app.get("/api/search", async (c) => {
   const q = (c.req.query("q") ?? "").toLowerCase();
   const limit = Number(c.req.query("limit") ?? "20");
   const filter = q
@@ -383,7 +383,7 @@ app.get("/search", async (c) => {
   });
 });
 
-app.post("/packages", auth, async (c) => {
+app.post("/api/packages", auth, async (c) => {
   const userId = c.get("userId");
   try {
     const body = await c.req.json();
@@ -417,7 +417,7 @@ app.post("/packages", auth, async (c) => {
   }
 });
 
-app.get("/packages/:id", async (c) => {
+app.get("/api/packages/:id", async (c) => {
   const id = c.req.param("id");
   const pkg = await Package.findOne({ identifier: id }).lean();
   if (!pkg) {

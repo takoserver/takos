@@ -9,19 +9,19 @@
 ## エンドポイント
 
 - `GET /api/index.json` - パッケージ一覧（`ETag` と `Last-Modified` 付き）
-- `GET /search?q=<keyword>&limit=<n>` - キーワードで検索
-- `GET /packages/<id>` - 指定した識別子の最新パッケージ情報
-- `POST /login` - ユーザー認証。`REGISTRY_USER` と `REGISTRY_PASS`
+- `GET /api/search?q=<keyword>&limit=<n>` - キーワードで検索
+- `GET /api/packages/<id>` - 指定した識別子の最新パッケージ情報
+- `POST /api/login` - ユーザー認証。`REGISTRY_USER` と `REGISTRY_PASS`
   で認証情報を設定 し、ドメイン登録やパッケージ公開時に使用するセッションを取得
-- `POST /register` - メールアドレスでアカウント作成（確認メール送信）
-- `GET /verify/<token>` - メールのリンクからアカウントを有効化
-- `POST /domains/request` - 逆ドメイン所有確認トークンを発行（レスポンスに
+- `POST /api/register` - メールアドレスでアカウント作成（確認メール送信）
+- `GET /api/verify/<token>` - メールのリンクからアカウントを有効化
+- `POST /api/domains/request` - 逆ドメイン所有確認トークンを発行（レスポンスに
   `token` を含む）
-- `POST /domains/verify` - ドメイン確認を完了
-  - `/domains/request` のトークンを `takopack-verify=<token>` という TXT
+- `POST /api/domains/verify` - ドメイン確認を完了
+  - `/api/domains/request` のトークンを `takopack-verify=<token>` という TXT
     レコードとして追加してから実行します
-- `GET /domains` - 登録済みドメイン一覧を取得
-- `POST /packages` - パッケージ登録（ドメイン確認済みが必要）
+- `GET /api/domains` - 登録済みドメイン一覧を取得
+- `POST /api/packages` - パッケージ登録（ドメイン確認済みが必要）
 - `GET /<file>` - `.takopack` アーカイブのダウンロード
 
 ## サーバーの起動方法

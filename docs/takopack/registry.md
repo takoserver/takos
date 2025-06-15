@@ -9,10 +9,10 @@ HTTP API を提供します。
 
 - `GET /api/index.json` – 利用可能なパッケージ一覧を返します。`ETag` と
   `Last-Modified` を含み、条件付きリクエストで更新有無を確認できます。
-- `GET /search?q=<keyword>&limit=<n>` –
+- `GET /api/search?q=<keyword>&limit=<n>` –
   キーワードで検索したパッケージ一覧を返します。こちらも `ETag` /
   `Last-Modified` を返します。
-- `GET /packages/<id>` – 特定の識別子の最新パッケージ情報を取得します。
+- `GET /api/packages/<id>` – 特定の識別子の最新パッケージ情報を取得します。
 - `GET <downloadUrl>` – `index.json` で参照されている `.takopack`
   アーカイブをダウンロードします。
 
@@ -41,6 +41,6 @@ HTTP API を提供します。
 
 `ETag` や `Last-Modified`
 ヘッダーを利用した条件付きリクエストを行うことで、更新がない場合に 304
-が返されるため無駄なダウンロードを避けられます。`/packages/<id>`
+が返されるため無駄なダウンロードを避けられます。`/api/packages/<id>`
 も同様にキャッシュを活用できます。
 
