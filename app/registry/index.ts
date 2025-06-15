@@ -28,12 +28,22 @@ interface PackageDoc extends mongoose.Document {
   updatedAt?: Date;
 }
 
-interface SessionInfo {
-  expires: number;
+interface SessionDoc extends mongoose.Document {
+  token: string;
   userId?: string;
+  expiresAt: Date;
+  createdAt?: Date;
 }
 
-const sessions = new Map<string, SessionInfo>();
+const Session = mongoose.model<SessionDoc>(
+  "Session",
+  new mongoose.Schema({
+    token: { type: String, required: true, unique: true },
+    userId: { type: String },
+    expiresAt: { type: Date, required: true, index: { expires: "1h" } },
+    createdAt: { type: Date, default: Date.now },
+  }),
+);
 
 function getCookie(req: Request, name: string): string | undefined {
   const cookie = req.headers.get("Cookie");
@@ -58,9 +68,9 @@ async function auth(
   if (!id) {
     return c.json({ error: "Unauthorized" }, 401);
   }
-  const session = sessions.get(id);
-  if (!session || session.expires < Date.now()) {
-    sessions.delete(id);
+  const session = await Session.findOne({ token: id });
+  if (!session || session.expiresAt.getTime() < Date.now()) {
+    if (session) await session.deleteOne();
     return c.json({ error: "Unauthorized" }, 401);
   }
   c.set("userId", session.userId);
@@ -132,7 +142,7 @@ function identifierDomain(id: string): string | null {
   return `${parts[1]}.${parts[0]}`;
 }
 
-function contentType(path: string): string {
+function _contentType(path: string): string {
   if (path.endsWith(".js")) return "text/javascript";
   if (path.endsWith(".css")) return "text/css";
   if (path.endsWith(".html")) return "text/html; charset=utf-8";
@@ -182,14 +192,14 @@ app.post("/api/login", async (c) => {
       }
       userId = user.id;
     }
-    const id = crypto.randomUUID();
-    const expires = Date.now() + 60 * 60 * 1000; // 1 hour
-    sessions.set(id, { expires, userId });
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await Session.create({ token, userId, expiresAt });
     return c.json(
       { ok: true },
       {
         headers: {
-          "Set-Cookie": `session=${id}; HttpOnly; Path=/; Max-Age=3600`,
+          "Set-Cookie": `session=${token}; HttpOnly; Path=/; Max-Age=3600`,
         },
       },
     );
