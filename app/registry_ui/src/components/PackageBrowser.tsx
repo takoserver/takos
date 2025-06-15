@@ -122,7 +122,7 @@ export default function PackageBrowser() {
       </div>
 
       {/* 検索・フィルター */}
-      <div class="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6">
+      <div class="bg-[#212121]/80 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
           {/* 検索バー */}
           <div class="flex-1 max-w-2xl">
@@ -147,7 +147,7 @@ export default function PackageBrowser() {
                 value={searchQuery()}
                 onInput={(e) => setSearchQuery(e.currentTarget.value)}
                 placeholder="拡張機能やパッケージを検索..."
-                class="block w-full pl-10 pr-4 py-3 border border-gray-600 rounded-lg bg-gray-700/50 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors duration-200"
+                class="block w-full pl-10 pr-4 py-3 border border-gray-700 rounded-lg bg-[#181818]/70 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors duration-200"
               />
             </div>
           </div>
@@ -160,7 +160,7 @@ export default function PackageBrowser() {
             <select
               value={sortBy()}
               onChange={(e) => setSortBy(e.currentTarget.value)}
-              class="px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              class="px-3 py-2 bg-[#181818]/70 border border-gray-700 rounded-lg text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="name">名前順</option>
               <option value="version">バージョン順</option>
@@ -171,7 +171,7 @@ export default function PackageBrowser() {
               type="button"
               onClick={refresh}
               disabled={isLoading()}
-              class="p-2 bg-gray-700/50 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors disabled:opacity-50"
+              class="p-2 bg-[#181818]/70 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors disabled:opacity-50"
             >
               <svg
                 class={`w-4 h-4 ${isLoading() ? "animate-spin" : ""}`}
@@ -194,7 +194,7 @@ export default function PackageBrowser() {
                 class={`p-2 rounded-md ${
                   viewType() === "grid"
                     ? "bg-purple-600 text-white"
-                    : "bg-gray-700/50 text-gray-300"
+                    : "bg-[#181818]/70 text-gray-300"
                 }`}
               >
                 <svg
@@ -217,7 +217,7 @@ export default function PackageBrowser() {
                 class={`p-2 rounded-md ${
                   viewType() === "list"
                     ? "bg-purple-600 text-white"
-                    : "bg-gray-700/50 text-gray-300"
+                    : "bg-[#181818]/70 text-gray-300"
                 }`}
               >
                 <svg
@@ -244,17 +244,17 @@ export default function PackageBrowser() {
         <Show when={isLoading()}>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(9)].map(() => (
-              <div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-6 animate-pulse">
+              <div class="bg-[#212121] border border-gray-700/50 rounded-xl p-6 animate-pulse">
                 <div class="flex items-center space-x-3 mb-4">
-                  <div class="w-12 h-12 bg-gray-700 rounded-lg"></div>
+                  <div class="w-12 h-12 bg-[#2a2a2a] rounded-lg"></div>
                   <div class="flex-1">
-                    <div class="h-4 bg-gray-700 rounded mb-2"></div>
-                    <div class="h-3 bg-gray-700 rounded w-3/4"></div>
+                    <div class="h-4 bg-[#2a2a2a] rounded mb-2"></div>
+                    <div class="h-3 bg-[#2a2a2a] rounded w-3/4"></div>
                   </div>
                 </div>
                 <div class="space-y-2">
-                  <div class="h-3 bg-gray-700 rounded"></div>
-                  <div class="h-3 bg-gray-700 rounded w-5/6"></div>
+                  <div class="h-3 bg-[#2a2a2a] rounded"></div>
+                  <div class="h-3 bg-[#2a2a2a] rounded w-5/6"></div>
                 </div>
               </div>
             ))}
@@ -324,7 +324,7 @@ export default function PackageBrowser() {
       {/* パッケージ詳細モーダル */}
       <Show when={selectedPackage()}>
         <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div class="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div class="bg-[#212121] border border-gray-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-700">
               <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
@@ -425,7 +425,7 @@ export default function PackageBrowser() {
                   <h4 class="text-lg font-semibold text-gray-100 mb-3">
                     インストール
                   </h4>
-                  <div class="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                  <div class="bg-[#181818]/70 rounded-lg p-4 border border-gray-600">
                     <div class="flex items-center justify-between mb-2">
                       <span class="text-sm text-gray-400">コマンドライン:</span>
                       <button

@@ -6,7 +6,7 @@ export default function ListPackageItem(props: {
   onViewDetails?: (pkg: PackageInfo) => void;
 }) {
   return (
-    <div class="flex items-center justify-between bg-gray-800/50 border border-gray-700/50 rounded-lg p-4">
+    <div class="flex items-center justify-between bg-[#212121] border border-gray-700/50 rounded-lg p-4">
       <div class="flex-1 min-w-0">
         <h3 class="text-gray-100 font-medium truncate">{props.package.name}</h3>
         <p class="text-xs text-gray-400 truncate">{props.package.identifier}</p>
