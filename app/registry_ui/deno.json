@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "dev": "deno run -A --node-modules-dir npm:vite@^5.4.19 dev",
+    "dev": "deno run -A --watch npm:vite@^5.4.19 dev",
     "build": "deno run -A --node-modules-dir npm:vite build",
     "preview": "deno run -A --node-modules-dir npm:vite preview",
     "serve": "deno run --allow-net --allow-read https://deno.land/std@0.157.0/http/file_server.ts ../registry/public"
