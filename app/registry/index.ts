@@ -208,6 +208,17 @@ app.post("/api/login", async (c) => {
   }
 });
 
+app.get("/api/session", async (c) => {
+  const id = getCookie(c.req.raw, "session");
+  if (!id) return c.json({ authed: false });
+  const session = await Session.findOne({ token: id });
+  if (!session || session.expiresAt.getTime() < Date.now()) {
+    if (session) await session.deleteOne();
+    return c.json({ authed: false });
+  }
+  return c.json({ authed: true, userId: session.userId });
+});
+
 app.get("/api/verify/:token", async (c) => {
   const token = c.req.param("token");
   const user = await User.findOne({ verificationToken: token });

@@ -1,4 +1,5 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal, onMount, Show } from "solid-js";
+import { req } from "./api.ts";
 import LoginFormModal from "./components/LoginFormModal.tsx";
 import NavHeader from "./components/NavHeader.tsx";
 import PublicNavHeader from "./components/PublicNavHeader.tsx";
@@ -33,6 +34,15 @@ export default function App() {
     // パッケージ公開モーダルを開く処理
     console.log("Open publish modal");
   };
+
+  onMount(async () => {
+    try {
+      const res = await req<{ authed: boolean }>("/api/session");
+      setAuthed(res.authed);
+    } catch {
+      setAuthed(false);
+    }
+  });
 
   return (
     <div class="min-h-screen bg-gray-900 flex flex-col">
