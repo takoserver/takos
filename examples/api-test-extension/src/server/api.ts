@@ -105,24 +105,3 @@ ApiServer.onServerFetch = async (): Promise<
   return [200, await testFetch()];
 };
 
-// Direct wrappers for event names when not using the builder-generated wrappers
-export function serverKv(): Promise<[number, Record<string, unknown>]> {
-  return ApiServer.onServerKv();
-}
-export function serverCdn(): Promise<[number, Record<string, unknown>]> {
-  return ApiServer.onServerCdn();
-}
-export function serverEvents(): Promise<[number, Record<string, unknown>]> {
-  return ApiServer.onServerEvents();
-}
-export function serverActivityPub(): Promise<
-  [number, Record<string, unknown>]
-> {
-  return ApiServer.onServerActivityPub();
-}
-export function serverExtensions(): Promise<[number, Record<string, unknown>]> {
-  return ApiServer.onServerExtensions();
-}
-export function serverFetch(): Promise<[number, Record<string, unknown>]> {
-  return ApiServer.onServerFetch();
-}
