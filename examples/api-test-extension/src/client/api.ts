@@ -56,3 +56,10 @@ ApiClient.onClientFetch = async (): Promise<
   return [200, await testFetch()];
 };
 
+/** @event("clientSource", { source: "client" }) */
+ApiClient.onClientSource = async (): Promise<
+  [number, Record<string, unknown>]
+> => {
+  return [200, { env: "client" }];
+};
+

@@ -105,3 +105,10 @@ ApiServer.onServerFetch = async (): Promise<
   return [200, await testFetch()];
 };
 
+/** @event("serverSource", { source: "server" }) */
+ApiServer.onServerSource = async (): Promise<
+  [number, Record<string, unknown>]
+> => {
+  return [200, { env: "server" }];
+};
+
