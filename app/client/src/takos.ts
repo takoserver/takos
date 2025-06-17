@@ -3,7 +3,10 @@ import { loadExtensionWorker } from "./extensionWorker.ts";
 
 interface TakosGlobals {
   __takosEventDefs?: Record<string, Record<string, unknown>>;
-  __takosClientEvents?: Record<string, Record<string, (p: unknown) => Promise<unknown>>>;
+  __takosClientEvents?: Record<
+    string,
+    Record<string, (p: unknown) => Promise<unknown>>
+  >;
 }
 
 export function createTakos(identifier: string) {
@@ -202,33 +205,17 @@ export function createTakos(identifier: string) {
 
       const g = globalThis as TakosGlobals;
       let defs = g.__takosEventDefs?.[identifier];
-      let localFn = g.__takosClientEvents?.[identifier]?.[name];
-      if (!defs || !localFn) {
+      if (!defs) {
         try {
           const w = await loadExtensionWorker(identifier, takos);
           await w.ready;
           defs = g.__takosEventDefs?.[identifier];
-          localFn = g.__takosClientEvents?.[identifier]?.[name];
         } catch {
           /* ignore */
         }
       }
       const def = defs?.[name];
-
-      if (
-        def?.source === "client" || def?.source === "ui" ||
-        def?.source === "background"
-      ) {
-        if (typeof localFn === "function") {
-          try {
-            return await localFn(payload);
-          } catch (err) {
-            console.error("local event handler error", err);
-            throw err;
-          }
-        }
-        return undefined;
-      }
+      let w: ReturnType<typeof loadExtensionWorker> | undefined;
 
       if (def?.source === "server") {
         const raw = await call("extensions:invoke", {
@@ -239,13 +226,18 @@ export function createTakos(identifier: string) {
         return unwrapResult(raw);
       }
 
-      if (typeof localFn === "function") {
-        try {
-          return await localFn(payload);
-        } catch (err) {
-          console.error("local event handler error", err);
-          throw err;
+      try {
+        w = await loadExtensionWorker(identifier, takos);
+        const result = await (await w).callEvent(name, payload);
+        if (
+          def?.source === "client" || def?.source === "ui" ||
+          def?.source === "background"
+        ) {
+          return result;
         }
+        if (result !== undefined) return result;
+      } catch {
+        /* ignore */
       }
 
       try {
@@ -286,29 +278,16 @@ export function createTakos(identifier: string) {
       publish: async (name: string, payload?: unknown) => {
         const g = globalThis as TakosGlobals;
         let defs = g.__takosEventDefs?.[identifier];
-        let localFn = g.__takosClientEvents?.[identifier]?.[name];
-        if (!defs || !localFn) {
+        if (!defs) {
           try {
             const w = await loadExtensionWorker(identifier, takos);
             await w.ready;
             defs = g.__takosEventDefs?.[identifier];
-            localFn = g.__takosClientEvents?.[identifier]?.[name];
           } catch {
             /* ignore */
           }
         }
         const def = defs?.[name];
-
-        if (
-          def?.source === "client" ||
-          def?.source === "ui" ||
-          def?.source === "background"
-        ) {
-          if (typeof localFn === "function") {
-            return unwrapResult(await localFn(payload));
-          }
-          return undefined;
-        }
 
         if (def?.source === "server") {
           const raw = await call("extensions:invoke", {
@@ -319,8 +298,18 @@ export function createTakos(identifier: string) {
           return unwrapResult(raw);
         }
 
-        if (typeof localFn === "function") {
-          return unwrapResult(await localFn(payload));
+        try {
+          const w = await loadExtensionWorker(identifier, takos);
+          const result = await w.callEvent(name, payload);
+          if (
+            def?.source === "client" || def?.source === "ui" ||
+            def?.source === "background"
+          ) {
+            return unwrapResult(result);
+          }
+          if (result !== undefined) return unwrapResult(result);
+        } catch {
+          /* ignore */
         }
 
         try {

@@ -4,7 +4,10 @@ import type { createTakos } from "./takos.ts";
 
 interface TakosGlobals {
   __takosEventDefs?: Record<string, Record<string, unknown>>;
-  __takosClientEvents?: Record<string, Record<string, (p: unknown) => Promise<unknown>>>;
+  __takosClientEvents?: Record<
+    string,
+    Record<string, (p: unknown) => Promise<unknown>>
+  >;
 }
 
 const WORKER_SOURCE = `
@@ -79,8 +82,13 @@ class ExtensionWorker {
   #ready: Promise<void>;
   #pending = new Map<number, (v: unknown) => void>();
   #takos: ReturnType<typeof createTakos>;
+  #defs: Record<string, { handler?: string }>;
   #callId = 0;
-  constructor(code: string, takos: ReturnType<typeof createTakos>) {
+  constructor(
+    code: string,
+    takos: ReturnType<typeof createTakos>,
+    defs: Record<string, { handler?: string }>,
+  ) {
     const url = URL.createObjectURL(
       new Blob([WORKER_SOURCE], { type: "application/javascript" }),
     );
@@ -88,6 +96,7 @@ class ExtensionWorker {
     const revoke = () => URL.revokeObjectURL(url);
     this.#worker.addEventListener("message", revoke, { once: true });
     this.#takos = takos;
+    this.#defs = defs;
     this.#worker.onmessage = (e) => this.#onMessage(e);
     this.#worker.postMessage({
       type: "init",
@@ -162,6 +171,20 @@ class ExtensionWorker {
       this.#worker.postMessage({ type: "call", id, fnName: fn, args });
     });
   }
+
+  async callEvent(name: string, payload: unknown): Promise<unknown> {
+    const def = this.#defs[name];
+    const callName = def?.handler || name;
+    try {
+      return await this.call(callName, [payload]);
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("function not found")) {
+        const cap = callName.charAt(0).toUpperCase() + callName.slice(1);
+        return await this.call(`on${cap}`, [payload]);
+      }
+      throw err;
+    }
+  }
   terminate() {
     this.#worker.terminate();
   }
@@ -201,17 +224,18 @@ export function loadExtensionWorker(
 
     const res = await fetch(`/api/extensions/${id}/client.js`);
     const code = await res.text();
-    const w = new ExtensionWorker(code, takos);
+    const w = new ExtensionWorker(
+      code,
+      takos,
+      defs as Record<string, { handler?: string }>,
+    );
     await w.ready;
     workers.set(id, w);
 
     const events: Record<string, (payload: unknown) => Promise<unknown>> = {};
-    for (const [ev, def] of Object.entries(defs)) {
-      const handler = (def as { handler?: string }).handler;
-      if (handler) {
-        events[ev] = (payload: unknown) =>
-          w.call(handler, [payload]) as Promise<unknown>;
-      }
+    for (const ev of Object.keys(defs)) {
+      events[ev] = (payload: unknown) =>
+        w.callEvent(ev, payload) as Promise<unknown>;
     }
     host.__takosClientEvents = host.__takosClientEvents || {};
     host.__takosClientEvents[id] = events;
