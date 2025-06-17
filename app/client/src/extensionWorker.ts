@@ -1,5 +1,3 @@
-// Lightweight runtime to execute extension client code inside a Web Worker
-
 import type { createTakos } from "./takos.ts";
 
 interface TakosGlobals {
@@ -9,64 +7,6 @@ interface TakosGlobals {
     Record<string, (p: unknown) => Promise<unknown>>
   >;
 }
-
-const WORKER_SOURCE = `
-let takosCallId = 0;
-const takosCallbacks = new Map();
-function setPath(root, path, fn, transform) {
-  let obj = root;
-  for (let i = 0; i < path.length - 1; i++) {
-    obj[path[i]] ??= {};
-    obj = obj[path[i]];
-  }
-  obj[path[path.length - 1]] = (...args) => fn(transform, args);
-}
-function createTakos(paths) {
-  const t = {};
-  for (const p of paths) {
-    setPath(
-      t,
-      p,
-      (tr, args) => new Promise((resolve, reject) => {
-        const id = ++takosCallId;
-        takosCallbacks.set(id, { resolve, reject, transform: tr });
-        self.postMessage({ type: 'takosCall', id, path: p, args });
-      }),
-      p[0] === 'fetch'
-        ? (d) => new Response(d.body ? new Uint8Array(d.body) : undefined, { status: d.status, statusText: d.statusText, headers: d.headers })
-        : null,
-    );
-  }
-  return t;
-}
-let mod = null;
-self.onmessage = async (e) => {
-  const d = e.data;
-  if (d.type === 'init') {
-    globalThis.takos = createTakos(d.takosPaths);
-    const url = URL.createObjectURL(new Blob([d.code], { type: 'application/javascript' }));
-    mod = await import(url);
-    self.postMessage({ type: 'ready' });
-  } else if (d.type === 'call') {
-    try {
-      let target = mod;
-      for (const part of d.fnName.split('.')) target = target?.[part];
-      if (typeof target !== 'function') throw new Error('function not found: ' + d.fnName);
-      const result = await target(...d.args);
-      self.postMessage({ type: 'result', id: d.id, result });
-    } catch (err) {
-      self.postMessage({ type: 'error', id: d.id, error: err instanceof Error ? err.message : String(err) });
-    }
-  } else if (d.type === 'takosResult') {
-    const cb = takosCallbacks.get(d.id);
-    if (!cb) return;
-    takosCallbacks.delete(d.id);
-    const result = cb.transform ? cb.transform(d.result) : d.result;
-    if ('error' in d) cb.reject(new Error(d.error));
-    else cb.resolve(result);
-  }
-};
-`;
 
 const CLIENT_TAKOS_PATHS: string[][] = [
   ["fetch"],
@@ -78,40 +18,55 @@ const CLIENT_TAKOS_PATHS: string[][] = [
 ];
 
 class ExtensionWorker {
-  #worker: Worker;
+  #reg: ServiceWorkerRegistration;
+  #port: MessagePort;
   #ready: Promise<void>;
   #pending = new Map<number, (v: unknown) => void>();
   #takos: ReturnType<typeof createTakos>;
   #defs: Record<string, { handler?: string }>;
   #callId = 0;
   constructor(
-    code: string,
+    id: string,
     takos: ReturnType<typeof createTakos>,
     defs: Record<string, { handler?: string }>,
   ) {
-    const url = URL.createObjectURL(
-      new Blob([WORKER_SOURCE], { type: "application/javascript" }),
-    );
-    this.#worker = new Worker(url, { type: "module" });
-    const revoke = () => URL.revokeObjectURL(url);
-    this.#worker.addEventListener("message", revoke, { once: true });
     this.#takos = takos;
     this.#defs = defs;
-    this.#worker.onmessage = (e) => this.#onMessage(e);
-    this.#worker.postMessage({
-      type: "init",
-      code,
-      takosPaths: CLIENT_TAKOS_PATHS,
-    });
-    this.#ready = new Promise((res) => {
+    this.#ready = this.#init(id);
+  }
+  async #init(id: string): Promise<void> {
+    const scope = `/api/extensions/${id}/`;
+    const reg = await navigator.serviceWorker.register(
+      `/api/extensions/${id}/sw.js`,
+      { type: "module", scope },
+    );
+    if (!reg.active) {
+      await new Promise<void>((res) => {
+        const sw = reg.installing || reg.waiting;
+        if (!sw) return res();
+        sw.addEventListener("statechange", () => {
+          if (sw.state === "activated") res();
+        });
+      });
+    }
+    this.#reg = reg;
+    const worker = reg.active!;
+    const channel = new MessageChannel();
+    this.#port = channel.port1;
+    const ready = new Promise<void>((res) => {
       const handler = (ev: MessageEvent) => {
         if (ev.data && ev.data.type === "ready") {
-          this.#worker.removeEventListener("message", handler);
+          this.#port.removeEventListener("message", handler);
           res();
         }
       };
-      this.#worker.addEventListener("message", handler);
+      this.#port.addEventListener("message", handler);
     });
+    this.#port.addEventListener("message", (e) => this.#onMessage(e));
+    worker.postMessage({ type: "init", takosPaths: CLIENT_TAKOS_PATHS, id }, [
+      channel.port2,
+    ]);
+    await ready;
   }
   get ready(): Promise<void> {
     return this.#ready;
@@ -154,10 +109,10 @@ class ExtensionWorker {
           body: arr,
         };
       }
-      this.#worker.postMessage({ type: "takosResult", id: d.id, result });
+      this.#port.postMessage({ type: "takosResult", id: d.id, result });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.#worker.postMessage({ type: "takosResult", id: d.id, error: msg });
+      this.#port.postMessage({ type: "takosResult", id: d.id, error: msg });
     }
   }
   async call(fn: string, args: unknown[] = []): Promise<unknown> {
@@ -168,10 +123,9 @@ class ExtensionWorker {
         id,
         (v) => (v instanceof Promise ? v.then(res, rej) : res(v)),
       );
-      this.#worker.postMessage({ type: "call", id, fnName: fn, args });
+      this.#port.postMessage({ type: "call", id, fnName: fn, args });
     });
   }
-
   async callEvent(name: string, payload: unknown): Promise<unknown> {
     const def = this.#defs[name];
     const callName = def?.handler || name;
@@ -185,8 +139,8 @@ class ExtensionWorker {
       throw err;
     }
   }
-  terminate() {
-    this.#worker.terminate();
+  async terminate() {
+    await this.#reg.unregister();
   }
 }
 
@@ -201,7 +155,7 @@ async function fetchEventDefs(id: string): Promise<Record<string, unknown>> {
       return (manifest?.eventDefinitions as Record<string, unknown>) || {};
     }
   } catch {
-    // ignore
+    /* ignore */
   }
   return {};
 }
@@ -210,7 +164,7 @@ export function loadExtensionWorker(
   id: string,
   takos: ReturnType<typeof createTakos>,
 ): Promise<ExtensionWorker> {
-  if (workers.has(id)) return workers.get(id)!;
+  if (workers.has(id)) return Promise.resolve(workers.get(id)!);
   if (loadingWorkers.has(id)) return loadingWorkers.get(id)!;
 
   const promise = (async () => {
@@ -221,11 +175,8 @@ export function loadExtensionWorker(
       defs = await fetchEventDefs(id);
       host.__takosEventDefs[id] = defs;
     }
-
-    const res = await fetch(`/api/extensions/${id}/client.js`);
-    const code = await res.text();
     const w = new ExtensionWorker(
-      code,
+      id,
       takos,
       defs as Record<string, { handler?: string }>,
     );
@@ -252,10 +203,10 @@ export function getExtensionWorker(id: string): ExtensionWorker | undefined {
   return workers.get(id);
 }
 
-export function terminateExtensionWorker(id: string): void {
+export async function terminateExtensionWorker(id: string): Promise<void> {
   const w = workers.get(id);
   if (w) {
-    w.terminate();
+    await w.terminate();
     workers.delete(id);
   }
 }
