@@ -882,10 +882,16 @@ export class TakoPack {
     const def = defs?.[fnName];
 
     if (def?.source === "client" || def?.source === "ui" || def?.source === "background") {
-      return await this.callClient(identifier, fnName, args);
+      if (pack.clientWorker) {
+        return await this.callClient(identifier, fnName, args);
+      }
+      return await this.callServer(identifier, fnName, args);
     }
     if (def?.source === "server") {
-      return await this.callServer(identifier, fnName, args);
+      if (pack.serverWorker) {
+        return await this.callServer(identifier, fnName, args);
+      }
+      return await this.callClient(identifier, fnName, args);
     }
 
     try {
