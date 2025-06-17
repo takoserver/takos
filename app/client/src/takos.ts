@@ -195,12 +195,23 @@ export function createTakos(identifier: string) {
         }
       });
 
-      const defs = (globalThis as Record<string, any>).__takosEventDefs
+      let defs = (globalThis as Record<string, any>).__takosEventDefs
         ?.[identifier];
-      const def = defs?.[name];
-
-      const localFn = (globalThis as Record<string, any>).__takosClientEvents
+      let localFn = (globalThis as Record<string, any>).__takosClientEvents
         ?.[identifier]?.[name];
+      if (!defs || !localFn) {
+        try {
+          const w = await loadExtensionWorker(identifier, takos as any);
+          await w.ready;
+          defs = (globalThis as Record<string, any>).__takosEventDefs
+            ?.[identifier];
+          localFn = (globalThis as Record<string, any>).__takosClientEvents
+            ?.[identifier]?.[name];
+        } catch {
+          /* ignore */
+        }
+      }
+      const def = defs?.[name];
 
       if (
         def?.source === "client" || def?.source === "ui" ||
@@ -271,13 +282,23 @@ export function createTakos(identifier: string) {
     },
     activate: () => ({
       publish: async (name: string, payload?: unknown) => {
-        const defs = (globalThis as Record<string, any>).__takosEventDefs?.[
-          identifier
-        ];
+        let defs = (globalThis as Record<string, any>).__takosEventDefs
+          ?.[identifier];
+        let localFn = (globalThis as Record<string, any>).__takosClientEvents
+          ?.[identifier]?.[name];
+        if (!defs || !localFn) {
+          try {
+            const w = await loadExtensionWorker(identifier, takos as any);
+            await w.ready;
+            defs = (globalThis as Record<string, any>).__takosEventDefs
+              ?.[identifier];
+            localFn = (globalThis as Record<string, any>).__takosClientEvents
+              ?.[identifier]?.[name];
+          } catch {
+            /* ignore */
+          }
+        }
         const def = defs?.[name];
-        const localFn = (globalThis as Record<string, any>).__takosClientEvents?.[
-          identifier
-        ]?.[name];
 
         if (
           def?.source === "client" ||
@@ -311,7 +332,9 @@ export function createTakos(identifier: string) {
           });
           return unwrapResult(raw);
         } catch (err) {
-          if (err instanceof Error && err.message.includes("function not found")) {
+          if (
+            err instanceof Error && err.message.includes("function not found")
+          ) {
             return undefined;
           }
           throw err;
