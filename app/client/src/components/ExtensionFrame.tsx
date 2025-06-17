@@ -30,8 +30,12 @@ export default function ExtensionFrame() {
             events[ev] = (payload: unknown) => worker.call(handler, [payload]) as Promise<unknown>;
           }
         }
-        (window as any).__takosClientEvents = (window as any).__takosClientEvents || {};
-        (window as any).__takosClientEvents[id] = events;
+        const host = window as any;
+        const child = frame.contentWindow as any;
+        host.__takosClientEvents = host.__takosClientEvents || {};
+        child.__takosClientEvents = child.__takosClientEvents || {};
+        host.__takosClientEvents[id] = events;
+        child.__takosClientEvents[id] = events;
       }
     } catch (_e) {
       /* ignore */
