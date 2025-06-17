@@ -28,4 +28,12 @@ app.get("/api/extensions/:id/client.js", async (c) => {
   return c.body(ext.client);
 });
 
+app.get("/api/extensions/:id/manifest.json", async (c) => {
+  const id = c.req.param("id");
+  const ext = await Extension.findOne({ identifier: id });
+  if (!ext || !ext.manifest) return c.notFound();
+  c.header("Content-Type", "application/json; charset=utf-8");
+  return c.json(ext.manifest);
+});
+
 export default app;

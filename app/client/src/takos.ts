@@ -1,4 +1,5 @@
 import { wsClient } from "./utils/websocketClient.ts";
+import { loadExtensionWorker } from "./extensionWorker.ts";
 
 export function createTakos(identifier: string) {
   async function call(eventId: string, payload: unknown) {
@@ -350,7 +351,7 @@ export function createTakos(identifier: string) {
     return () => globalThis.removeEventListener("hashchange", handler);
   }
 
-  return {
+  const takos = {
     kv,
     cdn,
     events,
@@ -362,5 +363,11 @@ export function createTakos(identifier: string) {
     pushURL,
     setURL,
     changeURL,
-  };
+  } as const;
+
+  if (typeof document !== "undefined") {
+    loadExtensionWorker(identifier, takos as any).catch(() => {});
+  }
+
+  return takos;
 }

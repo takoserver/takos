@@ -21,24 +21,14 @@ export default function ExtensionFrame() {
         const takos = createTakos(id);
         (frame.contentWindow as any).takos = takos;
 
-        const defs = (frame.contentWindow as any).__takosEventDefs?.[id] || {};
+        const worker = await loadExtensionWorker(id, takos);
         const host = window as any;
+        const defs = host.__takosEventDefs?.[id] || {};
+        const events = host.__takosClientEvents?.[id] || {};
         const child = frame.contentWindow as any;
-        host.__takosEventDefs = host.__takosEventDefs || {};
-        host.__takosEventDefs[id] = defs;
         child.__takosEventDefs = child.__takosEventDefs || {};
         child.__takosEventDefs[id] = defs;
-        const worker = await loadExtensionWorker(id, takos);
-        const events: Record<string, (payload: unknown) => Promise<unknown>> = {};
-        for (const [ev, def] of Object.entries(defs)) {
-          const handler = (def as { handler?: string }).handler;
-          if (handler) {
-            events[ev] = (payload: unknown) => worker.call(handler, [payload]) as Promise<unknown>;
-          }
-        }
-        host.__takosClientEvents = host.__takosClientEvents || {};
         child.__takosClientEvents = child.__takosClientEvents || {};
-        host.__takosClientEvents[id] = events;
         child.__takosClientEvents[id] = events;
       }
     } catch (_e) {

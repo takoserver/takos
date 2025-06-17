@@ -1,6 +1,6 @@
 // Lightweight runtime to execute extension client code inside a Web Worker
 
-import { createTakos } from "./takos.ts";
+import type { createTakos } from "./takos.ts";
 
 const WORKER_SOURCE = `
 let takosCallId = 0;
@@ -143,12 +143,44 @@ class ExtensionWorker {
 
 const workers = new Map<string, ExtensionWorker>();
 
+async function fetchEventDefs(id: string): Promise<Record<string, unknown>> {
+  try {
+    const res = await fetch(`/api/extensions/${id}/manifest.json`);
+    if (res.ok) {
+      const manifest = await res.json();
+      return (manifest?.eventDefinitions as Record<string, unknown>) || {};
+    }
+  } catch {
+    // ignore
+  }
+  return {};
+}
+
 export async function loadExtensionWorker(id: string, takos: ReturnType<typeof createTakos>): Promise<ExtensionWorker> {
   if (workers.has(id)) return workers.get(id)!;
+  const host = globalThis as any;
+  host.__takosEventDefs = host.__takosEventDefs || {};
+  let defs = host.__takosEventDefs[id];
+  if (!defs) {
+    defs = await fetchEventDefs(id);
+    host.__takosEventDefs[id] = defs;
+  }
+
   const res = await fetch(`/api/extensions/${id}/client.js`);
   const code = await res.text();
   const w = new ExtensionWorker(code, takos);
   workers.set(id, w);
+
+  const events: Record<string, (payload: unknown) => Promise<unknown>> = {};
+  for (const [ev, def] of Object.entries(defs)) {
+    const handler = (def as { handler?: string }).handler;
+    if (handler) {
+      events[ev] = (payload: unknown) => w.call(handler, [payload]) as Promise<unknown>;
+    }
+  }
+  host.__takosClientEvents = host.__takosClientEvents || {};
+  host.__takosClientEvents[id] = events;
+
   return w;
 }
 
