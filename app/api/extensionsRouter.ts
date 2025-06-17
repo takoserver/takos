@@ -13,8 +13,7 @@ app.get("/api/extensions/:id/ui", async (c) => {
   const script =
     `<script>try{if(!window.takos&&window.parent)window.takos=window.parent.takos;}catch(e){};` +
     `window.__takosEventDefs=window.__takosEventDefs||{};` +
-    `window.__takosEventDefs["${id}"]=${eventDefs};</script>` +
-    `<script type="module" src="/api/extensions/${id}/client.js"></script>`;
+    `window.__takosEventDefs["${id}"]=${eventDefs};</script>`;
   const html = ext.ui.includes("</head>")
     ? ext.ui.replace("</head>", script + "</head>")
     : script + ext.ui;

@@ -31,7 +31,6 @@ export async function loadExtension(
       {
         manifest: doc.manifest,
         server: doc.server,
-        client: doc.client,
         ui: doc.ui,
       },
     ], {
@@ -76,7 +75,6 @@ export async function loadExtension(
           },
         },
       },
-      client: {},
     });
 
     await pack.init();
