@@ -1,6 +1,11 @@
 import { wsClient } from "./utils/websocketClient.ts";
 import { loadExtensionWorker } from "./extensionWorker.ts";
 
+interface TakosGlobals {
+  __takosEventDefs?: Record<string, Record<string, unknown>>;
+  __takosClientEvents?: Record<string, Record<string, (p: unknown) => Promise<unknown>>>;
+}
+
 export function createTakos(identifier: string) {
   async function call(eventId: string, payload: unknown) {
     let res: Response;
@@ -195,18 +200,15 @@ export function createTakos(identifier: string) {
         }
       });
 
-      let defs = (globalThis as Record<string, any>).__takosEventDefs
-        ?.[identifier];
-      let localFn = (globalThis as Record<string, any>).__takosClientEvents
-        ?.[identifier]?.[name];
+      const g = globalThis as TakosGlobals;
+      let defs = g.__takosEventDefs?.[identifier];
+      let localFn = g.__takosClientEvents?.[identifier]?.[name];
       if (!defs || !localFn) {
         try {
-          const w = await loadExtensionWorker(identifier, takos as any);
+          const w = await loadExtensionWorker(identifier, takos);
           await w.ready;
-          defs = (globalThis as Record<string, any>).__takosEventDefs
-            ?.[identifier];
-          localFn = (globalThis as Record<string, any>).__takosClientEvents
-            ?.[identifier]?.[name];
+          defs = g.__takosEventDefs?.[identifier];
+          localFn = g.__takosClientEvents?.[identifier]?.[name];
         } catch {
           /* ignore */
         }
@@ -282,18 +284,15 @@ export function createTakos(identifier: string) {
     },
     activate: () => ({
       publish: async (name: string, payload?: unknown) => {
-        let defs = (globalThis as Record<string, any>).__takosEventDefs
-          ?.[identifier];
-        let localFn = (globalThis as Record<string, any>).__takosClientEvents
-          ?.[identifier]?.[name];
+        const g = globalThis as TakosGlobals;
+        let defs = g.__takosEventDefs?.[identifier];
+        let localFn = g.__takosClientEvents?.[identifier]?.[name];
         if (!defs || !localFn) {
           try {
-            const w = await loadExtensionWorker(identifier, takos as any);
+            const w = await loadExtensionWorker(identifier, takos);
             await w.ready;
-            defs = (globalThis as Record<string, any>).__takosEventDefs
-              ?.[identifier];
-            localFn = (globalThis as Record<string, any>).__takosClientEvents
-              ?.[identifier]?.[name];
+            defs = g.__takosEventDefs?.[identifier];
+            localFn = g.__takosClientEvents?.[identifier]?.[name];
           } catch {
             /* ignore */
           }
@@ -389,7 +388,7 @@ export function createTakos(identifier: string) {
   } as const;
 
   if (typeof document !== "undefined") {
-    loadExtensionWorker(identifier, takos as any).catch(() => {});
+    loadExtensionWorker(identifier, takos).catch(() => {});
   }
 
   return takos;

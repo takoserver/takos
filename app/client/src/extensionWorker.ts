@@ -2,6 +2,11 @@
 
 import type { createTakos } from "./takos.ts";
 
+interface TakosGlobals {
+  __takosEventDefs?: Record<string, Record<string, unknown>>;
+  __takosClientEvents?: Record<string, Record<string, (p: unknown) => Promise<unknown>>>;
+}
+
 const WORKER_SOURCE = `
 let takosCallId = 0;
 const takosCallbacks = new Map();
@@ -115,16 +120,19 @@ class ExtensionWorker {
     }
   }
   async #handleTakosCall(d: { id: number; path: string[]; args: unknown[] }) {
-    let ctx: any = this.#takos;
-    let target: any = this.#takos;
+    let ctx: unknown = this.#takos;
+    let target: unknown = this.#takos;
     for (const p of d.path) {
       ctx = target;
-      target = target?.[p];
+      target = (target as Record<string, unknown>)?.[p];
     }
     try {
       let result;
       if (typeof target === "function") {
-        result = await target.apply(ctx, d.args);
+        result = await (target as (...args: unknown[]) => unknown).apply(
+          ctx as unknown,
+          d.args,
+        );
       } else result = target;
       if (d.path[0] === "fetch") {
         const arr = new Uint8Array(await (result as Response).arrayBuffer());
@@ -175,7 +183,7 @@ async function fetchEventDefs(id: string): Promise<Record<string, unknown>> {
   return {};
 }
 
-export async function loadExtensionWorker(
+export function loadExtensionWorker(
   id: string,
   takos: ReturnType<typeof createTakos>,
 ): Promise<ExtensionWorker> {
@@ -183,7 +191,7 @@ export async function loadExtensionWorker(
   if (loadingWorkers.has(id)) return loadingWorkers.get(id)!;
 
   const promise = (async () => {
-    const host = globalThis as any;
+    const host = globalThis as TakosGlobals;
     host.__takosEventDefs = host.__takosEventDefs || {};
     let defs = host.__takosEventDefs[id];
     if (!defs) {
