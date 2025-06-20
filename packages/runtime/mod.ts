@@ -16,7 +16,7 @@ export interface TakosEvents {
   publish(
     name: string,
     payload: unknown,
-    options?: { push?: boolean },
+    options?: { push?: boolean; token?: string },
   ): Promise<unknown>;
 }
 
@@ -327,7 +327,7 @@ export class Takos {
     publish: async (
       _name: string,
       _payload: unknown,
-      _options?: { push?: boolean },
+      _options?: { push?: boolean; token?: string },
     ): Promise<unknown> => {
       return undefined;
     },
@@ -767,7 +767,7 @@ export class TakoPack {
     fn: (
       name: string,
       payload: unknown,
-      options?: { push?: boolean },
+      options?: { push?: boolean; token?: string },
     ) => Promise<unknown>,
   ): void {
     this.clientTakos.events.publish = fn;

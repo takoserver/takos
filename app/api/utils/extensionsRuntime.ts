@@ -85,14 +85,13 @@ export async function loadExtension(
       async (
         name: string,
         payload: unknown,
-        options?: { push?: boolean },
+        options?: { push?: boolean; token?: string },
       ) => {
         wsManager.distributeEvent(name, payload);
-        if (options?.push) {
+        if (options?.push && options.token) {
           const key = Deno.env.get("FCM_SERVER_KEY");
-          const token = Deno.env.get("FCM_DEVICE_TOKEN");
-          if (key && token) {
-            await sendFCM(key, token, {
+          if (key) {
+            await sendFCM(key, options.token, {
               id: doc.identifier,
               fn: name,
               args: [payload],

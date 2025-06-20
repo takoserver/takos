@@ -196,7 +196,7 @@ export function createTakos(identifier: string) {
     publish: async (
       name: string,
       payload: unknown,
-      options?: { push?: boolean },
+      options?: { push?: boolean; token?: string },
     ) => {
       const handlers = listeners.get(name);
       handlers?.forEach((h) => {
@@ -268,7 +268,7 @@ export function createTakos(identifier: string) {
     call: async (
       fn: string,
       args: unknown[] = [],
-      options?: { push?: boolean },
+      options?: { push?: boolean; token?: string },
     ) => {
       const raw = await call("extensions:invoke", {
         id: identifier,
@@ -293,7 +293,7 @@ export function createTakos(identifier: string) {
       publish: async (
         name: string,
         payload?: unknown,
-        options?: { push?: boolean },
+        options?: { push?: boolean; token?: string },
       ) => {
         const g = globalThis as TakosGlobals;
         let defs = g.__takosEventDefs?.[identifier];
