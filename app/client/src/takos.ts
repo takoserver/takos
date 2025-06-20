@@ -193,7 +193,11 @@ export function createTakos(identifier: string) {
   });
 
   const events = {
-    publish: async (name: string, payload: unknown) => {
+    publish: async (
+      name: string,
+      payload: unknown,
+      options?: { push?: boolean },
+    ) => {
       const handlers = listeners.get(name);
       handlers?.forEach((h) => {
         try {
@@ -222,6 +226,7 @@ export function createTakos(identifier: string) {
           id: identifier,
           fn: name,
           args: [payload],
+          options,
         });
         return unwrapResult(raw);
       }
@@ -245,6 +250,7 @@ export function createTakos(identifier: string) {
           id: identifier,
           fn: name,
           args: [payload],
+          options,
         });
         return unwrapResult(raw);
       } catch (err) {
@@ -259,8 +265,17 @@ export function createTakos(identifier: string) {
   };
 
   const server = {
-    call: async (fn: string, args: unknown[] = []) => {
-      const raw = await call("extensions:invoke", { id: identifier, fn, args });
+    call: async (
+      fn: string,
+      args: unknown[] = [],
+      options?: { push?: boolean },
+    ) => {
+      const raw = await call("extensions:invoke", {
+        id: identifier,
+        fn,
+        args,
+        options,
+      });
       return unwrapResult(raw);
     },
   };
@@ -275,7 +290,11 @@ export function createTakos(identifier: string) {
       return true;
     },
     activate: () => ({
-      publish: async (name: string, payload?: unknown) => {
+      publish: async (
+        name: string,
+        payload?: unknown,
+        options?: { push?: boolean },
+      ) => {
         const g = globalThis as TakosGlobals;
         let defs = g.__takosEventDefs?.[identifier];
         if (!defs) {
@@ -294,6 +313,7 @@ export function createTakos(identifier: string) {
             id: identifier,
             fn: name,
             args: [payload],
+            options,
           });
           return unwrapResult(raw);
         }
@@ -317,6 +337,7 @@ export function createTakos(identifier: string) {
             id: identifier,
             fn: name,
             args: [payload],
+            options,
           });
           return unwrapResult(raw);
         } catch (err) {

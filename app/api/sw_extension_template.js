@@ -3,6 +3,7 @@ self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 let takosCallId = 0;
 const takosCallbacks = new Map();
 let port = null;
+let extId = null;
 function setPath(root, path, fn, transform) {
   let obj = root;
   for (let i = 0; i < path.length - 1; i++) {
@@ -49,6 +50,7 @@ self.onmessage = async (e) => {
   const d = e.data;
   if (d.type === "init") {
     port = e.ports[0];
+    extId = d.id;
     globalThis.takos = createTakos(d.takosPaths);
     await loadMod(d.id);
     port.postMessage({ type: "ready" });
@@ -77,3 +79,24 @@ self.onmessage = async (e) => {
     else cb.resolve(result);
   }
 };
+
+self.addEventListener("push", (event) => {
+  event.waitUntil(handlePush(event));
+});
+
+async function handlePush(event) {
+  if (!extId) return;
+  try {
+    const data = event.data ? event.data.json() : {};
+    if (data.fn) {
+      await loadMod(extId);
+      let target = mod;
+      for (const part of data.fn.split(".")) target = target?.[part];
+      if (typeof target === "function") {
+        await target(...(data.args || []));
+      }
+    }
+  } catch (err) {
+    console.error("push handler error", err);
+  }
+}

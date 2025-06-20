@@ -2,6 +2,7 @@ import { TakoPack } from "../../../packages/runtime/mod.ts";
 import { Extension } from "../models/extension.ts";
 import { WebSocketManager } from "../websocketHandler.ts";
 import { KVItem } from "../models/kv.ts";
+import { sendFCM } from "./fcm.ts";
 
 const runtimes = new Map<string, TakoPack>();
 
@@ -81,13 +82,24 @@ export async function loadExtension(
 
     // Forward client events to connected clients only
     pack.setClientPublish(
-      (
+      async (
         name: string,
         payload: unknown,
-        _options?: { push?: boolean },
+        options?: { push?: boolean },
       ) => {
         wsManager.distributeEvent(name, payload);
-        return Promise.resolve(undefined);
+        if (options?.push) {
+          const key = Deno.env.get("FCM_SERVER_KEY");
+          const token = Deno.env.get("FCM_DEVICE_TOKEN");
+          if (key && token) {
+            await sendFCM(key, token, {
+              id: doc.identifier,
+              fn: name,
+              args: [payload],
+            }).catch((err) => console.error("FCM error", err));
+          }
+        }
+        return undefined;
       },
     );
     runtimes.set(doc.identifier, pack);
