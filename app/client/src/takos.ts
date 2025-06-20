@@ -233,34 +233,38 @@ export function createTakos(identifier: string) {
 
       try {
         w = await loadExtensionWorker(identifier, takos);
-        const result = await (await w).callEvent(name, payload);
+        const result = await w.callEvent(name, payload);
         if (
-          def?.source === "client" || def?.source === "ui" ||
+          def?.source === "client" ||
+          def?.source === "ui" ||
           def?.source === "background"
         ) {
           return result;
         }
-        if (result !== undefined) return result;
-      } catch {
-        /* ignore */
+        if (def) return result;
+      } catch (err) {
+        if (def) throw err;
       }
 
-      try {
-        const raw = await call("extensions:invoke", {
-          id: identifier,
-          fn: name,
-          args: [payload],
-          options,
-        });
-        return unwrapResult(raw);
-      } catch (err) {
-        if (
-          err instanceof Error && err.message.includes("function not found")
-        ) {
-          return undefined;
+      if (!def) {
+        try {
+          const raw = await call("extensions:invoke", {
+            id: identifier,
+            fn: name,
+            args: [payload],
+            options,
+          });
+          return unwrapResult(raw);
+        } catch (err) {
+          if (
+            err instanceof Error && err.message.includes("function not found")
+          ) {
+            return undefined;
+          }
+          throw err;
         }
-        throw err;
       }
+      return undefined;
     },
   };
 
@@ -322,32 +326,36 @@ export function createTakos(identifier: string) {
           const w = await loadExtensionWorker(identifier, takos);
           const result = await w.callEvent(name, payload);
           if (
-            def?.source === "client" || def?.source === "ui" ||
+            def?.source === "client" ||
+            def?.source === "ui" ||
             def?.source === "background"
           ) {
             return unwrapResult(result);
           }
-          if (result !== undefined) return unwrapResult(result);
-        } catch {
-          /* ignore */
+          if (def) return unwrapResult(result);
+        } catch (err) {
+          if (def) throw err;
         }
 
-        try {
-          const raw = await call("extensions:invoke", {
-            id: identifier,
-            fn: name,
-            args: [payload],
-            options,
-          });
-          return unwrapResult(raw);
-        } catch (err) {
-          if (
-            err instanceof Error && err.message.includes("function not found")
-          ) {
-            return undefined;
+        if (!def) {
+          try {
+            const raw = await call("extensions:invoke", {
+              id: identifier,
+              fn: name,
+              args: [payload],
+              options,
+            });
+            return unwrapResult(raw);
+          } catch (err) {
+            if (
+              err instanceof Error && err.message.includes("function not found")
+            ) {
+              return undefined;
+            }
+            throw err;
           }
-          throw err;
         }
+        return undefined;
       },
     }),
   };
