@@ -40,8 +40,9 @@ app.get("/api/extensions/:id/sw.js", async (c) => {
   const id = c.req.param("id");
   const ext = await Extension.findOne({ identifier: id });
   if (!ext || !ext.client) return c.notFound();
-  const path = new URL("./sw_extension_template.js", import.meta.url).pathname;
-  const code = await Deno.readTextFile(path);
+  const code = await Deno.readTextFile(
+    new URL("./sw_extension_template.js", import.meta.url),
+  );
   c.header("Content-Type", "application/javascript; charset=utf-8");
   return c.body(code);
 });

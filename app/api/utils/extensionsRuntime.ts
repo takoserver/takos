@@ -4,6 +4,9 @@ import { WebSocketManager } from "../websocketHandler.ts";
 import { KVItem } from "../models/kv.ts";
 import { sendFCM } from "./fcm.ts";
 
+const serviceAccountStr = Deno.env.get("FIREBASE_SERVICE_ACCOUNT");
+const serviceAccount = serviceAccountStr ? JSON.parse(serviceAccountStr) : null;
+
 const runtimes = new Map<string, TakoPack>();
 
 export async function initExtensions() {
@@ -27,7 +30,8 @@ export async function loadExtension(
     icon?: string;
   },
 ) {
-  try {    const wsManager = WebSocketManager.getInstance();
+  try {
+    const wsManager = WebSocketManager.getInstance();
     const pack = new TakoPack([
       {
         manifest: doc.manifest,
@@ -88,15 +92,12 @@ export async function loadExtension(
         options?: { push?: boolean; token?: string },
       ) => {
         wsManager.distributeEvent(name, payload);
-        if (options?.push && options.token) {
-          const key = Deno.env.get("FCM_SERVER_KEY");
-          if (key) {
-            await sendFCM(key, options.token, {
-              id: doc.identifier,
-              fn: name,
-              args: [payload],
-            }).catch((err) => console.error("FCM error", err));
-          }
+        if (options?.push && options.token && serviceAccount) {
+          await sendFCM(serviceAccount, options.token, {
+            id: doc.identifier,
+            fn: name,
+            args: [payload],
+          }).catch((err) => console.error("FCM error", err));
         }
         return undefined;
       },

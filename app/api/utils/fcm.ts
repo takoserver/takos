@@ -1,18 +1,20 @@
+import { App, cert, initializeApp } from "npm:firebase-admin/app";
+import { getMessaging } from "npm:firebase-admin/messaging";
+
+let app: App | null = null;
+
+function getApp(serviceAccount: Record<string, unknown>): App {
+  if (!app) {
+    app = initializeApp({ credential: cert(serviceAccount) });
+  }
+  return app;
+}
+
 export async function sendFCM(
-  serverKey: string,
+  serviceAccount: Record<string, unknown>,
   token: string,
   data: Record<string, unknown>,
 ): Promise<void> {
-  const res = await fetch("https://fcm.googleapis.com/fcm/send", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `key=${serverKey}`,
-    },
-    body: JSON.stringify({ to: token, data }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    console.error("FCM push failed", res.status, text);
-  }
+  const messaging = getMessaging(getApp(serviceAccount));
+  await messaging.send({ token, data: data as Record<string, string> });
 }
