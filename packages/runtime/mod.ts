@@ -227,8 +227,18 @@ self.onmessage = async (e) => {
     allowedPerms = d.allowedPermissions || {};
     globalThis.takos = createTakos(d.takosPaths, d.extensions || []);
     globalThis.fetch = (...args) => globalThis.takos.fetch(...args);
-    const url = URL.createObjectURL(new Blob([d.code], { type: 'application/javascript' }));
-    mod = await import(url);
+    const url = URL.createObjectURL(
+      new Blob([d.code], { type: 'application/javascript' }),
+    );
+    if (typeof ServiceWorkerGlobalScope !== 'undefined' &&
+      self instanceof ServiceWorkerGlobalScope) {
+      // Service workers cannot use dynamic import(). Fall back to eval.
+      mod = {} as any;
+      const fn = new Function('exports', d.code + '\nreturn exports;');
+      mod = fn(mod);
+    } else {
+      mod = await import(url);
+    }
     self.postMessage({ type: 'ready' });
   } else if (d.type === 'call') {
     try {
