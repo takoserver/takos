@@ -293,11 +293,6 @@ export function createTakos(identifier: string) {
           });
           return unwrapResult(raw);
         } catch (err) {
-          if (
-            err instanceof Error && err.message.includes("function not found")
-          ) {
-            return undefined;
-          }
           throw err;
         }
       }
@@ -383,22 +378,13 @@ export function createTakos(identifier: string) {
         }
 
         if (!def) {
-          try {
-            const raw = await call("extensions:invoke", {
-              id: identifier,
-              fn: name,
-              args: [payload],
-              options,
-            });
-            return unwrapResult(raw);
-          } catch (err) {
-            if (
-              err instanceof Error && err.message.includes("function not found")
-            ) {
-              return undefined;
-            }
-            throw err;
-          }
+          const raw = await call("extensions:invoke", {
+            id: identifier,
+            fn: name,
+            args: [payload],
+            options,
+          });
+          return unwrapResult(raw);
         }
         return undefined;
       },
