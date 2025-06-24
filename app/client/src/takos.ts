@@ -1,5 +1,5 @@
 import { wsClient } from "./utils/websocketClient.ts";
-import { loadExtensionWorker } from "./extensionWorker.ts";
+import { getExtensionWorker, loadExtensionWorker } from "./extensionWorker.ts";
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken } from "firebase/messaging";
 
@@ -249,7 +249,8 @@ export function createTakos(identifier: string) {
         | undefined;
       if (!defs) {
         try {
-          const w = await loadExtensionWorker(identifier, takos);
+          const w = getExtensionWorker(identifier) ||
+            (await loadExtensionWorker(identifier, takos));
           await w.ready;
           defs = g.__takosEventDefs?.[identifier];
         } catch {
@@ -268,21 +269,25 @@ export function createTakos(identifier: string) {
         return unwrapResult(raw);
       }
 
+      const w = getExtensionWorker(identifier) ||
+        (await loadExtensionWorker(identifier, takos));
       try {
-        const w = await loadExtensionWorker(identifier, takos);
         const result = await w.callEvent(name, payload);
         return result;
       } catch (err) {
         if (def) throw err;
       }
 
-      const raw = await call("extensions:invoke", {
-        id: identifier,
-        fn: name,
-        args: [payload],
-        options,
-      });
-      return unwrapResult(raw);
+      if (!def) {
+        const raw = await call("extensions:invoke", {
+          id: identifier,
+          fn: name,
+          args: [payload],
+          options,
+        });
+        return unwrapResult(raw);
+      }
+      return undefined;
     },
   };
 
@@ -329,7 +334,8 @@ export function createTakos(identifier: string) {
           | undefined;
         if (!defs) {
           try {
-            const w = await loadExtensionWorker(identifier, takos);
+            const w = getExtensionWorker(identifier) ||
+              (await loadExtensionWorker(identifier, takos));
             await w.ready;
             defs = g.__takosEventDefs?.[identifier];
           } catch {
@@ -348,21 +354,25 @@ export function createTakos(identifier: string) {
           return unwrapResult(raw);
         }
 
+        const w = getExtensionWorker(identifier) ||
+          (await loadExtensionWorker(identifier, takos));
         try {
-          const w = await loadExtensionWorker(identifier, takos);
           const result = await w.callEvent(name, payload);
           return unwrapResult(result);
         } catch (err) {
           if (def) throw err;
         }
 
-        const raw = await call("extensions:invoke", {
-          id: identifier,
-          fn: name,
-          args: [payload],
-          options,
-        });
-        return unwrapResult(raw);
+        if (!def) {
+          const raw = await call("extensions:invoke", {
+            id: identifier,
+            fn: name,
+            args: [payload],
+            options,
+          });
+          return unwrapResult(raw);
+        }
+        return undefined;
       },
     }),
   };
@@ -386,7 +396,8 @@ export function createTakos(identifier: string) {
         | undefined;
       if (!defs) {
         try {
-          const w = await loadExtensionWorker(id, takos);
+          const w = getExtensionWorker(id) ||
+            (await loadExtensionWorker(id, takos));
           await w.ready;
           defs = g.__takosEventDefs?.[id];
         } catch {
@@ -405,20 +416,24 @@ export function createTakos(identifier: string) {
         return unwrapResult(raw);
       }
 
+      const w = getExtensionWorker(id) ||
+        (await loadExtensionWorker(id, takos));
       try {
-        const w = await loadExtensionWorker(id, takos);
         return await w.call(def?.handler || fn, args);
       } catch (err) {
         if (def) throw err;
       }
 
-      const raw = await call("extensions:invoke", {
-        id,
-        fn: def?.handler || fn,
-        args,
-        options,
-      });
-      return unwrapResult(raw);
+      if (!def) {
+        const raw = await call("extensions:invoke", {
+          id,
+          fn: def?.handler || fn,
+          args,
+          options,
+        });
+        return unwrapResult(raw);
+      }
+      return undefined;
     },
   };
 
