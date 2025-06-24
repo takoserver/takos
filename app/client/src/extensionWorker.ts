@@ -21,7 +21,8 @@ const CLIENT_TAKOS_PATHS: string[][] = [
 ];
 
 class ExtensionWorker {
-  #reg!: ServiceWorkerRegistration;
+  #reg?: ServiceWorkerRegistration;
+  #worker?: Worker;
   #port!: MessagePort;
   #ready: Promise<void>;
   #pending = new Map<number, (v: unknown) => void>();
@@ -39,21 +40,36 @@ class ExtensionWorker {
   }
   async #init(id: string): Promise<void> {
     const scope = `/api/extensions/${id}/`;
-    const reg = await navigator.serviceWorker.register(
-      `/api/extensions/${id}/sw.js`,
-      { type: "module", scope },
-    );
-    if (!reg.active) {
-      await new Promise<void>((res) => {
-        const sw = reg.installing || reg.waiting;
-        if (!sw) return res();
-        sw.addEventListener("statechange", () => {
-          if (sw.state === "activated") res();
+    let worker: ServiceWorker | Worker;
+    try {
+      const reg = await navigator.serviceWorker.register(
+        `/api/extensions/${id}/sw.js`,
+        { type: "module", scope },
+      );
+      if (!reg.active) {
+        await new Promise<void>((res) => {
+          const sw = reg.installing || reg.waiting;
+          if (!sw) return res();
+          sw.addEventListener("statechange", () => {
+            if (sw.state === "activated") res();
+          });
         });
-      });
+      }
+      this.#reg = reg;
+      worker = reg.active!;
+    } catch (err) {
+      console.warn("ServiceWorker registration failed, falling back to Worker", err);
+      const res = await fetch(`/api/extensions/${id}/sw.js`);
+      const code = await res.text();
+      const blob = new Blob([
+        "self.skipWaiting = () => {};\nself.clients = { claim(){}, matchAll(){return Promise.resolve([]);} };\n",
+        code,
+      ], { type: "application/javascript" });
+      const url = URL.createObjectURL(blob);
+      const w = new Worker(url, { type: "module" });
+      this.#worker = w;
+      worker = w as unknown as ServiceWorker;
     }
-    this.#reg = reg;
-    const worker = reg.active!;
     const channel = new MessageChannel();
     this.#port = channel.port1;
     const ready = new Promise<void>((res) => {
@@ -143,7 +159,8 @@ class ExtensionWorker {
     }
   }
   async terminate() {
-    await this.#reg.unregister();
+    if (this.#reg) await this.#reg.unregister();
+    if (this.#worker) this.#worker.terminate();
   }
 }
 
