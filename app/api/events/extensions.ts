@@ -125,6 +125,15 @@ eventManager.add(
     }).optional(),
   }),
   async (_c, { id, fn, args = [] }) => {
+    const manifest = getManifest(id);
+    const defs = manifest?.eventDefinitions as
+      | Record<string, { source?: string; handler?: string }>
+      | undefined;
+    const def = defs?.[fn];
+    if (def && def.source && def.source !== "server") {
+      throw new Error("client-side function");
+    }
+
     const runtime = getRuntime(id);
     if (!runtime) {
       throw new Error("extension not found");
