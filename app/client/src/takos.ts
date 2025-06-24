@@ -404,13 +404,66 @@ export function createTakos(identifier: string) {
       args: unknown[] = [],
       options?: { push?: boolean; token?: string },
     ) => {
-      const raw = await call("extensions:invoke", {
-        id,
-        fn,
-        args,
-        options,
-      });
-      return unwrapResult(raw);
+      const g = globalThis as TakosGlobals;
+      let defs = g.__takosEventDefs?.[id] as
+        | Record<string, { source?: string; handler?: string }>
+        | undefined;
+      if (!defs) {
+        try {
+          const w = await loadExtensionWorker(id, takos);
+          await w.ready;
+          defs = g.__takosEventDefs?.[id];
+        } catch {
+          /* ignore */
+        }
+      }
+      const def = defs?.[fn];
+
+      if (
+        def?.source === "client" || def?.source === "ui" ||
+        def?.source === "background"
+      ) {
+        try {
+          const w = await loadExtensionWorker(id, takos);
+          return await w.call(def.handler || fn, args);
+        } catch (err) {
+          if (def) throw err;
+        }
+      }
+
+      if (def?.source === "server") {
+        const raw = await call("extensions:invoke", {
+          id,
+          fn: def.handler || fn,
+          args,
+          options,
+        });
+        return unwrapResult(raw);
+      }
+
+      try {
+        const raw = await call("extensions:invoke", {
+          id,
+          fn: def?.handler || fn,
+          args,
+          options,
+        });
+        return unwrapResult(raw);
+      } catch (err) {
+        if (
+          err instanceof Error &&
+          (err.message.includes("function not found") ||
+            err.message.includes("extension not found"))
+        ) {
+          try {
+            const w = await loadExtensionWorker(id, takos);
+            return await w.call(def?.handler || fn, args);
+          } catch {
+            /* ignore */
+          }
+        }
+        throw err;
+      }
     },
   };
 
