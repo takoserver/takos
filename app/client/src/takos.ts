@@ -398,6 +398,20 @@ export function createTakos(identifier: string) {
     get all() {
       return [extensionObj];
     },
+    invoke: async (
+      id: string,
+      fn: string,
+      args: unknown[] = [],
+      options?: { push?: boolean; token?: string },
+    ) => {
+      const raw = await call("extensions:invoke", {
+        id,
+        fn,
+        args,
+        options,
+      });
+      return unwrapResult(raw);
+    },
   };
 
   function getURL() {

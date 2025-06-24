@@ -19,7 +19,20 @@ export default function ExtensionFrame() {
       if (frame?.contentWindow && extId()) {
         const id = extId()!;
         const takos = createTakos(id);
-        (frame.contentWindow as any).takos = takos;
+        const existing = (frame.contentWindow as any).takos;
+        if (existing) {
+          (frame.contentWindow as any).takos = {
+            ...existing,
+            ...takos,
+            extensions: {
+              ...(existing.extensions || {}),
+              ...takos.extensions,
+            },
+            events: { ...(existing.events || {}), ...takos.events },
+          };
+        } else {
+          (frame.contentWindow as any).takos = takos;
+        }
 
         const worker = await loadExtensionWorker(id, takos);
         const host = window as any;
