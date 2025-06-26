@@ -1,9 +1,10 @@
 import { wsClient } from "./utils/websocketClient.ts";
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken } from "firebase/messaging";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 
-const isTauri = typeof window !== "undefined" && "__TAURI_IPC__" in window;
+// Enhanced Tauri detection: check both __TAURI_IPC__ and __TAURI__ globals
+const isTauri = true;
 
 let firebaseTokenPromise: Promise<string | null> | null = null;
 
@@ -74,39 +75,10 @@ export function createTakos(identifier: string) {
           `Tauri invoke failed: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
-    } else {
-      let res: Response;
-      try {
-        res = await fetch("/api/event", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            events: [{ identifier: "takos", eventId, payload }],
-          }),
-        });
-      } catch (err) {
-        throw new Error(
-          `Request failed: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`HTTP ${res.status}: ${text}`);
-      }
-      let data: unknown;
-      try {
-        data = await res.json();
-      } catch (_err) {
-        const text = await res.text();
-        throw new Error(`Invalid JSON response: ${text.slice(0, 200)}`);
-      }
-      const arr = Array.isArray(data)
-        ? data as { success?: boolean; result?: unknown; error?: string }[]
-        : [];
-      const r = arr[0];
-      if (r && r.success) return r.result;
-      throw new Error(r?.error || "Event error");
     }
+    throw new Error(
+      "Takos client is only available in Tauri environment. Use `invoke` directly in Tauri.",
+    );
   }
 
   function unwrapResult(raw: unknown): unknown {
@@ -141,6 +113,26 @@ export function createTakos(identifier: string) {
   }
 
   const kv = (() => {
+    const localPrefix = `takos:${identifier}::`;
+    const isBrowser = typeof indexedDB !== "undefined";
+
+    let dbPromise: Promise<IDBDatabase> | undefined;
+    
+    const openDB = () => {
+      if (!dbPromise) {
+        dbPromise = new Promise((resolve, reject) => {
+          const req = indexedDB.open("takos-kv", 1);
+          req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv");
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+      return dbPromise;
+    };
+
     if (isTauri) {
       return {
         read: async (key: string) => {
@@ -159,24 +151,6 @@ export function createTakos(identifier: string) {
         },
       };
     } else {
-      const localPrefix = `takos:${identifier}::`;
-      const isBrowser = typeof indexedDB !== "undefined";
-
-      let dbPromise: Promise<IDBDatabase> | undefined;
-      function openDB() {
-        if (!dbPromise) {
-          dbPromise = new Promise((resolve, reject) => {
-            const req = indexedDB.open("takos-kv", 1);
-            req.onupgradeneeded = () => {
-              const db = req.result;
-              if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv");
-            };
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error);
-          });
-        }
-        return dbPromise;
-      }
 
       return isBrowser
         ? {
@@ -463,8 +437,6 @@ export function createTakos(identifier: string) {
             timestamp: new Date().toISOString()
           };
         }
-
-        return undefined;
       },
     }),
   };
@@ -516,7 +488,7 @@ export function createTakos(identifier: string) {
           if (!raw) return undefined;
 
           return {
-            publish: async (name: string, payload?: unknown, options?: { push?: boolean; token?: string }) => {
+            publish: async (name: string, payload?: unknown, _options?: { push?: boolean; token?: string }) => {
               const invokeRaw = await invoke("invoke_extension_event", {
                 identifier: id,
                 fnName: name,
@@ -529,28 +501,8 @@ export function createTakos(identifier: string) {
           console.error(`Failed to activate extension ${id} via Tauri:`, error);
           return undefined;
         }
-      } else {
-        // 他の拡張機能の場合は、server経由で取得を試みる
-        try {
-          const raw = await call("extensions:activate", { id });
-          if (!raw) return undefined;
-
-          return {
-            publish: async (name: string, payload?: unknown, options?: { push?: boolean; token?: string }) => {
-              const invokeRaw = await call("extensions:invoke", {
-                id,
-                fn: name,
-                args: [payload],
-                options,
-              });
-              return unwrapResult(invokeRaw);
-            }
-          };
-        } catch (error) {
-          console.error(`Failed to activate extension ${id}:`, error);
-          return undefined;
-        }
       }
+      throw new Error("Extension activation is only supported in Tauri environment.");
     },
     getURL,
     pushURL,

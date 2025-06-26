@@ -1696,7 +1696,7 @@
     "packageJson": {
       "dependencies": [
         "npm:@tailwindcss/vite@^4.1.11",
-        "npm:@tauri-apps/api@2",
+        "npm:@tauri-apps/api@^2.6.0",
         "npm:@tauri-apps/cli@2",
         "npm:@tauri-apps/plugin-opener@2",
         "npm:firebase@^11.9.1",
