@@ -1,3 +1,9 @@
 {
-  "deno.enable": true
+  "deno.enable": true,
+  "rust-analyzer.cargo.loadOutDirsFromCheck": true,    // ビルド出力パスを拾う
+  "rust-analyzer.procMacro.enable": true,              // プロシージャマクロの補完を有効化 :contentReference[oaicite:4]{index=4}
+  "rust-analyzer.completion.autoimport.enable": true,  
+    "rust-analyzer.linkedProjects": [
+    "C:\\Users\\shout\\Desktop\\temp\\takos\\app\\client\\src-tauri\\Cargo.lock"
+  ]
 }

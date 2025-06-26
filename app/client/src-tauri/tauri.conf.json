@@ -1,11 +1,11 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "takos",
-  "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "version": "0.1.0",  "identifier": "com.tauri.dev",
   "build": {
-    "beforeDevCommand": "",
-    "beforeBuildCommand": ""
+    "beforeDevCommand": "deno task dev",
+    "beforeBuildCommand": "deno task build",
+    "devUrl": "http://localhost:1420"
   },
   "app": {
     "windows": [

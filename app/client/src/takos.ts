@@ -35,37 +35,52 @@ interface TakosGlobals {
 
 export function createTakos(identifier: string) {
   async function call(eventId: string, payload: unknown) {
-    let res: Response;
-    try {
-      res = await fetch("/api/event", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          events: [{ identifier: "takos", eventId, payload }],
-        }),
-      });
-    } catch (err) {
-      throw new Error(
-        `Request failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
+    if (window.__TAURI__) {
+      try {
+        const result = await window.__TAURI__.invoke("invoke_extension_event", {
+          identifier: "takos",
+          fnName: eventId,
+          args: [payload],
+        });
+        return result;
+      } catch (err) {
+        throw new Error(
+          `Tauri invoke failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    } else {
+      let res: Response;
+      try {
+        res = await fetch("/api/event", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            events: [{ identifier: "takos", eventId, payload }],
+          }),
+        });
+      } catch (err) {
+        throw new Error(
+          `Request failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status}: ${text}`);
+      }
+      let data: unknown;
+      try {
+        data = await res.json();
+      } catch (_err) {
+        const text = await res.text();
+        throw new Error(`Invalid JSON response: ${text.slice(0, 200)}`);
+      }
+      const arr = Array.isArray(data)
+        ? data as { success?: boolean; result?: unknown; error?: string }[]
+        : [];
+      const r = arr[0];
+      if (r && r.success) return r.result;
+      throw new Error(r?.error || "Event error");
     }
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`HTTP ${res.status}: ${text}`);
-    }
-    let data: unknown;
-    try {
-      data = await res.json();
-    } catch (_err) {
-      const text = await res.text();
-      throw new Error(`Invalid JSON response: ${text.slice(0, 200)}`);
-    }
-    const arr = Array.isArray(data)
-      ? data as { success?: boolean; result?: unknown; error?: string }[]
-      : [];
-    const r = arr[0];
-    if (r && r.success) return r.result;
-    throw new Error(r?.error || "Event error");
   }
 
   function unwrapResult(raw: unknown): unknown {
@@ -99,114 +114,166 @@ export function createTakos(identifier: string) {
     return result;
   }
 
-  const localPrefix = `takos:${identifier}::`;
-  const isBrowser = typeof indexedDB !== "undefined";
+  const kv = (() => {
+    if (typeof window !== "undefined" && window.__TAURI__) {
+      return {
+        read: async (key: string) => {
+          const result = await window.__TAURI__.invoke("kv_read", { identifier, key });
+          return (result as { value: unknown }).value;
+        },
+        write: async (key: string, value: unknown) => {
+          await window.__TAURI__.invoke("kv_write", { identifier, key, value });
+        },
+        delete: async (key: string) => {
+          await window.__TAURI__.invoke("kv_delete", { identifier, key });
+        },
+        list: async (prefix?: string) => {
+          const result = await window.__TAURI__.invoke("kv_list", { identifier, prefix });
+          return result as string[];
+        },
+      };
+    } else {
+      const localPrefix = `takos:${identifier}::`;
+      const isBrowser = typeof indexedDB !== "undefined";
 
-  let dbPromise: Promise<IDBDatabase> | undefined;
-  function openDB() {
-    if (!dbPromise) {
-      dbPromise = new Promise((resolve, reject) => {
-        const req = indexedDB.open("takos-kv", 1);
-        req.onupgradeneeded = () => {
-          const db = req.result;
-          if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv");
+      let dbPromise: Promise<IDBDatabase> | undefined;
+      function openDB() {
+        if (!dbPromise) {
+          dbPromise = new Promise((resolve, reject) => {
+            const req = indexedDB.open("takos-kv", 1);
+            req.onupgradeneeded = () => {
+              const db = req.result;
+              if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv");
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+          });
+        }
+        return dbPromise;
+      }
+
+      return isBrowser
+        ? {
+          read: async (key: string) => {
+            const db = await openDB();
+            return await new Promise<unknown>((resolve, reject) => {
+              const tx = db.transaction("kv", "readonly");
+              const store = tx.objectStore("kv");
+              const req = store.get(localPrefix + key);
+              req.onsuccess = () => resolve(req.result);
+              req.onerror = () => reject(req.error);
+            });
+          },
+          write: async (key: string, value: unknown) => {
+            const db = await openDB();
+            await new Promise<void>((resolve, reject) => {
+              const tx = db.transaction("kv", "readwrite");
+              const store = tx.objectStore("kv");
+              store.put(value, localPrefix + key);
+              tx.oncomplete = () => resolve();
+              tx.onerror = () => reject(tx.error);
+            });
+          },
+          delete: async (key: string) => {
+            const db = await openDB();
+            await new Promise<void>((resolve, reject) => {
+              const tx = db.transaction("kv", "readwrite");
+              const store = tx.objectStore("kv");
+              store.delete(localPrefix + key);
+              tx.oncomplete = () => resolve();
+              tx.onerror = () => reject(tx.error);
+            });
+          },
+          list: async (prefix?: string) => {
+            const db = await openDB();
+            return await new Promise<string[]>((resolve, reject) => {
+              const keys: string[] = [];
+              const tx = db.transaction("kv", "readonly");
+              const store = tx.objectStore("kv");
+              const req = store.openCursor();
+              req.onsuccess = () => {
+                const cursor = req.result;
+                if (cursor) {
+                  const k = cursor.key as string;
+                  if (k.startsWith(localPrefix)) {
+                    const sub = k.slice(localPrefix.length);
+                    if (!prefix || sub.startsWith(prefix)) keys.push(sub);
+                  }
+                  cursor.continue();
+                } else {
+                  resolve(keys);
+                }
+              };
+              req.onerror = () => reject(req.error);
+            });
+          },
+        }
+        : {
+          read: (key: string) =>
+            call("kv:read", {
+              id: identifier,
+              key,
+              side: "client",
+            }),
+          write: (key: string, value: unknown) =>
+            call("kv:write", { id: identifier, key, value, side: "client" }),
+          delete: (key: string) =>
+            call("kv:delete", { id: identifier, key, side: "client" }),
+          list: (prefix?: string) =>
+            call("kv:list", { id: identifier, prefix, side: "client" }),
         };
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
     }
-    return dbPromise;
-  }
+  })();
 
-  const kv = isBrowser
-    ? {
-      read: async (key: string) => {
-        const db = await openDB();
-        return await new Promise<unknown>((resolve, reject) => {
-          const tx = db.transaction("kv", "readonly");
-          const store = tx.objectStore("kv");
-          const req = store.get(localPrefix + key);
-          req.onsuccess = () => resolve(req.result);
-          req.onerror = () => reject(req.error);
-        });
-      },
-      write: async (key: string, value: unknown) => {
-        const db = await openDB();
-        await new Promise<void>((resolve, reject) => {
-          const tx = db.transaction("kv", "readwrite");
-          const store = tx.objectStore("kv");
-          store.put(value, localPrefix + key);
-          tx.oncomplete = () => resolve();
-          tx.onerror = () => reject(tx.error);
-        });
-      },
-      delete: async (key: string) => {
-        const db = await openDB();
-        await new Promise<void>((resolve, reject) => {
-          const tx = db.transaction("kv", "readwrite");
-          const store = tx.objectStore("kv");
-          store.delete(localPrefix + key);
-          tx.oncomplete = () => resolve();
-          tx.onerror = () => reject(tx.error);
-        });
-      },
-      list: async (prefix?: string) => {
-        const db = await openDB();
-        return await new Promise<string[]>((resolve, reject) => {
-          const keys: string[] = [];
-          const tx = db.transaction("kv", "readonly");
-          const store = tx.objectStore("kv");
-          const req = store.openCursor();
-          req.onsuccess = () => {
-            const cursor = req.result;
-            if (cursor) {
-              const k = cursor.key as string;
-              if (k.startsWith(localPrefix)) {
-                const sub = k.slice(localPrefix.length);
-                if (!prefix || sub.startsWith(prefix)) keys.push(sub);
-              }
-              cursor.continue();
-            } else {
-              resolve(keys);
-            }
-          };
-          req.onerror = () => reject(req.error);
-        });
-      },
+  const cdn = (() => {
+    if (typeof window !== "undefined" && window.__TAURI__) {
+      return {
+        read: async (path: string) => {
+          const result = await window.__TAURI__.invoke("cdn_read", { identifier, path });
+          return result as string;
+        },
+        write: async (
+          path: string,
+          data: string | Uint8Array,
+          options?: { cacheTTL?: number },
+        ) => {
+          const result = await window.__TAURI__.invoke("cdn_write", {
+            identifier,
+            path,
+            data: typeof data === "string" ? data : btoa(String.fromCharCode(...data)),
+            cacheTTL: options?.cacheTTL,
+          });
+          return result as string;
+        },
+        delete: async (path: string) => {
+          await window.__TAURI__.invoke("cdn_delete", { identifier, path });
+        },
+        list: async (prefix?: string) => {
+          const result = await window.__TAURI__.invoke("cdn_list", { identifier, prefix });
+          return result as string[];
+        },
+      };
+    } else {
+      return {
+        read: (path: string) => call("cdn:read", { id: identifier, path }),
+        write: (
+          path: string,
+          data: string | Uint8Array,
+          options?: { cacheTTL?: number },
+        ) =>
+          call("cdn:write", {
+            id: identifier,
+            path,
+            data: typeof data === "string"
+              ? data
+              : btoa(String.fromCharCode(...data)),
+            cacheTTL: options?.cacheTTL,
+          }),
+        delete: (path: string) => call("cdn:delete", { id: identifier, path }),
+        list: (prefix?: string) => call("cdn:list", { id: identifier, prefix }),
+      };
     }
-    : {
-      read: (key: string) =>
-        call("kv:read", {
-          id: identifier,
-          key,
-          side: "client",
-        }),
-      write: (key: string, value: unknown) =>
-        call("kv:write", { id: identifier, key, value, side: "client" }),
-      delete: (key: string) =>
-        call("kv:delete", { id: identifier, key, side: "client" }),
-      list: (prefix?: string) =>
-        call("kv:list", { id: identifier, prefix, side: "client" }),
-    };
-
-  const cdn = {
-    read: (path: string) => call("cdn:read", { id: identifier, path }),
-    write: (
-      path: string,
-      data: string | Uint8Array,
-      options?: { cacheTTL?: number },
-    ) =>
-      call("cdn:write", {
-        id: identifier,
-        path,
-        data: typeof data === "string"
-          ? data
-          : btoa(String.fromCharCode(...data)),
-        cacheTTL: options?.cacheTTL,
-      }),
-    delete: (path: string) => call("cdn:delete", { id: identifier, path }),
-    list: (prefix?: string) => call("cdn:list", { id: identifier, prefix }),
-  };
+  })();
 
   const listeners = new Map<string, Set<(payload: unknown) => void>>();
   wsClient.addGlobalEventListener((ev) => {
@@ -263,12 +330,21 @@ export function createTakos(identifier: string) {
       // サーバー専用イベントの場合はサーバーで実行
       if (def?.source === "server") {
         try {
-          const raw = await call("extensions:invoke", {
-            id: identifier,
-            fn: name,
-            args: [payload],
-            options,
-          });
+          let raw;
+          if (window.__TAURI__) {
+            raw = await window.__TAURI__.invoke("invoke_extension_event", {
+              identifier,
+              fnName: name,
+              args: [payload],
+            });
+          } else {
+            raw = await call("extensions:invoke", {
+              id: identifier,
+              fn: name,
+              args: [payload],
+              options,
+            });
+          }
           return unwrapResult(raw);
         } catch (serverErr) {
           console.error(`[Client] Server execution failed for ${name}:`, serverErr);
@@ -391,12 +467,21 @@ export function createTakos(identifier: string) {
         // サーバー専用イベントの場合はサーバーで実行
         if (def?.source === "server") {
           try {
-            const raw = await call("extensions:invoke", {
-              id: identifier,
-              fn: name,
-              args: [payload],
-              options,
-            });
+            let raw;
+            if (window.__TAURI__) {
+              raw = await window.__TAURI__.invoke("invoke_extension_event", {
+                identifier,
+                fnName: name,
+                args: [payload],
+              });
+            } else {
+              raw = await call("extensions:invoke", {
+                id: identifier,
+                fn: name,
+                args: [payload],
+                options,
+              });
+            }
             return unwrapResult(raw);
           } catch (serverErr) {
             console.error(`[Client] Server execution failed for ${name}:`, serverErr);
@@ -505,25 +590,46 @@ export function createTakos(identifier: string) {
       if (id === identifier) {
         return extensionObj.activate();
       }
-      // 他の拡張機能の場合は、server経由で取得を試みる
-      try {
-        const raw = await call("extensions:activate", { id });
-        if (!raw) return undefined;
-        
-        return {
-          publish: async (name: string, payload?: unknown, options?: { push?: boolean; token?: string }) => {
-            const invokeRaw = await call("extensions:invoke", {
-              id,
-              fn: name,
-              args: [payload],
-              options,
-            });
-            return unwrapResult(invokeRaw);
-          }
-        };
-      } catch (error) {
-        console.error(`Failed to activate extension ${id}:`, error);
-        return undefined;
+      if (typeof window !== "undefined" && window.__TAURI__) {
+        try {
+          const raw = await window.__TAURI__.invoke("activate_extension", { identifier: id });
+          if (!raw) return undefined;
+
+          return {
+            publish: async (name: string, payload?: unknown, options?: { push?: boolean; token?: string }) => {
+              const invokeRaw = await window.__TAURI__.invoke("invoke_extension_event", {
+                identifier: id,
+                fnName: name,
+                args: [payload],
+              });
+              return unwrapResult(invokeRaw);
+            }
+          };
+        } catch (error) {
+          console.error(`Failed to activate extension ${id} via Tauri:`, error);
+          return undefined;
+        }
+      } else {
+        // 他の拡張機能の場合は、server経由で取得を試みる
+        try {
+          const raw = await call("extensions:activate", { id });
+          if (!raw) return undefined;
+
+          return {
+            publish: async (name: string, payload?: unknown, options?: { push?: boolean; token?: string }) => {
+              const invokeRaw = await call("extensions:invoke", {
+                id,
+                fn: name,
+                args: [payload],
+                options,
+              });
+              return unwrapResult(invokeRaw);
+            }
+          };
+        } catch (error) {
+          console.error(`Failed to activate extension ${id}:`, error);
+          return undefined;
+        }
       }
     },
     getURL,
@@ -534,6 +640,12 @@ export function createTakos(identifier: string) {
 
   if (typeof document !== "undefined") {
     loadExtensionWorker(identifier, takos).catch(() => {});
+  }
+
+  if (typeof window !== "undefined" && window.__TAURI__) {
+    console.log("Takos is running in Tauri environment.");
+  } else {
+    console.log("Takos is running in browser environment.");
   }
 
   return takos;
