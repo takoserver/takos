@@ -612,8 +612,10 @@ interface LoadedPack {
 
 class RuntimeExtension implements Extension {
   #pack: LoadedPack;
-  constructor(pack: LoadedPack) {
+  #host: TakoPack;
+  constructor(pack: LoadedPack, host: TakoPack) {
     this.#pack = pack;
+    this.#host = host;
   }
   get identifier() {
     return this.#pack.manifest.identifier as string;
@@ -628,55 +630,18 @@ class RuntimeExtension implements Extension {
     publish(name: string, payload?: unknown): Promise<unknown>;
   }> {
     if (this.#pack.activated) return this.#pack.activated;
-    const exportsList =
-      Array.isArray((this.#pack.manifest as any)?.exports)
-        ? (this.#pack.manifest as any).exports as string[]
-        : [];
-    if (!this.#pack.serverWorker) {
-      const api: {
-        publish: (name: string, payload?: unknown) => Promise<unknown>;
-      } = {
-        publish: async () => undefined,
-      };
-      this.#pack.activated = api;
-      return api;
-    }
-    const callWithFallback = async (
-      fn: string,
-      args: unknown[],
-    ): Promise<unknown> => {
-      try {
-        return await this.#pack.serverWorker!.call(fn, args);
-      } catch (err) {
-        if (
-          err instanceof Error && err.message.includes("function not found")
-        ) {
-          const m = err.message.match(/available: ([^)]*)/);
-          if (m) {
-            const prefixes = m[1].split(/,\s*/);
-            for (const prefix of prefixes) {
-              try {
-                return await this.#pack.serverWorker!.call(
-                  `${prefix}.${fn}`,
-                  args,
-                );
-              } catch {
-                // try next prefix
-              }
-            }
-          }
-        }
-        throw err;
-      }
-    };
+    const exportsList = Array.isArray((this.#pack.manifest as any)?.exports)
+      ? (this.#pack.manifest as any).exports as string[]
+      : [];
     const api: Record<string, unknown> & {
       publish: (name: string, payload?: unknown) => Promise<unknown>;
     } = {
       publish: (name: string, payload?: unknown) =>
-        callWithFallback(name, [payload]),
+        this.#host.call(this.identifier, name, [payload]),
     };
     for (const fn of exportsList) {
-      api[fn] = (...args: unknown[]) => callWithFallback(fn, args);
+      api[fn] = (...args: unknown[]) =>
+        this.#host.call(this.identifier, fn, args);
     }
     this.#pack.activated = api;
     return api;
@@ -720,7 +685,7 @@ export class TakoPack {
       this.packs.set(manifest.identifier as string, loaded);
       this.extensions.set(
         manifest.identifier as string,
-        new RuntimeExtension(loaded),
+        new RuntimeExtension(loaded, this),
       );
     }
     const outer = this;
@@ -792,7 +757,7 @@ export class TakoPack {
       console.log(`No server worker for ${identifier}`);
       throw new Error(`server not loaded for ${identifier}`);
     }
-    
+
     // deno-lint-ignore no-explicit-any
     const defs = (pack.manifest as Record<string, any>).eventDefinitions as
       | Record<string, { handler?: string }>
@@ -806,7 +771,7 @@ export class TakoPack {
     }
     const callName = def?.handler || fnName;
     console.log(`Calling server function: ${callName} (original: ${fnName})`);
-    
+
     try {
       const result = await pack.serverWorker.call(callName, args);
       console.log(`Server function ${callName} returned:`, result);
@@ -830,7 +795,7 @@ export class TakoPack {
           const cap = callName.charAt(0).toUpperCase() + callName.slice(1);
           attempts.push(`on${cap}`);
         }
-        
+
         console.log(`Trying fallback function names:`, attempts);
         for (const name of attempts) {
           try {
@@ -909,18 +874,28 @@ export class TakoPack {
       console.error(`Pack not found: ${identifier}`);
       throw new Error(`pack not found: ${identifier}`);
     }
-    
-    console.log(`Pack found for ${identifier}, serverWorker:`, !!pack.serverWorker, 'clientWorker:', !!pack.clientWorker);
-    
+
+    console.log(
+      `Pack found for ${identifier}, serverWorker:`,
+      !!pack.serverWorker,
+      "clientWorker:",
+      !!pack.clientWorker,
+    );
+
     const defs = (pack.manifest as Record<string, any>).eventDefinitions as
       | Record<string, { source?: string }>
       | undefined;
     const def = defs?.[fnName];
-    
+
     console.log(`Event definition for ${fnName}:`, def);
 
-    if (def?.source === "client" || def?.source === "ui" || def?.source === "background") {
-      console.log(`Trying client worker for ${fnName} (source: ${def?.source})`);
+    if (
+      def?.source === "client" || def?.source === "ui" ||
+      def?.source === "background"
+    ) {
+      console.log(
+        `Trying client worker for ${fnName} (source: ${def?.source})`,
+      );
       if (pack.clientWorker) {
         return await this.callClient(identifier, fnName, args);
       }
@@ -934,7 +909,9 @@ export class TakoPack {
       return await this.callClient(identifier, fnName, args);
     }
 
-    console.log(`No specific source defined for ${fnName}, trying server first`);
+    console.log(
+      `No specific source defined for ${fnName}, trying server first`,
+    );
     try {
       const result = await this.callServer(identifier, fnName, args);
       console.log(`Server call successful for ${fnName}:`, result);
