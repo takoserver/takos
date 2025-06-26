@@ -1,6 +1,9 @@
 import { wsClient } from "./utils/websocketClient.ts";
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken } from "firebase/messaging";
+import { invoke } from "@tauri-apps/api/tauri";
+
+const isTauri = typeof window !== "undefined" && "__TAURI_IPC__" in window;
 
 let firebaseTokenPromise: Promise<string | null> | null = null;
 
@@ -58,9 +61,9 @@ async function getEventDefs(
 
 export function createTakos(identifier: string) {
   async function call(eventId: string, payload: unknown) {
-    if (window.__TAURI__) {
+    if (isTauri) {
       try {
-        const result = await window.__TAURI__.invoke("invoke_extension_event", {
+        const result = await invoke("invoke_extension_event", {
           identifier: "takos",
           fnName: eventId,
           args: [payload],
@@ -138,20 +141,20 @@ export function createTakos(identifier: string) {
   }
 
   const kv = (() => {
-    if (typeof window !== "undefined" && window.__TAURI__) {
+    if (isTauri) {
       return {
         read: async (key: string) => {
-          const result = await window.__TAURI__.invoke("kv_read", { identifier, key });
+          const result = await invoke("kv_read", { identifier, key });
           return (result as { value: unknown }).value;
         },
         write: async (key: string, value: unknown) => {
-          await window.__TAURI__.invoke("kv_write", { identifier, key, value });
+          await invoke("kv_write", { identifier, key, value });
         },
         delete: async (key: string) => {
-          await window.__TAURI__.invoke("kv_delete", { identifier, key });
+          await invoke("kv_delete", { identifier, key });
         },
         list: async (prefix?: string) => {
-          const result = await window.__TAURI__.invoke("kv_list", { identifier, prefix });
+          const result = await invoke("kv_list", { identifier, prefix });
           return result as string[];
         },
       };
@@ -249,10 +252,10 @@ export function createTakos(identifier: string) {
   })();
 
   const cdn = (() => {
-    if (typeof window !== "undefined" && window.__TAURI__) {
+    if (isTauri) {
       return {
         read: async (path: string) => {
-          const result = await window.__TAURI__.invoke("cdn_read", { identifier, path });
+          const result = await invoke("cdn_read", { identifier, path });
           return result as string;
         },
         write: async (
@@ -260,7 +263,7 @@ export function createTakos(identifier: string) {
           data: string | Uint8Array,
           options?: { cacheTTL?: number },
         ) => {
-          const result = await window.__TAURI__.invoke("cdn_write", {
+          const result = await invoke("cdn_write", {
             identifier,
             path,
             data: typeof data === "string" ? data : btoa(String.fromCharCode(...data)),
@@ -269,10 +272,10 @@ export function createTakos(identifier: string) {
           return result as string;
         },
         delete: async (path: string) => {
-          await window.__TAURI__.invoke("cdn_delete", { identifier, path });
+          await invoke("cdn_delete", { identifier, path });
         },
         list: async (prefix?: string) => {
-          const result = await window.__TAURI__.invoke("cdn_list", { identifier, prefix });
+          const result = await invoke("cdn_list", { identifier, prefix });
           return result as string[];
         },
       };
@@ -337,11 +340,11 @@ export function createTakos(identifier: string) {
       const defs = await getEventDefs(identifier);
       const def = defs[name];
 
-      const shouldUseServer = def?.source === "server" || !window.__TAURI__;
+      const shouldUseServer = def?.source === "server" || !isTauri;
 
       if (!shouldUseServer) {
         try {
-          const raw = await window.__TAURI__.invoke("invoke_extension_event", {
+          const raw = await invoke("invoke_extension_event", {
             identifier,
             fnName: name,
             args: [payload],
@@ -420,11 +423,11 @@ export function createTakos(identifier: string) {
         const defs = await getEventDefs(identifier);
         const def = defs[name];
 
-        const useServer = def?.source === "server" || !window.__TAURI__;
+        const useServer = def?.source === "server" || !isTauri;
 
         if (!useServer) {
           try {
-            const raw = await window.__TAURI__.invoke("invoke_extension_event", {
+            const raw = await invoke("invoke_extension_event", {
               identifier,
               fnName: name,
               args: [payload],
@@ -507,14 +510,14 @@ export function createTakos(identifier: string) {
       if (id === identifier) {
         return extensionObj.activate();
       }
-      if (typeof window !== "undefined" && window.__TAURI__) {
+      if (isTauri) {
         try {
-          const raw = await window.__TAURI__.invoke("activate_extension", { identifier: id });
+          const raw = await invoke("activate_extension", { identifier: id });
           if (!raw) return undefined;
 
           return {
             publish: async (name: string, payload?: unknown, options?: { push?: boolean; token?: string }) => {
-              const invokeRaw = await window.__TAURI__.invoke("invoke_extension_event", {
+              const invokeRaw = await invoke("invoke_extension_event", {
                 identifier: id,
                 fnName: name,
                 args: [payload],
@@ -556,7 +559,7 @@ export function createTakos(identifier: string) {
   } as const;
 
 
-  if (typeof window !== "undefined" && window.__TAURI__) {
+  if (isTauri) {
     console.log("Takos is running in Tauri environment.");
   } else {
     console.log("Takos is running in browser environment.");
