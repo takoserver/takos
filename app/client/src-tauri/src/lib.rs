@@ -1,5 +1,5 @@
 use deno_core::op2;
-use deno_core::{Extension, JsRuntime, OpDecl, OpState, PollEventLoopOptions, RuntimeOptions};
+use deno_core::{Extension, JsRuntime, OpState, PollEventLoopOptions, RuntimeOptions};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -48,7 +48,11 @@ async fn load_extensions(app_handle: AppHandle) {
         return;
     }
 
-    let extensions = match extensions_result.unwrap().json::<Vec<TakosExtensionInfo>>().await {
+    let extensions = match extensions_result
+        .unwrap()
+        .json::<Vec<TakosExtensionInfo>>()
+        .await
+    {
         Ok(ext) => ext,
         Err(e) => {
             eprintln!("Failed to parse extensions: {}", e);
@@ -60,7 +64,7 @@ async fn load_extensions(app_handle: AppHandle) {
         if let Some(client_code) = ext.client {
             let deno_extension = Extension {
                 name: "takos_ext",
-                ops: std::borrow::Cow::from(vec![deno_core::op_decl!(op_publish_event)]),
+                ops: std::borrow::Cow::from(vec![op_publish_event()]),
                 ..Default::default()
             };
 
@@ -124,10 +128,7 @@ pub fn run() {
             let app_handle = app.handle().clone();
 
             thread::spawn(move || {
-                let runtime = Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap();
+                let runtime = Builder::new_current_thread().enable_all().build().unwrap();
 
                 runtime.block_on(async move {
                     load_extensions(app_handle).await;
