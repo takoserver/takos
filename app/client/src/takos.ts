@@ -1,5 +1,4 @@
 import { wsClient } from "./utils/websocketClient.ts";
-import { loadExtensionWorker } from "./extensionWorker.ts";
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken } from "firebase/messaging";
 
@@ -27,10 +26,34 @@ interface TakosGlobals {
     string,
     Record<string, { source?: string; handler?: string }>
   >;
-  __takosClientEvents?: Record<
-    string,
-    Record<string, (p: unknown) => Promise<unknown>>
-  >;
+}
+
+async function fetchEventDefs(
+  id: string,
+): Promise<Record<string, { source?: string; handler?: string }>> {
+  try {
+    const res = await fetch(`/api/extensions/${id}/manifest.json`);
+    if (res.ok) {
+      const manifest = await res.json();
+      return (
+        manifest?.eventDefinitions as Record<string, { source?: string; handler?: string }>
+      ) || {};
+    }
+  } catch {
+    /* ignore */
+  }
+  return {};
+}
+
+async function getEventDefs(
+  id: string,
+): Promise<Record<string, { source?: string; handler?: string }>> {
+  const host = globalThis as TakosGlobals;
+  host.__takosEventDefs = host.__takosEventDefs || {};
+  if (!host.__takosEventDefs[id]) {
+    host.__takosEventDefs[id] = await fetchEventDefs(id);
+  }
+  return host.__takosEventDefs[id];
 }
 
 export function createTakos(identifier: string) {
@@ -311,103 +334,49 @@ export function createTakos(identifier: string) {
         }
       });
 
-      // イベント定義の取得
-      const g = globalThis as TakosGlobals;
-      let defs = g.__takosEventDefs?.[identifier] as
-        | Record<string, { source?: string; handler?: string }>
-        | undefined;
-      if (!defs) {
-        try {
-          const w = await loadExtensionWorker(identifier, takos);
-          await w.ready;
-          defs = g.__takosEventDefs?.[identifier];
-        } catch {
-          /* ignore */
-        }
-      }
-      const def = defs?.[name];
+      const defs = await getEventDefs(identifier);
+      const def = defs[name];
 
-      // サーバー専用イベントの場合はサーバーで実行
-      if (def?.source === "server") {
-        try {
-          let raw;
-          if (window.__TAURI__) {
-            raw = await window.__TAURI__.invoke("invoke_extension_event", {
-              identifier,
-              fnName: name,
-              args: [payload],
-            });
-          } else {
-            raw = await call("extensions:invoke", {
-              id: identifier,
-              fn: name,
-              args: [payload],
-              options,
-            });
-          }
-          return unwrapResult(raw);
-        } catch (serverErr) {
-          console.error(`[Client] Server execution failed for ${name}:`, serverErr);
-          return {
-            success: false,
-            error: serverErr instanceof Error ? serverErr.message : String(serverErr),
-            timestamp: new Date().toISOString()
-          };
-        }
-      }
+      const shouldUseServer = def?.source === "server" || !window.__TAURI__;
 
-      // Service Workerでの実行を優先
-      try {
-        const w = await loadExtensionWorker(identifier, takos);
-        const result = await w.callEvent(name, payload);
-        
-        // 定義されたイベントまたは結果がundefinedでない場合はService Workerの結果を返す
-        if (def || result !== undefined) {
-          return result;
-        }
-      } catch (workerErr) {
-        console.warn(`[Client] Service Worker execution failed for ${name}:`, workerErr);
-        
-        // 定義されたイベントの場合はエラーを返す
-        if (def) {
-          return {
-            success: false,
-            error: workerErr instanceof Error ? workerErr.message : String(workerErr),
-            timestamp: new Date().toISOString()
-          };
-        }
-      }
-
-      // 定義されていないイベントの場合のみサーバーにフォールバック
-      if (!def) {
+      if (!shouldUseServer) {
         try {
-          const raw = await call("extensions:invoke", {
-            id: identifier,
-            fn: name,
+          const raw = await window.__TAURI__.invoke("invoke_extension_event", {
+            identifier,
+            fnName: name,
             args: [payload],
-            options,
           });
           return unwrapResult(raw);
-        } catch (serverErr) {
-          console.error(`[Client] Server execution failed for ${name}:`, serverErr);
-          if (
-            serverErr instanceof Error && serverErr.message.includes("function not found")
-          ) {
-            return {
-              success: false,
-              error: `Function '${name}' not found in extension '${identifier}'`,
-              timestamp: new Date().toISOString()
-            };
-          }
+        } catch (err) {
+          console.warn(`[Client] Deno runtime failed for ${name}:`, err);
+        }
+      }
+
+      try {
+        const raw = await call("extensions:invoke", {
+          id: identifier,
+          fn: name,
+          args: [payload],
+          options,
+        });
+        return unwrapResult(raw);
+      } catch (serverErr) {
+        console.error(`[Client] Server execution failed for ${name}:`, serverErr);
+        if (
+          serverErr instanceof Error && serverErr.message.includes("function not found")
+        ) {
           return {
             success: false,
-            error: serverErr instanceof Error ? serverErr.message : String(serverErr),
+            error: `Function '${name}' not found in extension '${identifier}'`,
             timestamp: new Date().toISOString()
           };
         }
+        return {
+          success: false,
+          error: serverErr instanceof Error ? serverErr.message : String(serverErr),
+          timestamp: new Date().toISOString()
+        };
       }
-      
-      return undefined;
     },
   };
 
@@ -448,102 +417,50 @@ export function createTakos(identifier: string) {
           }
         }
         
-        // イベント定義の取得
-        const g = globalThis as TakosGlobals;
-        let defs = g.__takosEventDefs?.[identifier] as
-          | Record<string, { source?: string; handler?: string }>
-          | undefined;
-        if (!defs) {
-          try {
-            const w = await loadExtensionWorker(identifier, takos);
-            await w.ready;
-            defs = g.__takosEventDefs?.[identifier];
-          } catch {
-            /* ignore */
-          }
-        }
-        const def = defs?.[name];
+        const defs = await getEventDefs(identifier);
+        const def = defs[name];
 
-        // サーバー専用イベントの場合はサーバーで実行
-        if (def?.source === "server") {
-          try {
-            let raw;
-            if (window.__TAURI__) {
-              raw = await window.__TAURI__.invoke("invoke_extension_event", {
-                identifier,
-                fnName: name,
-                args: [payload],
-              });
-            } else {
-              raw = await call("extensions:invoke", {
-                id: identifier,
-                fn: name,
-                args: [payload],
-                options,
-              });
-            }
-            return unwrapResult(raw);
-          } catch (serverErr) {
-            console.error(`[Client] Server execution failed for ${name}:`, serverErr);
-            return {
-              success: false,
-              error: serverErr instanceof Error ? serverErr.message : String(serverErr),
-              timestamp: new Date().toISOString()
-            };
-          }
-        }
+        const useServer = def?.source === "server" || !window.__TAURI__;
 
-        // Service Workerでの実行を優先
-        try {
-          const w = await loadExtensionWorker(identifier, takos);
-          const result = await w.callEvent(name, payload);
-          
-          // 定義されたイベントまたは結果がundefinedでない場合はService Workerの結果を返す
-          if (def || result !== undefined) {
-            return unwrapResult(result);
-          }
-        } catch (workerErr) {
-          console.warn(`[Client] Service Worker execution failed for ${name}:`, workerErr);
-          
-          // 定義されたイベントの場合はエラーを返す
-          if (def) {
-            return {
-              success: false,
-              error: workerErr instanceof Error ? workerErr.message : String(workerErr),
-              timestamp: new Date().toISOString()
-            };
-          }
-        }
-
-        // 定義されていないイベントの場合のみサーバーにフォールバック
-        if (!def) {
+        if (!useServer) {
           try {
-            const raw = await call("extensions:invoke", {
-              id: identifier,
-              fn: name,
+            const raw = await window.__TAURI__.invoke("invoke_extension_event", {
+              identifier,
+              fnName: name,
               args: [payload],
-              options,
             });
             return unwrapResult(raw);
-          } catch (serverErr) {
-            console.error(`[Client] Server execution failed for ${name}:`, serverErr);
-            if (
-              serverErr instanceof Error && serverErr.message.includes("function not found")
-            ) {
-              return {
-                success: false,
-                error: `Function '${name}' not found in extension '${identifier}'`,
-                timestamp: new Date().toISOString()
-              };
-            }
+          } catch (err) {
+            console.warn(`[Client] Deno runtime failed for ${name}:`, err);
+          }
+        }
+
+        try {
+          const raw = await call("extensions:invoke", {
+            id: identifier,
+            fn: name,
+            args: [payload],
+            options,
+          });
+          return unwrapResult(raw);
+        } catch (serverErr) {
+          console.error(`[Client] Server execution failed for ${name}:`, serverErr);
+          if (
+            serverErr instanceof Error && serverErr.message.includes("function not found")
+          ) {
             return {
               success: false,
-              error: serverErr instanceof Error ? serverErr.message : String(serverErr),
+              error: `Function '${name}' not found in extension '${identifier}'`,
               timestamp: new Date().toISOString()
             };
           }
+          return {
+            success: false,
+            error: serverErr instanceof Error ? serverErr.message : String(serverErr),
+            timestamp: new Date().toISOString()
+          };
         }
-        
+
         return undefined;
       },
     }),
@@ -638,9 +555,6 @@ export function createTakos(identifier: string) {
     changeURL,
   } as const;
 
-  if (typeof document !== "undefined") {
-    loadExtensionWorker(identifier, takos).catch(() => {});
-  }
 
   if (typeof window !== "undefined" && window.__TAURI__) {
     console.log("Takos is running in Tauri environment.");

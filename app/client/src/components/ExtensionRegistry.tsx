@@ -1,5 +1,4 @@
 import { createSignal, For, onMount } from "solid-js";
-import { loadExtensionWorker } from "../extensionWorker.ts";
 import { createTakos } from "../takos.ts";
 
 interface PackageInfo {
@@ -64,8 +63,7 @@ export default function ExtensionRegistry(props: Props = {}) {
       );
       setInstalled(ids);
       for (const id of ids) {
-        const takos = createTakos(id);
-        loadExtensionWorker(id, takos).catch(() => {});
+        createTakos(id);
       }
     }
   };
@@ -83,8 +81,7 @@ export default function ExtensionRegistry(props: Props = {}) {
     });
     if (res.ok) {
       fetchInstalled();
-      const takos = createTakos(id);
-      loadExtensionWorker(id, takos).catch(() => {});
+      createTakos(id);
     }
   };
 

@@ -1,5 +1,5 @@
-use deno_core::{op2, type_error, Extension, JsRuntime, OpState, PollEventLoopOptions, RuntimeOptions};
-use deno_core::error::CoreError;
+use deno_core::{op2, Extension, JsRuntime, OpState, PollEventLoopOptions, RuntimeOptions};
+use deno_core::error::{CoreError, JsError};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -7,6 +7,21 @@ use std::rc::Rc;
 use std::thread;
 use tauri::{AppHandle, Emitter};
 use tokio::runtime::Builder;
+
+fn type_error(err: impl std::fmt::Display) -> CoreError {
+    CoreError::Js(JsError {
+        name: Some("TypeError".into()),
+        message: Some(err.to_string()),
+        stack: None,
+        cause: None,
+        exception_message: err.to_string(),
+        frames: vec![],
+        source_line: None,
+        source_line_frame_index: None,
+        aggregated: None,
+        additional_properties: vec![],
+    })
+}
 
 #[derive(Deserialize, Debug)]
 struct TakosExtensionInfo {
