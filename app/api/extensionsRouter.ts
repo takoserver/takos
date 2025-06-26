@@ -187,20 +187,5 @@ app.get("/api/extensions/:id/manifest.json", async (c) => {
   return c.json(ext.manifest);
 });
 
-app.get("/api/extensions/:id/sw.js", async (c) => {
-  const id = c.req.param("id");
-  const ext = await Extension.findOne({ identifier: id });
-  if (!ext || !ext.client) return c.notFound();
-  const tpl = await Deno.readTextFile(
-    new URL("./sw_extension_template.js", import.meta.url),
-  );
-  const code = tpl.replace(
-    "__CLIENT_PATH__",
-    `/api/extensions/${id}/client.js`,
-  );
-  c.header("Content-Type", "application/javascript; charset=utf-8");
-  c.header("Cache-Control", "no-store");
-  return c.body(code);
-});
 
 export default app;
