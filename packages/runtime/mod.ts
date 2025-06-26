@@ -763,7 +763,7 @@ export class TakoPack {
           pack.clientCode,
           this.clientTakos,
           perms,
-          false,
+          true,
           CLIENT_TAKOS_PATHS,
         );
       }
