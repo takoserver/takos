@@ -4,6 +4,11 @@ import type { Env } from "./index.ts";
 
 const app = new Hono<{ Bindings: Env }>();
 
+app.get("/api/extensions", async (c) => {
+  const extensions = await Extension.find().select("identifier client");
+  return c.json(extensions.map(e => ({ identifier: e.identifier, client: e.client })));
+});
+
 app.get("/api/extensions/:id/ui", async (c) => {
   const id = c.req.param("id");
   const ext = await Extension.findOne({ identifier: id });

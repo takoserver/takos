@@ -1,30 +1,7 @@
-# Vite + Deno + Solid + TypeScript
+# Tauri + Solid + Typescript
 
-## Running
+This template should help get you started developing with Tauri, Solid and Typescript in Vite.
 
-You need to have Deno v1.28.0 or later installed to run this repo.
+## Recommended IDE Setup
 
-Start a dev server:
-
-```
-$ deno task dev
-```
-
-## Deploy
-
-Build production assets:
-
-```
-$ deno task build
-```
-
-## Notes
-
-- You need to use `.mjs` or `.mts` extension for the `vite.config.[ext]` file.
-
-## Papercuts
-
-Currently there's a "papercut" for Deno users:
-
-- peer dependencies need to be referenced in `vite.config.js` - in this example
-  it is only `solid-js` package that needs to be referenced
+- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)

@@ -2,7 +2,8 @@
   "version": "5",
   "specifiers": {
     "jsr:@std/bytes@^1.0.6": "1.0.6",
-    "jsr:@std/streams@^1.0.10": "1.0.10"
+    "jsr:@std/streams@^1.0.10": "1.0.10",
+    "npm:create-tauri-app@*": "4.5.9"
   },
   "jsr": {
     "@std/bytes@1.0.6": {
@@ -13,6 +14,79 @@
       "dependencies": [
         "jsr:@std/bytes"
       ]
+    }
+  },
+  "npm": {
+    "create-tauri-app-darwin-arm64@4.5.9": {
+      "integrity": "sha512-nbNMOmdW80ZroxBY6JXvwQK40xDcl+7UTr/EPrExEL5anq++T+pluobesqSoeLgqddMEeQv+jExfpcZuBXwJGQ==",
+      "os": ["darwin"],
+      "cpu": ["arm64"]
+    },
+    "create-tauri-app-darwin-universal@4.5.9": {
+      "integrity": "sha512-6AE2xZIxTXjcO9QVdApBPGmjdGNuAo3bpNJbfEI90yKMXwMRDTtmpXJlZMtPaWSfhaBDJNARdVoPWp3xn8iw9Q==",
+      "os": ["darwin"]
+    },
+    "create-tauri-app-darwin-x64@4.5.9": {
+      "integrity": "sha512-f8PWuKqNuVpMfk9/y+iruYmhF0aquL5HjwZ3ew3JJlg5bhGcm7XSMVirUjEYEuBFhT2CQhp/TG3KcUDbRJF6Dg==",
+      "os": ["darwin"],
+      "cpu": ["x64"]
+    },
+    "create-tauri-app-linux-arm-gnueabihf@4.5.9": {
+      "integrity": "sha512-tcetNWJQEFd+8GhBbdVeTQF2fRvOxoBU1hB+uKlX7yyS90W595OzbZJRYb9DyIXYxl2kEx1gOpFKmRYNUomuDg==",
+      "os": ["linux"],
+      "cpu": ["arm"]
+    },
+    "create-tauri-app-linux-arm64-gnu@4.5.9": {
+      "integrity": "sha512-uCT4piLtHXeo2U2Z1lDRpUMIvjZFElDFx4kyPt01lY/i7NdD9lYINd/4H1ikyzQ9iyof75uUlMXzTb37yfxK8A==",
+      "os": ["linux"],
+      "cpu": ["arm64"]
+    },
+    "create-tauri-app-linux-arm64-musl@4.5.9": {
+      "integrity": "sha512-zG4RE0MHzDBDe5LY0JmjHAGCIcy41fP1VM6V+Hqs8LLVp4sVv9fe8xqSnk+qfp8F71N0O0MquL0tQomnaztx1g==",
+      "os": ["linux"],
+      "cpu": ["arm64"]
+    },
+    "create-tauri-app-linux-x64-gnu@4.5.9": {
+      "integrity": "sha512-AoTP9Lm40dt/plq6HrvCvo+mV/a6+CRoDUwVvIBx72HyyVA5pP10iYe4so7T2sVg5LaDDM6ZxaS525b109YsWA==",
+      "os": ["linux"],
+      "cpu": ["x64"]
+    },
+    "create-tauri-app-linux-x64-musl@4.5.9": {
+      "integrity": "sha512-5aDuvIEaj0e1ppY3xCCaZIB6sWe9UrLL3EZ3xDaeFt6tq3lZd3/TcA4eDWZQbNKbBHmQ9NcxpcUTZR3swSljKg==",
+      "os": ["linux"],
+      "cpu": ["x64"]
+    },
+    "create-tauri-app-win32-arm64-msvc@4.5.9": {
+      "integrity": "sha512-YsA6188JUeiUI27rvUl0Gi9I2MJjYtWAi90oTXOgeO/T9xW/5qcsQk3eC1IW3H6HymI/bzhhsil4DDJ5qfqT+Q==",
+      "os": ["win32"],
+      "cpu": ["arm64"]
+    },
+    "create-tauri-app-win32-ia32-msvc@4.5.9": {
+      "integrity": "sha512-MKtDqpGCu+KB0s7UJ5KUiEIKY3Ulqf31JMxn1gX/h3t4EExXH0agm+VQi54xjx9cUvOFIllllPyFzfRKMqAM+Q==",
+      "os": ["win32"],
+      "cpu": ["ia32"]
+    },
+    "create-tauri-app-win32-x64-msvc@4.5.9": {
+      "integrity": "sha512-HUgOJ6NXaGsVNsjJdvJEI4cDVYdQ9/JDW8kyIJ6y4KI7zu4P2XfQUUry0bdpkKul3xUhx+/lSH8qjWEO+8kXWg==",
+      "os": ["win32"],
+      "cpu": ["x64"]
+    },
+    "create-tauri-app@4.5.9": {
+      "integrity": "sha512-ds21hIV/bNqHf/Il1u+gxpDFwJJgyec2c7OPLuQV5KmdmwRU7q/vLe9darLiLDitI8hGvl4KQ34oD+by0nbrMg==",
+      "optionalDependencies": [
+        "create-tauri-app-darwin-arm64",
+        "create-tauri-app-darwin-universal",
+        "create-tauri-app-darwin-x64",
+        "create-tauri-app-linux-arm-gnueabihf",
+        "create-tauri-app-linux-arm64-gnu",
+        "create-tauri-app-linux-arm64-musl",
+        "create-tauri-app-linux-x64-gnu",
+        "create-tauri-app-linux-x64-musl",
+        "create-tauri-app-win32-arm64-msvc",
+        "create-tauri-app-win32-ia32-msvc",
+        "create-tauri-app-win32-x64-msvc"
+      ],
+      "bin": true
     }
   },
   "remote": {
