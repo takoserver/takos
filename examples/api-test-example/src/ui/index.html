@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API Test Example</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        button { margin-right: 8px; }
+        pre { background: #eee; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Takos API Test Example</h1>
+    <div>
+        <button onclick="callPing()">Ping Server</button>
+        <button onclick="writeKV()">Write KV</button>
+        <button onclick="readKV()">Read KV</button>
+        <button onclick="sendActivity()">Send Activity</button>
+    </div>
+    <pre id="output">Ready...</pre>
+    <script>
+        // deno-lint-ignore-file no-explicit-any
+        const { takos } = globalThis;
+        const output = document.getElementById('output');
+
+        function log(msg) {
+            output.textContent += "\n" + msg;
+        }
+
+        async function callPing() {
+            const res = await takos.extensions.invoke('jp.takos.api-test-example', 'ping', ['hello']);
+            log(JSON.stringify(res));
+        }
+
+        async function writeKV() {
+            await takos.extensions.invoke('jp.takos.api-test-example', 'saveKV', ['demo', { time: Date.now() }]);
+            log('KV written');
+        }
+
+        async function readKV() {
+            const val = await takos.extensions.invoke('jp.takos.api-test-example', 'readKV', ['demo']);
+            log('KV value: ' + JSON.stringify(val));
+        }
+
+        async function sendActivity() {
+            await takos.extensions.invoke('jp.takos.api-test-example', 'sendActivity', ['Hello ActivityPub']);
+            log('Activity sent');
+        }
+    </script>
+</body>
+</html>
