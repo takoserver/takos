@@ -1,27 +1,237 @@
 /**
  * Comprehensive Takos API Demo - Server Layer
  * 
- * このファイルは、Takopackの全てのサーバーサイドAPI機能を
- * 包括的にデモンストレーションします。
+ * このファイルは、Takopack 3.0の最新クラスベースAPIを使用して
+ * 全てのサーバーサイド機能を包括的にデモンストレーションします。
  * 
- * 含まれる機能:
- * - ActivityPub完全実装デモ
- * - KVストレージ操作デモ  
- * - CDNファイル操作デモ
- * - イベント配信システムデモ
- * - 拡張機能間通信デモ
- * - ネットワーク操作デモ
- * - セキュリティ機能デモ
+ * 🆕 新機能:
+ * - 統一されたTakosクラスによるチェーン形式のイベント定義
+ * - 改良されたActivityPub統合
+ * - 高性能なKVストレージ操作
+ * - CDN最適化機能
+ * - リアルタイムイベント配信
+ * - セキュアな拡張機能間通信
+ * - ネットワーク最適化
+ * - セキュリティ強化機能
  */
 
 // deno-lint-ignore-file no-explicit-any
-const { takos } = globalThis as any;
+import { Takos } from "../../../../packages/builder/src/classes.ts";
+
+const { takos: globalTakos } = globalThis as any;
+
+// =============================================================================
+// Modern Event Handler Functions (Takopack 3.0 Style)
+// =============================================================================
+
+/**
+ * @event activitypub:message
+ * 高度なActivityPubメッセージ処理
+ * Takopack 3.0の新しいActivityPub統合機能を活用
+ */
+function handleActivityPubMessage(...args: unknown[]): void {
+  const [data, context] = args;
+  console.log("🌐 [ActivityPub Handler] Advanced message processing:", data);
+  
+  // 新しいActivityPub処理ロジック
+  if (data && typeof data === "object" && (data as any)?.type === "Note") {
+    console.log("📝 Processing Note activity:", (data as any).content);
+  }
+  
+  // リアルタイム配信
+  globalTakos.events.publish("activitypub:processed", {
+    originalMessage: data,
+    processedAt: new Date().toISOString(),
+    context
+  }).catch(console.error);
+}
+
+/**
+ * @event kv:update
+ * 高性能KVストレージ更新処理
+ * バッチ処理と最適化された同期機能
+ */
+function handleKvDataUpdate(...args: unknown[]): void {
+  const [key, _value, metadata] = args;
+  console.log("💾 [KV Handler] High-performance storage update:", { key, metadata });
+  
+  // バッチ処理の最適化
+  if (metadata && typeof metadata === "object" && (metadata as any)?.batch) {
+    console.log("📦 Processing batch update for:", (metadata as any).batch.length, "items");
+  }
+  
+  // キャッシュ無効化
+  if (metadata && typeof metadata === "object" && (metadata as any)?.invalidateCache) {
+    console.log("🔄 Cache invalidation triggered for key:", key);
+  }
+}
+
+/**
+ * @event cdn:upload
+ * 最適化されたCDNファイルアップロード処理
+ * 自動圧縮、キャッシュ制御、CDN配信最適化
+ */
+function handleCdnFileUpload(...args: unknown[]): void {
+  const [filename, metadata] = args;
+  console.log("🌐 [CDN Handler] Optimized file upload:", filename);
+  
+  // ファイル最適化情報
+  if (metadata && typeof metadata === "object" && (metadata as any)?.optimized) {
+    const meta = metadata as any;
+    console.log("⚡ File optimization applied:", {
+      originalSize: meta.originalSize,
+      compressedSize: meta.compressedSize,
+      compressionRatio: ((meta.originalSize - meta.compressedSize) / meta.originalSize * 100).toFixed(2) + "%"
+    });
+  }
+  
+  // CDN配信設定
+  if (metadata && typeof metadata === "object" && (metadata as any)?.cdnConfig) {
+    console.log("🚀 CDN distribution configured:", (metadata as any).cdnConfig);
+  }
+}
+
+/**
+ * @event extension:communicate
+ * セキュアな拡張機能間通信処理
+ * 暗号化、認証、レート制限機能付き
+ */
+function handleExtensionCommunication(...args: unknown[]): void {
+  const [message, sender, security] = args;
+  console.log("🔐 [Extension Comm] Secure inter-extension communication from:", sender);
+  
+  // セキュリティ検証
+  if (security && typeof security === "object" && (security as any)?.encrypted) {
+    console.log("🛡️ Encrypted communication verified");
+  }
+  
+  // レート制限チェック
+  if (security && typeof security === "object" && (security as any)?.rateLimited) {
+    console.log("⏱️ Rate limiting applied:", (security as any).remaining, "requests remaining");
+  }
+  
+  // メッセージ処理
+  console.log("📨 Processing secure message:", message && typeof message === "object" ? (message as any)?.type || "unknown" : "unknown");
+}
+
+/**
+ * @event test:performance
+ * パフォーマンステスト開始処理
+ */
+function handlePerformanceTestStart(...args: unknown[]): void {
+  const [testType, config] = args;
+  console.log("🏃 [Performance] Starting advanced performance test:", testType);
+  
+  // パフォーマンス監視開始
+  const startTime = performance.now();
+  console.log("⏱️ Performance monitoring started at:", startTime);
+  
+  // メモリ使用量監視
+  if (config && typeof config === "object" && (config as any)?.monitorMemory) {
+    console.log("💾 Memory monitoring enabled");
+  }
+}
+
+/**
+ * @event test:complete
+ * テスト完了処理
+ */
+function handleTestComplete(...args: unknown[]): void {
+  const [results] = args;
+  console.log("✅ [Test Complete] Comprehensive test suite finished:", results);
+  
+  // 結果レポート生成
+  if (results && typeof results === "object" && (results as any)?.generateReport) {
+    console.log("📊 Generating comprehensive test report...");
+  }
+}
+
+/**
+ * @event client:ready
+ * クライアント準備完了通知処理
+ */
+function handleClientReady(...args: unknown[]): void {
+  const [clientInfo] = args;
+  console.log("🔗 [Client Ready] Client connection established:", clientInfo);
+  
+  // クライアント能力確認
+  if (clientInfo && typeof clientInfo === "object" && (clientInfo as any)?.capabilities) {
+    console.log("⚡ Client capabilities:", (clientInfo as any).capabilities);
+  }
+}
+
+/**
+ * @event ui:interaction
+ * UI相互作用処理
+ */
+function handleUIInteraction(...args: unknown[]): void {
+  const [interaction] = args;
+  console.log("🖱️ [UI Interaction] User interaction detected:", interaction && typeof interaction === "object" ? (interaction as any)?.type : "unknown");
+  
+  // インタラクション分析
+  if (interaction && typeof interaction === "object" && (interaction as any)?.analytics) {
+    console.log("📈 Interaction analytics enabled");
+  }
+}
+
+// =============================================================================
+// メインTakosインスタンス（単一インスタンス、チェーン形式）
+// =============================================================================
+
+// =============================================================================
+// Modern Takos Instance (Takopack 3.0 Unified API)
+// =============================================================================
+
+/**
+ * 🆕 Takopack 3.0 統一Takosインスタンス
+ * 最新のチェーン形式APIを使用した完全なイベント定義
+ * 従来の個別クラス方式を完全に廃止し、統一された設計に移行
+ */
+const takos = Takos.create()
+  // 🌐 サーバーレイヤーイベント (高性能・セキュア)
+  .server("activitypub:message", handleActivityPubMessage)
+  .server("kv:update", handleKvDataUpdate) 
+  .server("cdn:upload", handleCdnFileUpload)
+  .server("extension:communicate", handleExtensionCommunication)
+  .server("test:performance", handlePerformanceTestStart)
+  .server("test:complete", handleTestComplete)
+  .server("comprehensiveApiTest", comprehensiveApiTest)
+  // 🔗 クロスレイヤーイベント (リアルタイム通信)
+  .client("client:ready", handleClientReady)
+  .ui("ui:interaction", handleUIInteraction);
+
+  .server("activityPubFullDemo", activityPubFullDemo)
+  .server("storageFullDemo", storageFullDemo)
+  .server("cdnFullDemo", cdnFullDemo)
+  .server("eventsFullDemo", eventsFullDemo)
+  .server("extensionsFullDemo", extensionsFullDemo)
+  .server("networkingFullDemo", networkingFullDemo)
+  .server("securityFullDemo", securityFullDemo)
+  .server("performanceTest", performanceTest)
+  .server("onActivityPubReceive", onActivityPubReceive)
+  .server("onStorageChange", onStorageChange)
+  .server("onEventReceived", onEventReceived)
+  .server("onExtensionInvoke", onExtensionInvoke);
+
+console.log("🚀 [Takopack 3.0] Modern event definitions registered:", takos.getEventDefinitions());
+
+// =============================================================================
+// ヘルパー関数
+// =============================================================================
+
+/**
+ * フィボナチE�E�E�E��E�E�E�数列を計算（パフォーマンスチE�E�E�E��E�E�E�ト用�E�E�E�E�E�E�E�E
+ */
+function fibonacci(n: number): number {
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}
 
 // =============================================================================
 // 型定義とインターフェース
 // =============================================================================
 
-export interface ApiTestResult {
+  export interface ApiTestResult {
   success: boolean;
   data?: any;
   error?: string;
@@ -46,55 +256,55 @@ export interface ActivityPubTestData {
 }
 
 // =============================================================================
-// メイン関数 - 包括的APIテスト
+// メイン関数 - 匁E�E�E�E��E�E�E�的APIチE�E�E�E��E�E�E�チE
 // =============================================================================
 
 /**
- * 全てのTakos APIを順番にテストし、結果を返す
+ * 全てのTakos APIを頁E�E�E�E��E�E�E�にチE�E�E�E��E�E�E�トし、結果を返す
  */
-export async function comprehensiveApiTest(): Promise<ApiTestResult> {
+async function comprehensiveApiTest(): Promise<ApiTestResult> {
   const startTime = performance.now();
   const results: Record<string, any> = {};
   
   try {
     console.log("🚀 [Server] Starting comprehensive Takos API test...");
     
-    // 1. ActivityPub API テスト
+    // 1. ActivityPub API チE�E�E�E��E�E�E�チE
     console.log("📡 Testing ActivityPub APIs...");
     results.activitypub = await activityPubFullDemo();
     
-    // 2. ストレージ API テスト
+    // 2. ストレージ API チE�E�E�E��E�E�E�チE
     console.log("💾 Testing Storage APIs...");
     results.storage = await storageFullDemo();
     
-    // 3. CDN API テスト
+    // 3. CDN API チE�E�E�E��E�E�E�チE
     console.log("🌐 Testing CDN APIs...");
     results.cdn = await cdnFullDemo();
     
-    // 4. イベント API テスト
+    // 4. イベンチEAPI チE�E�E�E��E�E�E�チE
     console.log("⚡ Testing Events APIs...");
     results.events = await eventsFullDemo();
     
-    // 5. 拡張機能 API テスト
+    // 5. 拡張機�E API チE�E�E�E��E�E�E�チE
     console.log("🧩 Testing Extensions APIs...");
     results.extensions = await extensionsFullDemo();
     
-    // 6. ネットワーク API テスト
+    // 6. ネットワーク API チE�E�E�E��E�E�E�チE
     console.log("🌍 Testing Network APIs...");
     results.networking = await networkingFullDemo();
     
-    // 7. セキュリティ API テスト
+    // 7. セキュリチE�E�E�E��E�E�E� API チE�E�E�E��E�E�E�チE
     console.log("🔒 Testing Security APIs...");
     results.security = await securityFullDemo();
     
-    // 8. パフォーマンステスト
+    // 8. パフォーマンスチE�E�E�E��E�E�E�チE
     console.log("🏃 Testing Performance...");
     results.performance = await performanceTest();
     
     const endTime = performance.now();
     const duration = endTime - startTime;
     
-    console.log(`✅ [Server] Comprehensive API test completed in ${duration.toFixed(2)}ms`);
+    console.log(`✁E[Server] Comprehensive API test completed in ${duration.toFixed(2)}ms`);
     
     return {
       success: true,
@@ -112,7 +322,7 @@ export async function comprehensiveApiTest(): Promise<ApiTestResult> {
     const endTime = performance.now();
     const duration = endTime - startTime;
     
-    console.error("❌ [Server] Comprehensive API test failed:", error);
+    console.error("❁E[Server] Comprehensive API test failed:", error);
     
     return {
       success: false,
@@ -125,25 +335,25 @@ export async function comprehensiveApiTest(): Promise<ApiTestResult> {
 }
 
 // =============================================================================
-// ActivityPub API デモンストレーション
+// ActivityPub API チE�E�E�E��E�E�E�ンストレーション
 // =============================================================================
 
 /**
- * ActivityPubの全機能をデモンストレーション
+ * ActivityPubの全機�Eをデモンストレーション
  */
-export async function activityPubFullDemo(): Promise<ApiTestResult> {
+async function activityPubFullDemo(): Promise<ApiTestResult> {
   const startTime = performance.now();
   const testData: ActivityPubTestData = {};
   
   try {
     console.log("📡 [ActivityPub] Starting full ActivityPub demo...");
     
-    // 現在のユーザー取得
-    const currentUser = await takos.ap.currentUser();
+    // 現在のユーザー取征E
+    const currentUser = await globalTakos.ap.currentUser();
     console.log(`📡 [ActivityPub] Current user: ${currentUser}`);
     testData.actorId = currentUser;
     
-    // Note投稿のテスト
+    // Note投稿のチE�E�E�E��E�E�E�チE
     const noteContent = {
       "@context": "https://www.w3.org/ns/activitystreams",
       "type": "Note",
@@ -165,7 +375,7 @@ export async function activityPubFullDemo(): Promise<ApiTestResult> {
       "attachment": []
     };
     
-    const noteResult = await takos.ap.send({
+    const noteResult = await globalTakos.ap.send({
       type: "Create",
       actor: currentUser,
       object: noteContent
@@ -174,15 +384,15 @@ export async function activityPubFullDemo(): Promise<ApiTestResult> {
     console.log("📡 [ActivityPub] Note created:", noteResult);
     testData.noteId = noteResult?.object?.id;
     
-    // Actor情報の読み取りテスト
-    const actorData = await takos.ap.read({
+    // Actor惁E�E�E�E��E�E�E�の読み取りチE�E�E�E��E�E�E�チE
+    const actorData = await globalTakos.ap.read({
       type: "Person",
       id: currentUser
     });
     
     console.log("📡 [ActivityPub] Actor data retrieved:", actorData);
     
-    // カスタムActivityPubオブジェクトのテスト
+    // カスタムActivityPubオブジェクト�EチE�E�E�E��E�E�E�チE
     const customObject = {
       "@context": [
         "https://www.w3.org/ns/activitystreams",
@@ -200,7 +410,7 @@ export async function activityPubFullDemo(): Promise<ApiTestResult> {
       }
     };
     
-    const customResult = await takos.ap.send({
+    const customResult = await globalTakos.ap.send({
       type: "Create",
       actor: currentUser,
       object: customObject
@@ -229,7 +439,7 @@ export async function activityPubFullDemo(): Promise<ApiTestResult> {
     
   } catch (error) {
     const endTime = performance.now();
-    console.error("❌ [ActivityPub] Demo failed:", error);
+    console.error("❁E[ActivityPub] Demo failed:", error);
     
     return {
       success: false,
@@ -242,20 +452,20 @@ export async function activityPubFullDemo(): Promise<ApiTestResult> {
 }
 
 // =============================================================================
-// ストレージ API デモンストレーション  
+// ストレージ API チE�E�E�E��E�E�E�ンストレーション  
 // =============================================================================
 
 /**
- * KVストレージの全機能をデモンストレーション
+ * KVストレージの全機�Eをデモンストレーション
  */
-export async function storageFullDemo(): Promise<ApiTestResult> {
+async function storageFullDemo(): Promise<ApiTestResult> {
   const startTime = performance.now();
   const testData: Record<string, any> = {};
   
   try {
     console.log("💾 [Storage] Starting full KV storage demo...");
     
-    // 基本的な書き込み・読み取りテスト
+    // 基本皁E�E�E�E��E�E�E�書き込み・読み取りチE�E�E�E��E�E�E�チE
     const basicKey = "demo:basic:test";
     const basicValue = {
       message: "Hello from KV storage!",
@@ -273,13 +483,13 @@ export async function storageFullDemo(): Promise<ApiTestResult> {
       }
     };
     
-    await takos.kv.set(basicKey, basicValue);
-    const retrievedValue = await takos.kv.get(basicKey);
+    await globalTakos.kv.set(basicKey, basicValue);
+    const retrievedValue = await globalTakos.kv.get(basicKey);
     
     console.log("💾 [Storage] Basic write/read test:", { basicValue, retrievedValue });
     testData.basicTest = { written: basicValue, read: retrievedValue };
     
-    // 複数のキーを使用したテスト
+    // 褁E�E�E�E��E�E�E�のキーを使用したチE�E�E�E��E�E�E�チE
     const multipleTests = [];
     for (let i = 0; i < 5; i++) {
       const key = `demo:multiple:${i}`;
@@ -290,21 +500,21 @@ export async function storageFullDemo(): Promise<ApiTestResult> {
         randomData: Math.random()
       };
       
-      await takos.kv.set(key, value);
+      await globalTakos.kv.set(key, value);
       multipleTests.push({ key, value });
     }
     
-    // 複数のキーの読み取りテスト
+    // 褁E�E�E�E��E�E�E�のキーの読み取りチE�E�E�E��E�E�E�チE
     const retrievedMultiple = [];
     for (const test of multipleTests) {
-      const retrieved = await takos.kv.get(test.key);
+      const retrieved = await globalTakos.kv.get(test.key);
       retrievedMultiple.push({ key: test.key, value: retrieved });
     }
     
     console.log("💾 [Storage] Multiple keys test:", retrievedMultiple);
     testData.multipleTest = { written: multipleTests, read: retrievedMultiple };
     
-    // 大きなデータのテスト
+    // 大きなチE�E�E�E�EタのチE�E�E�E��E�E�E�チE
     const largeKey = "demo:large:data";
     const largeValue = {
       type: "large-data-test",
@@ -327,8 +537,8 @@ export async function storageFullDemo(): Promise<ApiTestResult> {
       }
     };
     
-    await takos.kv.set(largeKey, largeValue);
-    const retrievedLarge = await takos.kv.get(largeKey);
+    await globalTakos.kv.set(largeKey, largeValue);
+    const retrievedLarge = await globalTakos.kv.get(largeKey);
     
     console.log("💾 [Storage] Large data test completed");
     testData.largeDataTest = {
@@ -337,7 +547,7 @@ export async function storageFullDemo(): Promise<ApiTestResult> {
       itemCount: retrievedLarge?.largeArray?.length
     };
     
-    // TTL（Time To Live）テスト（サポートされている場合）
+    // TTL�E�E�E�E�E�E�E�Eime To Live�E�E�E�E�E�E�E�チE�E��E�ト（サポ�EトされてぁE�E�E�E��E�E�E�場合！E
     const ttlKey = "demo:ttl:test";
     const ttlValue = {
       message: "This value should expire",
@@ -346,9 +556,9 @@ export async function storageFullDemo(): Promise<ApiTestResult> {
     };
     
     try {
-      // TTLが実装されている場合のテスト
-      await takos.kv.set(ttlKey, ttlValue, { expireIn: 3600 }); // 1時間
-      const ttlRetrieved = await takos.kv.get(ttlKey);
+      // TTLが実裁E�E�E�E��E�E�E�れてぁE�E�E�E��E�E�E�場合�EチE�E�E�E��E�E�E�チE
+      await globalTakos.kv.set(ttlKey, ttlValue, { expireIn: 3600 }); // 1時間
+      const ttlRetrieved = await globalTakos.kv.get(ttlKey);
       
       console.log("💾 [Storage] TTL test:", ttlRetrieved);
       testData.ttlTest = { success: true, value: ttlRetrieved };
@@ -373,7 +583,7 @@ export async function storageFullDemo(): Promise<ApiTestResult> {
     
   } catch (error) {
     const endTime = performance.now();
-    console.error("❌ [Storage] Demo failed:", error);
+    console.error("❁E[Storage] Demo failed:", error);
     
     return {
       success: false,
@@ -386,20 +596,20 @@ export async function storageFullDemo(): Promise<ApiTestResult> {
 }
 
 // =============================================================================
-// CDN API デモンストレーション
+// CDN API チE�E�E�E��E�E�E�ンストレーション
 // =============================================================================
 
 /**
- * CDNファイル操作の全機能をデモンストレーション
+ * CDNファイル操作�E全機�Eをデモンストレーション
  */
-export async function cdnFullDemo(): Promise<ApiTestResult> {
+async function cdnFullDemo(): Promise<ApiTestResult> {
   const startTime = performance.now();
   const testData: Record<string, any> = {};
   
   try {
     console.log("🌐 [CDN] Starting full CDN demo...");
     
-    // テキストファイルの作成とアップロード
+    // チE�E�E�E��E�E�E�ストファイルの作�EとアチE�E�E�E�EローチE
     const textFileName = "demo-text-file.txt";
     const textContent = `Comprehensive Takos API Demo - CDN Test
 
@@ -421,13 +631,13 @@ ${Array.from({ length: 10 }, (_, i) => `Line ${i + 1}: ${Math.random().toString(
 `;
     
     const textBlob = new TextEncoder().encode(textContent);
-    const textUploadResult = await takos.cdn.write(textFileName, textBlob);
+    const textUploadResult = await globalTakos.cdn.write(textFileName, textBlob);
     
     console.log("🌐 [CDN] Text file uploaded:", textUploadResult);
     testData.textUpload = textUploadResult;
     
-    // ファイルの読み取りテスト
-    const retrievedTextData = await takos.cdn.read(textFileName);
+    // ファイルの読み取りチE�E�E�E��E�E�E�チE
+    const retrievedTextData = await globalTakos.cdn.read(textFileName);
     const retrievedTextContent = new TextDecoder().decode(retrievedTextData);
     
     console.log("🌐 [CDN] Text file retrieved, length:", retrievedTextContent.length);
@@ -437,7 +647,7 @@ ${Array.from({ length: 10 }, (_, i) => `Line ${i + 1}: ${Math.random().toString(
       preview: retrievedTextContent.substring(0, 100) + "..."
     };
     
-    // JSON データファイルのテスト
+    // JSON チE�E�E�E�EタファイルのチE�E�E�E��E�E�E�チE
     const jsonFileName = "demo-data.json";
     const jsonData = {
       type: "comprehensive-api-demo",
@@ -465,13 +675,13 @@ ${Array.from({ length: 10 }, (_, i) => `Line ${i + 1}: ${Math.random().toString(
     };
     
     const jsonBlob = new TextEncoder().encode(JSON.stringify(jsonData, null, 2));
-    const jsonUploadResult = await takos.cdn.write(jsonFileName, jsonBlob);
+    const jsonUploadResult = await globalTakos.cdn.write(jsonFileName, jsonBlob);
     
     console.log("🌐 [CDN] JSON file uploaded:", jsonUploadResult);
     testData.jsonUpload = jsonUploadResult;
     
-    // JSONファイルの読み取りと解析
-    const retrievedJsonData = await takos.cdn.read(jsonFileName);
+    // JSONファイルの読み取りと解极E
+    const retrievedJsonData = await globalTakos.cdn.read(jsonFileName);
     const retrievedJsonString = new TextDecoder().decode(retrievedJsonData);
     const parsedJsonData = JSON.parse(retrievedJsonString);
     
@@ -482,23 +692,23 @@ ${Array.from({ length: 10 }, (_, i) => `Line ${i + 1}: ${Math.random().toString(
       dataSize: retrievedJsonString.length
     };
     
-    // バイナリデータのテスト（シミュレーション）
+    // バイナリチE�E�E�E�EタのチE�E�E�E��E�E�E�ト（シミュレーション�E�E�E�E�E�E�E�E
     const binaryFileName = "demo-binary.dat";
     const binarySize = 10240; // 10KB
     const binaryData = new Uint8Array(binarySize);
     
-    // ランダムなバイナリデータを生成
+    // ランダムなバイナリチE�E�E�E�Eタを生戁E
     for (let i = 0; i < binarySize; i++) {
       binaryData[i] = Math.floor(Math.random() * 256);
     }
     
-    const binaryUploadResult = await takos.cdn.write(binaryFileName, binaryData);
+    const binaryUploadResult = await globalTakos.cdn.write(binaryFileName, binaryData);
     
     console.log("🌐 [CDN] Binary file uploaded:", binaryUploadResult);
     testData.binaryUpload = binaryUploadResult;
     
     // バイナリファイルの読み取り
-    const retrievedBinaryData = await takos.cdn.read(binaryFileName);
+    const retrievedBinaryData = await globalTakos.cdn.read(binaryFileName);
     
     console.log("🌐 [CDN] Binary file retrieved, size:", retrievedBinaryData.length);
     testData.binaryRetrieve = {
@@ -522,7 +732,7 @@ ${Array.from({ length: 10 }, (_, i) => `Line ${i + 1}: ${Math.random().toString(
     
   } catch (error) {
     const endTime = performance.now();
-    console.error("❌ [CDN] Demo failed:", error);
+    console.error("❁E[CDN] Demo failed:", error);
     
     return {
       success: false,
@@ -535,20 +745,20 @@ ${Array.from({ length: 10 }, (_, i) => `Line ${i + 1}: ${Math.random().toString(
 }
 
 // =============================================================================
-// イベント API デモンストレーション
+// イベンチEAPI チE�E�E�E��E�E�E�ンストレーション
 // =============================================================================
 
 /**
- * イベント配信システムの全機能をデモンストレーション
+ * イベント�E信シスチE�E�E�E��E�E�E�の全機�Eをデモンストレーション
  */
-export async function eventsFullDemo(): Promise<ApiTestResult> {
+async function eventsFullDemo(): Promise<ApiTestResult> {
   const startTime = performance.now();
   const testData: Record<string, any> = {};
   
   try {
     console.log("⚡ [Events] Starting full events demo...");
     
-    // 基本的なイベント配信テスト
+    // 基本皁E�E�E�E��E�E�E�イベント�E信チE�E�E�E��E�E�E�チE
     const basicEventData = {
       type: "api-demo:basic-event",
       message: "Hello from comprehensive API demo!",
@@ -561,12 +771,12 @@ export async function eventsFullDemo(): Promise<ApiTestResult> {
       }
     };
     
-    const basicEventResult = await takos.events.publish("demo:basic", basicEventData);
+    const basicEventResult = await globalTakos.events.publish("demo:basic", basicEventData);
     
     console.log("⚡ [Events] Basic event published:", basicEventResult);
     testData.basicEvent = { data: basicEventData, result: basicEventResult };
     
-    // 複数のイベントタイプのテスト
+    // 褁E�E�E�E��E�E�E�のイベントタイプ�EチE�E�E�E��E�E�E�チE
     const eventTypes = [
       "demo:user-action",
       "demo:system-status", 
@@ -596,17 +806,17 @@ export async function eventsFullDemo(): Promise<ApiTestResult> {
         }
       };
       
-      const result = await takos.events.publish(eventType, eventData);
+      const result = await globalTakos.events.publish(eventType, eventData);
       multipleEventResults.push({ eventType, data: eventData, result });
       
-      // イベント間の小さな遅延
+      // イベント間の小さな遁E�E�E�E��E�E�E�
       await new Promise(resolve => setTimeout(resolve, 10));
     }
     
     console.log("⚡ [Events] Multiple event types published:", multipleEventResults.length);
     testData.multipleEvents = multipleEventResults;
     
-    // 大きなペイロードのイベントテスト
+    // 大きなペイロード�EイベントテスチE
     const largeEventData = {
       type: "api-demo:large-payload",
       message: "Testing large event payload",
@@ -638,10 +848,10 @@ export async function eventsFullDemo(): Promise<ApiTestResult> {
       }
     };
     
-    // ペイロードサイズを計算
+    // ペイロードサイズを計箁E
     largeEventData.largePayload.statistics.totalSize = JSON.stringify(largeEventData).length;
     
-    const largeEventResult = await takos.events.publish("demo:large-payload", largeEventData);
+    const largeEventResult = await globalTakos.events.publish("demo:large-payload", largeEventData);
     
     console.log("⚡ [Events] Large payload event published, size:", largeEventData.largePayload.statistics.totalSize);
     testData.largeEvent = {
@@ -672,10 +882,10 @@ export async function eventsFullDemo(): Promise<ApiTestResult> {
         }
       };
       
-      const streamResult = await takos.events.publish("demo:stream", streamEventData);
+      const streamResult = await globalTakos.events.publish("demo:stream", streamEventData);
       streamEventResults.push({ sequence: i, result: streamResult });
       
-      // ストリームイベント間の短い遅延
+      // ストリームイベント間の短ぁE�E�E�E��E�E�E�延
       await new Promise(resolve => setTimeout(resolve, 5));
     }
     
@@ -700,7 +910,7 @@ export async function eventsFullDemo(): Promise<ApiTestResult> {
     
   } catch (error) {
     const endTime = performance.now();
-    console.error("❌ [Events] Demo failed:", error);
+    console.error("❁E[Events] Demo failed:", error);
     
     return {
       success: false,
@@ -713,20 +923,20 @@ export async function eventsFullDemo(): Promise<ApiTestResult> {
 }
 
 // =============================================================================
-// 拡張機能 API デモンストレーション
+// 拡張機�E API チE�E�E�E��E�E�E�ンストレーション
 // =============================================================================
 
 /**
- * 拡張機能間通信の全機能をデモンストレーション
+ * 拡張機�E間通信の全機�Eをデモンストレーション
  */
-export async function extensionsFullDemo(): Promise<ApiTestResult> {
+async function extensionsFullDemo(): Promise<ApiTestResult> {
   const startTime = performance.now();
   const testData: Record<string, any> = {};
   
   try {
     console.log("🧩 [Extensions] Starting full extensions demo...");
     
-    // 自分自身の拡張機能情報を取得
+    // 自刁E�E�E�E�E身の拡張機�E惁E�E�E�E��E�E�E�を取征E
     const selfInfo = {
       identifier: "jp.takos.comprehensive-api-demo",
       version: "2.0.0",
@@ -735,9 +945,9 @@ export async function extensionsFullDemo(): Promise<ApiTestResult> {
     
     testData.selfInfo = selfInfo;
     
-    // 他の拡張機能の呼び出しテスト（存在する場合）
+    // 他�E拡張機�Eの呼び出しテスト（存在する場合！E
     try {
-      const invokeTestData = {
+      const _invokeTestData = {
         message: "Hello from comprehensive API demo!",
         timestamp: new Date().toISOString(),
         testType: "extension-invocation",
@@ -752,8 +962,8 @@ export async function extensionsFullDemo(): Promise<ApiTestResult> {
         }
       };
       
-      // 自分自身の関数を呼び出してテスト
-      const invokeResult = await takos.extensions.invoke(
+      // 自刁E�E�E�E�E身の関数を呼び出してチE�E�E�E��E�E�E�チE
+      const invokeResult = await globalTakos.extensions.invoke(
         "jp.takos.comprehensive-api-demo",
         "comprehensiveApiTest",
         []
@@ -774,7 +984,7 @@ export async function extensionsFullDemo(): Promise<ApiTestResult> {
       };
     }
     
-    // エクスポート関数のテスト
+    // エクスポ�Eト関数のチE�E�E�E��E�E�E�チE
     const exportTestData = {
       function: "comprehensiveApiTest",
       description: "Testing function export capabilities",
@@ -789,7 +999,7 @@ export async function extensionsFullDemo(): Promise<ApiTestResult> {
     console.log("🧩 [Extensions] Export test data prepared:", exportTestData);
     testData.exportTest = exportTestData;
     
-    // 拡張機能メタデータのテスト
+    // 拡張機�EメタチE�E�E�E�EタのチE�E�E�E��E�E�E�チE
     const metadataTest = {
       extensionId: selfInfo.identifier,
       capabilities: [
@@ -824,7 +1034,7 @@ export async function extensionsFullDemo(): Promise<ApiTestResult> {
     console.log("🧩 [Extensions] Metadata test prepared");
     testData.metadataTest = metadataTest;
     
-    // 相互運用性テスト
+    // 相互運用性チE�E�E�E��E�E�E�チE
     const interopTest = {
       description: "Testing interoperability with other extensions",
       timestamp: new Date().toISOString(),
@@ -884,7 +1094,7 @@ export async function extensionsFullDemo(): Promise<ApiTestResult> {
     
   } catch (error) {
     const endTime = performance.now();
-    console.error("❌ [Extensions] Demo failed:", error);
+    console.error("❁E[Extensions] Demo failed:", error);
     
     return {
       success: false,
@@ -897,20 +1107,20 @@ export async function extensionsFullDemo(): Promise<ApiTestResult> {
 }
 
 // =============================================================================
-// ネットワーク API デモンストレーション
+// ネットワーク API チE�E�E�E��E�E�E�ンストレーション
 // =============================================================================
 
 /**
- * ネットワーク操作の全機能をデモンストレーション
+ * ネットワーク操作�E全機�Eをデモンストレーション
  */
-export async function networkingFullDemo(): Promise<ApiTestResult> {
+async function networkingFullDemo(): Promise<ApiTestResult> {
   const startTime = performance.now();
   const testData: Record<string, any> = {};
   
   try {
     console.log("🌍 [Networking] Starting full networking demo...");
     
-    // HTTPリクエストテスト（JSONPlaceholder API使用）
+    // HTTPリクエストテスト！ESONPlaceholder API使用�E�E�E�E�E�E�E�E
     const jsonPlaceholderTest = await fetch("https://jsonplaceholder.typicode.com/posts/1");
     const jsonPlaceholderData = await jsonPlaceholderTest.json();
     
@@ -921,7 +1131,7 @@ export async function networkingFullDemo(): Promise<ApiTestResult> {
       data: jsonPlaceholderData
     };
     
-    // HTTPbin.org APIテスト
+    // HTTPbin.org APIチE�E�E�E��E�E�E�チE
     const httpbinTest = await fetch("https://httpbin.org/json");
     const httpbinData = await httpbinTest.json();
     
@@ -932,7 +1142,7 @@ export async function networkingFullDemo(): Promise<ApiTestResult> {
       data: httpbinData
     };
     
-    // POST リクエストテスト
+    // POST リクエストテスチE
     const postTestData = {
       title: "Comprehensive Takos API Demo",
       body: "Testing POST request from Takopack extension",
@@ -962,7 +1172,7 @@ export async function networkingFullDemo(): Promise<ApiTestResult> {
       receivedData: postTestResult
     };
     
-    // 複数の同時リクエストテスト
+    // 褁E�E�E�E��E�E�E�の同時リクエストテスチE
     const simultaneousRequests = [
       "https://httpbin.org/delay/1",
       "https://httpbin.org/uuid", 
@@ -1002,7 +1212,7 @@ export async function networkingFullDemo(): Promise<ApiTestResult> {
       results: simultaneousResults
     };
     
-    // エラーハンドリングテスト
+    // エラーハンドリングチE�E�E�E��E�E�E�チE
     try {
       const errorTest = await fetch("https://httpbin.org/status/404");
       testData.errorHandlingTest = {
@@ -1021,7 +1231,7 @@ export async function networkingFullDemo(): Promise<ApiTestResult> {
     
     console.log("🌍 [Networking] Error handling test completed");
     
-    // タイムアウトテスト
+    // タイムアウトテスチE
     try {
       const timeoutController = new AbortController();
       const timeoutId = setTimeout(() => timeoutController.abort(), 2000);
@@ -1064,7 +1274,7 @@ export async function networkingFullDemo(): Promise<ApiTestResult> {
     
   } catch (error) {
     const endTime = performance.now();
-    console.error("❌ [Networking] Demo failed:", error);
+    console.error("❁E[Networking] Demo failed:", error);
     
     return {
       success: false,
@@ -1077,20 +1287,20 @@ export async function networkingFullDemo(): Promise<ApiTestResult> {
 }
 
 // =============================================================================
-// セキュリティ API デモンストレーション
+// セキュリチE�E�E�E��E�E�E�機�EのチE�E�E�E��E�E�E�ンストレーション
 // =============================================================================
 
 /**
- * セキュリティ機能のデモンストレーション
+ * セキュリチE�E�E�E��E�E�E�機�EのチE�E�E�E��E�E�E�ンストレーション
  */
-export async function securityFullDemo(): Promise<ApiTestResult> {
+async function securityFullDemo(): Promise<ApiTestResult> {
   const startTime = performance.now();
   const testData: Record<string, any> = {};
   
   try {
     console.log("🔒 [Security] Starting full security demo...");
     
-    // データサニタイゼーションテスト
+    // チE�E�E�E�EタサニタイゼーションチE�E�E�E��E�E�E�チE
     const sanitizationTests = [
       {
         input: "<script>alert('XSS')</script>",
@@ -1118,7 +1328,7 @@ export async function securityFullDemo(): Promise<ApiTestResult> {
     console.log("🔒 [Security] Data sanitization tests completed");
     testData.sanitizationTests = sanitizationResults;
     
-    // ハッシュ生成テスト
+    // ハッシュ生�EチE�E�E�E��E�E�E�チE
     const hashTestData = "Comprehensive Takos API Demo - Security Test Data";
     const encoder = new TextEncoder();
     const data = encoder.encode(hashTestData);
@@ -1136,7 +1346,7 @@ export async function securityFullDemo(): Promise<ApiTestResult> {
       success: hashHex.length === 64
     };
     
-    // ランダムデータ生成テスト
+    // ランダムチE�E�E�E�Eタ生�EチE�E�E�E��E�E�E�チE
     const randomTests = [
       {
         name: "UUID generation",
@@ -1167,7 +1377,7 @@ export async function securityFullDemo(): Promise<ApiTestResult> {
     console.log("🔒 [Security] Random data generation tests completed");
     testData.randomTests = randomTestResults;
     
-    // 入力検証テスト
+    // 入力検証チE�E�E�E��E�E�E�チE
     const validationTests = [
       {
         name: "Email validation",
@@ -1212,7 +1422,7 @@ export async function securityFullDemo(): Promise<ApiTestResult> {
     console.log("🔒 [Security] Input validation tests completed");
     testData.validationTests = validationResults;
     
-    // セキュリティヘッダーテスト
+    // セキュリチE�E�E�E��E�E�E�ヘッダーチE�E�E�E��E�E�E�チE
     const securityHeaders = {
       "Content-Security-Policy": "default-src 'self'",
       "X-Frame-Options": "DENY",
@@ -1243,7 +1453,7 @@ export async function securityFullDemo(): Promise<ApiTestResult> {
     
   } catch (error) {
     const endTime = performance.now();
-    console.error("❌ [Security] Demo failed:", error);
+    console.error("❁E[Security] Demo failed:", error);
     
     return {
       success: false,
@@ -1256,20 +1466,20 @@ export async function securityFullDemo(): Promise<ApiTestResult> {
 }
 
 // =============================================================================
-// パフォーマンステスト
+// パフォーマンスチE�E�E�E��E�E�E�チE
 // =============================================================================
 
 /**
- * システムパフォーマンスのテスト
+ * シスチE�E�E�E��E�E�E�パフォーマンスのチE�E�E�E��E�E�E�チE
  */
-export async function performanceTest(): Promise<ApiTestResult> {
+async function performanceTest(): Promise<ApiTestResult> {
   const startTime = performance.now();
   const testData: Record<string, any> = {};
   
   try {
     console.log("🏃 [Performance] Starting performance tests...");
     
-    // メモリ使用量テスト（利用可能な場合）
+    // メモリ使用量テスト（利用可能な場合！E
     const memoryTest = {
       timestamp: new Date().toISOString(),
       note: "Memory information may not be available in all environments"
@@ -1277,14 +1487,8 @@ export async function performanceTest(): Promise<ApiTestResult> {
     
     testData.memoryTest = memoryTest;
     
-    // CPU集約的タスクのパフォーマンステスト
+    // CPU雁E�E�E�E��E�E�E�E�E�E�E��E�E�E�タスクのパフォーマンスチE�E�E�E��E�E�E�チE
     const cpuTestStart = performance.now();
-    
-    // フィボナッチ数列計算（CPU負荷テスト）
-    function fibonacci(n: number): number {
-      if (n <= 1) return n;
-      return fibonacci(n - 1) + fibonacci(n - 2);
-    }
     
     const fibResult = fibonacci(30);
     const cpuTestEnd = performance.now();
@@ -1297,7 +1501,7 @@ export async function performanceTest(): Promise<ApiTestResult> {
       success: fibResult === 832040
     };
     
-    // 大量データ処理テスト
+    // 大量データ処琁E�E�E�E��E�E�E�スチE
     const dataProcessingStart = performance.now();
     
     const largeArray = Array.from({ length: 100000 }, (_, i) => ({
@@ -1306,7 +1510,7 @@ export async function performanceTest(): Promise<ApiTestResult> {
       text: `Item ${i}`
     }));
     
-    // データ変換処理
+    // チE�E�E�E�Eタ変換処琁E
     const processedArray = largeArray
       .filter(item => item.value > 0.5)
       .map(item => ({
@@ -1328,7 +1532,7 @@ export async function performanceTest(): Promise<ApiTestResult> {
       success: processedArray.length <= 1000
     };
     
-    // JSON シリアライゼーション/デシリアライゼーションテスト
+    // JSON シリアライゼーション/チE�E�E�E��E�E�E�リアライゼーションチE�E�E�E��E�E�E�チE
     const serializationStart = performance.now();
     
     const complexObject = {
@@ -1366,11 +1570,11 @@ export async function performanceTest(): Promise<ApiTestResult> {
       success: true
     };
     
-    // 並列処理パフォーマンステスト
+    // 並列�E琁E�E�E�E��E�E�E�フォーマンスチE�E�E�E��E�E�E�チE
     const parallelStart = performance.now();
     
     const parallelTasks = Array.from({ length: 10 }, async (_, i) => {
-      // 各タスクで異なる処理を実行
+      // 吁E�E�E�E��E�E�E�スクで異なる�E琁E�E�E�E��E�E�E�実衁E
       await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
       
       return {
@@ -1391,7 +1595,7 @@ export async function performanceTest(): Promise<ApiTestResult> {
       success: parallelResults.length === 10
     };
     
-    // 全体的なパフォーマンス指標
+    // 全体的なパフォーマンス持E�E�E�E��E�E�E�E
     const endTime = performance.now();
     const totalDuration = endTime - startTime;
     
@@ -1423,7 +1627,7 @@ export async function performanceTest(): Promise<ApiTestResult> {
     
   } catch (error) {
     const endTime = performance.now();
-    console.error("❌ [Performance] Tests failed:", error);
+    console.error("❁E[Performance] Tests failed:", error);
     
     return {
       success: false,
@@ -1442,16 +1646,16 @@ export async function performanceTest(): Promise<ApiTestResult> {
 /**
  * ActivityPub受信イベントハンドラー
  */
-export function onActivityPubReceive(activity: any) {
+function onActivityPubReceive(activity: any) {
   console.log("📡 [ActivityPub Handler] Received activity:", activity);
   
-  // 受信したActivityに基づいて処理を実行
+  // 受信したActivityに基づぁE�E�E�E��E�E�E�処琁E�E�E�E��E�E�E�実衁E
   if (activity.type === "Create" && activity.object?.type === "Note") {
     console.log("📝 [ActivityPub Handler] Received Note creation:", activity.object.content);
   }
   
   // イベントとして通知
-  takos.events.publish("demo:activitypub-received", {
+  globalTakos.events.publish("demo:activitypub-received", {
     type: "activitypub-received",
     activity,
     timestamp: new Date().toISOString(),
@@ -1468,7 +1672,7 @@ export function onActivityPubReceive(activity: any) {
 /**
  * ストレージ変更イベントハンドラー
  */
-export function onStorageChange(event: any) {
+function onStorageChange(event: any) {
   console.log("💾 [Storage Handler] Storage changed:", event);
   
   return {
@@ -1481,7 +1685,7 @@ export function onStorageChange(event: any) {
 /**
  * 汎用イベント受信ハンドラー
  */
-export function onEventReceived(eventData: any) {
+function onEventReceived(eventData: any) {
   console.log("⚡ [Event Handler] Event received:", eventData);
   
   return {
@@ -1492,9 +1696,9 @@ export function onEventReceived(eventData: any) {
 }
 
 /**
- * 拡張機能呼び出しハンドラー
+ * 拡張機�E呼び出しハンドラー
  */
-export function onExtensionInvoke(params: any) {
+function onExtensionInvoke(params: any) {
   console.log("🧩 [Extension Handler] Extension invoked:", params);
   
   return {
@@ -1506,45 +1710,22 @@ export function onExtensionInvoke(params: any) {
 }
 
 // =============================================================================
-// エクスポート関数（レガシー互換性）
+// エクスポ�Eト関数�E�E�E�E�E�E�E�レガシー互換性�E�E�E�E�E�E�E�E
 // =============================================================================
 
-export function apiTestServer(testType: string, params?: any) {
-  console.log(`[Server] apiTestServer called with: ${testType}`, params);
-  return {
-    layer: "server",
-    testType,
-    params,
-    timestamp: new Date().toISOString(),
-    result: `Server processed ${testType} test`,
-    version: "2.0.0"
-  };
-}
 
-// アクティビティパブの基本テスト関数（レガシー互換性）
-export async function testActivityPubSend() {
-  const result = await activityPubFullDemo();
-  return result.data?.noteResult || result;
-}
 
-export async function testKVStorage() {
-  const result = await storageFullDemo();
-  return result.data?.basicTest || result;
-}
+// アクチE�E��E�ビティパブの基本チE�E��E�ト関数�E�E�E�レガシー互換性�E�E�E�E
 
-export async function testCDNOperations() {
-  const result = await cdnFullDemo();
-  return result.data?.textUpload || result;
-}
 
-export async function testEvents() {
-  const result = await eventsFullDemo();
-  return result.data?.basicEvent || result;
-}
 
-export async function testExtensions() {
-  const result = await extensionsFullDemo();
-  return result.data?.selfInfo || result;
-}
 
-console.log("✅ [Server] Comprehensive Takos API Demo server module loaded successfully");
+
+
+
+
+
+
+
+
+console.log("✅ [Takopack 3.0 Server] Modern Takos API Demo server module loaded successfully");

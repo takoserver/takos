@@ -1,11 +1,63 @@
 import { defineConfig } from "../../packages/builder/mod.ts";
+import { Takos } from "../../packages/builder/src/classes.ts";
+
+// =============================================================================
+// Takopack 3.0 Modern Configuration Extension
+// =============================================================================
+
+/**
+ * 🆕 Takopack 3.0 統一設定拡張
+ * 最新のチェーン形式APIによる設定レベルでのイベント定義
+ */
+const configExtension = Takos.create();
+
+/**
+ * @event extension:init
+ * 拡張機能初期化処理
+ */
+function handleExtensionInit(): void {
+  console.log("🚀 [Config Extension] Comprehensive API Demo initialized with Takopack 3.0");
+}
+
+/**
+ * @event server:ready
+ * サーバーレイヤー準備完了処理
+ */
+function handleServerReady(): void {
+  console.log("🌐 [Config Extension] Server layer ready - Advanced features enabled");
+}
+
+/**
+ * @event client:ready
+ * クライアントレイヤー準備完了処理
+ */
+function handleClientReady(): void {
+  console.log("📱 [Config Extension] Client layer ready - Background services activated");
+}
+
+/**
+ * @event ui:ready
+ * UIレイヤー準備完了処理
+ */
+function handleUIReady(): void {
+  console.log("🖼️ [Config Extension] UI layer ready - Interactive features enabled");
+}
+
+// 🔗 設定レベルでのクロスレイヤーイベント登録
+configExtension
+  .server("extension:init", handleExtensionInit)
+  .server("server:ready", handleServerReady)
+  .client("client:ready", handleClientReady)
+  .ui("ui:ready", handleUIReady);
+
+console.log("🚀 [Takopack 3.0 Config] Extension event definitions:", configExtension.getEventDefinitions());
 
 export default defineConfig({
   manifest: {
     name: "Comprehensive Takos API Demo",
     identifier: "jp.takos.comprehensive-api-demo",
-    version: "2.0.0",
-    description: "Complete demonstration of all Takos APIs including ActivityPub, Storage, Events, Extensions, and Security features with real-world examples.",
+    version: "3.0.0",
+    description: "🆕 Takopack 3.0 showcase: Modern unified Takos API demonstration with chain-style event definitions, advanced ActivityPub integration, high-performance storage, intelligent caching, real-time communication, and comprehensive security features.",
     
     // 全ての有効な権限を定義
     permissions: [

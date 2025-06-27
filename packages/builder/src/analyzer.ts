@@ -454,7 +454,7 @@ export class ASTAnalyzer {
   }
 
   /**
-   * メソッド呼び出しの処理
+   * メソッド呼び出しの処理（チェーン形式も対応）
    */
   private handleMethodCalls(
     // deno-lint-ignore no-explicit-any
@@ -463,37 +463,110 @@ export class ASTAnalyzer {
       methodCalls: MethodCallInfo[];
     },
   ): void {
-    // obj.method() の形式を検出
-    if (
-      node.type === AST_NODE_TYPES.CallExpression &&
-      node.callee?.type === AST_NODE_TYPES.MemberExpression &&      node.callee.object?.type === AST_NODE_TYPES.Identifier &&
-      node.callee.property?.type === AST_NODE_TYPES.Identifier
-    ) {
-      const objectName = node.callee.object.name;
-      const methodName = node.callee.property.name;
-      
-      // 引数を解析
-      const args: unknown[] = [];
-      if (node.arguments) {
-        // deno-lint-ignore no-explicit-any
-        node.arguments.forEach((arg: any) => {
-          if (arg.type === AST_NODE_TYPES.Literal) {
-            args.push(arg.value);
-          } else if (arg.type === AST_NODE_TYPES.Identifier) {
-            args.push(arg.name);
-          } else {
-            args.push(null); // 複雑な引数は null にする
-          }
-        });
-      }
+    if (node.type === AST_NODE_TYPES.CallExpression) {
+      this.extractMethodCallsFromExpression(node, context);
+    }
+  }
 
+  /**
+   * CallExpressionからメソッド呼び出しを抽出（チェーン対応）
+   */
+  private extractMethodCallsFromExpression(
+    // deno-lint-ignore no-explicit-any
+    node: any,
+    context: {
+      methodCalls: MethodCallInfo[];
+    },
+  ): void {
+    if (!node || node.type !== AST_NODE_TYPES.CallExpression) return;
+
+    // メソッド呼び出しチェーンを解析
+    const chainInfo = this.analyzeMethodChain(node);
+    
+    if (chainInfo) {
+      const { objectName, methodName, args, line, column } = chainInfo;
+      
       context.methodCalls.push({
         objectName,
         methodName,
         args,
-        line: node.loc?.start.line || 0,
-        column: node.loc?.start.column || 0,
+        line,
+        column,
       });
     }
+  }
+
+  /**
+   * メソッドチェーンを解析
+   */
+  private analyzeMethodChain(
+    // deno-lint-ignore no-explicit-any
+    node: any,
+  ): { objectName: string; methodName: string; args: unknown[]; line: number; column: number } | null {
+    if (node.type !== AST_NODE_TYPES.CallExpression || !node.callee) return null;
+
+    // 引数を解析
+    const args: unknown[] = [];
+    if (node.arguments) {
+      // deno-lint-ignore no-explicit-any
+      node.arguments.forEach((arg: any) => {
+        if (arg.type === AST_NODE_TYPES.Literal) {
+          args.push(arg.value);
+        } else if (arg.type === AST_NODE_TYPES.Identifier) {
+          args.push(arg.name);
+        } else if (arg.type === AST_NODE_TYPES.ArrowFunctionExpression || 
+                   arg.type === AST_NODE_TYPES.FunctionExpression) {
+          args.push("[Function]");
+        } else {
+          args.push(null); // 複雑な引数は null にする
+        }
+      });
+    }
+
+    const line = node.loc?.start.line || 0;
+    const column = node.loc?.start.column || 0;
+
+    if (node.callee.type === AST_NODE_TYPES.MemberExpression) {
+      const methodName = node.callee.property?.name;
+      if (!methodName) return null;
+
+      // チェーンの根元のオブジェクト名を取得
+      const rootObjectName = this.getRootObjectName(node.callee.object);
+      if (!rootObjectName) return null;
+
+      return {
+        objectName: rootObjectName,
+        methodName,
+        args,
+        line,
+        column,
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * チェーンの根元のオブジェクト名を取得
+   */
+  private getRootObjectName(
+    // deno-lint-ignore no-explicit-any
+    node: any,
+  ): string | null {
+    if (node.type === AST_NODE_TYPES.Identifier) {
+      return node.name;
+    }
+    
+    // チェーンの場合は再帰的に探す
+    if (node.type === AST_NODE_TYPES.CallExpression && 
+        node.callee?.type === AST_NODE_TYPES.MemberExpression) {
+      return this.getRootObjectName(node.callee.object);
+    }
+    
+    if (node.type === AST_NODE_TYPES.MemberExpression) {
+      return this.getRootObjectName(node.object);
+    }
+
+    return null;
   }
 }

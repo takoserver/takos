@@ -14,9 +14,18 @@ export interface ExtensionEventRegistry {
 export type EventHandler = (...args: unknown[]) => unknown | Promise<unknown>;
 
 /**
- * Takopack拡張機能のベースクラス
+ * Takopack拡張機能のメインクラス
+ * チェーン形式でのイベント定義をサポート
+ * 
+ * 使用例:
+ * ```typescript
+ * const takos = Takos.create()
+ *   .server("event1", handler1)
+ *   .client("event2", handler2)
+ *   .ui("event3", handler3);
+ * ```
  */
-export class TakopackExtension {
+export class Takos {
   private _events: ExtensionEventRegistry = {};
 
   /**
@@ -68,43 +77,6 @@ export class TakopackExtension {
    */
   getEventDefinitions(): ExtensionEventRegistry {
     return { ...this._events };
-  }
-}
-
-/**
- * サーバー専用拡張機能クラス
- */
-export class ServerExtension extends TakopackExtension {
-  constructor() {
-    super();
-  }
-}
-
-/**
- * クライアント専用拡張機能クラス  
- */
-export class ClientExtension extends TakopackExtension {
-  constructor() {
-    super();
-  }
-}
-
-/**
- * UI専用拡張機能クラス
- */
-export class UIExtension extends TakopackExtension {
-  constructor() {
-    super();
-  }
-}
-
-/**
- * 拡張機能のメインクラス
- * 全レイヤーで利用可能
- */
-export class Takos extends TakopackExtension {
-  constructor() {
-    super();
   }
 
   /**

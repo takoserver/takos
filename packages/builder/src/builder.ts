@@ -828,14 +828,8 @@ export class TakopackBuilder {
    * Takopack拡張クラスかどうかを判定
    */
   private isTakopackExtensionClass(className: string): boolean {
-    const takopackClasses = [
-      "Takos",
-      "TakopackExtension", 
-      "ServerExtension",
-      "ClientExtension",
-      "UIExtension"
-    ];
-    return takopackClasses.includes(className);
+    // チェーン形式のTakosクラスのみをサポート
+    return className === "Takos";
   }
 
   /**
@@ -848,40 +842,35 @@ export class TakopackBuilder {
     let hasDefinitions = false;
     
     [...analyses.server, ...analyses.client].forEach((analysis) => {
-      analysis.exports.forEach((exp) => {
-        if (exp.instanceOf && this.isTakopackExtensionClass(exp.instanceOf)) {
-          console.log(`✅ Found Takopack extension instance: ${exp.name} (${exp.instanceOf})`);
+      // チェーン形式メソッド呼び出しからイベント定義を抽出
+      analysis.methodCalls.forEach((call) => {
+        // Takopackのクラス名から直接呼び出されているメソッドを検出
+        if (this.isTakopackExtensionClass(call.objectName)) {
+          console.log(`🔗 Processing chained method call: ${call.objectName}.${call.methodName}(${call.args.join(', ')})`);
           
-          // このインスタンスのメソッド呼び出しを探す
-          analysis.methodCalls.forEach((call) => {
-            if (call.objectName === exp.name) {
-              console.log(`🔧 Processing method call: ${call.objectName}.${call.methodName}(${call.args.join(', ')})`);
-              
-              // server, client, ui, background メソッドかどうかチェック
-              if (['server', 'client', 'ui', 'background'].includes(call.methodName)) {
-                const eventName = call.args[0] as string;
-                const handlerArg = call.args[1];
-                let handlerName = '';
-                
-                if (typeof handlerArg === 'string') {
-                  // 関数名が文字列で渡された場合
-                  handlerName = handlerArg;
-                } else {
-                  // 関数オブジェクトが渡された場合、その関数名を推測
-                  handlerName = 'anonymous';
-                }
-                
-                if (eventName) {
-                  eventDefinitions[eventName] = {
-                    source: call.methodName as "client" | "server" | "background" | "ui",
-                    handler: handlerName,
-                  };
-                  console.log(`✅ Registered event: ${eventName} -> ${handlerName} (${call.methodName})`);
-                  hasDefinitions = true;
-                }
-              }
+          // server, client, ui, background メソッドかどうかチェック
+          if (['server', 'client', 'ui', 'background'].includes(call.methodName)) {
+            const eventName = call.args[0] as string;
+            const handlerArg = call.args[1];
+            let handlerName = '';
+            
+            if (typeof handlerArg === 'string') {
+              // 関数名が文字列で渡された場合
+              handlerName = handlerArg;
+            } else {
+              // 関数オブジェクトが渡された場合、その関数名を推測
+              handlerName = 'anonymous';
             }
-          });
+            
+            if (eventName) {
+              eventDefinitions[eventName] = {
+                source: call.methodName as "client" | "server" | "background" | "ui",
+                handler: handlerName,
+              };
+              console.log(`✅ Registered chained event: ${eventName} -> ${handlerName} (${call.methodName})`);
+              hasDefinitions = true;
+            }
+          }
         }
       });
     });

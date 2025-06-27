@@ -4,7 +4,7 @@ import { getMessaging, getToken } from "firebase/messaging";
 import { invoke } from "@tauri-apps/api/core";
 
 // Enhanced Tauri detection: check both __TAURI_IPC__ and __TAURI__ globals
-const isTauri = true;
+
 
 let firebaseTokenPromise: Promise<string | null> | null = null;
 
@@ -62,23 +62,18 @@ async function getEventDefs(
 
 export function createTakos(identifier: string) {
   async function call(eventId: string, payload: unknown) {
-    if (isTauri) {
-      try {
-        const result = await invoke("invoke_extension_event", {
-          identifier: "takos",
-          fnName: eventId,
-          args: [payload],
-        });
-        return result;
-      } catch (err) {
-        throw new Error(
-          `Tauri invoke failed: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
+    try {
+      const result = await invoke("invoke_extension_event", {
+        identifier: "takos",
+        fnName: eventId,
+        args: [payload],
+      });
+      return result;
+    } catch (err) {
+      throw new Error(
+        `Tauri invoke failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
-    throw new Error(
-      "Takos client is only available in Tauri environment. Use `invoke` directly in Tauri.",
-    );
   }
 
   function unwrapResult(raw: unknown): unknown {
@@ -113,166 +108,51 @@ export function createTakos(identifier: string) {
   }
 
   const kv = (() => {
-    const localPrefix = `takos:${identifier}::`;
-    const isBrowser = typeof indexedDB !== "undefined";
-
-    let dbPromise: Promise<IDBDatabase> | undefined;
-    
-    const openDB = () => {
-      if (!dbPromise) {
-        dbPromise = new Promise((resolve, reject) => {
-          const req = indexedDB.open("takos-kv", 1);
-          req.onupgradeneeded = () => {
-            const db = req.result;
-            if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv");
-          };
-          req.onsuccess = () => resolve(req.result);
-          req.onerror = () => reject(req.error);
-        });
-      }
-      return dbPromise;
+    return {
+      read: async (key: string) => {
+        const result = await invoke("kv_read", { identifier, key });
+        return (result as { value: unknown }).value;
+      },
+      write: async (key: string, value: unknown) => {
+        await invoke("kv_write", { identifier, key, value });
+      },
+      delete: async (key: string) => {
+        await invoke("kv_delete", { identifier, key });
+      },
+      list: async (prefix?: string) => {
+        const result = await invoke("kv_list", { identifier, prefix });
+        return result as string[];
+      },
     };
-
-    if (isTauri) {
-      return {
-        read: async (key: string) => {
-          const result = await invoke("kv_read", { identifier, key });
-          return (result as { value: unknown }).value;
-        },
-        write: async (key: string, value: unknown) => {
-          await invoke("kv_write", { identifier, key, value });
-        },
-        delete: async (key: string) => {
-          await invoke("kv_delete", { identifier, key });
-        },
-        list: async (prefix?: string) => {
-          const result = await invoke("kv_list", { identifier, prefix });
-          return result as string[];
-        },
-      };
-    } else {
-
-      return isBrowser
-        ? {
-          read: async (key: string) => {
-            const db = await openDB();
-            return await new Promise<unknown>((resolve, reject) => {
-              const tx = db.transaction("kv", "readonly");
-              const store = tx.objectStore("kv");
-              const req = store.get(localPrefix + key);
-              req.onsuccess = () => resolve(req.result);
-              req.onerror = () => reject(req.error);
-            });
-          },
-          write: async (key: string, value: unknown) => {
-            const db = await openDB();
-            await new Promise<void>((resolve, reject) => {
-              const tx = db.transaction("kv", "readwrite");
-              const store = tx.objectStore("kv");
-              store.put(value, localPrefix + key);
-              tx.oncomplete = () => resolve();
-              tx.onerror = () => reject(tx.error);
-            });
-          },
-          delete: async (key: string) => {
-            const db = await openDB();
-            await new Promise<void>((resolve, reject) => {
-              const tx = db.transaction("kv", "readwrite");
-              const store = tx.objectStore("kv");
-              store.delete(localPrefix + key);
-              tx.oncomplete = () => resolve();
-              tx.onerror = () => reject(tx.error);
-            });
-          },
-          list: async (prefix?: string) => {
-            const db = await openDB();
-            return await new Promise<string[]>((resolve, reject) => {
-              const keys: string[] = [];
-              const tx = db.transaction("kv", "readonly");
-              const store = tx.objectStore("kv");
-              const req = store.openCursor();
-              req.onsuccess = () => {
-                const cursor = req.result;
-                if (cursor) {
-                  const k = cursor.key as string;
-                  if (k.startsWith(localPrefix)) {
-                    const sub = k.slice(localPrefix.length);
-                    if (!prefix || sub.startsWith(prefix)) keys.push(sub);
-                  }
-                  cursor.continue();
-                } else {
-                  resolve(keys);
-                }
-              };
-              req.onerror = () => reject(req.error);
-            });
-          },
-        }
-        : {
-          read: (key: string) =>
-            call("kv:read", {
-              id: identifier,
-              key,
-              side: "client",
-            }),
-          write: (key: string, value: unknown) =>
-            call("kv:write", { id: identifier, key, value, side: "client" }),
-          delete: (key: string) =>
-            call("kv:delete", { id: identifier, key, side: "client" }),
-          list: (prefix?: string) =>
-            call("kv:list", { id: identifier, prefix, side: "client" }),
-        };
-    }
   })();
 
   const cdn = (() => {
-    if (isTauri) {
-      return {
-        read: async (path: string) => {
-          const result = await invoke("cdn_read", { identifier, path });
-          return result as string;
-        },
-        write: async (
-          path: string,
-          data: string | Uint8Array,
-          options?: { cacheTTL?: number },
-        ) => {
-          const result = await invoke("cdn_write", {
-            identifier,
-            path,
-            data: typeof data === "string" ? data : btoa(String.fromCharCode(...data)),
-            cacheTTL: options?.cacheTTL,
-          });
-          return result as string;
-        },
-        delete: async (path: string) => {
-          await invoke("cdn_delete", { identifier, path });
-        },
-        list: async (prefix?: string) => {
-          const result = await invoke("cdn_list", { identifier, prefix });
-          return result as string[];
-        },
-      };
-    } else {
-      return {
-        read: (path: string) => call("cdn:read", { id: identifier, path }),
-        write: (
-          path: string,
-          data: string | Uint8Array,
-          options?: { cacheTTL?: number },
-        ) =>
-          call("cdn:write", {
-            id: identifier,
-            path,
-            data: typeof data === "string"
-              ? data
-              : btoa(String.fromCharCode(...data)),
-            cacheTTL: options?.cacheTTL,
-          }),
-        delete: (path: string) => call("cdn:delete", { id: identifier, path }),
-        list: (prefix?: string) => call("cdn:list", { id: identifier, prefix }),
-      };
-    }
+    return {
+      read: async (path: string) => {
+        const result = await invoke("cdn_read", { identifier, path });
+        return result as string;
+      },
+      write: async (
+        path: string,
+        data: string | Uint8Array,
+        options?: { cacheTTL?: number },
+      ) => {
+        const result = await invoke("cdn_write", {
+          identifier,
+          path,
+          data: typeof data === "string" ? data : btoa(String.fromCharCode(...data)),
+          cacheTTL: options?.cacheTTL,
+        });
+        return result as string;
+      },
+      delete: async (path: string) => {
+        await invoke("cdn_delete", { identifier, path });
+      },
+      list: async (prefix?: string) => {
+        const result = await invoke("cdn_list", { identifier, prefix });
+        return result as string[];
+      },
+    };
   })();
 
   const listeners = new Map<string, Set<(payload: unknown) => void>>();
@@ -314,7 +194,7 @@ export function createTakos(identifier: string) {
       const defs = await getEventDefs(identifier);
       const def = defs[name];
 
-      const shouldUseServer = def?.source === "server" || !isTauri;
+      const shouldUseServer = def?.source === "server";
 
       if (!shouldUseServer) {
         try {
@@ -397,7 +277,7 @@ export function createTakos(identifier: string) {
         const defs = await getEventDefs(identifier);
         const def = defs[name];
 
-        const useServer = def?.source === "server" || !isTauri;
+        const useServer = def?.source === "server";
 
         if (!useServer) {
           try {
@@ -482,27 +362,24 @@ export function createTakos(identifier: string) {
       if (id === identifier) {
         return extensionObj.activate();
       }
-      if (isTauri) {
-        try {
-          const raw = await invoke("activate_extension", { identifier: id });
-          if (!raw) return undefined;
+      try {
+        const raw = await invoke("activate_extension", { identifier: id });
+        if (!raw) return undefined;
 
-          return {
-            publish: async (name: string, payload?: unknown, _options?: { push?: boolean; token?: string }) => {
-              const invokeRaw = await invoke("invoke_extension_event", {
-                identifier: id,
-                fnName: name,
-                args: [payload],
-              });
-              return unwrapResult(invokeRaw);
-            }
-          };
-        } catch (error) {
-          console.error(`Failed to activate extension ${id} via Tauri:`, error);
-          return undefined;
-        }
+        return {
+          publish: async (name: string, payload?: unknown, _options?: { push?: boolean; token?: string }) => {
+            const invokeRaw = await invoke("invoke_extension_event", {
+              identifier: id,
+              fnName: name,
+              args: [payload],
+            });
+            return unwrapResult(invokeRaw);
+          }
+        };
+      } catch (error) {
+        console.error(`Failed to activate extension ${id} via Tauri:`, error);
+        return undefined;
       }
-      throw new Error("Extension activation is only supported in Tauri environment.");
     },
     getURL,
     pushURL,
@@ -511,11 +388,7 @@ export function createTakos(identifier: string) {
   } as const;
 
 
-  if (isTauri) {
-    console.log("Takos is running in Tauri environment.");
-  } else {
-    console.log("Takos is running in browser environment.");
-  }
+  
 
   return takos;
 }

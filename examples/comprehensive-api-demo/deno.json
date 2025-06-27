@@ -1,0 +1,35 @@
+{
+  "name": "comprehensive-takos-api-demo",
+  "version": "2.0.0",
+  "description": "Complete demonstration of all Takos APIs including ActivityPub, Storage, Events, Extensions, and Security features with real-world examples.",
+  "imports": {
+    "@takopack/builder": "../../packages/builder/mod.ts",
+    "@takopack/runtime": "../../packages/runtime/mod.ts"
+  },
+  "tasks": {
+    "build": "deno run -A ../../packages/cli/cli.ts build",
+    "dev": "deno run --allow-all ../../packages/builder/mod.ts dev",
+    "test": "deno test --allow-all",
+    "check": "deno check src/server/index.ts src/client/index.ts",
+    "lint": "deno lint src/",
+    "fmt": "deno fmt src/"
+  },
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window", "dom", "dom.asynciterable", "deno.ns"],
+    "strict": true
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 80,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": false,
+    "proseWrap": "preserve"
+  }
+}
