@@ -79,9 +79,6 @@ Deno.test("extensions API activation", async () => {
       version: "0.1.0",
       icon: "./icon.png",
       exports: ["add"],
-      eventDefinitions: {
-        add: { source: "server", handler: "add" },
-      },
     }),
     server: `export function add(a,b){return a+b;}`,
   };
@@ -106,9 +103,6 @@ Deno.test("activateExtension from worker", async () => {
       version: "0.1.0",
       icon: "./icon.png",
       exports: ["mul"],
-      eventDefinitions: {
-        mul: { source: "server", handler: "mul" },
-      },
     }),
     server: `export function mul(a,b){return a*b;}`,
   };
@@ -129,49 +123,6 @@ Deno.test("activateExtension from worker", async () => {
   delete (globalThis as Record<string, unknown>).takos;
 });
 
-Deno.test("callServer throws on undefined event", async () => {
-  const pack = {
-    manifest: JSON.stringify({
-      name: "test4",
-      identifier: "com.example.test4",
-      version: "0.1.0",
-      icon: "./icon.png",
-      eventDefinitions: {
-        defined: { source: "ui", handler: "defined" },
-      },
-    }),
-    server: `export function defined(){ return 1; }`,
-  };
-  const takopack = new TakoPack([pack]);
-  await takopack.init();
-  await assertRejects(
-    () => takopack.callServer("com.example.test4", "other"),
-    Error,
-    "manifest.eventDefinitions",
-  );
-  delete (globalThis as Record<string, unknown>).takos;
-});
-
-Deno.test("callServer maps event name to handler", async () => {
-  const pack = {
-    manifest: JSON.stringify({
-      name: "test5",
-      identifier: "com.example.test5",
-      version: "0.1.0",
-      icon: "./icon.png",
-      eventDefinitions: {
-        run: { source: "ui", handler: "actual" },
-      },
-    }),
-    server: `export function actual(){ return 42; }`,
-  };
-  const takopack = new TakoPack([pack]);
-  await takopack.init();
-  const result = await takopack.callServer("com.example.test5", "run");
-  assertEquals(result, 42);
-  delete (globalThis as Record<string, unknown>).takos;
-});
-
 Deno.test("callServer handles handlers on exported objects", async () => {
   const pack = {
     manifest: JSON.stringify({
@@ -179,9 +130,6 @@ Deno.test("callServer handles handlers on exported objects", async () => {
       identifier: "com.example.test6",
       version: "0.1.0",
       icon: "./icon.png",
-      eventDefinitions: {
-        run: { source: "ui", handler: "onRun" },
-      },
     }),
     server: `export const Api = {}; Api.onRun = () => 88;`,
   };
@@ -217,9 +165,6 @@ Deno.test("extensions API handles methods on exported objects", async () => {
       version: "0.1.0",
       icon: "./icon.png",
       exports: ["ping"],
-      eventDefinitions: {
-        ping: { source: "server", handler: "ping" },
-      },
     }),
     server: `export const ApiServer = {}; ApiServer.ping = () => 'pong';`,
   };
@@ -247,14 +192,10 @@ Deno.test("call uses correct worker for event source", async () => {
       identifier: "com.example.sources",
       version: "0.1.0",
       icon: "./icon.png",
-      eventDefinitions: {
-        fromServer: { source: "server", handler: "fromServer" },
-        fromClient: { source: "client", handler: "fromClient" },
-        fromUi: { source: "ui", handler: "fromUi" },
-      },
     }),
     server: `export function fromServer(){ return 'server'; }`,
-    client: `export function fromClient(){ return 'client'; } export function fromUi(){ return 'ui'; }`,
+    client:
+      `export function fromClient(){ return 'client'; } export function fromUi(){ return 'ui'; }`,
   };
   const tp = new TakoPack([pack]);
   await tp.init();
@@ -264,5 +205,46 @@ Deno.test("call uses correct worker for event source", async () => {
   assertEquals(res2, "client");
   const res3 = await tp.call("com.example.sources", "fromUi");
   assertEquals(res3, "ui");
+  delete (globalThis as Record<string, unknown>).takos;
+});
+
+Deno.test("request from extension to host", async () => {
+  const pack = {
+    manifest: JSON.stringify({
+      name: "reqhost",
+      identifier: "com.example.reqhost",
+      version: "0.1.0",
+      icon: "./icon.png",
+    }),
+    server:
+      `export async function run(){ return await globalThis.takos.events.request('ping', 'hi'); }`,
+  };
+  const tp = new TakoPack([pack]);
+  await tp.init();
+  (globalThis as any).takos.events.onRequest(
+    "ping",
+    (msg: string) => msg + "!",
+  );
+  const res = await tp.callServer("com.example.reqhost", "run");
+  assertEquals(res, "hi!");
+  delete (globalThis as Record<string, unknown>).takos;
+});
+
+Deno.test("request from host to extension", async () => {
+  const pack = {
+    manifest: JSON.stringify({
+      name: "reqext",
+      identifier: "com.example.reqext",
+      version: "0.1.0",
+      icon: "./icon.png",
+    }),
+    server:
+      `export function setup(){ globalThis.takos.events.onRequest('echo', (v) => v + ' from ext'); }`,
+  };
+  const tp = new TakoPack([pack]);
+  await tp.init();
+  await tp.callServer("com.example.reqext", "setup");
+  const result = await (tp as any).serverTakos.events.request("echo", "hi");
+  assertEquals(result, "hi from ext");
   delete (globalThis as Record<string, unknown>).takos;
 });
