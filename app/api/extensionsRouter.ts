@@ -6,7 +6,9 @@ const app = new Hono<{ Bindings: Env }>();
 
 app.get("/api/extensions", async (c) => {
   const extensions = await Extension.find().select("identifier client");
-  return c.json(extensions.map(e => ({ identifier: e.identifier, client: e.client })));
+  return c.json(
+    extensions.map((e) => ({ identifier: e.identifier, client: e.client })),
+  );
 });
 
 app.get("/api/extensions/:id/ui", async (c) => {
@@ -14,8 +16,7 @@ app.get("/api/extensions/:id/ui", async (c) => {
   const ext = await Extension.findOne({ identifier: id });
   if (!ext || !ext.ui) return c.notFound();
   c.header("Content-Type", "text/html; charset=utf-8");
-  const eventDefs = JSON.stringify(ext.manifest?.eventDefinitions || {});  const script =
-    `<script>
+  const script = `<script>
     (function() {
       try {
         const extensionId = "${id}";
@@ -136,7 +137,24 @@ app.get("/api/extensions/:id/ui", async (c) => {
             }
           }
         };
-        
+
+        // Start a persistent worker for the extension's client script
+        try {
+          const worker = new Worker('/api/extensions/' + extensionId + '/client.js', { type: 'module' });
+          window.addEventListener('message', (ev) => {
+            if (ev.data && ev.data.target === 'takos-worker') {
+              worker.postMessage(ev.data.payload);
+            }
+          });
+          worker.onmessage = (ev) => {
+            window.postMessage({ source: 'takos-worker', payload: ev.data }, '*');
+          };
+          (window as any).takosWorker = worker;
+          console.log('Worker started for extension:', extensionId);
+        } catch (err) {
+          console.error('Failed to start worker for extension:', err);
+        }
+
         console.log('Takos object initialized for extension:', extensionId);
         
       } catch(e) {
@@ -160,8 +178,6 @@ app.get("/api/extensions/:id/ui", async (c) => {
         };
       }
       
-      window.__takosEventDefs = window.__takosEventDefs || {};
-      window.__takosEventDefs["${id}"] = ${eventDefs};
     })();
     </script>`;
   const html = ext.ui.includes("</head>")
@@ -186,6 +202,5 @@ app.get("/api/extensions/:id/manifest.json", async (c) => {
   c.header("Content-Type", "application/json; charset=utf-8");
   return c.json(ext.manifest);
 });
-
 
 export default app;
