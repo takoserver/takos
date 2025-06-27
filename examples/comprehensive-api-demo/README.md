@@ -35,48 +35,61 @@ Takopack Multi-Runtime Architecture
 ## 🚀 機能一覧
 
 ### 📡 ActivityPub API
+
 - **完全なActivityPub統合**: Note投稿、Actor管理、カスタムオブジェクト作成
 - **リアルタイム配信**: フォロワーへのコンテンツ配信
 - **カスタムオブジェクト**: Takos独自のActivityPubオブジェクト拡張
 - **受信ハンドリング**: 外部からのActivity受信と処理
 
-### 💾 KV Storage API  
+### 💾 KV Storage API
+
 - **基本操作**: キー・バリューの読み書き、削除
 - **バッチ操作**: 複数のキーを効率的に処理
 - **大容量データ**: 大きなデータセットの管理
 - **データ管理**: TTL、キャッシュ戦略の実装
 
 ### 🌐 CDN Operations
+
 - **ファイルアップロード**: テキスト、JSON、バイナリファイルの管理
 - **ファイル読み取り**: 効率的なファイル取得
 - **メタデータ管理**: ファイル情報とメタデータの処理
 - **多形式サポート**: 様々なファイル形式への対応
 
 ### ⚡ Events System
+
 - **リアルタイムイベント**: 即座のイベント配信
 - **イベントタイプ**: 複数の用途別イベント管理
 - **大容量ペイロード**: 大きなデータを含むイベント処理
 - **ストリーミング**: 連続的なイベントストリーム
 
+### 🆕 Request/Response Events
+
+- `takos.events.request()` と `takos.events.onRequest()`
+  により1対1の結果取得が可能
+
 ### 🧩 Extensions API
+
 - **拡張機能間通信**: セキュアな機能間呼び出し
 - **メタデータ管理**: 拡張機能情報の取得と管理
 - **相互運用性**: 異なる拡張機能との連携
 - **エクスポート機能**: 関数の公開と共有
 
 ### 🌍 Network Operations
+
 - **HTTP/HTTPS**: 完全なHTTPクライアント機能
 - **並列処理**: 複数の同時リクエスト処理
 - **エラーハンドリング**: 堅牢なエラー処理と再試行
 - **タイムアウト管理**: 適切なタイムアウト設定
 
-### 🔒 Security Features  
+### 🔒 Security Features
+
 - **データサニタイゼーション**: XSS、SQLインジェクション対策
 - **暗号化**: ハッシュ生成と検証
 - **入力検証**: 包括的なバリデーション機能
 - **セキュリティヘッダー**: 適切なセキュリティ設定
 
 ### 🏃 Performance Testing
+
 - **CPU負荷テスト**: 計算集約的なタスクの性能測定
 - **メモリ管理**: メモリ使用量の監視と最適化
 - **並列処理**: 同時実行処理の性能評価
@@ -85,6 +98,7 @@ Takopack Multi-Runtime Architecture
 ## 🛠️ セットアップ
 
 ### 前提条件
+
 - Deno 1.40.0以上
 - Takos開発環境
 - Node.js（UIビルド用）
@@ -132,10 +146,10 @@ takopack dev
 
 ```typescript
 // サーバーサイドでのActivityPubテスト
-import { activityPubFullDemo } from './src/server/index.ts';
+import { activityPubFullDemo } from "./src/server/index.ts";
 
 const result = await activityPubFullDemo();
-console.log('ActivityPub Test Result:', result);
+console.log("ActivityPub Test Result:", result);
 ```
 
 ### 2. 包括的テスト
@@ -143,10 +157,10 @@ console.log('ActivityPub Test Result:', result);
 全ての機能を一度にテストする場合：
 
 ```typescript
-import { comprehensiveApiTest } from './src/server/index.ts';
+import { comprehensiveApiTest } from "./src/server/index.ts";
 
 const results = await comprehensiveApiTest();
-console.log('Comprehensive Test Results:', results);
+console.log("Comprehensive Test Results:", results);
 ```
 
 ### 3. クライアントサイドテスト
@@ -154,10 +168,10 @@ console.log('Comprehensive Test Results:', results);
 Service Worker環境でのテスト：
 
 ```typescript
-import { clientApiDemo } from './src/client/index.ts';
+import { clientApiDemo } from "./src/client/index.ts";
 
 const clientResults = await clientApiDemo();
-console.log('Client Test Results:', clientResults);
+console.log("Client Test Results:", clientResults);
 ```
 
 ### 4. UI統合テスト
@@ -185,44 +199,48 @@ export default defineConfig({
       "activitypub:read",
       "kv:read",
       "kv:write",
-      "cdn:read", 
+      "cdn:read",
       "cdn:write",
       "events:publish",
       "extensions:invoke",
       "extensions:export",
       "fetch:net",
       // ... その他の権限
-    ]
-  }
+    ],
+  },
 });
 ```
 
 ## 📊 テスト結果の解釈
 
 ### 成功基準
+
 - ✅ **success: true**: テストが正常に完了
 - ⏱️ **duration**: 実行時間（ミリ秒）
 - 📈 **metadata**: 追加の性能指標
 
 ### エラー処理
+
 - ❌ **success: false**: テスト失敗
-- 📝 **error**: エラーメッセージ  
+- 📝 **error**: エラーメッセージ
 - 🔍 **data**: 部分的な結果データ
 
 ## 🎯 ベストプラクティス
 
 ### 1. エラーハンドリング
+
 ```typescript
 try {
   const result = await takos.kv.set(key, value);
   return { success: true, data: result };
 } catch (error) {
-  console.error('KV operation failed:', error);
+  console.error("KV operation failed:", error);
   return { success: false, error: error.message };
 }
 ```
 
 ### 2. パフォーマンス監視
+
 ```typescript
 const startTime = performance.now();
 // API操作
@@ -231,10 +249,11 @@ const duration = endTime - startTime;
 ```
 
 ### 3. データ検証
+
 ```typescript
 // 入力データの検証
-if (!data || typeof data !== 'object') {
-  throw new Error('Invalid data format');
+if (!data || typeof data !== "object") {
+  throw new Error("Invalid data format");
 }
 ```
 
@@ -243,31 +262,37 @@ if (!data || typeof data !== 'object') {
 ### よくある問題
 
 **1. 権限エラー**
+
 ```
 Error: Permission denied for operation 'kv:write'
 ```
+
 解決策: `takopack.config.ts`で適切な権限を設定
 
-**2. ネットワークエラー**  
+**2. ネットワークエラー**
+
 ```
 Error: Failed to fetch external resource
 ```
+
 解決策: `fetch:net`権限の確認とネットワーク接続の確認
 
 **3. メモリ不足**
+
 ```
 Error: Exceeded memory limit
 ```
+
 解決策: 大容量データ処理の最適化
 
 ### デバッグ方法
 
 ```typescript
 // デバッグログの有効化
-console.log('Debug info:', {
+console.log("Debug info:", {
   timestamp: new Date().toISOString(),
-  operation: 'api-test',
-  data: testData
+  operation: "api-test",
+  data: testData,
 });
 ```
 
@@ -313,8 +338,8 @@ console.log('Debug info:', {
 
 ---
 
-**作成者**: Takos Development Team  
-**最終更新**: 2025年6月27日  
+**作成者**: Takos Development Team\
+**最終更新**: 2025年6月27日\
 **バージョン**: 2.0.0
 
 ## 🏗️ クラスベースAPI アーキテクチャ
@@ -322,8 +347,14 @@ console.log('Debug info:', {
 このプロジェクトは、最新のTakopack クラスベースAPIを使用して構築されています：
 
 ### 拡張機能クラス構造
+
 ```typescript
-import { ServerExtension, ClientExtension, UIExtension, Takos } from "../../../packages/builder/src/classes.ts";
+import {
+  ClientExtension,
+  ServerExtension,
+  Takos,
+  UIExtension,
+} from "../../../packages/builder/src/classes.ts";
 
 // 専用レイヤー拡張機能
 const serverExtension = new ServerExtension();
@@ -335,6 +366,7 @@ const takosExtension = Takos.create();
 ```
 
 ### イベントハンドラー登録
+
 ```typescript
 // サーバー専用イベント
 serverExtension
@@ -351,6 +383,7 @@ takosExtension
 ```
 
 ### 拡張機能の利点
+
 - **型安全性**: TypeScriptによる完全な型チェック
 - **明確な責任分離**: レイヤー固有の機能と共通機能の分離
 - **イベント駆動**: 効率的なクロスレイヤー通信
@@ -361,6 +394,7 @@ takosExtension
 このプロジェクトは、関数のエクスポートではなく、**クラスインスタンスのみをエクスポート**する設計パターンを採用しています：
 
 ### エクスポート戦略
+
 ```typescript
 // ❌ 関数をエクスポートしない
 // export async function comprehensiveApiTest() { ... }
@@ -370,6 +404,7 @@ export { serverExtension, takosExtension };
 ```
 
 ### 各レイヤーの構造
+
 ```typescript
 // サーバーレイヤー (src/server/index.ts)
 const serverExtension = new ServerExtension();
@@ -384,6 +419,7 @@ export { serverExtension, takosExtension };
 ```
 
 ### メリット
+
 - **明確な責任分離**: 機能は内部実装、インターフェースはインスタンスのみ
 - **カプセル化**: 内部関数は外部に露出されない
 - **型安全性**: クラスインスタンスによる強固な型チェック

@@ -18,6 +18,15 @@ export interface TakosEvents {
     payload: unknown,
     options?: { push?: boolean; token?: string },
   ): Promise<unknown>;
+  request<T = unknown, R = unknown>(
+    name: string,
+    payload?: T,
+    opts?: { timeout?: number },
+  ): Promise<R>;
+  onRequest<T = unknown, R = unknown>(
+    name: string,
+    handler: (payload: T) => Promise<R> | R,
+  ): () => void;
 }
 
 export interface TakosCdn {
@@ -161,6 +170,7 @@ function setPath(root, path, fn, transform) {
 function createTakos(paths, exts = []) {
   const t = {};
   const extMap = new Map(exts.map((e) => [e.identifier, e]));
+  const requestHandlers = new Map();
   for (const p of paths) {
     if (p[0] === 'activateExtension') {
       t.activateExtension = (id) => {
@@ -221,6 +231,25 @@ function createTakos(paths, exts = []) {
     const desc = extMap.get(id);
     return desc ? createExtension(desc) : undefined;
   };
+  t.events ??= {};
+  t.events.onRequest = (name, handler) => {
+    requestHandlers.set(name, handler);
+    return () => requestHandlers.delete(name);
+  };
+  t.events.request = (name, payload, opts) => {
+    const h = requestHandlers.get(name);
+    if (h) return Promise.resolve(h(payload));
+    return new Promise((resolve, reject) => {
+      const id = ++takosCallId;
+      takosCallbacks.set(id, { resolve, reject });
+      self.postMessage({
+        type: 'takosCall',
+        id,
+        path: ['events', 'request'],
+        args: [name, payload, opts],
+      });
+    });
+  };
   return t;
 }
 
@@ -278,6 +307,10 @@ export class Takos {
     all: Extension[];
   };
   private localKv = new Map<string, unknown>();
+  private requestHandlers = new Map<
+    string,
+    (payload: unknown) => Promise<unknown> | unknown
+  >();
   extensions: TakosExtensions;
   constructor(opts: TakosOptions = {}) {
     this.opts = opts;
@@ -335,7 +368,18 @@ export class Takos {
     ): Promise<unknown> => {
       return undefined;
     },
-  };
+    request: async (_name, _payload?) => {
+      const h = this.requestHandlers.get(_name);
+      if (h) return await (h as any)(_payload);
+      return Promise.reject(new Error(`no handler for request: ${_name}`));
+    },
+    onRequest: (name, handler) => {
+      this.requestHandlers.set(name, handler as any);
+      return () => {
+        this.requestHandlers.delete(name);
+      };
+    },
+  } as TakosEvents;
   cdn = {
     read: async (_path: string) => "",
     write: async (
@@ -382,6 +426,7 @@ const TAKOS_PATHS: string[][] = [
   ["kv", "delete"],
   ["kv", "list"],
   ["events", "publish"],
+  ["events", "request"],
   ["cdn", "read"],
   ["cdn", "write"],
   ["cdn", "delete"],
@@ -433,6 +478,7 @@ const CLIENT_TAKOS_PATHS: string[][] = [
   ["kv", "delete"],
   ["kv", "list"],
   ["events", "publish"],
+  ["events", "request"],
   ["extensions", "get"],
   ["extensions", "activate"],
   ["extensions", "invoke"],
@@ -758,19 +804,8 @@ export class TakoPack {
       throw new Error(`server not loaded for ${identifier}`);
     }
 
-    // deno-lint-ignore no-explicit-any
-    const defs = (pack.manifest as Record<string, any>).eventDefinitions as
-      | Record<string, { handler?: string }>
-      | undefined;
-    const def = defs?.[fnName];
-    if (defs && !def) {
-      console.log(`Event ${fnName} not defined in manifest for ${identifier}`);
-      throw new Error(
-        `event not defined: ${fnName} in manifest.eventDefinitions for ${identifier}`,
-      );
-    }
-    const callName = def?.handler || fnName;
-    console.log(`Calling server function: ${callName} (original: ${fnName})`);
+    const callName = fnName;
+    console.log(`Calling server function: ${callName}`);
 
     try {
       const result = await pack.serverWorker.call(callName, args);
@@ -785,16 +820,12 @@ export class TakoPack {
           const prefixes = m[1].split(/,\s*/);
           for (const prefix of prefixes) {
             attempts.push(`${prefix}.${callName}`);
-            if (!def) {
-              const cap = callName.charAt(0).toUpperCase() + callName.slice(1);
-              attempts.push(`${prefix}.on${cap}`);
-            }
+            const cap = callName.charAt(0).toUpperCase() + callName.slice(1);
+            attempts.push(`${prefix}.on${cap}`);
           }
         }
-        if (!def) {
-          const cap = callName.charAt(0).toUpperCase() + callName.slice(1);
-          attempts.push(`on${cap}`);
-        }
+        const cap = callName.charAt(0).toUpperCase() + callName.slice(1);
+        attempts.push(`on${cap}`);
 
         console.log(`Trying fallback function names:`, attempts);
         for (const name of attempts) {
@@ -821,16 +852,7 @@ export class TakoPack {
     if (!pack.clientWorker) {
       throw new Error(`client not loaded for ${identifier}`);
     }
-    const defs = (pack.manifest as Record<string, any>).eventDefinitions as
-      | Record<string, { handler?: string }>
-      | undefined;
-    const def = defs?.[fnName];
-    if (defs && !def) {
-      throw new Error(
-        `event not defined: ${fnName} in manifest.eventDefinitions for ${identifier}`,
-      );
-    }
-    const callName = def?.handler || fnName;
+    const callName = fnName;
     try {
       return await pack.clientWorker.call(callName, args);
     } catch (err) {
@@ -841,16 +863,12 @@ export class TakoPack {
           const prefixes = m[1].split(/,\s*/);
           for (const prefix of prefixes) {
             attempts.push(`${prefix}.${callName}`);
-            if (!def) {
-              const cap = callName.charAt(0).toUpperCase() + callName.slice(1);
-              attempts.push(`${prefix}.on${cap}`);
-            }
+            const cap = callName.charAt(0).toUpperCase() + callName.slice(1);
+            attempts.push(`${prefix}.on${cap}`);
           }
         }
-        if (!def) {
-          const cap = callName.charAt(0).toUpperCase() + callName.slice(1);
-          attempts.push(`on${cap}`);
-        }
+        const cap = callName.charAt(0).toUpperCase() + callName.slice(1);
+        attempts.push(`on${cap}`);
         for (const name of attempts) {
           try {
             return await pack.clientWorker.call(name, args);
@@ -881,33 +899,6 @@ export class TakoPack {
       "clientWorker:",
       !!pack.clientWorker,
     );
-
-    const defs = (pack.manifest as Record<string, any>).eventDefinitions as
-      | Record<string, { source?: string }>
-      | undefined;
-    const def = defs?.[fnName];
-
-    console.log(`Event definition for ${fnName}:`, def);
-
-    if (
-      def?.source === "client" || def?.source === "ui" ||
-      def?.source === "background"
-    ) {
-      console.log(
-        `Trying client worker for ${fnName} (source: ${def?.source})`,
-      );
-      if (pack.clientWorker) {
-        return await this.callClient(identifier, fnName, args);
-      }
-      return await this.callServer(identifier, fnName, args);
-    }
-    if (def?.source === "server") {
-      console.log(`Trying server worker for ${fnName} (source: server)`);
-      if (pack.serverWorker) {
-        return await this.callServer(identifier, fnName, args);
-      }
-      return await this.callClient(identifier, fnName, args);
-    }
 
     console.log(
       `No specific source defined for ${fnName}, trying server first`,
