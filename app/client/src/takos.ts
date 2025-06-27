@@ -5,7 +5,6 @@ import { invoke } from "@tauri-apps/api/core";
 
 // Enhanced Tauri detection: check both __TAURI_IPC__ and __TAURI__ globals
 
-
 let firebaseTokenPromise: Promise<string | null> | null = null;
 
 async function getFirebaseToken(): Promise<string | null> {
@@ -25,41 +24,6 @@ async function getFirebaseToken(): Promise<string | null> {
   return await firebaseTokenPromise;
 }
 
-interface TakosGlobals {
-  __takosEventDefs?: Record<
-    string,
-    Record<string, { source?: string; handler?: string }>
-  >;
-}
-
-async function fetchEventDefs(
-  id: string,
-): Promise<Record<string, { source?: string; handler?: string }>> {
-  try {
-    const res = await fetch(`/api/extensions/${id}/manifest.json`);
-    if (res.ok) {
-      const manifest = await res.json();
-      return (
-        manifest?.eventDefinitions as Record<string, { source?: string; handler?: string }>
-      ) || {};
-    }
-  } catch {
-    /* ignore */
-  }
-  return {};
-}
-
-async function getEventDefs(
-  id: string,
-): Promise<Record<string, { source?: string; handler?: string }>> {
-  const host = globalThis as TakosGlobals;
-  host.__takosEventDefs = host.__takosEventDefs || {};
-  if (!host.__takosEventDefs[id]) {
-    host.__takosEventDefs[id] = await fetchEventDefs(id);
-  }
-  return host.__takosEventDefs[id];
-}
-
 export function createTakos(identifier: string) {
   async function call(eventId: string, payload: unknown) {
     try {
@@ -71,7 +35,9 @@ export function createTakos(identifier: string) {
       return result;
     } catch (err) {
       throw new Error(
-        `Tauri invoke failed: ${err instanceof Error ? err.message : String(err)}`,
+        `Tauri invoke failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
       );
     }
   }
@@ -140,7 +106,9 @@ export function createTakos(identifier: string) {
         const result = await invoke("cdn_write", {
           identifier,
           path,
-          data: typeof data === "string" ? data : btoa(String.fromCharCode(...data)),
+          data: typeof data === "string"
+            ? data
+            : btoa(String.fromCharCode(...data)),
           cacheTTL: options?.cacheTTL,
         });
         return result as string;
@@ -180,7 +148,7 @@ export function createTakos(identifier: string) {
           options = { ...options, token };
         }
       }
-      
+
       // ローカルリスナーへの通知
       const handlers = listeners.get(name);
       handlers?.forEach((h) => {
@@ -191,24 +159,6 @@ export function createTakos(identifier: string) {
         }
       });
 
-      const defs = await getEventDefs(identifier);
-      const def = defs[name];
-
-      const shouldUseServer = def?.source === "server";
-
-      if (!shouldUseServer) {
-        try {
-          const raw = await invoke("invoke_extension_event", {
-            identifier,
-            fnName: name,
-            args: [payload],
-          });
-          return unwrapResult(raw);
-        } catch (err) {
-          console.warn(`[Client] Deno runtime failed for ${name}:`, err);
-        }
-      }
-
       try {
         const raw = await call("extensions:invoke", {
           id: identifier,
@@ -218,20 +168,36 @@ export function createTakos(identifier: string) {
         });
         return unwrapResult(raw);
       } catch (serverErr) {
-        console.error(`[Client] Server execution failed for ${name}:`, serverErr);
+        console.warn(
+          `[Client] Server execution failed for ${name}:`,
+          serverErr,
+        );
+        try {
+          const raw = await invoke("invoke_extension_event", {
+            identifier,
+            fnName: name,
+            args: [payload],
+          });
+          return unwrapResult(raw);
+        } catch (err) {
+          console.error(`[Client] Fallback execution failed for ${name}:`, err);
+        }
         if (
-          serverErr instanceof Error && serverErr.message.includes("function not found")
+          serverErr instanceof Error &&
+          serverErr.message.includes("function not found")
         ) {
           return {
             success: false,
             error: `Function '${name}' not found in extension '${identifier}'`,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           };
         }
         return {
           success: false,
-          error: serverErr instanceof Error ? serverErr.message : String(serverErr),
-          timestamp: new Date().toISOString()
+          error: serverErr instanceof Error
+            ? serverErr.message
+            : String(serverErr),
+          timestamp: new Date().toISOString(),
         };
       }
     },
@@ -261,7 +227,8 @@ export function createTakos(identifier: string) {
     version: "",
     get isActive() {
       return true;
-    },    activate: () => ({
+    },
+    activate: () => ({
       publish: async (
         name: string,
         payload?: unknown,
@@ -271,24 +238,6 @@ export function createTakos(identifier: string) {
           const token = await getFirebaseToken();
           if (token) {
             options = { ...options, token };
-          }
-        }
-        
-        const defs = await getEventDefs(identifier);
-        const def = defs[name];
-
-        const useServer = def?.source === "server";
-
-        if (!useServer) {
-          try {
-            const raw = await invoke("invoke_extension_event", {
-              identifier,
-              fnName: name,
-              args: [payload],
-            });
-            return unwrapResult(raw);
-          } catch (err) {
-            console.warn(`[Client] Deno runtime failed for ${name}:`, err);
           }
         }
 
@@ -301,20 +250,40 @@ export function createTakos(identifier: string) {
           });
           return unwrapResult(raw);
         } catch (serverErr) {
-          console.error(`[Client] Server execution failed for ${name}:`, serverErr);
+          console.warn(
+            `[Client] Server execution failed for ${name}:`,
+            serverErr,
+          );
+          try {
+            const raw = await invoke("invoke_extension_event", {
+              identifier,
+              fnName: name,
+              args: [payload],
+            });
+            return unwrapResult(raw);
+          } catch (err) {
+            console.error(
+              `[Client] Fallback execution failed for ${name}:`,
+              err,
+            );
+          }
           if (
-            serverErr instanceof Error && serverErr.message.includes("function not found")
+            serverErr instanceof Error &&
+            serverErr.message.includes("function not found")
           ) {
             return {
               success: false,
-              error: `Function '${name}' not found in extension '${identifier}'`,
-              timestamp: new Date().toISOString()
+              error:
+                `Function '${name}' not found in extension '${identifier}'`,
+              timestamp: new Date().toISOString(),
             };
           }
           return {
             success: false,
-            error: serverErr instanceof Error ? serverErr.message : String(serverErr),
-            timestamp: new Date().toISOString()
+            error: serverErr instanceof Error
+              ? serverErr.message
+              : String(serverErr),
+            timestamp: new Date().toISOString(),
           };
         }
       },
@@ -367,14 +336,18 @@ export function createTakos(identifier: string) {
         if (!raw) return undefined;
 
         return {
-          publish: async (name: string, payload?: unknown, _options?: { push?: boolean; token?: string }) => {
+          publish: async (
+            name: string,
+            payload?: unknown,
+            _options?: { push?: boolean; token?: string },
+          ) => {
             const invokeRaw = await invoke("invoke_extension_event", {
               identifier: id,
               fnName: name,
               args: [payload],
             });
             return unwrapResult(invokeRaw);
-          }
+          },
         };
       } catch (error) {
         console.error(`Failed to activate extension ${id} via Tauri:`, error);
@@ -386,9 +359,6 @@ export function createTakos(identifier: string) {
     setURL,
     changeURL,
   } as const;
-
-
-  
 
   return takos;
 }

@@ -18,7 +18,7 @@ const runtime = new TakoPack([
   },
 });
 await runtime.init();
-// `call()` runs the handler on the layer specified in `eventDefinitions`
+// `call()` tries the server worker first and falls back to the client worker
 const result = await runtime.call(manifest.identifier, "hello", [
   "world",
 ]);

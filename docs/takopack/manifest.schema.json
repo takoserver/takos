@@ -97,10 +97,6 @@
         "hook": { "type": "string" }
       },
       "additionalProperties": false
-    },
-    "eventDefinitions": {
-      "type": "object",
-      "description": "Custom event definitions"
     }
   }
 }
