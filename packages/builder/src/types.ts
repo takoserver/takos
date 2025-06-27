@@ -149,7 +149,6 @@ export interface ExtensionManifest {
   }>;
   /**
    * APIs exported for other extensions.
-   * Array of event names defined in `eventDefinitions`.
    */
   exports?: string[];
   server: {
@@ -159,7 +158,6 @@ export interface ExtensionManifest {
     entryUI: string;
     entryBackground: string;
   };
-  eventDefinitions?: Record<string, EventDefinition>;
   activityPub?: {
     objects: string[];
     hook: string;
@@ -218,11 +216,7 @@ export interface TakopackConfig {
     icon?: string;
     permissions?: Permission[];
     extensionDependencies?: Array<{ identifier: string; version: string }>;
-    /**
-     * APIs exported for other extensions.
-     *
-     * Use event names declared in `eventDefinitions`.
-     */
+    /** APIs exported for other extensions. */
     exports?: string[];
   };
 

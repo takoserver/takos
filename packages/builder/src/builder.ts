@@ -350,7 +350,7 @@ export class TakopackBuilder {
       analysis.exports.forEach((exp) => {
         if (exp.type === "class") exportedClassSet.add(exp.name);
       });
-    });    // デバッグ用: AST解析結果を出力
+    }); // デバッグ用: AST解析結果を出力
     console.log("🔍 AST Analysis Debug:");
     [...analyses.server, ...analyses.client].forEach((analysis) => {
       console.log(`  File: ${analysis.filePath}`);
@@ -371,38 +371,26 @@ export class TakopackBuilder {
       console.log(`    Exports: ${analysis.exports.length}`);
       analysis.exports.forEach((exp) => {
         console.log(
-          `      export ${exp.type} ${exp.name} ${exp.instanceOf ? `(instanceOf: ${exp.instanceOf})` : ''}`,
+          `      export ${exp.type} ${exp.name} ${
+            exp.instanceOf ? `(instanceOf: ${exp.instanceOf})` : ""
+          }`,
         );
       });
       console.log(`    Method calls: ${analysis.methodCalls.length}`);
       analysis.methodCalls.forEach((call) => {
         console.log(
-          `      ${call.objectName}.${call.methodName}(${call.args.join(', ')})`,
+          `      ${call.objectName}.${call.methodName}(${
+            call.args.join(", ")
+          })`,
         );
-      });    });
+      });
+    });
 
-    // クラスベースのイベント定義のみをサポート（JSDoc/デコレータは廃止）
-    const hasEventDefinitions = this.extractEventDefinitionsFromClasses(analyses, eventDefinitions);
-    
-    // イベント定義が必須
-    if (!hasEventDefinitions) {
-      throw new Error(
-        `❌ No event definitions found. Event definitions using classes are required.\n\n` +
-        `Please use class-based event definitions in your client/server files:\n\n` +
-        `import { Takos } from "../../../../packages/builder/src/classes.ts";\n\n` +
-        `export const takos = new Takos();\n\n` +
-        `takos\n` +
-        `  .client("eventName", handlerFunction)\n` +
-        `  .server("serverEvent", serverHandler)\n` +
-        `  .ui("uiEvent", uiHandler);\n\n` +
-        `JSDoc-based event definitions (@event) and decorators are no longer supported.`
-      );
-    }
+    // クラスベースのイベント定義を収集（任意）
+    this.extractEventDefinitionsFromClasses(analyses, eventDefinitions);
 
     // マニフェストに追加
-    if (Object.keys(eventDefinitions).length > 0) {
-      manifest.eventDefinitions = eventDefinitions;
-    }
+    // v3 では manifest.eventDefinitions を生成しない
     if (activityPubConfigs.length > 0) {
       manifest.activityPub = {
         objects: activityPubConfigs.map((c) => c.object),
@@ -593,33 +581,44 @@ export class TakopackBuilder {
     }
   } /**
    * JSDocタグからイベント名を抽出
-   */  private extractEventNameFromTag(value: string): string | null {
+   */
+
+  private extractEventNameFromTag(value: string): string | null {
     console.log(`[DEBUG] extractEventNameFromTag - value: "${value}"`);
-    
+
     // まず複雑な形式 "("eventName", { ... })" を試す
     const match = value.match(/^\("([^"']+)"/);
     console.log(`[DEBUG] extractEventNameFromTag - complex match: ${match}`);
-    
+
     if (match) {
       const result = match[1];
-      console.log(`[DEBUG] extractEventNameFromTag - complex result: ${result}`);
+      console.log(
+        `[DEBUG] extractEventNameFromTag - complex result: ${result}`,
+      );
       return result;
     }
-    
+
     // シンプルな形式 " eventName" を試す
     const simpleMatch = value.trim();
-    console.log(`[DEBUG] extractEventNameFromTag - simple match: "${simpleMatch}"`);
-    
-    if (simpleMatch && !simpleMatch.includes("(") && !simpleMatch.includes("{")) {
-      console.log(`[DEBUG] extractEventNameFromTag - simple result: ${simpleMatch}`);
+    console.log(
+      `[DEBUG] extractEventNameFromTag - simple match: "${simpleMatch}"`,
+    );
+
+    if (
+      simpleMatch && !simpleMatch.includes("(") && !simpleMatch.includes("{")
+    ) {
+      console.log(
+        `[DEBUG] extractEventNameFromTag - simple result: ${simpleMatch}`,
+      );
       return simpleMatch;
     }
-    
+
     console.log(`[DEBUG] extractEventNameFromTag - no match found`);
     return null;
-  }/**
+  } /**
    * イベント設定をパース
    */
+
   private parseEventConfig(
     value: string,
     targetFunction: string,
@@ -628,11 +627,11 @@ export class TakopackBuilder {
       console.log(
         `[DEBUG] parseEventConfig - value: "${value}", targetFunction: "${targetFunction}"`,
       );
-      
+
       // まず複雑な形式 "("eventName", { ... })" を試す
       const complexMatch = value.match(/^\("([^"']+)"(?:,\s*({.+}))?/);
       console.log(`[DEBUG] parseEventConfig - complex match: ${complexMatch}`);
-      
+
       if (complexMatch) {
         let options: Record<string, unknown> = {};
         if (complexMatch[2]) {
@@ -655,19 +654,24 @@ export class TakopackBuilder {
         );
 
         const result = {
-          source: (options.source as "client" | "server" | "background" | "ui") ||
+          source:
+            (options.source as "client" | "server" | "background" | "ui") ||
             "client",
           handler: targetFunction,
         };
         console.log(
-          `[DEBUG] parseEventConfig - complex result: ${JSON.stringify(result)}`,
+          `[DEBUG] parseEventConfig - complex result: ${
+            JSON.stringify(result)
+          }`,
         );
         return result;
       }
-      
+
       // シンプルな形式 " eventName" の場合はデフォルト設定を使用
       const simpleValue = value.trim();
-      if (simpleValue && !simpleValue.includes("(") && !simpleValue.includes("{")) {
+      if (
+        simpleValue && !simpleValue.includes("(") && !simpleValue.includes("{")
+      ) {
         const result = {
           source: "client" as const,
           handler: targetFunction,
@@ -677,7 +681,7 @@ export class TakopackBuilder {
         );
         return result;
       }
-        console.log(`[DEBUG] parseEventConfig - no match found`);
+      console.log(`[DEBUG] parseEventConfig - no match found`);
       return null;
     } catch (error) {
       console.log(`[DEBUG] parseEventConfig - error: ${error}`);
@@ -837,44 +841,56 @@ export class TakopackBuilder {
    */
   private extractEventDefinitionsFromClasses(
     analyses: { server: ModuleAnalysis[]; client: ModuleAnalysis[] },
-    eventDefinitions: Record<string, EventDefinition>
+    eventDefinitions: Record<string, EventDefinition>,
   ): boolean {
     let hasDefinitions = false;
-    
+
     [...analyses.server, ...analyses.client].forEach((analysis) => {
       // チェーン形式メソッド呼び出しからイベント定義を抽出
       analysis.methodCalls.forEach((call) => {
         // Takopackのクラス名から直接呼び出されているメソッドを検出
         if (this.isTakopackExtensionClass(call.objectName)) {
-          console.log(`🔗 Processing chained method call: ${call.objectName}.${call.methodName}(${call.args.join(', ')})`);
-          
+          console.log(
+            `🔗 Processing chained method call: ${call.objectName}.${call.methodName}(${
+              call.args.join(", ")
+            })`,
+          );
+
           // server, client, ui, background メソッドかどうかチェック
-          if (['server', 'client', 'ui', 'background'].includes(call.methodName)) {
+          if (
+            ["server", "client", "ui", "background"].includes(call.methodName)
+          ) {
             const eventName = call.args[0] as string;
             const handlerArg = call.args[1];
-            let handlerName = '';
-            
-            if (typeof handlerArg === 'string') {
+            let handlerName = "";
+
+            if (typeof handlerArg === "string") {
               // 関数名が文字列で渡された場合
               handlerName = handlerArg;
             } else {
               // 関数オブジェクトが渡された場合、その関数名を推測
-              handlerName = 'anonymous';
+              handlerName = "anonymous";
             }
-            
+
             if (eventName) {
               eventDefinitions[eventName] = {
-                source: call.methodName as "client" | "server" | "background" | "ui",
+                source: call.methodName as
+                  | "client"
+                  | "server"
+                  | "background"
+                  | "ui",
                 handler: handlerName,
               };
-              console.log(`✅ Registered chained event: ${eventName} -> ${handlerName} (${call.methodName})`);
+              console.log(
+                `✅ Registered chained event: ${eventName} -> ${handlerName} (${call.methodName})`,
+              );
               hasDefinitions = true;
             }
           }
         }
       });
     });
-    
+
     return hasDefinitions;
   }
 }
