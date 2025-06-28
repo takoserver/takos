@@ -1,15 +1,17 @@
-use deno_core::{op2, Extension, JsRuntime, OpState, PollEventLoopOptions, RuntimeOptions};
-use deno_core::error::{CoreError, JsError};
+use deno_core::error::{AnyError, JsError};
+use deno_core::{op2, Extension, OpState};
+use deno_runtime::permissions::Permissions;
+use deno_runtime::worker::{MainWorker, WorkerExecutionMode, WorkerOptions};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::thread;
+use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio::runtime::Builder;
-
-fn type_error(err: impl std::fmt::Display) -> CoreError {
-    CoreError::Js(JsError {
+fn type_error(err: impl std::fmt::Display) -> AnyError {
+    AnyError::from(JsError {
         name: Some("TypeError".into()),
         message: Some(err.to_string()),
         stack: None,
@@ -41,20 +43,26 @@ pub async fn op_publish_event(
     state: Rc<RefCell<OpState>>,
     #[string] event_name: String,
     #[string] payload: String,
-) -> Result<(), CoreError> {
+) -> Result<(), AnyError> {
     let app_handle = {
         let state = state.borrow();
         state.borrow::<AppHandle>().clone()
     };
-    app_handle.emit(
-        "deno-event",
-        EventPayload { event_name, payload },
-    ).map_err(type_error)?;
+    app_handle
+        .emit(
+            "deno-event",
+            EventPayload {
+                event_name,
+                payload,
+            },
+        )
+        .map_err(type_error)?;
     Ok(())
 }
 
-async fn load_extensions(app_handle: AppHandle) -> Result<(), CoreError> {
-    let extensions_result = reqwest::get("http://localhost:8000/api/extensions").await
+async fn load_extensions(app_handle: AppHandle) -> Result<(), AnyError> {
+    let extensions_result = reqwest::get("http://localhost:8000/api/extensions")
+        .await
         .map_err(type_error)?;
 
     let extensions = extensions_result
@@ -64,44 +72,62 @@ async fn load_extensions(app_handle: AppHandle) -> Result<(), CoreError> {
 
     for ext in extensions {
         if let Some(client_code) = ext.client {
-            let deno_extension = Extension {
-                name: "takos_ext",
-                ops: std::borrow::Cow::from(vec![op_publish_event()]),
-                ..Default::default()
-            };
+            let identifier = ext.identifier.clone();
+            let app_handle_clone = app_handle.clone();
+            thread::spawn(move || {
+                let runtime = Builder::new_current_thread().enable_all().build().unwrap();
+                runtime.block_on(async move {
+                    let deno_extension = Extension {
+                        name: "takos_ext",
+                        ops: std::borrow::Cow::from(vec![op_publish_event()]),
+                        ..Default::default()
+                    };
 
-            let mut js_runtime = JsRuntime::new(RuntimeOptions {
-                extensions: vec![deno_extension],
-                ..Default::default()
+                    let worker_options = WorkerOptions {
+                        extensions: vec![deno_extension],
+                        execution_mode: WorkerExecutionMode::Standalone,
+                        ..Default::default()
+                    };
+
+                    let mut worker = MainWorker::bootstrap(worker_options, Permissions::allow_all());
+
+                    worker.js_runtime.op_state().borrow_mut().put(app_handle_clone);
+
+                    if let Err(e) = worker.execute_script(
+                        "<setup>",
+                        r#"
+                        globalThis.takos = {
+                            events: {
+                                publish: async (eventName, payload) => {
+                                    await Deno.core.ops.op_publish_event(eventName, JSON.stringify(payload));
+                                }
+                            }
+                        };
+                    "#,
+                    ) {
+                        eprintln!("Failed to setup takos object for {}: {}", identifier, e);
+                        return;
+                    }
+
+                    let specifier: &'static str = Box::leak(identifier.clone().into_boxed_str());
+                    if let Err(e) = worker.execute_script(specifier, client_code.into()) {
+                        eprintln!("Failed to execute client code for {}: {}", identifier, e);
+                        return;
+                    }
+
+                    loop {
+                        if let Err(e) = worker.run_event_loop(false).await {
+                            eprintln!("Error in event loop for {}: {}", identifier, e);
+                            break;
+                        }
+                        tokio::time::sleep(Duration::from_millis(50)).await;
+                    }
+
+                    println!("Extension worker for {} terminated", identifier);
+                });
             });
 
-            js_runtime.op_state().borrow_mut().put(app_handle.clone());
-
-            js_runtime.execute_script(
-                "<setup>",
-                r#"
-                globalThis.takos = {
-                    events: {
-                        publish: async (eventName, payload) => {
-                            await Deno.core.ops.op_publish_event(eventName, JSON.stringify(payload));
-                        }
-                    }
-                };
-            "#,
-            ).map_err(type_error)?;
-
-            let specifier: &'static str = Box::leak(ext.identifier.clone().into_boxed_str());
-            js_runtime.execute_script(specifier, client_code)
-                .map_err(type_error)?;
-
-            let options = PollEventLoopOptions {
-                wait_for_inspector: false,
-                ..Default::default()
-            };
-            js_runtime.run_event_loop(options).await
-                .map_err(type_error)?;
-
-            println!("Loaded extension: {}", ext.identifier);
+            println!("Started worker for extension: {}", identifier);
         }
     }
     Ok(())
@@ -116,7 +142,10 @@ async fn kv_read(identifier: String, key: String) -> Result<serde_json::Value, S
 
 #[tauri::command]
 async fn kv_write(identifier: String, key: String, value: serde_json::Value) -> Result<(), String> {
-    println!("KV Write: identifier={}, key={}, value={}", identifier, key, value);
+    println!(
+        "KV Write: identifier={}, key={}, value={}",
+        identifier, key, value
+    );
     Ok(())
 }
 
@@ -147,7 +176,10 @@ async fn cdn_write(
 ) -> Result<String, String> {
     println!(
         "CDN Write: identifier={}, path={}, data_len={}, cache_ttl={:?}",
-        identifier, path, data.len(), cache_ttl
+        identifier,
+        path,
+        data.len(),
+        cache_ttl
     );
     Ok("dummy_cdn_url".to_string())
 }
@@ -161,7 +193,10 @@ async fn cdn_delete(identifier: String, path: String) -> Result<(), String> {
 #[tauri::command]
 async fn cdn_list(identifier: String, prefix: Option<String>) -> Result<Vec<String>, String> {
     println!("CDN List: identifier={}, prefix={:?}", identifier, prefix);
-    Ok(vec!["dummy_cdn_path_1".to_string(), "dummy_cdn_path_2".to_string()])
+    Ok(vec![
+        "dummy_cdn_path_1".to_string(),
+        "dummy_cdn_path_2".to_string(),
+    ])
 }
 
 #[tauri::command]
