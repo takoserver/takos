@@ -1,13 +1,16 @@
-import { TakoPack } from "../../../packages/runtime/mod.ts";
 import { Extension } from "../models/extension.ts";
 import { WebSocketManager } from "../websocketHandler.ts";
-import { KVItem } from "../models/kv.ts";
 import { sendFCM } from "./fcm.ts";
 
 const serviceAccountStr = Deno.env.get("SERVICE_ACCOUNT_JSON");
 const serviceAccount = serviceAccountStr ? JSON.parse(serviceAccountStr) : null;
 
-const runtimes = new Map<string, TakoPack>();
+interface LoadedExtension {
+  manifest: Record<string, unknown>;
+  server?: Record<string, unknown>;
+}
+
+const extensions = new Map<string, LoadedExtension>();
 const manifests = new Map<string, Record<string, unknown>>();
 
 export async function initExtensions() {
@@ -33,64 +36,24 @@ export async function loadExtension(
 ) {
   try {
     const wsManager = WebSocketManager.getInstance();
-    const pack = new TakoPack([
-      {
-        manifest: doc.manifest,
-        server: doc.server,
-        client: doc.client,
-        ui: doc.ui,
-      },
-    ], {
-      server: {
-        events: {
-          publish: (name: string, payload: unknown) => {
-            wsManager.distributeEvent(name, payload);
-            return Promise.resolve(undefined);
-          },
-        },
-        kv: {
-          read: async (key: string) => {
-            const item = await KVItem.findOne({
-              identifier: doc.identifier,
-              side: "server",
-              key,
-            });
-            return item ? item.value : undefined;
-          },
-          write: async (key: string, value: unknown) => {
-            await KVItem.findOneAndUpdate(
-              { identifier: doc.identifier, side: "server", key },
-              { value },
-              { upsert: true },
-            );
-          },
-          delete: async (key: string) => {
-            await KVItem.deleteOne({
-              identifier: doc.identifier,
-              side: "server",
-              key,
-            });
-          },
-          list: async (prefix?: string) => {
-            const query: Record<string, unknown> = {
-              identifier: doc.identifier,
-              side: "server",
-            };
-            if (prefix) query.key = { $regex: "^" + prefix };
-            const docs = await KVItem.find(query).select("key");
-            return docs.map((d) => d.key);
-          },
-        },
-      },
-    });
+    let serverExports: Record<string, unknown> | undefined;
 
-    await pack.init();
+    if (doc.server) {
+      const url = URL.createObjectURL(
+        new Blob([doc.server], { type: "text/javascript" }),
+      );
+      const mod = await import(url);
+      serverExports = mod;
+    }
 
     manifests.set(doc.identifier, doc.manifest);
+    extensions.set(doc.identifier, { manifest: doc.manifest, server: serverExports });
 
-    // Forward client events to connected clients only
-    pack.setClientPublish(
-      async (
+    // forward client events to connected clients only
+    if (doc.client) {
+      // minimal handler, expecting client to call globalThis.takos.events.publish
+      globalThis.takos ??= {} as any;
+      globalThis.takos.clientPublish = async (
         name: string,
         payload: unknown,
         options?: { push?: boolean; token?: string },
@@ -104,20 +67,33 @@ export async function loadExtension(
           }).catch((err) => console.error("FCM error", err));
         }
         return undefined;
-      },
-    );
-    runtimes.set(doc.identifier, pack);
+      };
+    }
   } catch (err) {
     console.error(`Failed to initialize extension ${doc.identifier}:`, err);
   }
 }
 
-export function getRuntime(id: string): TakoPack | undefined {
-  return runtimes.get(id);
+export function getExtension(id: string): LoadedExtension | undefined {
+  return extensions.get(id);
 }
 
 export function getManifest(id: string): Record<string, unknown> | undefined {
   return manifests.get(id);
+}
+
+export async function callExtension(
+  id: string,
+  fnName: string,
+  args: unknown[] = [],
+): Promise<unknown> {
+  const ext = extensions.get(id);
+  if (!ext?.server) throw new Error("extension not found");
+  const fn = (ext.server as Record<string, unknown>)[fnName];
+  if (typeof fn !== "function") {
+    throw new Error(`function not found: ${fnName}`);
+  }
+  return await (fn as (...a: unknown[]) => unknown)(...args);
 }
 
 export async function runActivityPubHooks(
@@ -125,18 +101,21 @@ export async function runActivityPubHooks(
   object: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
   let result = object;
-  for (const [id, pack] of runtimes) {
+  for (const [id, ext] of extensions) {
     const manifest = manifests.get(id);
     const ap = manifest?.activityPub as
       | { objects: string[]; hook: string }
       | undefined;
-    if (ap && ap.hook && Array.isArray(ap.objects)) {
+    if (ap && ap.hook && Array.isArray(ap.objects) && ext.server) {
       const objType = result.type as string | undefined;
       if (objType && ap.objects.includes(objType)) {
         try {
-          const res = await pack.call(id, ap.hook, [context, result]);
-          if (res && typeof res === "object") {
-            result = res as Record<string, unknown>;
+          const fn = (ext.server as Record<string, unknown>)[ap.hook];
+          if (typeof fn === "function") {
+            const res = await (fn as (c: string, o: Record<string, unknown>) => unknown)(context, result);
+            if (res && typeof res === "object") {
+              result = res as Record<string, unknown>;
+            }
           }
         } catch (err) {
           console.error(`ActivityPub hook failed for ${id}:`, err);
