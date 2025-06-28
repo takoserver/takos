@@ -45,9 +45,9 @@ export default defineConfig({
       "testClientEvents",
       "testClientExtensions",
       "testClientFetch"    ],  },  entries: {
-    server: ["src/server/api.ts"],
-    client: ["src/client/api.ts"],
-    ui: ["src/ui/dist/client/index.html"],
+    server: "src/server/api.ts",
+    client: "src/client/api.ts",
+    ui: "src/ui/dist/client/index.html",
   },
 
   build: {

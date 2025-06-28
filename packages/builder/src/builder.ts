@@ -551,7 +551,7 @@ export class TakopackBuilder {
    * ビルドレポート表示
    */
   private displayBuildReport(metrics: BuildMetrics): void {
-    console.log("\n📊 Build Report:");
+        console.log("\n📊 Build Report:");
     console.log(
       `  ⏱️  Total build time: ${metrics.totalDuration.toFixed(2)}ms`,
     );
