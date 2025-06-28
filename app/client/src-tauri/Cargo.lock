@@ -1114,6 +1114,7 @@ version = "0.1.0"
 dependencies = [
  "deno_core",
  "deno_fs",
+ "deno_permissions",
  "deno_resolver",
  "deno_runtime",
  "log",

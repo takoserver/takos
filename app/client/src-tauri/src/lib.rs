@@ -1,9 +1,7 @@
-use deno_core::{error::CoreError, op2, Extension, ModuleSpecifier, OpState};
-use deno_error::JsErrorBox;
+use deno_core::{error::{CoreError, JsError}, op2, Extension, ModuleSpecifier, OpState};
 use deno_runtime::deno_permissions::PermissionsContainer;
-use deno_runtime::permissions::{
-    RuntimePermissionDescriptorParser, UnstableSubdomainWildcards,
-};
+use deno_runtime::permissions::RuntimePermissionDescriptorParser;
+use deno_permissions::UnstableSubdomainWildcards;
 use deno_runtime::worker::{MainWorker, WorkerOptions, WorkerServiceOptions};
 use deno_resolver::npm::{DenoInNpmPackageChecker, NpmResolver};
 use deno_core::FsModuleLoader;
@@ -19,7 +17,18 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio::runtime::Builder;
 fn type_error(err: impl std::fmt::Display) -> CoreError {
-    CoreError::Js(JsErrorBox::type_error(err.to_string()))
+    CoreError::Js(JsError {
+        name: Some("TypeError".into()),
+        message: Some(err.to_string()),
+        stack: None,
+        cause: None,
+        exception_message: err.to_string(),
+        frames: vec![],
+        source_line: None,
+        source_line_frame_index: None,
+        aggregated: None,
+        additional_properties: vec![],
+    })
 }
 
 #[derive(Deserialize, Debug)]
@@ -134,14 +143,14 @@ async fn load_extensions(app_handle: AppHandle) -> Result<(), CoreError> {
                             }
                         };
                     "#
-                        .to_string(),
+                        .into(),
                     ) {
                         eprintln!("Failed to setup takos object for {}: {}", identifier, e);
                         return;
                     }
 
                     let specifier: &'static str = Box::leak(identifier.clone().into_boxed_str());
-                    if let Err(e) = worker.execute_script(specifier, client_code.clone()) {
+                    if let Err(e) = worker.execute_script(specifier, client_code.clone().into()) {
                         eprintln!("Failed to execute client code for {}: {}", identifier, e);
                         return;
                     }
