@@ -31,7 +31,6 @@ export {
   isUIContext,
   kvRead,
   kvWrite,
-  publishEvent,
   sendActivityPub,
 } from "./src/api-helpers.ts";
 export type {

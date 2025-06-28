@@ -208,7 +208,7 @@ CDN操作テスト
 
 ### イベントハンドラー
 
-`takos.events.on()` で次のイベントを登録しています。
+`takos.events.onRequest()` で次のイベントを登録しています。
 
 - `activityReceived` : `onActivityPubReceive` が呼び出されます
 - `testEvent` : サーバー・クライアント間のテスト用
@@ -276,7 +276,6 @@ CDN操作テスト
     "cdn:read",
     "cdn:write",
     "fetch:net",
-    "events:publish",
     "extensions:invoke",
     "extensions:export",
     "deno:read",

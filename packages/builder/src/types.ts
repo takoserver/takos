@@ -14,7 +14,6 @@ export type Permission =
   | "kv:write"
   | "cdn:read"
   | "cdn:write"
-  | "events:publish"
   | "deno:read"
   | "deno:write"
   | "deno:net"

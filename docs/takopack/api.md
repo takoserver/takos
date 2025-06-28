@@ -89,7 +89,6 @@
 manifest でのイベント宣言は廃止されました。すべてのレイヤーから次の API
 を利用できます。
 
-- `takos.events.publish(eventName: string, payload: any, options?: { push?: boolean; token?: string }): Promise<[number, object]> | Promise<void>`
 - `takos.events.request(name: string, payload?: any, opts?: { timeout?: number }): Promise<unknown>`
 - `takos.events.onRequest(name: string, handler: (payload: any) => unknown): () => void`
   - `request()` は 1 対 1 で呼び出し、`onRequest()`

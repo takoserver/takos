@@ -68,10 +68,10 @@ function handleTestEvent(payload: unknown) {
   }
 }
 
-// Register event handlers
-takos.events.on("uiToClient", handleUiToClient);
-takos.events.on("serverToClient", handleServerToClient);
-takos.events.on("testEvent", handleTestEvent);
+// Register event handlers using onRequest
+takos.events.onRequest("uiToClient", handleUiToClient);
+takos.events.onRequest("serverToClient", handleServerToClient);
+takos.events.onRequest("testEvent", handleTestEvent);
 
 // Request/response API example
 takos.events.onRequest(
@@ -141,17 +141,17 @@ export async function testClientKV() {
 
 export async function testClientEvents() {
   try {
-    await takos.events.publish("clientToServer", {
+    await takos.events.request("clientToServer", {
       message: "Hello from client to server!",
       timestamp: new Date().toISOString(),
     });
 
-    await takos.events.publish("clientToUI", {
+    await takos.events.request("clientToUI", {
       message: "Hello from client to UI!",
       timestamp: new Date().toISOString(),
     });
 
-    await takos.events.publish("testEvent", {
+    await takos.events.request("testEvent", {
       source: "client",
       message: "Test event from client",
       timestamp: new Date().toISOString(),

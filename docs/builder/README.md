@@ -117,7 +117,7 @@ const extension = new FunctionBasedTakopack()
     description: "Extension with server and client functions",
     version: "1.0.0",
     identifier: "com.example.myext",
-    permissions: ["kv:read", "kv:write", "events:publish"],
+    permissions: ["kv:read", "kv:write"],
   });
 
 await extension.build();
@@ -210,19 +210,6 @@ UI HTMLコンテンツを設定します。
 manifest でのイベント定義は不要になりました。`takos.events` を使って
 どのレイヤーからでもイベントを発行・受信できます。
 
-#### イベント送信
-
-```typescript
-await takos.events.publish("serverToClient", { message: "hi" });
-
-// Push 通知経由で送る例
-await takos.events.publish(
-  "serverToClient",
-  { message: "hi" },
-  { push: true, token: "<device-token>" },
-);
-```
-
 #### リクエスト / レスポンス
 
 ```typescript
@@ -296,7 +283,6 @@ type Permission =
   | "kv:write"
   | "cdn:read"
   | "cdn:write"
-  | "events:publish"
   | "deno:read" // 特権権限
   | "deno:write" // 特権権限
   | "deno:net" // 特権権限
@@ -341,21 +327,22 @@ type Permission =
 
 // UI更新処理
 .clientFunction("updateUI", async (data: any) => {
-  await globalThis.takos.events.publish("dataUpdate", data, { push: true });
+  await globalThis.takos.events.request("dataUpdate", data);
 })
 ```
 
 ### イベントハンドラーの書き方
 
-`takos.events.on()` を使ってイベント名とハンドラー関数を登録します。
+`takos.events.onRequest()` を使ってイベント名とハンドラー関数を登録します。
 
 ```typescript
-takos.events.on("serverToClient", async (payload) => {
+takos.events.onRequest("serverToClient", async (payload) => {
   console.log("from server", payload);
+  return { ok: true };
 });
 
-takos.events.on("uiToServer", (data) => {
-  return [200, { ok: true }];
+takos.events.onRequest("uiToServer", (data) => {
+  return { ok: true };
 });
 ```
 
@@ -366,10 +353,12 @@ takos.events.on("uiToServer", (data) => {
 ```typescript
 import { simpleTakos } from "@takopack/builder";
 
-simpleTakos.publish("hello", { message: "hi" });
-simpleTakos.on("hello", (payload) => {
+simpleTakos.onRequest("hello", (payload) => {
   console.log(payload);
+  return { received: true };
 });
+
+await simpleTakos.request("hello", { message: "hi" });
 ```
 
 ### インスタンスベース開発 (旧仕様)
@@ -547,7 +536,7 @@ const memoExtension = new FunctionBasedTakopack()
         <script>
           async function saveMemo() {
             const memo = document.getElementById('memo').value;
-            await takos.events.publish('saveMemo', memo, { push: true });
+            await takos.events.request('saveMemo', memo);
           }
         </script>
       </body>
@@ -558,7 +547,7 @@ const memoExtension = new FunctionBasedTakopack()
     description: "A simple memo-taking extension",
     version: "1.0.0",
     identifier: "com.example.simplememo",
-    permissions: ["kv:read", "kv:write", "events:publish"],
+    permissions: ["kv:read", "kv:write"],
   });
 
 await memoExtension.build();

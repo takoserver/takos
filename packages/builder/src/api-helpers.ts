@@ -13,15 +13,6 @@ export interface TakosEvent<T = unknown> {
 }
 
 export interface TakosEventsAPI {
-  publish<T = unknown>(
-    eventName: string,
-    payload: T,
-    options?: { push?: boolean; token?: string },
-  ): Promise<[number, unknown] | void>;
-  on(
-    eventName: string,
-    handler: (payload: unknown) => void | Promise<void>,
-  ): void;
   request(name: string, payload: unknown): Promise<unknown>;
   onRequest(
     name: string,
@@ -167,23 +158,6 @@ export function getTakosAPI():
 /**
  * イベントを安全に発行する
  */
-export async function publishEvent<T = unknown>(
-  eventName: string,
-  payload: T,
-  context: "server" | "client" | "ui" = "client",
-  options?: { push?: boolean; token?: string },
-): Promise<void> {
-  const api = context === "server"
-    ? getTakosServerAPI()
-    : context === "client"
-    ? getTakosClientAPI()
-    : getTakosUIAPI();
-  if (!api?.events) {
-    console.warn(`Takos API not available in ${context} context`);
-    return;
-  }
-  await api.events.publish(eventName, payload, options);
-}
 
 /**
  * KVストアに安全にアクセスする

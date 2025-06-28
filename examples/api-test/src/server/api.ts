@@ -125,7 +125,7 @@ export async function onActivityPubReceive(activity: Record<string, unknown>) {
     });
 
     // UIにイベントを送信
-    await takos.events.publish("activityReceived", {
+    await takos.events.request("activityReceived", {
       type: activity.type,
       actor: activity.actor,
       timestamp: new Date().toISOString(),
@@ -298,18 +298,18 @@ export async function testFetchAPI() {
 export async function testEventsAPI() {
   try {
     // 各レイヤーにイベントを送信
-    await takos.events.publish("serverToClient", {
+    await takos.events.request("serverToClient", {
       message: "Hello from server to client!",
       timestamp: new Date().toISOString(),
     });
 
-    await takos.events.publish("serverToUI", {
+    await takos.events.request("serverToUI", {
       message: "Hello from server to UI!",
       timestamp: new Date().toISOString(),
     });
 
     // テストイベントを発火
-    await takos.events.publish("testEvent", {
+    await takos.events.request("testEvent", {
       source: "server",
       message: "Test event from server",
       timestamp: new Date().toISOString(),
@@ -548,10 +548,10 @@ function handleUiToServer(payload: unknown) {
   }
 }
 
-// Register event handlers
-takos.events.on("testEvent", handleTestEvent);
-takos.events.on("clientToServer", handleClientToServer);
-takos.events.on("uiToServer", handleUiToServer);
+// Register event handlers using onRequest
+takos.events.onRequest("testEvent", handleTestEvent);
+takos.events.onRequest("clientToServer", handleClientToServer);
+takos.events.onRequest("uiToServer", handleUiToServer);
 
 // Request/response API examples
 takos.events.onRequest(

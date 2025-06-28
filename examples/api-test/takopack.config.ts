@@ -25,7 +25,6 @@ export default defineConfig({
       "cdn:write",
       "fetch:net",
       // Events and extensions
-      "events:publish",
       "extensions:invoke",
       "extensions:export",
       // Deno permissions for advanced operations

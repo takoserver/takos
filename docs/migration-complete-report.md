@@ -21,7 +21,7 @@ takos.client("serverToClient", () => {
 
 **変更後 (`takos.events` API)**
 ```typescript
-takos.events.on("serverToClient", () => {
+takos.events.onRequest("serverToClient", () => {
   return { ok: true };
 });
 ```
@@ -32,9 +32,8 @@ takos.events.on("serverToClient", () => {
 
 ## 🚀 新しい API のポイント
 
-- `takos.events.on()` でイベントハンドラーを登録
-- `takos.events.publish()` でイベント送信
-- `takos.events.request()` / `takos.events.onRequest()` で双方向通信
+- `takos.events.onRequest()` でイベントハンドラーを登録
+- `takos.events.request()` でイベント送信とレスポンス受信
 
 ## ❌ 廃止された記法
 
