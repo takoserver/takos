@@ -46,11 +46,11 @@ class EventManager {
         if (e.identifier !== "takos") {
           try {
             console.log(`Looking for extension runtime for: ${e.identifier}`);
-            const { getRuntime } = await import("./utils/extensionsRuntime.ts");
-            const runtime = getRuntime(e.identifier);
-            if (runtime) {
+            const { callExtension, getExtension } = await import("./utils/extensionsRuntime.ts");
+            const ext = getExtension(e.identifier);
+            if (ext) {
               console.log(`Forwarding event ${e.eventId} to extension ${e.identifier} with payload:`, e.payload);
-              const result = await runtime.call(e.identifier, e.eventId, [e.payload]);
+              const result = await callExtension(e.identifier, e.eventId, [e.payload]);
               console.log(`Extension ${e.identifier} returned:`, result);
               results.push({ success: true, result });
               

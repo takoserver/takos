@@ -8,7 +8,7 @@ import {
   searchRegistry,
 } from "../../../packages/registry/mod.ts";
 import { Extension } from "../models/extension.ts";
-import { getRuntime, loadExtension } from "../utils/extensionsRuntime.ts";
+import { callExtension, getExtension, loadExtension } from "../utils/extensionsRuntime.ts";
 
 function decodeBase64(data: string): Uint8Array {
   const bin = atob(data);
@@ -125,11 +125,11 @@ eventManager.add(
     }).optional(),
   }),
   async (_c, { id, fn, args = [] }) => {
-    const runtime = getRuntime(id);
-    if (!runtime) {
+    const ext = getExtension(id);
+    if (!ext) {
       throw new Error("extension not found");
     }
-    const result = await runtime.call(id, fn, args);
+    const result = await callExtension(id, fn, args);
     return result;
   },
 );
