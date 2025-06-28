@@ -184,3 +184,81 @@ export interface GenerateArgs {
   manifest: ExtensionManifest;
   files: Map<string, string>;
 }
+
+export interface ModuleAnalysis {
+  filePath: string;
+  exports: ExportInfo[];
+  imports: ImportInfo[];
+  decorators: DecoratorInfo[];
+  jsDocTags: JSDocTagInfo[];
+  methodCalls: MethodCallInfo[];
+}
+
+export interface ExportInfo {
+  name: string;
+  type: "function" | "const" | "class" | "type";
+  isDefault: boolean;
+  line: number;
+  column: number;
+  instanceOf?: string;
+}
+
+export interface ImportInfo {
+  source: string;
+  imports: { name: string; alias?: string }[];
+  isTypeOnly: boolean;
+  line: number;
+}
+
+export interface DecoratorInfo {
+  name: string;
+  args: unknown[];
+  targetFunction: string;
+  targetClass?: string;
+  line: number;
+}
+
+export interface JSDocTagInfo {
+  tag: string;
+  value: string;
+  targetFunction: string;
+  targetClass?: string;
+  line: number;
+}
+
+export interface MethodCallInfo {
+  objectName: string;
+  methodName: string;
+  args: unknown[];
+  line: number;
+  column: number;
+}
+
+export interface VirtualEntry {
+  type: "server" | "client";
+  exports: string[];
+  imports: string[];
+  content: string;
+}
+
+export interface EventDefinition {
+  source: "client" | "server" | "background" | "ui";
+  handler: string;
+}
+
+export interface ActivityPubConfig {
+  object: string;
+  hook: string;
+}
+
+export interface TypeGenerationOptions {
+  context: "server" | "client" | "ui";
+  outputPath: string;
+  includeCustomTypes?: boolean;
+}
+
+export interface TypeGenerationResult {
+  filePath: string;
+  content: string;
+  typeCount: number;
+}
