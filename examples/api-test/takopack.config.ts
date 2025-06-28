@@ -40,7 +40,6 @@ export default defineConfig({
       "apiTestClient",
       "apiTestUI",
       "onActivityPubReceive",
-      "onTestEvent",
       "testClientKV",
       "testCDNOperations",
       "testClientEvents",

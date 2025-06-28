@@ -21,9 +21,9 @@ takos.client("serverToClient", () => {
 
 **変更後 (`takos.events` API)**
 ```typescript
-export function onServerToClient() {
+takos.events.on("serverToClient", () => {
   return { ok: true };
-}
+});
 ```
 
 ### 2. `examples/layer-communication-test`
@@ -32,7 +32,7 @@ export function onServerToClient() {
 
 ## 🚀 新しい API のポイント
 
-- ハンドラーはイベント名に合わせた関数を `export` するだけ
+- `takos.events.on()` でイベントハンドラーを登録
 - `takos.events.publish()` でイベント送信
 - `takos.events.request()` / `takos.events.onRequest()` で双方向通信
 

@@ -208,21 +208,12 @@ CDN操作テスト
 
 ### イベントハンドラー
 
-#### `onActivityPubReceive(activity: any)`
+`takos.events.on()` で次のイベントを登録しています。
 
-ActivityPubオブジェクト受信時の処理
-
-#### `onTestEvent(payload: any)`
-
-テストイベント受信時の処理
-
-#### `onServerToClient(payload: any)`
-
-サーバーからクライアントへのイベント処理
-
-#### `onUIToServer(payload: any)`
-
-UIからサーバーへのイベント処理
+- `activityReceived` : `onActivityPubReceive` が呼び出されます
+- `testEvent` : サーバー・クライアント間のテスト用
+- `serverToClient` : サーバーからクライアントへの通知
+- `uiToServer` : UIからサーバーへの通知
 
 ## 🧪 テスト詳細
 

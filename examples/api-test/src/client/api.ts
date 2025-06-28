@@ -6,6 +6,10 @@ interface EventsAPI {
     payload: unknown,
     options?: { push?: boolean; token?: string },
   ): Promise<void>;
+  on(
+    name: string,
+    handler: (payload: unknown) => void | Promise<void>,
+  ): void;
   request(name: string, payload: unknown): Promise<unknown>;
   onRequest(
     name: string,
@@ -39,7 +43,7 @@ interface TestResult {
   timestamp: string;
 }
 
-export function onUiToClient(payload: unknown) {
+function handleUiToClient(payload: unknown) {
   console.log("[Client] Received event from UI:", payload);
 
   try {
@@ -59,7 +63,7 @@ export function onUiToClient(payload: unknown) {
   }
 }
 
-export function onServerToClient(payload: unknown) {
+function handleServerToClient(payload: unknown) {
   console.log("[Client] Received event from server:", payload);
 
   try {
@@ -79,7 +83,7 @@ export function onServerToClient(payload: unknown) {
   }
 }
 
-export function onTestEvent(payload: unknown) {
+function handleTestEvent(payload: unknown) {
   console.log("[Client] onTestEvent called:", payload);
 
   try {
@@ -98,6 +102,11 @@ export function onTestEvent(payload: unknown) {
     };
   }
 }
+
+// Register event handlers
+takos.events.on("uiToClient", handleUiToClient);
+takos.events.on("serverToClient", handleServerToClient);
+takos.events.on("testEvent", handleTestEvent);
 
 // Request/response API example
 takos.events.onRequest(

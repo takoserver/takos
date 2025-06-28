@@ -347,17 +347,16 @@ type Permission =
 
 ### イベントハンドラーの書き方
 
-イベント名に合わせた関数を `export` するだけでハンドラーとして
-登録されます。
+`takos.events.on()` を使ってイベント名とハンドラー関数を登録します。
 
 ```typescript
-export async function onServerToClient(payload: unknown) {
+takos.events.on("serverToClient", async (payload) => {
   console.log("from server", payload);
-}
+});
 
-export function onUiToServer(data: unknown) {
+takos.events.on("uiToServer", (data) => {
   return [200, { ok: true }];
-}
+});
 ```
 
 ### インスタンスベース開発 (旧仕様)
