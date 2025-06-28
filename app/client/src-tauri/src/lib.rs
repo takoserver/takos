@@ -79,6 +79,7 @@ async fn load_extensions(app_handle: AppHandle) -> Result<(), CoreError> {
     for ext in extensions {
         if let Some(client_code) = ext.client {
             let identifier = ext.identifier.clone();
+            let thread_identifier = identifier.clone();
             let app_handle_clone = app_handle.clone();
             thread::spawn(move || {
                 let runtime = Builder::new_current_thread().enable_all().build().unwrap();
@@ -146,25 +147,25 @@ async fn load_extensions(app_handle: AppHandle) -> Result<(), CoreError> {
                         .to_string()
                         .into(),
                     ) {
-                        eprintln!("Failed to setup takos object for {}: {}", identifier, e);
+                        eprintln!("Failed to setup takos object for {}: {}", thread_identifier, e);
                         return;
                     }
 
-                    let specifier: &'static str = Box::leak(identifier.clone().into_boxed_str());
+                    let specifier: &'static str = Box::leak(thread_identifier.clone().into_boxed_str());
                     if let Err(e) = worker.execute_script(specifier, client_code.clone().into()) {
-                        eprintln!("Failed to execute client code for {}: {}", identifier, e);
+                        eprintln!("Failed to execute client code for {}: {}", thread_identifier, e);
                         return;
                     }
 
                     loop {
                         if let Err(e) = worker.run_event_loop(false).await {
-                            eprintln!("Error in event loop for {}: {}", identifier, e);
+                            eprintln!("Error in event loop for {}: {}", thread_identifier, e);
                             break;
                         }
                         tokio::time::sleep(Duration::from_millis(50)).await;
                     }
 
-                    println!("Extension worker for {} terminated", identifier);
+                    println!("Extension worker for {} terminated", thread_identifier);
                 });
             });
 
