@@ -271,7 +271,7 @@ export async function testFetchAPI() {
     // JSONPlaceholderで簡単なHTTPテスト
     const response = await takos.fetch(
       "https://jsonplaceholder.typicode.com/posts/1",
-    );
+    ) as Response;
     const data = await response.json();
 
     console.log("[Server] Fetch test successful:", data.title);

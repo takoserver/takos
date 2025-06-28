@@ -194,7 +194,7 @@ export async function testClientFetch() {
   try {
     const response = await takos.fetch(
       "https://jsonplaceholder.typicode.com/todos/1",
-    );
+    ) as Response;
     const data = await response.json();
     return {
       success: true,
