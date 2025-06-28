@@ -1,9 +1,40 @@
 // Client layer API using new takos.events system
-const { takos } = globalThis as any;
+
+interface EventsAPI {
+  publish(
+    name: string,
+    payload: unknown,
+    options?: { push?: boolean; token?: string },
+  ): Promise<void>;
+  request(name: string, payload: unknown): Promise<unknown>;
+  onRequest(
+    name: string,
+    handler: (payload: unknown) => unknown | Promise<unknown>,
+  ): void;
+}
+
+interface KVAPI {
+  write(key: string, value: unknown): Promise<void>;
+  read(key: string): Promise<unknown>;
+  list(): Promise<string[]>;
+}
+
+interface ExtensionsAPI {
+  readonly all: unknown[];
+}
+
+interface TakosAPI {
+  events: EventsAPI;
+  kv: KVAPI;
+  extensions: ExtensionsAPI;
+  fetch(url: string, init?: RequestInit): Promise<Response>;
+}
+
+const { takos } = globalThis as unknown as { takos: TakosAPI };
 
 interface TestResult {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   timestamp: string;
 }
@@ -69,23 +100,25 @@ export function onTestEvent(payload: unknown) {
 }
 
 // Request/response API example
-takos.events.onRequest<{ text: string }, { text: string }>(
+takos.events.onRequest(
   "echoFromClient",
-  ({ text }) => ({ text: text + " from client" }),
+  ({ text }: { text: string }) => ({ text: `${text} from client` }),
 );
 
-export async function requestServerEcho(text: string) {
-  return await takos.events.request<{ text: string }, { text: string }>(
-    "echoFromServer",
-    { text },
-  );
+export async function requestServerEcho(text: string): Promise<{ text: string }> {
+  return await takos.events.request("echoFromServer", { text }) as Promise<
+    { text: string }>
+  ;
 }
 
 // =============================================================================
 // Client API Test Functions
 // =============================================================================
 
-export function apiTestClient(testType: string, params?: any) {
+export function apiTestClient(
+  testType: string,
+  params?: Record<string, unknown>,
+) {
   console.log(`[Client] apiTestClient called with: ${testType}`, params);
   return {
     layer: "client",

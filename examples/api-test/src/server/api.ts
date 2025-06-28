@@ -1,10 +1,69 @@
 // Server layer API for comprehensive Takos API testing
-// deno-lint-ignore-file no-explicit-any
-const { takos } = globalThis as any;
+
+interface EventsAPI {
+  publish(
+    name: string,
+    payload: unknown,
+    options?: { push?: boolean; token?: string },
+  ): Promise<void>;
+  request(name: string, payload: unknown): Promise<unknown>;
+  onRequest(
+    name: string,
+    handler: (payload: unknown) => unknown | Promise<unknown>,
+  ): void;
+}
+
+interface KVAPI {
+  read(key: string): Promise<unknown>;
+  write(key: string, value: unknown): Promise<void>;
+  delete(key: string): Promise<void>;
+  list(): Promise<string[]>;
+}
+
+interface CDNAPI {
+  read(path: string): Promise<string>;
+  write(path: string, data: string | Uint8Array, options?: { cacheTTL?: number }): Promise<string>;
+  delete(path: string): Promise<void>;
+  list(prefix?: string): Promise<string[]>;
+}
+
+interface ActivityPubAPI {
+  currentUser(): Promise<string>;
+  send(activity: Record<string, unknown>): Promise<void>;
+  list(): Promise<string[]>;
+  actor: {
+    read(): Promise<Record<string, unknown>>;
+    update(key: string, value: string): Promise<void>;
+    delete(key: string): Promise<void>;
+  };
+  pluginActor: {
+    create(localName: string, profile: Record<string, unknown>): Promise<string>;
+    read(iri: string): Promise<Record<string, unknown>>;
+    update(iri: string, partial: Record<string, unknown>): Promise<void>;
+    delete(iri: string): Promise<void>;
+    list(): Promise<string[]>;
+  };
+}
+
+interface ExtensionsAPI {
+  get(identifier: string): { identifier: string; version: string; isActive: boolean } | undefined;
+  readonly all: Array<{ identifier: string; version: string; isActive: boolean }>;
+}
+
+interface TakosAPI {
+  ap: ActivityPubAPI;
+  kv: KVAPI;
+  cdn: CDNAPI;
+  events: EventsAPI;
+  extensions: ExtensionsAPI;
+  fetch(url: string, init?: RequestInit): Promise<Response>;
+}
+
+const { takos } = globalThis as unknown as { takos: TakosAPI };
 
 interface TestResult {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   timestamp: string;
 }
@@ -16,7 +75,10 @@ interface EventPayload {
 }
 
 // Exported server function for testing
-export function apiTestServer(testType: string, params?: any) {
+export function apiTestServer(
+  testType: string,
+  params?: Record<string, unknown>,
+) {
   console.log(`[Server] apiTestServer called with: ${testType}`, params);
   return {
     layer: "server",
@@ -112,7 +174,7 @@ export async function testActivityPubActor() {
 }
 
 // ActivityPub受信フック
-export async function onActivityPubReceive(activity: any) {
+export async function onActivityPubReceive(activity: Record<string, unknown>) {
   console.log("[Server] Received ActivityPub activity:", activity);
 
   try {
@@ -345,7 +407,7 @@ export function testExtensionsAPI() {
     const result = {
       success: true,
       totalExtensions: allExtensions.length,
-      extensions: allExtensions.map((ext: any) => ({
+      extensions: allExtensions.map((ext) => ({
         identifier: ext.identifier,
         version: ext.version,
         isActive: ext.isActive,
@@ -547,14 +609,13 @@ export function onUiToServer(payload: unknown) {
 }
 
 // Request/response API examples
-takos.events.onRequest<{ text: string }, { text: string }>(
+takos.events.onRequest(
   "echoFromServer",
-  ({ text }) => ({ text: text + " from server" }),
+  ({ text }: { text: string }) => ({ text: `${text} from server` }),
 );
 
-export async function requestClientEcho(text: string) {
-  return await takos.events.request<{ text: string }, { text: string }>(
-    "echoFromClient",
-    { text },
-  );
+export async function requestClientEcho(text: string): Promise<{ text: string }> {
+  return await takos.events.request("echoFromClient", { text }) as Promise<
+    { text: string }>
+  ;
 }
