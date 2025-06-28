@@ -117,7 +117,7 @@ const extension = new FunctionBasedTakopack()
     description: "Extension with server and client functions",
     version: "1.0.0",
     identifier: "com.example.myext",
-    permissions: ["kv:read", "kv:write", "events:publish"],
+    permissions: ["kv:read", "kv:write"],
   });
 
 await extension.build();
@@ -205,43 +205,18 @@ UI HTMLコンテンツを設定します。
 })
 ```
 
-### イベント関連メソッド
+### Events API
 
-#### `addEvent(eventName: string, definition: EventDefinition, handler: Function): this`
+manifest でのイベント定義は不要になりました。`takos.events` を使って
+どのレイヤーからでもイベントを発行・受信できます。
 
-カスタムイベントを定義します。
-
-```typescript
-.addEvent("customEvent", {
-  source: "client",
-  handler: "handleCustomEvent"
-}, async (payload: any) => {
-  return [200, { processed: true }];
-})
-```
-
-#### 便利メソッド
+#### リクエスト / レスポンス
 
 ```typescript
-// Client → Server
-.addClientToServerEvent("userAction", async (action: string) => {
-  return [200, { action: `Processed: ${action}` }];
-})
+takos.events.onRequest("echo", ({ text }) => ({ text: text + "!" }));
 
-// Server → Client
-.addServerToClientEvent("statusUpdate", async (status: string) => {
-  console.log("Status:", status);
-})
-
-// Background → UI
-.addBackgroundToUIEvent("notification", async (message: string) => {
-  // UI通知処理
-})
-
-// UI → Background
-.addUIToBackgroundEvent("userInput", async (input: string) => {
-  // バックグラウンド処理
-})
+const res = await takos.events.request("echo", { text: "ping" });
+// res => { text: "ping!" }
 ```
 
 ### ActivityPub メソッド
@@ -308,7 +283,6 @@ type Permission =
   | "kv:write"
   | "cdn:read"
   | "cdn:write"
-  | "events:publish"
   | "deno:read" // 特権権限
   | "deno:write" // 特権権限
   | "deno:net" // 特権権限
@@ -353,37 +327,45 @@ type Permission =
 
 // UI更新処理
 .clientFunction("updateUI", async (data: any) => {
-  await globalThis.takos.events.publish("dataUpdate", data, { push: true });
+  await globalThis.takos.events.request("dataUpdate", data);
 })
 ```
 
 ### イベントハンドラーの書き方
 
-```typescript
-// サーバーイベントハンドラー（戻り値: [status, body]）
-.addClientToServerEvent("submitForm", async (formData: any) => {
-  if (!formData.name) {
-    return [400, { error: "Name is required" }];
-  }
-  
-  // データ処理
-  await processFormData(formData);
-  return [200, { success: true }];
-})
+`takos.events.onRequest()` を使ってイベント名とハンドラー関数を登録します。
 
-// クライアントイベントハンドラー（戻り値: void）
-.addServerToClientEvent("dataChanged", async (newData: any) => {
-  console.log("Data updated:", newData);
-  // UIに通知
-  await globalThis.takos.events.publish("refresh", newData, { push: true });
-})
+```typescript
+takos.events.onRequest("serverToClient", async (payload) => {
+  console.log("from server", payload);
+  return { ok: true };
+});
+
+takos.events.onRequest("uiToServer", (data) => {
+  return { ok: true };
+});
 ```
 
-### インスタンスベース開発
+#### 簡易APIの利用
 
-Takopack Builder 3.0 では、`ServerExtension` や `ClientExtension` を
-インスタンス化してメソッドを追加するスタイルを推奨しています。 JSDoc
-タグを付与することでイベントや ActivityPub フックを定義できます。
+イベントAPIを手軽に使いたい場合は `simpleTakos` ラッパーを利用できます。
+
+```typescript
+import { simpleTakos } from "@takopack/builder";
+
+simpleTakos.onRequest("hello", (payload) => {
+  console.log(payload);
+  return { received: true };
+});
+
+await simpleTakos.request("hello", { message: "hi" });
+```
+
+### インスタンスベース開発 (旧仕様)
+
+以前は `ServerExtension` や `ClientExtension` クラスを使ってイベントを
+登録していましたが、v3.1 からは `takos.events` API へ完全移行しました。
+現在はこのクラスベース方式はレガシーサポートのみとなっています。
 
 ```typescript
 import { ServerExtension } from "@takopack/builder";
@@ -554,7 +536,7 @@ const memoExtension = new FunctionBasedTakopack()
         <script>
           async function saveMemo() {
             const memo = document.getElementById('memo').value;
-            await takos.events.publish('saveMemo', memo, { push: true });
+            await takos.events.request('saveMemo', memo);
           }
         </script>
       </body>
@@ -565,7 +547,7 @@ const memoExtension = new FunctionBasedTakopack()
     description: "A simple memo-taking extension",
     version: "1.0.0",
     identifier: "com.example.simplememo",
-    permissions: ["kv:read", "kv:write", "events:publish"],
+    permissions: ["kv:read", "kv:write"],
   });
 
 await memoExtension.build();

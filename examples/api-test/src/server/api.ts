@@ -1,13 +1,9 @@
-// Server layer API for comprehensive Takos API testing
-// deno-lint-ignore-file no-explicit-any
-const { takos } = globalThis as any;
-
-// クラスベースイベント定義をインポート
-import { Takos } from "../../../../packages/builder/src/classes.ts";
+// Server layer API using simple Takos wrapper
+import { simpleTakos as takos } from "../../../../packages/builder/mod.ts";
 
 interface TestResult {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   timestamp: string;
 }
@@ -19,7 +15,10 @@ interface EventPayload {
 }
 
 // Exported server function for testing
-export function apiTestServer(testType: string, params?: any) {
+export function apiTestServer(
+  testType: string,
+  params?: Record<string, unknown>,
+) {
   console.log(`[Server] apiTestServer called with: ${testType}`, params);
   return {
     layer: "server",
@@ -115,18 +114,18 @@ export async function testActivityPubActor() {
 }
 
 // ActivityPub受信フック
-export async function onActivityPubReceive(activity: any) {
+export async function onActivityPubReceive(activity: Record<string, unknown>) {
   console.log("[Server] Received ActivityPub activity:", activity);
 
   try {
     // 受信したアクティビティをKVに保存
-    await takos.kv.write(`received_activity_${Date.now()}`, {
+    await takos.kv!.write(`received_activity_${Date.now()}`, {
       activity,
       processedAt: new Date().toISOString(),
     });
 
     // UIにイベントを送信
-    await takos.events.publish("activityReceived", {
+    await takos.events!.request("activityReceived", {
       type: activity.type,
       actor: activity.actor,
       timestamp: new Date().toISOString(),
@@ -193,15 +192,15 @@ export async function testKVOperations() {
     };
 
     // 書き込み
-    await takos.kv.write(testKey, testValue);
+    await takos.kv!.write(testKey, testValue);
     console.log(`[Server] Wrote to KV: ${testKey}`);
 
     // 読み込み
-    const readValue = await takos.kv.read(testKey);
+    const readValue = await takos.kv!.read(testKey);
     console.log(`[Server] Read from KV:`, readValue);
 
     // リスト取得
-    const keys = await takos.kv.list();
+    const keys = await takos.kv!.list();
     console.log(`[Server] KV keys count: ${keys.length}`);
 
     return [200, {
@@ -272,7 +271,7 @@ export async function testFetchAPI() {
     // JSONPlaceholderで簡単なHTTPテスト
     const response = await takos.fetch(
       "https://jsonplaceholder.typicode.com/posts/1",
-    );
+    ) as Response;
     const data = await response.json();
 
     console.log("[Server] Fetch test successful:", data.title);
@@ -299,18 +298,18 @@ export async function testFetchAPI() {
 export async function testEventsAPI() {
   try {
     // 各レイヤーにイベントを送信
-    await takos.events.publish("serverToClient", {
+    await takos.events!.request("serverToClient", {
       message: "Hello from server to client!",
       timestamp: new Date().toISOString(),
     });
 
-    await takos.events.publish("serverToUI", {
+    await takos.events!.request("serverToUI", {
       message: "Hello from server to UI!",
       timestamp: new Date().toISOString(),
     });
 
     // テストイベントを発火
-    await takos.events.publish("testEvent", {
+    await takos.events!.request("testEvent", {
       source: "server",
       message: "Test event from server",
       timestamp: new Date().toISOString(),
@@ -339,16 +338,20 @@ export async function testEventsAPI() {
 export function testExtensionsAPI() {
   try {
     // 利用可能な拡張機能を取得
-    const allExtensions = takos.extensions.all;
+    const allExtensions = (takos.extensions as { all: unknown[]; get: (id: string) => unknown }).all;
     console.log(`[Server] Found ${allExtensions.length} extensions`);
 
     // 自分自身の拡張機能を取得
-    const selfExtension = takos.extensions.get("jp.takos.api-test");
+    const selfExtension = (takos.extensions as { all: unknown[]; get: (id: string) => unknown }).get("jp.takos.api-test");
 
     const result = {
       success: true,
       totalExtensions: allExtensions.length,
-      extensions: allExtensions.map((ext: any) => ({
+      extensions: allExtensions.map((ext: {
+        identifier: string;
+        version: string;
+        isActive: boolean;
+      }) => ({
         identifier: ext.identifier,
         version: ext.version,
         isActive: ext.isActive,
@@ -377,11 +380,11 @@ export function testExtensionsAPI() {
 // Event Handlers
 // =============================================================================
 
-export async function onTestEvent(payload: EventPayload) {
+async function handleTestEvent(payload: EventPayload) {
   console.log("[Server] onTestEvent called with payload:", payload);
 
   try {
-    await takos.kv.write("lastTestEvent", {
+    await takos.kv!.write("lastTestEvent", {
       source: "server",
       payload,
       processedAt: new Date().toISOString(),
@@ -521,10 +524,7 @@ export async function runAllTests() {
   }];
 }
 
-// Server-side class-based event definitions
-export const serverTakos = new Takos();
-
-serverTakos.server("clientToServer", (payload: unknown) => {
+function handleClientToServer(payload: unknown) {
   console.log("[Server] onClientToServer called:", payload);
 
   try {
@@ -536,9 +536,9 @@ serverTakos.server("clientToServer", (payload: unknown) => {
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   }
-});
+}
 
-serverTakos.server("uiToServer", (payload: unknown) => {
+function handleUiToServer(payload: unknown) {
   console.log("[Server] onUIToServer called:", payload);
 
   try {
@@ -550,33 +550,26 @@ serverTakos.server("uiToServer", (payload: unknown) => {
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   }
-});
+}
 
-serverTakos.server("testEvent", (payload: unknown) => {
-  console.log("[Server] onTestEvent called with payload:", payload);
-
-  try {
-    return {
-      received: true,
-      processedBy: "server",
-      originalPayload: payload,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (error) {
-    console.error("[Server] Error in onTestEvent:", error);
-    return { error: error instanceof Error ? error.message : String(error) };
-  }
-});
+// Register event handlers using onRequest
+takos.events!.onRequest("testEvent", handleTestEvent);
+takos.events!.onRequest("clientToServer", handleClientToServer);
+takos.events!.onRequest("uiToServer", handleUiToServer);
 
 // Request/response API examples
-takos.events.onRequest<{ text: string }, { text: string }>(
+takos.events!.onRequest(
   "echoFromServer",
-  ({ text }) => ({ text: text + " from server" }),
+  (payload: unknown) => {
+    const { text } = payload as { text: string };
+    return { text: `${text} from server` };
+  },
 );
 
-export async function requestClientEcho(text: string) {
-  return await takos.events.request<{ text: string }, { text: string }>(
-    "echoFromClient",
-    { text },
-  );
+export async function requestClientEcho(
+  text: string,
+): Promise<{ text: string }> {
+  return await takos.events!.request("echoFromClient", { text }) as Promise<
+    { text: string }
+  >;
 }
