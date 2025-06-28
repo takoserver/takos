@@ -1,12 +1,14 @@
-use deno_core::{error::{CoreError, JsError}, op2, Extension, ModuleSpecifier, OpState};
+use deno_core::FsModuleLoader;
+use deno_core::{
+    error::{CoreError, JsError},
+    op2, Extension, ModuleSpecifier, OpState,
+};
+use deno_fs::RealFs;
+use deno_permissions::UnstableSubdomainWildcards;
+use deno_resolver::npm::{DenoInNpmPackageChecker, NpmResolver};
 use deno_runtime::deno_permissions::PermissionsContainer;
 use deno_runtime::permissions::RuntimePermissionDescriptorParser;
-use deno_permissions::UnstableSubdomainWildcards;
 use deno_runtime::worker::{MainWorker, WorkerOptions, WorkerServiceOptions};
-use deno_resolver::npm::{DenoInNpmPackageChecker, NpmResolver};
-use deno_core::FsModuleLoader;
-use deno_fs::RealFs;
-use sys_traits::impls::RealSys;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -14,8 +16,19 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+use sys_traits::impls::RealSys;
 use tauri::{AppHandle, Emitter};
 use tokio::runtime::Builder;
+
+const TAKOS_SETUP_SCRIPT: &str = r#"
+globalThis.takos = {
+    events: {
+        publish: async (eventName, payload) => {
+            await Deno.core.ops.op_publish_event(eventName, JSON.stringify(payload));
+        }
+    }
+};
+"#;
 fn type_error(err: impl std::fmt::Display) -> CoreError {
     CoreError::Js(JsError {
         name: Some("TypeError".into()),
@@ -35,6 +48,87 @@ fn type_error(err: impl std::fmt::Display) -> CoreError {
 struct TakosExtensionInfo {
     identifier: String,
     client: Option<String>,
+}
+
+fn spawn_extension_worker(app_handle: AppHandle, identifier: String, client_code: String) {
+    let thread_identifier = identifier.clone();
+    thread::spawn(move || {
+        let runtime = Builder::new_current_thread().enable_all().build().unwrap();
+        runtime.block_on(async move {
+            let deno_extension = Extension {
+                name: "takos_ext",
+                ops: std::borrow::Cow::from(vec![op_publish_event()]),
+                ..Default::default()
+            };
+
+            let worker_options = WorkerOptions {
+                extensions: vec![deno_extension],
+                ..Default::default()
+            };
+
+            let main_module = ModuleSpecifier::parse("ext:bootstrap").unwrap();
+
+            let permission_desc_parser = Arc::new(RuntimePermissionDescriptorParser::new(
+                RealSys,
+                UnstableSubdomainWildcards::Enabled,
+            ));
+
+            let fs = Arc::new(RealFs);
+
+            let services =
+                WorkerServiceOptions::<DenoInNpmPackageChecker, NpmResolver<RealSys>, RealSys> {
+                    deno_rt_native_addon_loader: None,
+                    module_loader: Rc::new(FsModuleLoader),
+                    permissions: PermissionsContainer::allow_all(permission_desc_parser),
+                    blob_store: Default::default(),
+                    broadcast_channel: Default::default(),
+                    feature_checker: Default::default(),
+                    node_services: Default::default(),
+                    npm_process_state_provider: Default::default(),
+                    root_cert_store_provider: Default::default(),
+                    fetch_dns_resolver: Default::default(),
+                    shared_array_buffer_store: Default::default(),
+                    compiled_wasm_module_store: Default::default(),
+                    v8_code_cache: Default::default(),
+                    fs,
+                };
+
+            let mut worker =
+                MainWorker::bootstrap_from_options(&main_module, services, worker_options);
+
+            worker.js_runtime.op_state().borrow_mut().put(app_handle);
+
+            if let Err(e) = worker.execute_script("<setup>", TAKOS_SETUP_SCRIPT.to_string().into())
+            {
+                eprintln!(
+                    "Failed to setup takos object for {}: {}",
+                    thread_identifier, e
+                );
+                return;
+            }
+
+            let specifier: &'static str = Box::leak(thread_identifier.clone().into_boxed_str());
+            if let Err(e) = worker.execute_script(specifier, client_code.into()) {
+                eprintln!(
+                    "Failed to execute client code for {}: {}",
+                    thread_identifier, e
+                );
+                return;
+            }
+
+            loop {
+                if let Err(e) = worker.run_event_loop(false).await {
+                    eprintln!("Error in event loop for {}: {}", thread_identifier, e);
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            }
+
+            println!("Extension worker for {} terminated", thread_identifier);
+        });
+    });
+
+    println!("Started worker for extension: {}", identifier);
 }
 
 #[derive(Serialize, Clone)]
@@ -78,98 +172,7 @@ async fn load_extensions(app_handle: AppHandle) -> Result<(), CoreError> {
 
     for ext in extensions {
         if let Some(client_code) = ext.client {
-            let identifier = ext.identifier.clone();
-            let thread_identifier = identifier.clone();
-            let app_handle_clone = app_handle.clone();
-            thread::spawn(move || {
-                let runtime = Builder::new_current_thread().enable_all().build().unwrap();
-                runtime.block_on(async move {
-                    let deno_extension = Extension {
-                        name: "takos_ext",
-                        ops: std::borrow::Cow::from(vec![op_publish_event()]),
-                        ..Default::default()
-                    };
-
-                    let worker_options = WorkerOptions {
-                        extensions: vec![deno_extension],
-                        ..Default::default()
-                    };
-
-                    let main_module = ModuleSpecifier::parse("ext:bootstrap").unwrap();
-
-                    let permission_desc_parser = Arc::new(RuntimePermissionDescriptorParser::new(
-                        RealSys,
-                        UnstableSubdomainWildcards::Enabled,
-                    ));
-
-                    let fs = Arc::new(RealFs);
-
-                    let services = WorkerServiceOptions::<
-                        DenoInNpmPackageChecker,
-                        NpmResolver<RealSys>,
-                        RealSys,
-                    > {
-                        deno_rt_native_addon_loader: None,
-                        module_loader: Rc::new(FsModuleLoader),
-                        permissions: PermissionsContainer::allow_all(permission_desc_parser),
-                        blob_store: Default::default(),
-                        broadcast_channel: Default::default(),
-                        feature_checker: Default::default(),
-                        node_services: Default::default(),
-                        npm_process_state_provider: Default::default(),
-                        root_cert_store_provider: Default::default(),
-                        fetch_dns_resolver: Default::default(),
-                        shared_array_buffer_store: Default::default(),
-                        compiled_wasm_module_store: Default::default(),
-                        v8_code_cache: Default::default(),
-                        fs,
-                    };
-
-                    let mut worker = MainWorker::bootstrap_from_options(
-                        &main_module,
-                        services,
-                        worker_options,
-                    );
-
-                    worker.js_runtime.op_state().borrow_mut().put(app_handle_clone);
-
-                    if let Err(e) = worker.execute_script(
-                        "<setup>",
-                        r#"
-                        globalThis.takos = {
-                            events: {
-                                publish: async (eventName, payload) => {
-                                    await Deno.core.ops.op_publish_event(eventName, JSON.stringify(payload));
-                                }
-                            }
-                        };
-                    "#
-                        .to_string()
-                        .into(),
-                    ) {
-                        eprintln!("Failed to setup takos object for {}: {}", thread_identifier, e);
-                        return;
-                    }
-
-                    let specifier: &'static str = Box::leak(thread_identifier.clone().into_boxed_str());
-                    if let Err(e) = worker.execute_script(specifier, client_code.clone().into()) {
-                        eprintln!("Failed to execute client code for {}: {}", thread_identifier, e);
-                        return;
-                    }
-
-                    loop {
-                        if let Err(e) = worker.run_event_loop(false).await {
-                            eprintln!("Error in event loop for {}: {}", thread_identifier, e);
-                            break;
-                        }
-                        tokio::time::sleep(Duration::from_millis(50)).await;
-                    }
-
-                    println!("Extension worker for {} terminated", thread_identifier);
-                });
-            });
-
-            println!("Started worker for extension: {}", identifier);
+            spawn_extension_worker(app_handle.clone(), ext.identifier, client_code);
         }
     }
     Ok(())
