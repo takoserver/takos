@@ -14,7 +14,6 @@ export const defaultConfig: Partial<TakopackConfig> = {
   build: {
     target: "es2022",
     dev: false,
-    analysis: false,
     outDir: "dist",
     minify: true,
   },

@@ -135,9 +135,9 @@ export interface TakopackConfig {
 
   /** Entry points */
   entries: {
-    server?: string;
-    client?: string;
-    ui?: string;
+    server?: string[];
+    client?: string[];
+    ui?: string[];
   };
 
   /** Build settings */

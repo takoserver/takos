@@ -3,7 +3,7 @@ import { resolve } from "jsr:@std/path@1";
 import { existsSync } from "jsr:@std/fs@1";
 
 import type { CLIInterface, CommandArgs, TakopackConfig } from "./types.ts";
-import { build, dev, init, watch } from "./commands.ts";
+import { build, dev, init, types, watch } from "./commands.ts";
 
 /**
  * CLI Interface
@@ -71,6 +71,9 @@ export function createCLI(): CLIInterface {
         case "init":
           await this.handleInit(args);
           break;
+        case "types":
+          await this.handleTypes(args);
+          break;
         default:
           console.error(`Unknown command: ${args.command}`);
           this.showHelp();
@@ -115,6 +118,12 @@ export function createCLI(): CLIInterface {
       await init(projectName);
     },
 
+    async handleTypes(args: CommandArgs): Promise<void> {
+      const config = await this.loadConfig(args.config);
+      const output = args.outDir || "./types";
+      await types(config, output);
+    },
+
     async loadConfig(configPath?: string): Promise<TakopackConfig> {
       const configFile = configPath || "takopack.config.ts";
       const resolvedPath = resolve(configFile);
@@ -130,9 +139,7 @@ export function createCLI(): CLIInterface {
         return config;
       } catch (error) {
         throw new Error(
-          `Failed to load config: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`,
+          `Failed to load config: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
       }
     },
@@ -149,6 +156,7 @@ COMMANDS:
     watch       Watch files and rebuild on changes
     dev         Development mode (watch + dev settings)
     init        Initialize a new project
+    types       Generate TypeScript definitions
     help        Show this help message
     version     Show version information
 
@@ -163,6 +171,7 @@ EXAMPLES:
     takopack build
     takopack dev
     takopack init my-extension
+    takopack types -o ./types
 
 For more information, visit: https://github.com/takos/takopack
 `);

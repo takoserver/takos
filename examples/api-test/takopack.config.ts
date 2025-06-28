@@ -5,7 +5,8 @@ export default defineConfig({
     name: "API Test Extension",
     identifier: "jp.takos.api-test",
     version: "1.0.0",
-    description: "Comprehensive testing extension for all Takos APIs including ActivityPub, KV storage, CDN, Events, and Extensions API.",
+    description:
+      "Comprehensive testing extension for all Takos APIs including ActivityPub, KV storage, CDN, Events, and Extensions API.",
     permissions: [
       // ActivityPub permissions
       "activitypub:send",
@@ -49,15 +50,14 @@ export default defineConfig({
     ],
   },
   entries: {
-    server: "src/server/api.ts",
-    client: "src/client/api.ts",
-    ui: "src/ui/dist/client/index.html",
+    server: ["src/server/api.ts"],
+    client: ["src/client/api.ts"],
+    ui: ["src/ui/dist/client/index.html"],
   },
 
   build: {
     target: "es2022",
     dev: false,
-    analysis: true,
     outDir: "dist",
     minify: false, // デバッグのためminifyを無効化
   },
