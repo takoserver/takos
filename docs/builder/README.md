@@ -359,6 +359,19 @@ takos.events.on("uiToServer", (data) => {
 });
 ```
 
+#### 簡易APIの利用
+
+イベントAPIを手軽に使いたい場合は `simpleTakos` ラッパーを利用できます。
+
+```typescript
+import { simpleTakos } from "@takopack/builder";
+
+simpleTakos.publish("hello", { message: "hi" });
+simpleTakos.on("hello", (payload) => {
+  console.log(payload);
+});
+```
+
 ### インスタンスベース開発 (旧仕様)
 
 以前は `ServerExtension` や `ClientExtension` クラスを使ってイベントを

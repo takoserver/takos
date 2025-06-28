@@ -44,3 +44,5 @@ export type {
   TakosServerAPI,
   TakosUIAPI,
 } from "./src/api-helpers.ts";
+// Simple Takos API
+export * as simpleTakos from "./src/simple-api.ts";

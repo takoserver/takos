@@ -1,40 +1,5 @@
-// Client layer API using new takos.events system
-
-interface EventsAPI {
-  publish(
-    name: string,
-    payload: unknown,
-    options?: { push?: boolean; token?: string },
-  ): Promise<void>;
-  on(
-    name: string,
-    handler: (payload: unknown) => void | Promise<void>,
-  ): void;
-  request(name: string, payload: unknown): Promise<unknown>;
-  onRequest(
-    name: string,
-    handler: (payload: unknown) => unknown | Promise<unknown>,
-  ): void;
-}
-
-interface KVAPI {
-  write(key: string, value: unknown): Promise<void>;
-  read(key: string): Promise<unknown>;
-  list(): Promise<string[]>;
-}
-
-interface ExtensionsAPI {
-  readonly all: unknown[];
-}
-
-interface TakosAPI {
-  events: EventsAPI;
-  kv: KVAPI;
-  extensions: ExtensionsAPI;
-  fetch(url: string, init?: RequestInit): Promise<Response>;
-}
-
-const { takos } = globalThis as unknown as { takos: TakosAPI };
+// Client layer API using simple Takos wrapper
+import { simpleTakos as takos } from "../../../../packages/builder/mod.ts";
 
 interface TestResult {
   success: boolean;
