@@ -1,7 +1,10 @@
 // Simple Takos API wrapper
 // Provides minimal access helpers for extensions.
 
-const api = (globalThis as { takos?: Record<string, unknown> }).takos ?? {};
+// Access the global takos object if it exists. Use a loose type so that
+// extensions can still run when the API is missing (e.g. during tests).
+const api = (globalThis as { takos?: Partial<SimpleTakosAPI> }).takos ?? {} as
+  Partial<SimpleTakosAPI>;
 
 export interface SimpleTakosAPI {
   events?: {
@@ -61,13 +64,13 @@ export function fetchFromTakos(url: string, init?: RequestInit): Promise<Respons
 }
 
 export const simpleTakos: SimpleTakosAPI = {
-  ...api,
+  ...(api as Partial<SimpleTakosAPI>),
   request,
   onRequest,
   kvRead,
   kvWrite,
   kvList,
-  fetch: fetchFromTakos,
+  fetchFromTakos,
 };
 
 export default simpleTakos;

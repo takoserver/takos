@@ -119,13 +119,13 @@ export async function onActivityPubReceive(activity: Record<string, unknown>) {
 
   try {
     // 受信したアクティビティをKVに保存
-    await takos.kv.write(`received_activity_${Date.now()}`, {
+    await takos.kv!.write(`received_activity_${Date.now()}`, {
       activity,
       processedAt: new Date().toISOString(),
     });
 
     // UIにイベントを送信
-    await takos.events.request("activityReceived", {
+    await takos.events!.request("activityReceived", {
       type: activity.type,
       actor: activity.actor,
       timestamp: new Date().toISOString(),
@@ -192,15 +192,15 @@ export async function testKVOperations() {
     };
 
     // 書き込み
-    await takos.kv.write(testKey, testValue);
+    await takos.kv!.write(testKey, testValue);
     console.log(`[Server] Wrote to KV: ${testKey}`);
 
     // 読み込み
-    const readValue = await takos.kv.read(testKey);
+    const readValue = await takos.kv!.read(testKey);
     console.log(`[Server] Read from KV:`, readValue);
 
     // リスト取得
-    const keys = await takos.kv.list();
+    const keys = await takos.kv!.list();
     console.log(`[Server] KV keys count: ${keys.length}`);
 
     return [200, {
@@ -298,18 +298,18 @@ export async function testFetchAPI() {
 export async function testEventsAPI() {
   try {
     // 各レイヤーにイベントを送信
-    await takos.events.request("serverToClient", {
+    await takos.events!.request("serverToClient", {
       message: "Hello from server to client!",
       timestamp: new Date().toISOString(),
     });
 
-    await takos.events.request("serverToUI", {
+    await takos.events!.request("serverToUI", {
       message: "Hello from server to UI!",
       timestamp: new Date().toISOString(),
     });
 
     // テストイベントを発火
-    await takos.events.request("testEvent", {
+    await takos.events!.request("testEvent", {
       source: "server",
       message: "Test event from server",
       timestamp: new Date().toISOString(),
@@ -338,11 +338,11 @@ export async function testEventsAPI() {
 export function testExtensionsAPI() {
   try {
     // 利用可能な拡張機能を取得
-    const allExtensions = takos.extensions.all;
+    const allExtensions = (takos.extensions as { all: unknown[]; get: (id: string) => unknown }).all;
     console.log(`[Server] Found ${allExtensions.length} extensions`);
 
     // 自分自身の拡張機能を取得
-    const selfExtension = takos.extensions.get("jp.takos.api-test");
+    const selfExtension = (takos.extensions as { all: unknown[]; get: (id: string) => unknown }).get("jp.takos.api-test");
 
     const result = {
       success: true,
@@ -384,7 +384,7 @@ async function handleTestEvent(payload: EventPayload) {
   console.log("[Server] onTestEvent called with payload:", payload);
 
   try {
-    await takos.kv.write("lastTestEvent", {
+    await takos.kv!.write("lastTestEvent", {
       source: "server",
       payload,
       processedAt: new Date().toISOString(),
@@ -553,12 +553,12 @@ function handleUiToServer(payload: unknown) {
 }
 
 // Register event handlers using onRequest
-takos.events.onRequest("testEvent", handleTestEvent);
-takos.events.onRequest("clientToServer", handleClientToServer);
-takos.events.onRequest("uiToServer", handleUiToServer);
+takos.events!.onRequest("testEvent", handleTestEvent);
+takos.events!.onRequest("clientToServer", handleClientToServer);
+takos.events!.onRequest("uiToServer", handleUiToServer);
 
 // Request/response API examples
-takos.events.onRequest(
+takos.events!.onRequest(
   "echoFromServer",
   (payload: unknown) => {
     const { text } = payload as { text: string };
@@ -569,7 +569,7 @@ takos.events.onRequest(
 export async function requestClientEcho(
   text: string,
 ): Promise<{ text: string }> {
-  return await takos.events.request("echoFromClient", { text }) as Promise<
+  return await takos.events!.request("echoFromClient", { text }) as Promise<
     { text: string }
   >;
 }

@@ -69,12 +69,12 @@ function handleTestEvent(payload: unknown) {
 }
 
 // Register event handlers using onRequest
-takos.events.onRequest("uiToClient", handleUiToClient);
-takos.events.onRequest("serverToClient", handleServerToClient);
-takos.events.onRequest("testEvent", handleTestEvent);
+takos.events!.onRequest("uiToClient", handleUiToClient);
+takos.events!.onRequest("serverToClient", handleServerToClient);
+takos.events!.onRequest("testEvent", handleTestEvent);
 
 // Request/response API example
-takos.events.onRequest(
+takos.events!.onRequest(
   "echoFromClient",
   (payload: unknown) => {
     const { text } = payload as { text: string };
@@ -85,7 +85,7 @@ takos.events.onRequest(
 export async function requestServerEcho(
   text: string,
 ): Promise<{ text: string }> {
-  return await takos.events.request("echoFromServer", { text }) as Promise<
+  return await takos.events!.request("echoFromServer", { text }) as Promise<
     { text: string }
   >;
 }
@@ -116,9 +116,9 @@ export async function testClientKV() {
       timestamp: new Date().toISOString(),
     };
 
-    await takos.kv.write(testKey, testValue);
-    const readValue = await takos.kv.read(testKey);
-    const keys = await takos.kv.list();
+    await takos.kv!.write(testKey, testValue);
+    const readValue = await takos.kv!.read(testKey);
+    const keys = await takos.kv!.list();
 
     return {
       success: true,
@@ -141,17 +141,17 @@ export async function testClientKV() {
 
 export async function testClientEvents() {
   try {
-    await takos.events.request("clientToServer", {
+    await takos.events!.request("clientToServer", {
       message: "Hello from client to server!",
       timestamp: new Date().toISOString(),
     });
 
-    await takos.events.request("clientToUI", {
+    await takos.events!.request("clientToUI", {
       message: "Hello from client to UI!",
       timestamp: new Date().toISOString(),
     });
 
-    await takos.events.request("testEvent", {
+    await takos.events!.request("testEvent", {
       source: "client",
       message: "Test event from client",
       timestamp: new Date().toISOString(),
@@ -174,7 +174,7 @@ export async function testClientEvents() {
 
 export function testClientExtensions() {
   try {
-    const allExtensions = takos.extensions.all;
+    const allExtensions = (takos.extensions as { all: unknown[] }).all;
     return {
       success: true,
       totalExtensions: allExtensions.length,
@@ -192,7 +192,7 @@ export function testClientExtensions() {
 
 export async function testClientFetch() {
   try {
-    const response = await takos.fetch(
+    const response = await takos.fetchFromTakos(
       "https://jsonplaceholder.typicode.com/todos/1",
     ) as Response;
     const data = await response.json();
