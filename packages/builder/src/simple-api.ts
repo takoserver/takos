@@ -43,7 +43,7 @@ export function fetchFromTakos(url: string, init?: RequestInit): Promise<Respons
   return api.fetch?.(url, init);
 }
 
-const simpleTakos: SimpleTakosAPI = {
+export const simpleTakos: SimpleTakosAPI = {
   request,
   onRequest,
   kvRead,
