@@ -36,7 +36,7 @@ export default defineConfig({
     icon: "./icon.png",
     exports: [
       "apiTestServer",
-      "apiTestClient", 
+      "apiTestClient",
       "apiTestUI",
       "onActivityPubReceive",
       "onTestEvent",
@@ -44,7 +44,11 @@ export default defineConfig({
       "testCDNOperations",
       "testClientEvents",
       "testClientExtensions",
-      "testClientFetch"    ],  },  entries: {
+      "testClientFetch",
+      "runClientTests",
+    ],
+  },
+  entries: {
     server: "src/server/api.ts",
     client: "src/client/api.ts",
     ui: "src/ui/dist/client/index.html",
