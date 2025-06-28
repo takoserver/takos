@@ -20,9 +20,37 @@ export interface SimpleTakosAPI {
     list: () => Promise<string[]> | void;
   };
   fetch?: (url: string, init?: RequestInit) => Promise<Response> | void;
-  ap?: unknown;
-  cdn?: unknown;
-  extensions?: unknown;
+  ap?: {
+    currentUser: () => Promise<string>;
+    send: (activity: Record<string, unknown>) => Promise<void>;
+    list: () => Promise<Record<string, unknown>[]>;
+    actor: {
+      read: () => Promise<Record<string, unknown>>;
+      update: (key: string, value: unknown) => Promise<void>;
+    };
+    pluginActor: {
+      create: (id: string, data: Record<string, unknown>) => Promise<string>;
+      read: (id: string) => Promise<Record<string, unknown>>;
+      list: () => Promise<Record<string, unknown>[]>;
+    };
+  };
+  cdn?: {
+    write: (path: string, data: string, options?: Record<string, unknown>) => Promise<string>;
+    read: (path: string) => Promise<string>;
+    list: (prefix?: string) => Promise<string[]>;
+  };
+  extensions?: {
+    all: Array<{
+      identifier: string;
+      version: string;
+      isActive: boolean;
+    }>;
+    get?: (id: string) => {
+      identifier: string;
+      version: string;
+      isActive: boolean;
+    } | undefined;
+  };
 
   request: (name: string, payload: unknown) => Promise<unknown> | void;
   onRequest: (

@@ -35,6 +35,10 @@ export function apiTestServer(
 
 export async function testActivityPubSend() {
   try {
+    if (!takos.ap) {
+      throw new Error("ActivityPub API is not available");
+    }
+    
     const currentUser = await takos.ap.currentUser();
     console.log(`[Server] Current user: ${currentUser}`);
 
@@ -72,6 +76,10 @@ export async function testActivityPubSend() {
 
 export async function testActivityPubList() {
   try {
+    if (!takos.ap) {
+      throw new Error("ActivityPub API is not available");
+    }
+    
     const activities = await takos.ap.list();
     console.log(`[Server] Found ${activities.length} activities`);
 
@@ -92,6 +100,10 @@ export async function testActivityPubList() {
 
 export async function testActivityPubActor() {
   try {
+    if (!takos.ap) {
+      throw new Error("ActivityPub API is not available");
+    }
+    
     const actor = await takos.ap.actor.read();
     console.log("[Server] Current actor:", actor);
 
@@ -147,6 +159,10 @@ export async function onActivityPubReceive(activity: Record<string, unknown>) {
 
 export async function testPluginActor() {
   try {
+    if (!takos.ap) {
+      throw new Error("ActivityPub API is not available");
+    }
+    
     // プラグインアクターを作成
     const actorId = await takos.ap.pluginActor.create("test-bot", {
       name: "Test Bot",
@@ -200,7 +216,7 @@ export async function testKVOperations() {
     console.log(`[Server] Read from KV:`, readValue);
 
     // リスト取得
-    const keys = await takos.kv!.list();
+    const keys = await takos.kv!.list() || [];
     console.log(`[Server] KV keys count: ${keys.length}`);
 
     return [200, {
@@ -226,6 +242,10 @@ export async function testKVOperations() {
 
 export async function testCDNOperations() {
   try {
+    if (!takos.cdn) {
+      throw new Error("CDN API is not available");
+    }
+    
     const testPath = "test/api-test-" + Date.now() + ".json";
     const testData = JSON.stringify({
       message: "Hello from CDN!",
@@ -269,7 +289,7 @@ export async function testCDNOperations() {
 export async function testFetchAPI() {
   try {
     // JSONPlaceholderで簡単なHTTPテスト
-    const response = await takos.fetch(
+    const response = await takos.fetch?.(
       "https://jsonplaceholder.typicode.com/posts/1",
     ) as Response;
     const data = await response.json();
@@ -338,20 +358,16 @@ export async function testEventsAPI() {
 export function testExtensionsAPI() {
   try {
     // 利用可能な拡張機能を取得
-    const allExtensions = (takos.extensions as { all: unknown[]; get: (id: string) => unknown }).all;
+    const allExtensions = takos.extensions?.all || [];
     console.log(`[Server] Found ${allExtensions.length} extensions`);
 
     // 自分自身の拡張機能を取得
-    const selfExtension = (takos.extensions as { all: unknown[]; get: (id: string) => unknown }).get("jp.takos.api-test");
+    const selfExtension = takos.extensions?.get?.("jp.takos.api-test");
 
     const result = {
       success: true,
       totalExtensions: allExtensions.length,
-      extensions: allExtensions.map((ext: {
-        identifier: string;
-        version: string;
-        isActive: boolean;
-      }) => ({
+      extensions: allExtensions.map((ext) => ({
         identifier: ext.identifier,
         version: ext.version,
         isActive: ext.isActive,
@@ -380,7 +396,7 @@ export function testExtensionsAPI() {
 // Event Handlers
 // =============================================================================
 
-async function handleTestEvent(payload: EventPayload) {
+async function handleTestEvent(payload: unknown) {
   console.log("[Server] onTestEvent called with payload:", payload);
 
   try {

@@ -118,7 +118,7 @@ export async function testClientKV() {
 
     await takos.kv!.write(testKey, testValue);
     const readValue = await takos.kv!.read(testKey);
-    const keys = await takos.kv!.list();
+    const keys = await takos.kv!.list() || [];
 
     return {
       success: true,
@@ -174,7 +174,7 @@ export async function testClientEvents() {
 
 export function testClientExtensions() {
   try {
-    const allExtensions = (takos.extensions as { all: unknown[] }).all;
+    const allExtensions = takos.extensions?.all || [];
     return {
       success: true,
       totalExtensions: allExtensions.length,
