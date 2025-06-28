@@ -102,13 +102,18 @@ export function onTestEvent(payload: unknown) {
 // Request/response API example
 takos.events.onRequest(
   "echoFromClient",
-  ({ text }: { text: string }) => ({ text: `${text} from client` }),
+  (payload) => {
+    const { text } = payload as { text: string };
+    return { text: `${text} from client` };
+  },
 );
 
-export async function requestServerEcho(text: string): Promise<{ text: string }> {
+export async function requestServerEcho(
+  text: string,
+): Promise<{ text: string }> {
   return await takos.events.request("echoFromServer", { text }) as Promise<
-    { text: string }>
-  ;
+    { text: string }
+  >;
 }
 
 // =============================================================================
@@ -237,27 +242,59 @@ export async function runClientTests() {
   const results: Record<string, TestResult> = {};
 
   try {
-    results.kv = { success: true, data: await testClientKV(), timestamp: new Date().toISOString() };
+    results.kv = {
+      success: true,
+      data: await testClientKV(),
+      timestamp: new Date().toISOString(),
+    };
   } catch (error) {
-    results.kv = { success: false, error: error instanceof Error ? error.message : String(error), timestamp: new Date().toISOString() };
+    results.kv = {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString(),
+    };
   }
 
   try {
-    results.events = { success: true, data: await testClientEvents(), timestamp: new Date().toISOString() };
+    results.events = {
+      success: true,
+      data: await testClientEvents(),
+      timestamp: new Date().toISOString(),
+    };
   } catch (error) {
-    results.events = { success: false, error: error instanceof Error ? error.message : String(error), timestamp: new Date().toISOString() };
+    results.events = {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString(),
+    };
   }
 
   try {
-    results.extensions = { success: true, data: testClientExtensions(), timestamp: new Date().toISOString() };
+    results.extensions = {
+      success: true,
+      data: testClientExtensions(),
+      timestamp: new Date().toISOString(),
+    };
   } catch (error) {
-    results.extensions = { success: false, error: error instanceof Error ? error.message : String(error), timestamp: new Date().toISOString() };
+    results.extensions = {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString(),
+    };
   }
 
   try {
-    results.fetch = { success: true, data: await testClientFetch(), timestamp: new Date().toISOString() };
+    results.fetch = {
+      success: true,
+      data: await testClientFetch(),
+      timestamp: new Date().toISOString(),
+    };
   } catch (error) {
-    results.fetch = { success: false, error: error instanceof Error ? error.message : String(error), timestamp: new Date().toISOString() };
+    results.fetch = {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString(),
+    };
   }
 
   const summary = {
@@ -271,6 +308,7 @@ export async function runClientTests() {
     success: true,
     summary,
     results,
-    message: `Client tests completed: ${summary.passed}/${summary.total} passed`,
+    message:
+      `Client tests completed: ${summary.passed}/${summary.total} passed`,
   };
 }

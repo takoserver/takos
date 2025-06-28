@@ -22,7 +22,11 @@ interface KVAPI {
 
 interface CDNAPI {
   read(path: string): Promise<string>;
-  write(path: string, data: string | Uint8Array, options?: { cacheTTL?: number }): Promise<string>;
+  write(
+    path: string,
+    data: string | Uint8Array,
+    options?: { cacheTTL?: number },
+  ): Promise<string>;
   delete(path: string): Promise<void>;
   list(prefix?: string): Promise<string[]>;
 }
@@ -37,7 +41,10 @@ interface ActivityPubAPI {
     delete(key: string): Promise<void>;
   };
   pluginActor: {
-    create(localName: string, profile: Record<string, unknown>): Promise<string>;
+    create(
+      localName: string,
+      profile: Record<string, unknown>,
+    ): Promise<string>;
     read(iri: string): Promise<Record<string, unknown>>;
     update(iri: string, partial: Record<string, unknown>): Promise<void>;
     delete(iri: string): Promise<void>;
@@ -46,8 +53,12 @@ interface ActivityPubAPI {
 }
 
 interface ExtensionsAPI {
-  get(identifier: string): { identifier: string; version: string; isActive: boolean } | undefined;
-  readonly all: Array<{ identifier: string; version: string; isActive: boolean }>;
+  get(
+    identifier: string,
+  ): { identifier: string; version: string; isActive: boolean } | undefined;
+  readonly all: Array<
+    { identifier: string; version: string; isActive: boolean }
+  >;
 }
 
 interface TakosAPI {
@@ -611,11 +622,16 @@ export function onUiToServer(payload: unknown) {
 // Request/response API examples
 takos.events.onRequest(
   "echoFromServer",
-  ({ text }: { text: string }) => ({ text: `${text} from server` }),
+  (payload) => {
+    const { text } = payload as { text: string };
+    return { text: `${text} from server` };
+  },
 );
 
-export async function requestClientEcho(text: string): Promise<{ text: string }> {
+export async function requestClientEcho(
+  text: string,
+): Promise<{ text: string }> {
   return await takos.events.request("echoFromClient", { text }) as Promise<
-    { text: string }>
-  ;
+    { text: string }
+  >;
 }
