@@ -2,9 +2,6 @@
 // deno-lint-ignore-file no-explicit-any
 const { takos } = globalThis as any;
 
-// クラスベースイベント定義をインポート
-import { Takos } from "../../../../packages/builder/src/classes.ts";
-
 interface TestResult {
   success: boolean;
   data?: any;
@@ -521,10 +518,7 @@ export async function runAllTests() {
   }];
 }
 
-// Server-side class-based event definitions
-export const serverTakos = new Takos();
-
-serverTakos.server("clientToServer", (payload: unknown) => {
+export function onClientToServer(payload: unknown) {
   console.log("[Server] onClientToServer called:", payload);
 
   try {
@@ -536,9 +530,9 @@ serverTakos.server("clientToServer", (payload: unknown) => {
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   }
-});
+}
 
-serverTakos.server("uiToServer", (payload: unknown) => {
+export function onUiToServer(payload: unknown) {
   console.log("[Server] onUIToServer called:", payload);
 
   try {
@@ -550,23 +544,7 @@ serverTakos.server("uiToServer", (payload: unknown) => {
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   }
-});
-
-serverTakos.server("testEvent", (payload: unknown) => {
-  console.log("[Server] onTestEvent called with payload:", payload);
-
-  try {
-    return {
-      received: true,
-      processedBy: "server",
-      originalPayload: payload,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (error) {
-    console.error("[Server] Error in onTestEvent:", error);
-    return { error: error instanceof Error ? error.message : String(error) };
-  }
-});
+}
 
 // Request/response API examples
 takos.events.onRequest<{ text: string }, { text: string }>(

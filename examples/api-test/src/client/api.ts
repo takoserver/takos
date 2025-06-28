@@ -1,16 +1,13 @@
-// Class-based event definition - simplified approach
-import { Takos } from "../../../../packages/builder/src/classes.ts";
+// Client layer API using new takos.events system
+const { takos } = globalThis as any;
 
-// Takosインスタンスを作成してイベントを直接登録
-export const takos = new Takos();
-
-takos.client("uiToClient", (payload: unknown) => {
-  console.log("[Client] Received event from UI (class-based):", payload);
+export function onUiToClient(payload: unknown) {
+  console.log("[Client] Received event from UI:", payload);
 
   try {
     return {
       received: true,
-      processedBy: "client-class",
+      processedBy: "client",
       originalPayload: payload,
       timestamp: new Date().toISOString(),
     };
@@ -22,15 +19,15 @@ takos.client("uiToClient", (payload: unknown) => {
       timestamp: new Date().toISOString(),
     };
   }
-});
+}
 
-takos.client("serverToClient", (payload: unknown) => {
-  console.log("[Client] Received event from server (class-based):", payload);
+export function onServerToClient(payload: unknown) {
+  console.log("[Client] Received event from server:", payload);
 
   try {
     return {
       received: true,
-      processedBy: "client-class",
+      processedBy: "client",
       originalPayload: payload,
       timestamp: new Date().toISOString(),
     };
@@ -42,15 +39,15 @@ takos.client("serverToClient", (payload: unknown) => {
       timestamp: new Date().toISOString(),
     };
   }
-});
+}
 
-takos.client("testEvent", (payload: unknown) => {
-  console.log("[Client] onTestEvent called (class-based):", payload);
+export function onTestEvent(payload: unknown) {
+  console.log("[Client] onTestEvent called:", payload);
 
   try {
     return {
       received: true,
-      processedBy: "client-class",
+      processedBy: "client",
       originalPayload: payload,
       timestamp: new Date().toISOString(),
     };
@@ -62,7 +59,7 @@ takos.client("testEvent", (payload: unknown) => {
       timestamp: new Date().toISOString(),
     };
   }
-});
+}
 
 // Request/response API example
 takos.events.onRequest<{ text: string }, { text: string }>(

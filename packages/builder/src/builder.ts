@@ -340,8 +340,7 @@ export class TakopackBuilder {
       },
     };
 
-    // イベント定義とActivityPub設定をAST解析結果から抽出
-    const eventDefinitions: Record<string, EventDefinition> = {};
+    // ActivityPub設定をAST解析結果から抽出
     const activityPubConfigs: ActivityPubConfig[] = [];
 
     const exportedClassSet = new Set<string>();
@@ -386,8 +385,7 @@ export class TakopackBuilder {
       });
     });
 
-    // クラスベースのイベント定義を収集（任意）
-    this.extractEventDefinitionsFromClasses(analyses, eventDefinitions);
+
 
     // マニフェストに追加
     // v3 では manifest.eventDefinitions を生成しない

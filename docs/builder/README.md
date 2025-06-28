@@ -205,43 +205,31 @@ UI HTMLコンテンツを設定します。
 })
 ```
 
-### イベント関連メソッド
+### Events API
 
-#### `addEvent(eventName: string, definition: EventDefinition, handler: Function): this`
+manifest でのイベント定義は不要になりました。`takos.events` を使って
+どのレイヤーからでもイベントを発行・受信できます。
 
-カスタムイベントを定義します。
+#### イベント送信
 
 ```typescript
-.addEvent("customEvent", {
-  source: "client",
-  handler: "handleCustomEvent"
-}, async (payload: any) => {
-  return [200, { processed: true }];
-})
+await takos.events.publish("serverToClient", { message: "hi" });
+
+// Push 通知経由で送る例
+await takos.events.publish(
+  "serverToClient",
+  { message: "hi" },
+  { push: true, token: "<device-token>" },
+);
 ```
 
-#### 便利メソッド
+#### リクエスト / レスポンス
 
 ```typescript
-// Client → Server
-.addClientToServerEvent("userAction", async (action: string) => {
-  return [200, { action: `Processed: ${action}` }];
-})
+takos.events.onRequest("echo", ({ text }) => ({ text: text + "!" }));
 
-// Server → Client
-.addServerToClientEvent("statusUpdate", async (status: string) => {
-  console.log("Status:", status);
-})
-
-// Background → UI
-.addBackgroundToUIEvent("notification", async (message: string) => {
-  // UI通知処理
-})
-
-// UI → Background
-.addUIToBackgroundEvent("userInput", async (input: string) => {
-  // バックグラウンド処理
-})
+const res = await takos.events.request("echo", { text: "ping" });
+// res => { text: "ping!" }
 ```
 
 ### ActivityPub メソッド
@@ -359,31 +347,24 @@ type Permission =
 
 ### イベントハンドラーの書き方
 
-```typescript
-// サーバーイベントハンドラー（戻り値: [status, body]）
-.addClientToServerEvent("submitForm", async (formData: any) => {
-  if (!formData.name) {
-    return [400, { error: "Name is required" }];
-  }
-  
-  // データ処理
-  await processFormData(formData);
-  return [200, { success: true }];
-})
+イベント名に合わせた関数を `export` するだけでハンドラーとして
+登録されます。
 
-// クライアントイベントハンドラー（戻り値: void）
-.addServerToClientEvent("dataChanged", async (newData: any) => {
-  console.log("Data updated:", newData);
-  // UIに通知
-  await globalThis.takos.events.publish("refresh", newData, { push: true });
-})
+```typescript
+export async function onServerToClient(payload: unknown) {
+  console.log("from server", payload);
+}
+
+export function onUiToServer(data: unknown) {
+  return [200, { ok: true }];
+}
 ```
 
-### インスタンスベース開発
+### インスタンスベース開発 (旧仕様)
 
-Takopack Builder 3.0 では、`ServerExtension` や `ClientExtension` を
-インスタンス化してメソッドを追加するスタイルを推奨しています。 JSDoc
-タグを付与することでイベントや ActivityPub フックを定義できます。
+以前は `ServerExtension` や `ClientExtension` クラスを使ってイベントを
+登録していましたが、v3.1 からは `takos.events` API へ完全移行しました。
+現在はこのクラスベース方式はレガシーサポートのみとなっています。
 
 ```typescript
 import { ServerExtension } from "@takopack/builder";
