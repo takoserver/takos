@@ -44,4 +44,6 @@ export type {
   TakosUIAPI,
 } from "./src/api-helpers.ts";
 // Simple Takos API
-export * as simpleTakos from "./src/simple-api.ts";
+// Provide a simple wrapper around the global takos API
+export { default as simpleTakos } from "./src/simple-api.ts";
+export * from "./src/simple-api.ts";

@@ -76,7 +76,7 @@ takos.events.onRequest("testEvent", handleTestEvent);
 // Request/response API example
 takos.events.onRequest(
   "echoFromClient",
-  (payload) => {
+  (payload: unknown) => {
     const { text } = payload as { text: string };
     return { text: `${text} from client` };
   },

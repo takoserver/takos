@@ -347,7 +347,11 @@ export function testExtensionsAPI() {
     const result = {
       success: true,
       totalExtensions: allExtensions.length,
-      extensions: allExtensions.map((ext) => ({
+      extensions: allExtensions.map((ext: {
+        identifier: string;
+        version: string;
+        isActive: boolean;
+      }) => ({
         identifier: ext.identifier,
         version: ext.version,
         isActive: ext.isActive,
@@ -556,7 +560,7 @@ takos.events.onRequest("uiToServer", handleUiToServer);
 // Request/response API examples
 takos.events.onRequest(
   "echoFromServer",
-  (payload) => {
+  (payload: unknown) => {
     const { text } = payload as { text: string };
     return { text: `${text} from server` };
   },
