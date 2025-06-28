@@ -3,6 +3,18 @@
 
 const api = (globalThis as { takos?: any }).takos ?? {};
 
+export interface SimpleTakosAPI {
+  request: (name: string, payload: unknown) => Promise<unknown> | void;
+  onRequest: (
+    name: string,
+    handler: (payload: unknown) => unknown | Promise<unknown>,
+  ) => void;
+  kvRead: (key: string) => Promise<unknown> | void;
+  kvWrite: (key: string, value: unknown) => Promise<void> | void;
+  kvList: () => Promise<string[]> | void;
+  fetch: (url: string, init?: RequestInit) => Promise<Response> | void;
+}
+
 
 export function request(name: string, payload: unknown): Promise<unknown> | void {
   return api.events?.request?.(name, payload);
@@ -31,7 +43,7 @@ export function fetchFromTakos(url: string, init?: RequestInit): Promise<Respons
   return api.fetch?.(url, init);
 }
 
-export default {
+const simpleTakos: SimpleTakosAPI = {
   request,
   onRequest,
   kvRead,
@@ -39,3 +51,5 @@ export default {
   kvList,
   fetch: fetchFromTakos,
 };
+
+export default simpleTakos;
