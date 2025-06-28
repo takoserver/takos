@@ -1,16 +1,25 @@
-use deno_core::{error::AnyError, op2, Extension, ModuleSpecifier, OpState};
+use deno_core::{error::CoreError, op2, Extension, ModuleSpecifier, OpState};
+use deno_error::JsErrorBox;
 use deno_runtime::deno_permissions::PermissionsContainer;
-use deno_runtime::worker::{MainWorker, WorkerOptions};
+use deno_runtime::permissions::{
+    RuntimePermissionDescriptorParser, UnstableSubdomainWildcards,
+};
+use deno_runtime::worker::{MainWorker, WorkerOptions, WorkerServiceOptions};
+use deno_resolver::npm::{DenoInNpmPackageChecker, NpmResolver};
+use deno_core::FsModuleLoader;
+use deno_fs::RealFs;
+use sys_traits::impls::RealSys;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio::runtime::Builder;
-fn type_error(err: impl std::fmt::Display) -> AnyError {
-    AnyError::msg(err.to_string())
+fn type_error(err: impl std::fmt::Display) -> CoreError {
+    CoreError::Js(JsErrorBox::type_error(err.to_string()))
 }
 
 #[derive(Deserialize, Debug)]
@@ -31,7 +40,7 @@ pub async fn op_publish_event(
     state: Rc<RefCell<OpState>>,
     #[string] event_name: String,
     #[string] payload: String,
-) -> Result<(), AnyError> {
+) -> Result<(), CoreError> {
     let app_handle = {
         let state = state.borrow();
         state.borrow::<AppHandle>().clone()
@@ -48,7 +57,7 @@ pub async fn op_publish_event(
     Ok(())
 }
 
-async fn load_extensions(app_handle: AppHandle) -> Result<(), AnyError> {
+async fn load_extensions(app_handle: AppHandle) -> Result<(), CoreError> {
     let extensions_result = reqwest::get("http://localhost:8000/api/extensions")
         .await
         .map_err(type_error)?;
@@ -77,9 +86,38 @@ async fn load_extensions(app_handle: AppHandle) -> Result<(), AnyError> {
                     };
 
                     let main_module = ModuleSpecifier::parse("ext:bootstrap").unwrap();
+
+                    let permission_desc_parser = Arc::new(RuntimePermissionDescriptorParser::new(
+                        RealSys,
+                        UnstableSubdomainWildcards::Enabled,
+                    ));
+
+                    let fs = Arc::new(RealFs);
+
+                    let services = WorkerServiceOptions::<
+                        DenoInNpmPackageChecker,
+                        NpmResolver<RealSys>,
+                        RealSys,
+                    > {
+                        deno_rt_native_addon_loader: None,
+                        module_loader: Rc::new(FsModuleLoader),
+                        permissions: PermissionsContainer::allow_all(permission_desc_parser),
+                        blob_store: Default::default(),
+                        broadcast_channel: Default::default(),
+                        feature_checker: Default::default(),
+                        node_services: Default::default(),
+                        npm_process_state_provider: Default::default(),
+                        root_cert_store_provider: Default::default(),
+                        fetch_dns_resolver: Default::default(),
+                        shared_array_buffer_store: Default::default(),
+                        compiled_wasm_module_store: Default::default(),
+                        v8_code_cache: Default::default(),
+                        fs,
+                    };
+
                     let mut worker = MainWorker::bootstrap_from_options(
-                        main_module,
-                        PermissionsContainer::allow_all(),
+                        &main_module,
+                        services,
                         worker_options,
                     );
 
@@ -95,14 +133,15 @@ async fn load_extensions(app_handle: AppHandle) -> Result<(), AnyError> {
                                 }
                             }
                         };
-                    "#,
+                    "#
+                        .to_string(),
                     ) {
                         eprintln!("Failed to setup takos object for {}: {}", identifier, e);
                         return;
                     }
 
                     let specifier: &'static str = Box::leak(identifier.clone().into_boxed_str());
-                    if let Err(e) = worker.execute_script(specifier, client_code.into()) {
+                    if let Err(e) = worker.execute_script(specifier, client_code.clone()) {
                         eprintln!("Failed to execute client code for {}: {}", identifier, e);
                         return;
                     }

@@ -1113,11 +1113,14 @@ name = "client"
 version = "0.1.0"
 dependencies = [
  "deno_core",
+ "deno_fs",
+ "deno_resolver",
  "deno_runtime",
  "log",
  "reqwest",
  "serde",
  "serde_json",
+ "sys_traits",
  "tauri",
  "tauri-build",
  "tauri-plugin-log",
