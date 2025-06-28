@@ -1,7 +1,7 @@
-use deno_core::error::{AnyError, JsError};
-use deno_core::{op2, Extension, OpState};
-use deno_runtime::permissions::Permissions;
-use deno_runtime::worker::{MainWorker, WorkerExecutionMode, WorkerOptions};
+use deno_runtime::deno_core::error::AnyError;
+use deno_runtime::deno_core::{op2, Extension, OpState, ModuleSpecifier};
+use deno_runtime::permissions::PermissionsContainer;
+use deno_runtime::worker::{MainWorker, WorkerOptions};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -11,18 +11,7 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio::runtime::Builder;
 fn type_error(err: impl std::fmt::Display) -> AnyError {
-    AnyError::from(JsError {
-        name: Some("TypeError".into()),
-        message: Some(err.to_string()),
-        stack: None,
-        cause: None,
-        exception_message: err.to_string(),
-        frames: vec![],
-        source_line: None,
-        source_line_frame_index: None,
-        aggregated: None,
-        additional_properties: vec![],
-    })
+    AnyError::msg(err.to_string())
 }
 
 #[derive(Deserialize, Debug)]
@@ -85,11 +74,15 @@ async fn load_extensions(app_handle: AppHandle) -> Result<(), AnyError> {
 
                     let worker_options = WorkerOptions {
                         extensions: vec![deno_extension],
-                        execution_mode: WorkerExecutionMode::Standalone,
                         ..Default::default()
                     };
 
-                    let mut worker = MainWorker::bootstrap(worker_options, Permissions::allow_all());
+                    let main_module = ModuleSpecifier::parse("ext:bootstrap").unwrap();
+                    let mut worker = MainWorker::bootstrap_from_options(
+                        main_module,
+                        PermissionsContainer::allow_all(),
+                        worker_options,
+                    );
 
                     worker.js_runtime.op_state().borrow_mut().put(app_handle_clone);
 
