@@ -1,5 +1,5 @@
-use deno_runtime::deno_core::error::AnyError;
-use deno_runtime::deno_core::{self, op2, Extension, OpState, ModuleSpecifier};
+use deno_core::error::AnyError;
+use deno_core::{op2, Extension, ModuleSpecifier, OpState};
 use deno_runtime::deno_permissions::PermissionsContainer;
 use deno_runtime::worker::{MainWorker, WorkerOptions};
 use reqwest;
