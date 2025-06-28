@@ -143,6 +143,7 @@ async fn load_extensions(app_handle: AppHandle) -> Result<(), CoreError> {
                             }
                         };
                     "#
+                        .to_string()
                         .into(),
                     ) {
                         eprintln!("Failed to setup takos object for {}: {}", identifier, e);
