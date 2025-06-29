@@ -579,7 +579,7 @@
             try {
                 log('[UI] ActivityPub list test を開始...', 'info');
                 
-                const result = await takos.extensions.invoke("jp.takos.api-test", "testActivityPubList", []);
+                const result = await takos.extensions.request("jp.takos.api-test:testActivityPubList", []);
                 
                 if (result && result[0] === 200) {
                     log(`[UI] ActivityPub list test 成功: ${result[1].count} 件のアクティビティを発見`, 'success');
@@ -596,7 +596,7 @@
             try {
                 log('[UI] ActivityPub actor test を開始...', 'info');
                 
-                const result = await takos.extensions.invoke("jp.takos.api-test", "testActivityPubActor", []);
+                const result = await takos.extensions.request("jp.takos.api-test:testActivityPubActor", []);
                 
                 if (result && result[0] === 200) {
                     log(`[UI] ActivityPub actor test 成功`, 'success');
@@ -613,7 +613,7 @@
             try {
                 log('[UI] Plugin actor test を開始...', 'info');
                 
-                const result = await takos.extensions.invoke("jp.takos.api-test", "testPluginActor", []);
+                const result = await takos.extensions.request("jp.takos.api-test:testPluginActor", []);
                 
                 if (result && result[0] === 200) {
                     log(`[UI] Plugin actor test 成功`, 'success');
@@ -725,7 +725,7 @@
             try {
                 log('[UI] Server Fetch API test を開始...', 'info');
                 
-                const result = await takos.extensions.invoke("jp.takos.api-test", "testFetchAPI", []);
+                const result = await takos.extensions.request("jp.takos.api-test:testFetchAPI", []);
                 
                 if (result && result[0] === 200) {
                     log(`[UI] Server Fetch test 成功`, 'success');
@@ -742,7 +742,7 @@
             try {
                 log('[UI] Client Fetch API test を開始...', 'info');
                 
-                const result = await takos.extensions.invoke("jp.takos.api-test", "testClientFetch", []);
+                const result = await takos.extensions.request("jp.takos.api-test:testClientFetch", []);
                 
                 if (result && result.success) {
                     log(`[UI] Client Fetch test 成功`, 'success');
@@ -769,7 +769,7 @@
             try {
                 log('[UI] Events API test を開始...', 'info');
                 
-                const result = await takos.extensions.invoke("jp.takos.api-test", "testEventsAPI", []);
+                const result = await takos.extensions.request("jp.takos.api-test:testEventsAPI", []);
                 
                 if (result && result[0] === 200) {
                     log(`[UI] Events API test 成功: ${result[1].message}`, 'success');
@@ -821,7 +821,7 @@
             try {
                 log('[UI] Extensions API test を開始...', 'info');
                 
-                const result = await takos.extensions.invoke("jp.takos.api-test", "testExtensionsAPI", []);
+                const result = await takos.extensions.request("jp.takos.api-test:testExtensionsAPI", []);
                 
                 if (result && result[0] === 200) {
                     log(`[UI] Extensions API test 成功`, 'success');
@@ -841,7 +841,7 @@
             try {
                 log('[UI] Client Extensions test を開始...', 'info');
                 
-                const result = await takos.extensions.invoke("jp.takos.api-test", "testClientExtensions", []);
+                const result = await takos.extensions.request("jp.takos.api-test:testClientExtensions", []);
                 
                 if (result && result.success) {
                     log(`[UI] Client Extensions test 成功`, 'success');
@@ -862,7 +862,7 @@
                 log('[UI] 拡張機能関数呼び出しテスト...', 'info');
                 
                 // 自分自身のサーバー関数を呼び出し
-                const result = await takos.extensions.invoke("jp.takos.api-test", "apiTestServer", ["invoke-test", { from: "ui" }]);
+                const result = await takos.extensions.request("jp.takos.api-test:apiTestServer", ["invoke-test", { from: "ui" }]);
                 
                 log(`[UI] 拡張機能呼び出し成功: ${JSON.stringify(result, null, 2)}`, 'success');
             } catch (error) {
@@ -878,7 +878,7 @@
             try {
                 log('[UI] サーバー関数直接呼び出し...', 'info');
                 
-                const result = await takos.extensions.invoke("jp.takos.api-test", "apiTestServer", ["direct-call", { layer: "ui" }]);
+                const result = await takos.extensions.request("jp.takos.api-test:apiTestServer", ["direct-call", { layer: "ui" }]);
                 
                 log(`[UI] サーバー関数呼び出し成功: ${JSON.stringify(result, null, 2)}`, 'success');
             } catch (error) {
@@ -932,7 +932,7 @@
             try {
                 log('[UI] サーバーサイドテスト実行中...', 'info');
                 
-                const result = await takos.extensions.invoke("jp.takos.api-test", "runAllTests", []);
+                const result = await takos.extensions.request("jp.takos.api-test:runAllTests", []);
                 
                 if (result && result[0] === 200) {
                     const summary = result[1].summary;
@@ -960,7 +960,7 @@
             try {
                 log('[UI] クライアントサイドテスト実行中...', 'info');
                 
-                const result = await takos.extensions.invoke("jp.takos.api-test", "runClientTests", []);
+                const result = await takos.extensions.request("jp.takos.api-test:runClientTests", []);
                 
                 if (result && result.success) {
                     const summary = result.summary;
