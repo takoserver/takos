@@ -271,6 +271,7 @@ async fn invoke_extension_event(
 
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 if let Err(e) = app.handle().plugin(

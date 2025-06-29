@@ -20,6 +20,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2.6.2", features = [] }
 tauri-plugin-opener = "2.4.0"
+tauri-plugin-store = "2.3.0"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 deno_runtime = "0.216.0"

@@ -3,8 +3,10 @@
   "specifiers": {
     "npm:@tailwindcss/vite@^4.1.11": "4.1.11_vite@6.3.5__picomatch@4.0.2",
     "npm:@tauri-apps/api@2": "2.6.0",
+    "npm:@tauri-apps/api@^2.6.0": "2.6.0",
     "npm:@tauri-apps/cli@2": "2.6.0",
     "npm:@tauri-apps/plugin-opener@2": "2.4.0",
+    "npm:@tauri-apps/plugin-store@^2.3.0": "2.3.0",
     "npm:firebase@^11.9.1": "11.9.1_@firebase+app@0.13.1_@firebase+app-types@0.9.3_@firebase+app-compat@0.4.1",
     "npm:solid-jotai@~0.3.1": "0.3.1_jotai@2.12.5_solid-js@1.9.7__seroval@1.3.2",
     "npm:solid-js@^1.9.3": "1.9.7_seroval@1.3.2",
@@ -1050,6 +1052,12 @@
         "@tauri-apps/api"
       ]
     },
+    "@tauri-apps/plugin-store@2.3.0": {
+      "integrity": "sha512-mre8er0nXPhyEWQzWCpUd+UnEoBQYcoA5JYlwpwOV9wcxKqlXTGfminpKsE37ic8NUb2BIZqf0QQ9/U3ib2+/A==",
+      "dependencies": [
+        "@tauri-apps/api"
+      ]
+    },
     "@tybys/wasm-util@0.9.0": {
       "integrity": "sha512-6+7nlbMVX/PVDCwaIQ8nTOPveOcFLSt8GcXdx8hD0bt39uWxYT88uXzqTd4fTvqta7oeUJqudepapKNt2DYJFw==",
       "dependencies": [
@@ -1699,6 +1707,7 @@
         "npm:@tauri-apps/api@^2.6.0",
         "npm:@tauri-apps/cli@2",
         "npm:@tauri-apps/plugin-opener@2",
+        "npm:@tauri-apps/plugin-store@^2.3.0",
         "npm:firebase@^11.9.1",
         "npm:solid-jotai@~0.3.1",
         "npm:solid-js@^1.9.3",
