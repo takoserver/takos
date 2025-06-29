@@ -63,25 +63,32 @@ deno run --allow-all build.ts help
    └── index.html    # UI
    ```
 
-2. **Fluent API**：
+2. **Takopack Builder クラス**：
    ```typescript
-   import Takopack from "./src/builder/takopack.ts";
+   import { TakopackBuilder } from "@takopack/builder";
 
-   const takopack = new Takopack()
-     .server("src/server.ts")
-     .client("src/client.ts")
-     .ui("src/index.html")
-     .manifest({/* 設定 */});
+   const builder = new TakopackBuilder({
+     manifest: {
+       name: "My Extension",
+       identifier: "com.example.myext",
+       version: "1.0.0",
+       permissions: ["kv:read", "kv:write"],
+     },
+     entries: {
+       server: ["src/server.ts"],
+       client: ["src/client.ts"],
+       ui: ["src/index.html"],
+     },
+   });
 
-   await takopack.build();
+   await builder.build();
    ```
 
 ## 📚 ドキュメント
 
-## 📚 ドキュメント
-
-- **[Takopack Builder API](./docs/takopack/builder.md)** - Fluent APIの使用方法
-- **[Takopack拡張機能仕様書](./docs/takopack/v3.md)** - パッケージ構造やmanifestの説明
+- **[Takopack Builder API](./docs/builder/README.md)** - ビルダーの利用方法
+- **[Takopack拡張機能仕様書](./docs/takopack/v3.md)** -
+  パッケージ構造やmanifestの説明
 - **[Takopack API仕様](./docs/takopack/api.md)** - takos APIの詳細
 - **[Takopack レジストリ仕様](./docs/takopack/registry.md)** -
   拡張機能レジストリ仕様（`app/registry` に簡易実装あり）
