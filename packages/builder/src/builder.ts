@@ -357,7 +357,22 @@ export class TakopackBuilder {
       analysis.exports.forEach((exp) => {
         if (exp.type === "class") exportedClassSet.add(exp.name);
       });
-    }); // デバッグ用: AST解析結果を出力
+      // JSDoc based activity hooks
+      for (const tag of analysis.jsDocTags) {
+        if (tag.tag === "activity") {
+          const cfg = this.generator.parseActivityTag(tag.value, tag.targetFunction);
+          if (cfg) activityPubConfigs.push(cfg);
+        }
+      }
+      // Decorator based activity hooks
+      for (const dec of analysis.decorators) {
+        if (dec.name === "activity") {
+          const cfg = this.generator.parseActivityDecorator(dec.args, dec.targetFunction);
+          if (cfg) activityPubConfigs.push(cfg);
+        }
+      }
+    });
+    // デバッグ用: AST解析結果を出力
     console.log("🔍 AST Analysis Debug:");
     [...analyses.server, ...analyses.client].forEach((analysis) => {
       console.log(`  File: ${analysis.filePath}`);
