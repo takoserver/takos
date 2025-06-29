@@ -10,10 +10,11 @@
 4. [API リファレンス](#api-リファレンス)
 5. [設定オプション](#設定オプション)
 6. [関数ベース開発](#関数ベース開発)
-7. [esbuildバンドル機能](#esbuildバンドル機能)
-8. [開発モードとデバッグ](#開発モードとデバッグ)
-9. [実例とサンプル](#実例とサンプル)
-10. [トラブルシューティング](#トラブルシューティング)
+7. [拡張機能APIの呼び出し](#拡張機能-api-の呼び出し)
+8. [esbuildバンドル機能](#esbuildバンドル機能)
+9. [開発モードとデバッグ](#開発モードとデバッグ)
+10. [実例とサンプル](#実例とサンプル)
+11. [トラブルシューティング](#トラブルシューティング)
 
 ---
 
@@ -359,6 +360,21 @@ simpleTakos.onRequest("hello", (payload) => {
 });
 
 await simpleTakos.request("hello", { message: "hi" });
+```
+
+### 拡張機能 API の呼び出し
+
+他拡張が公開する機能は `takos.extensions.request()` から実行します。
+公開側では `takos.extensions.onRequest()` でハンドラーを登録します。
+
+```typescript
+// com.example.lib 側
+takos.extensions.onRequest("com.example.lib:hello", () => {
+  return "hi";
+});
+
+// 呼び出し側
+await takos.extensions.request("com.example.lib:hello");
 ```
 
 ---
