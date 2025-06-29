@@ -8,7 +8,11 @@ import {
   searchRegistry,
 } from "../../../packages/registry/mod.ts";
 import { Extension } from "../models/extension.ts";
-import { callExtension, getExtension, loadExtension } from "../utils/extensionsRuntime.ts";
+import {
+  callExtension,
+  getExtension,
+  loadExtension,
+} from "../utils/extensionsRuntime.ts";
 
 function decodeBase64(data: string): Uint8Array {
   const bin = atob(data);
@@ -132,6 +136,7 @@ eventManager.add(
     const result = await callExtension(id, fn, args);
     return result;
   },
+  "extensions:invoke",
 );
 
 eventManager.add(
