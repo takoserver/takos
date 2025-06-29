@@ -61,19 +61,10 @@ export interface SimpleTakosAPI {
     list: (prefix?: string) => Promise<string[]>;
   };
   extensions?: {
-    all: Array<{
-      identifier: string;
-      version: string;
-      isActive: boolean;
-      request: (name: string, payload?: unknown) => Promise<unknown>;
-    }>;
     get?: (id: string) => {
       identifier: string;
-      version: string;
-      isActive: boolean;
       request: (name: string, payload?: unknown) => Promise<unknown>;
     } | undefined;
-    request?: (name: string, payload?: unknown) => Promise<unknown>;
     onRequest?: (
       name: string,
       handler: (payload: unknown) => unknown | Promise<unknown>,
@@ -97,7 +88,7 @@ function request(
   payload: unknown,
 ): Promise<unknown> | void {
   return api.request?.(name, payload) ??
-    api.extensions?.request?.(name, payload);
+    api.events?.request?.(name, payload);
 }
 
 function onRequest(
@@ -108,7 +99,7 @@ function onRequest(
     api.onRequest(name, handler);
     return;
   }
-  return api.extensions?.onRequest?.(name, handler);
+  return api.events?.onRequest?.(name, handler);
 }
 
 function kvRead(key: string): Promise<unknown> | void {

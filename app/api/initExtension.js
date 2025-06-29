@@ -39,15 +39,11 @@
 
     window.takos = {
       extensions: {
-        all: [{
-          identifier: extensionId,
-          version: "1.0.0",
-          isActive: true,
-          request: (name, payload) => callWorker("extension", name, payload),
-        }],
-        get: (extId) =>
-          extId === extensionId ? window.takos.extensions.all[0] : undefined,
-        request: (name, payload) => callWorker("extension", name, payload),
+        get: (extId) => ({
+          identifier: extId,
+          request: (name, payload) =>
+            callWorker("extension", `${extId}:${name}`, payload),
+        }),
         onRequest: (name, handler) => {
           requestHandlers.set(name, handler);
           return () => requestHandlers.delete(name);
@@ -60,10 +56,6 @@
           return () => requestHandlers.delete(name);
         },
       },
-      request: (name, payload) => callWorker("extension", name, payload),
-      onRequest: (name, handler) => {
-        requestHandlers.set(name, handler);
-      },
     };
 
     console.log("Takos object initialized for extension:", extensionId);
@@ -72,13 +64,15 @@
     // Fallback basic takos object
     window.takos = {
       extensions: {
-        all: [],
         get: () => {
           console.error("Extension system not available");
-          return undefined;
+          return {
+            identifier: "",
+            request: () =>
+              Promise.reject(new Error("Extension system not available")),
+          };
         },
-        invoke: () =>
-          Promise.reject(new Error("Extension system not available")),
+        onRequest: () => () => {},
       },
       events: {
         request: () => {

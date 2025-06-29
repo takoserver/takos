@@ -345,7 +345,8 @@ await simpleTakos.request("hello", { message: "hi" });
 
 ### 拡張機能 API の呼び出し
 
-他拡張が公開する機能は `takos.extensions.request()` から実行します。
+他拡張が公開する機能は `takos.extensions.get()` で取得した
+オブジェクトの `request()` メソッドから実行します。
 公開側では `takos.extensions.onRequest()` でハンドラーを登録します。
 
 ```typescript
@@ -355,7 +356,10 @@ takos.extensions.onRequest("com.example.lib:hello", () => {
 });
 
 // 呼び出し側
-await takos.extensions.request("com.example.lib:hello");
+const lib = takos.extensions.get("com.example.lib");
+if (lib) {
+  await lib.request("hello");
+}
 ```
 
 ---

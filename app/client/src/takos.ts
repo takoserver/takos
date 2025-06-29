@@ -297,36 +297,32 @@ export function createTakos(identifier: string) {
 
   const extensions = {
     get(id: string) {
-      return id === identifier ? extensionObj : undefined;
-    },
-    get all() {
-      return [extensionObj];
-    },
-    async request(name: string, payload?: unknown) {
-      const [id, fn] = name.includes(":")
-        ? name.split(":", 2)
-        : [identifier, name];
-      try {
-        const raw = await call("extensions:invoke", {
-          id,
-          fn,
-          args: [payload],
-        });
-        return unwrapResult(raw);
-      } catch (err) {
-        console.warn(`[Client] extension request failed for ${name}:`, err);
-        try {
-          const raw = await invoke("invoke_extension_event", {
-            identifier: id,
-            fnName: fn,
-            args: [payload],
-          });
-          return unwrapResult(raw);
-        } catch (err2) {
-          console.error(`[Client] fallback extension request failed:`, err2);
-          return undefined;
-        }
-      }
+      return {
+        identifier: id,
+        async request(name: string, payload?: unknown) {
+          try {
+            const raw = await call("extensions:invoke", {
+              id,
+              fn: name,
+              args: [payload],
+            });
+            return unwrapResult(raw);
+          } catch (err) {
+            console.warn(`[Client] extension request failed for ${id}:${name}:`, err);
+            try {
+              const raw = await invoke("invoke_extension_event", {
+                identifier: id,
+                fnName: name,
+                args: [payload],
+              });
+              return unwrapResult(raw);
+            } catch (err2) {
+              console.error(`[Client] fallback extension request failed:`, err2);
+              return undefined;
+            }
+          }
+        },
+      };
     },
     onRequest(
       name: string,
@@ -367,14 +363,6 @@ export function createTakos(identifier: string) {
     server,
     fetch: fetchFn,
     extensions,
-    request: (name: string, payload?: unknown) =>
-      extensions.request(name, payload),
-    onRequest: (
-      name: string,
-      handler: (payload: unknown) => unknown | Promise<unknown>,
-    ) => {
-      extensions.onRequest(name, handler);
-    },
     getURL,
     pushURL,
     setURL,

@@ -94,17 +94,11 @@ manifest でのイベント宣言は廃止されました。すべてのレイ�
   - FCM のデータペイロード上限は約 4KB です。これを超えるとエラーになります。
   - ハンドラーは登録されたレイヤーで実行されます。
 
-### 拡張間 API
+-### 拡張間 API
 
 - `takos.extensions.get(identifier: string): Extension | undefined`
 - `Extension.request(name: string, payload?: unknown, opts?: { timeout?: number }): Promise<unknown>`
-- `takos.extensions.request(name: string, payload?: unknown, opts?: { timeout?: number }): Promise<unknown>`
-  (ショートカット)
 - `takos.extensions.onRequest(name: string, handler: (payload: unknown) => unknown): () => void`
-- `takos.request(name: string, payload?: unknown): Promise<unknown>`
-  (グローバル)
-- `takos.onRequest(name: string, handler: (payload: unknown) => unknown): void`
-  (グローバル)
   - **必要権限**: `extensions:invoke`
 
 権限はすべて `manifest.permissions` に列挙し、必要最低限を宣言してください。
@@ -121,8 +115,6 @@ let hash: string | undefined;
 if (ext) {
   hash = await ext.request("calculateHash", "hello");
 }
-// 直接呼び出す場合
-// const hash = await takos.request("com.example.lib:calculateHash", "hello");
 ```
 
 ---
@@ -219,9 +211,8 @@ takos.events.onRequest("activitypub:object", async ({ context, object }) => {
 
 - `extensionDependencies` で依存 Pack を宣言し、未インストール時は UI で通知。
 
-公開したい処理は `takos.extensions.onRequest()` で登録し、 呼び出し側は
-`extensions.get()` で取得したオブジェクトや `takos.request()`
-を利用して実行します。
+公開したい処理は `takos.extensions.onRequest()` で登録し、呼び出し側は
+`extensions.get()` で取得したオブジェクトの `request()` を利用して実行します。
 
 ### 権限制御
 
@@ -236,8 +227,6 @@ takos.extensions.onRequest("com.example.lib:doSomething", async () => "ok");
 // 呼び出し側
 const api = takos.extensions.get("com.example.lib");
 if (api) await api.request("doSomething");
-// または
-// await takos.request("com.example.lib:doSomething");
 ```
 
 TypeScript で型安全に連携でき、npm-semver 準拠で依存解決されます。
