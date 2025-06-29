@@ -25,21 +25,43 @@ async function getFirebaseToken(): Promise<string | null> {
 }
 
 export function createTakos(identifier: string) {
-  async function call(eventId: string, payload: unknown) {
-    try {
-      const result = await invoke("invoke_extension_event", {
-        identifier: "takos",
-        fnName: eventId,
-        args: [payload],
+  const isTauri = "__TAURI_IPC__" in globalThis || "__TAURI__" in globalThis;
+
+  let worker: Worker | null = null;
+  const pending = new Map<number, (value: unknown) => void>();
+  const requestHandlers = new Map<string, (payload: unknown) => unknown | Promise<unknown>>();
+  let seq = 0;
+
+  if (!isTauri && typeof Worker !== "undefined") {
+    worker = new Worker(`/api/extensions/${identifier}/client.js`, { type: "module" });
+
+    worker.onmessage = (ev) => {
+      const { id, type, name, payload, result } = ev.data || {};
+      if (id && pending.has(id)) {
+        pending.get(id)!(result);
+        pending.delete(id);
+      } else if (type === "request" && name) {
+        const handler = requestHandlers.get(name);
+        Promise.resolve(handler?.(payload)).then((res) => {
+          if (id) worker!.postMessage({ id, result: res });
+        });
+      }
+    };
+  }
+
+  function call(eventId: string, payload: unknown) {
+    if (worker) {
+      return new Promise((resolve) => {
+        const id = ++seq;
+        pending.set(id, resolve);
+        worker!.postMessage({ id, type: "extension", name: eventId, payload });
       });
-      return result;
-    } catch (err) {
-      throw new Error(
-        `Tauri invoke failed: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
     }
+    return invoke("invoke_extension_event", {
+      identifier: "takos",
+      fnName: eventId,
+      args: [payload],
+    });
   }
 
   function unwrapResult(raw: unknown): unknown {
@@ -137,7 +159,7 @@ export function createTakos(identifier: string) {
     }
   });
   const events = {
-    publish: async (
+    request: async (
       name: string,
       payload: unknown,
       options?: { push?: boolean; token?: string },
@@ -201,6 +223,12 @@ export function createTakos(identifier: string) {
         };
       }
     },
+    onRequest(
+      name: string,
+      handler: (payload: unknown) => unknown | Promise<unknown>,
+    ) {
+      requestHandlers.set(name, handler);
+    },
   };
 
   const server = {
@@ -228,66 +256,35 @@ export function createTakos(identifier: string) {
     get isActive() {
       return true;
     },
-    activate: () => ({
-      publish: async (
-        name: string,
-        payload?: unknown,
-        options?: { push?: boolean; token?: string },
-      ) => {
-        if (options?.push && !options.token) {
-          const token = await getFirebaseToken();
-          if (token) {
-            options = { ...options, token };
-          }
-        }
-
+    async request(name: string, payload?: unknown) {
+      try {
+        const raw = await call("extensions:invoke", {
+          id: identifier,
+          fn: name,
+          args: [payload],
+        });
+        return unwrapResult(raw);
+      } catch (err) {
+        console.warn(
+          `[Client] Server execution failed for ${name}:`,
+          err,
+        );
         try {
-          const raw = await call("extensions:invoke", {
-            id: identifier,
-            fn: name,
+          const raw = await invoke("invoke_extension_event", {
+            identifier,
+            fnName: name,
             args: [payload],
-            options,
           });
           return unwrapResult(raw);
-        } catch (serverErr) {
-          console.warn(
-            `[Client] Server execution failed for ${name}:`,
-            serverErr,
+        } catch (err2) {
+          console.error(
+            `[Client] Fallback execution failed for ${name}:`,
+            err2,
           );
-          try {
-            const raw = await invoke("invoke_extension_event", {
-              identifier,
-              fnName: name,
-              args: [payload],
-            });
-            return unwrapResult(raw);
-          } catch (err) {
-            console.error(
-              `[Client] Fallback execution failed for ${name}:`,
-              err,
-            );
-          }
-          if (
-            serverErr instanceof Error &&
-            serverErr.message.includes("function not found")
-          ) {
-            return {
-              success: false,
-              error:
-                `Function '${name}' not found in extension '${identifier}'`,
-              timestamp: new Date().toISOString(),
-            };
-          }
-          return {
-            success: false,
-            error: serverErr instanceof Error
-              ? serverErr.message
-              : String(serverErr),
-            timestamp: new Date().toISOString(),
-          };
         }
-      },
-    }),
+        return undefined;
+      }
+    },
   };
 
   const extensions = {
@@ -296,6 +293,29 @@ export function createTakos(identifier: string) {
     },
     get all() {
       return [extensionObj];
+    },
+    async request(name: string, payload?: unknown) {
+      const [id, fn] = name.includes(":") ? name.split(":", 2) : [identifier, name];
+      try {
+        const raw = await call("extensions:invoke", { id, fn, args: [payload] });
+        return unwrapResult(raw);
+      } catch (err) {
+        console.warn(`[Client] extension request failed for ${name}:`, err);
+        try {
+          const raw = await invoke("invoke_extension_event", {
+            identifier: id,
+            fnName: fn,
+            args: [payload],
+          });
+          return unwrapResult(raw);
+        } catch (err2) {
+          console.error(`[Client] fallback extension request failed:`, err2);
+          return undefined;
+        }
+      }
+    },
+    onRequest(name: string, handler: (payload: unknown) => unknown | Promise<unknown>) {
+      requestHandlers.set(name, handler);
     },
   };
 
@@ -327,32 +347,13 @@ export function createTakos(identifier: string) {
     server,
     fetch: fetchFn,
     extensions,
-    activateExtension: async (id: string) => {
-      if (id === identifier) {
-        return extensionObj.activate();
-      }
-      try {
-        const raw = await invoke("activate_extension", { identifier: id });
-        if (!raw) return undefined;
-
-        return {
-          publish: async (
-            name: string,
-            payload?: unknown,
-            _options?: { push?: boolean; token?: string },
-          ) => {
-            const invokeRaw = await invoke("invoke_extension_event", {
-              identifier: id,
-              fnName: name,
-              args: [payload],
-            });
-            return unwrapResult(invokeRaw);
-          },
-        };
-      } catch (error) {
-        console.error(`Failed to activate extension ${id} via Tauri:`, error);
-        return undefined;
-      }
+    request: (name: string, payload?: unknown) =>
+      extensions.request(name, payload),
+    onRequest: (
+      name: string,
+      handler: (payload: unknown) => unknown | Promise<unknown>,
+    ) => {
+      extensions.onRequest(name, handler);
     },
     getURL,
     pushURL,

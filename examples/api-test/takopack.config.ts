@@ -26,7 +26,6 @@ export default defineConfig({
       "fetch:net",
       // Events and extensions
       "extensions:invoke",
-      "extensions:export",
       // Deno permissions for advanced operations
       "deno:read",
       "deno:write",
@@ -34,18 +33,6 @@ export default defineConfig({
       "deno:env",
     ],
     icon: "./icon.png",
-    exports: [
-      "apiTestServer",
-      "apiTestClient",
-      "apiTestUI",
-      "onActivityPubReceive",
-      "testClientKV",
-      "testCDNOperations",
-      "testClientEvents",
-      "testClientExtensions",
-      "testClientFetch",
-      "runClientTests",
-    ],
   },
   entries: {
     server: ["src/server/api.ts"],

@@ -21,8 +21,7 @@ export type Permission =
   | "deno:run"
   | "deno:sys"
   | "deno:ffi"
-  | "extensions:invoke"
-  | "extensions:export";
+  | "extensions:invoke";
 
 /**
  * Build Result
@@ -71,10 +70,6 @@ export interface ExtensionManifest {
     identifier: string;
     version: string;
   }>;
-  /**
-   * APIs exported for other extensions.
-   */
-  exports?: string[];
   server?: {
     entry: string;
   };
@@ -128,8 +123,6 @@ export interface TakopackConfig {
     icon?: string;
     permissions?: Permission[];
     extensionDependencies?: Array<{ identifier: string; version: string }>;
-    /** APIs exported for other extensions. */
-    exports?: string[];
   };
 
   /** Entry points */

@@ -69,14 +69,17 @@ export interface Extension {
   identifier: string;
   version: string;
   isActive: boolean;
-  activate(): Promise<{
-    publish(name: string, payload?: unknown): Promise<unknown>;
-  }>;
+  request(name: string, payload?: unknown): Promise<unknown>;
 }
 
 export interface TakosExtensionsAPI {
   get(identifier: string): Extension | undefined;
   readonly all: Extension[];
+  request(name: string, payload?: unknown): Promise<unknown>;
+  onRequest(
+    name: string,
+    handler: (payload: unknown) => unknown | Promise<unknown>,
+  ): void;
 }
 
 // コンテキスト別API定義
@@ -86,11 +89,11 @@ export interface TakosServerAPI {
   cdn: TakosCdnAPI;
   events: TakosEventsAPI;
   extensions: TakosExtensionsAPI;
-  activateExtension(
-    identifier: string,
-  ): Promise<
-    { publish(name: string, payload?: unknown): Promise<unknown> } | undefined
-  >;
+  request(name: string, payload: unknown): Promise<unknown>;
+  onRequest(
+    name: string,
+    handler: (payload: unknown) => unknown | Promise<unknown>,
+  ): void;
   fetch(url: string, options?: RequestInit): Promise<Response>;
 }
 
@@ -98,22 +101,22 @@ export interface TakosClientAPI {
   kv: TakosKVAPI;
   events: TakosEventsAPI;
   extensions: TakosExtensionsAPI;
-  activateExtension(
-    identifier: string,
-  ): Promise<
-    { publish(name: string, payload?: unknown): Promise<unknown> } | undefined
-  >;
+  request(name: string, payload: unknown): Promise<unknown>;
+  onRequest(
+    name: string,
+    handler: (payload: unknown) => unknown | Promise<unknown>,
+  ): void;
   fetch(url: string, options?: RequestInit): Promise<Response>;
 }
 
 export interface TakosUIAPI {
   events: TakosEventsAPI;
   extensions: TakosExtensionsAPI;
-  activateExtension(
-    identifier: string,
-  ): Promise<
-    { publish(name: string, payload?: unknown): Promise<unknown> } | undefined
-  >;
+  request(name: string, payload: unknown): Promise<unknown>;
+  onRequest(
+    name: string,
+    handler: (payload: unknown) => unknown | Promise<unknown>,
+  ): void;
 }
 
 // 型安全なTakos APIアクセス関数群

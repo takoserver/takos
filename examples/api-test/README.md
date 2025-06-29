@@ -277,7 +277,6 @@ CDN操作テスト
     "cdn:write",
     "fetch:net",
     "extensions:invoke",
-    "extensions:export",
     "deno:read",
     "deno:write",
     "deno:net",
