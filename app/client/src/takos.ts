@@ -25,21 +25,43 @@ async function getFirebaseToken(): Promise<string | null> {
 }
 
 export function createTakos(identifier: string) {
-  async function call(eventId: string, payload: unknown) {
-    try {
-      const result = await invoke("invoke_extension_event", {
-        identifier: "takos",
-        fnName: eventId,
-        args: [payload],
+  const isTauri = "__TAURI_IPC__" in globalThis || "__TAURI__" in globalThis;
+
+  let worker: Worker | null = null;
+  const pending = new Map<number, (value: unknown) => void>();
+  const requestHandlers = new Map<string, (payload: unknown) => unknown | Promise<unknown>>();
+  let seq = 0;
+
+  if (!isTauri && typeof Worker !== "undefined") {
+    worker = new Worker(`/api/extensions/${identifier}/client.js`, { type: "module" });
+
+    worker.onmessage = (ev) => {
+      const { id, type, name, payload, result } = ev.data || {};
+      if (id && pending.has(id)) {
+        pending.get(id)!(result);
+        pending.delete(id);
+      } else if (type === "request" && name) {
+        const handler = requestHandlers.get(name);
+        Promise.resolve(handler?.(payload)).then((res) => {
+          if (id) worker!.postMessage({ id, result: res });
+        });
+      }
+    };
+  }
+
+  function call(eventId: string, payload: unknown) {
+    if (worker) {
+      return new Promise((resolve) => {
+        const id = ++seq;
+        pending.set(id, resolve);
+        worker!.postMessage({ id, type: "extension", name: eventId, payload });
       });
-      return result;
-    } catch (err) {
-      throw new Error(
-        `Tauri invoke failed: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
     }
+    return invoke("invoke_extension_event", {
+      identifier: "takos",
+      fnName: eventId,
+      args: [payload],
+    });
   }
 
   function unwrapResult(raw: unknown): unknown {
@@ -124,7 +146,6 @@ export function createTakos(identifier: string) {
   })();
 
   const listeners = new Map<string, Set<(payload: unknown) => void>>();
-  const requestHandlers = new Map<string, (payload: unknown) => unknown | Promise<unknown>>();
   wsClient.addGlobalEventListener((ev) => {
     if (ev.type === "event") {
       const { eventName, payload } = ev as unknown as {
