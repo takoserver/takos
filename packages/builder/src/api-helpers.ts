@@ -68,10 +68,16 @@ export interface TakosActivityPubAPI {
 export interface Extension {
   identifier: string;
   request(name: string, payload?: unknown): Promise<unknown>;
+  /** Extension version string */
+  version: string;
+  /** Whether the extension is currently active */
+  isActive: boolean;
 }
 
 export interface TakosExtensionsAPI {
   get(identifier: string): Extension | undefined;
+  /** Array of all registered extensions */
+  all: Extension[];
   onRequest(
     name: string,
     handler: (payload: unknown) => unknown | Promise<unknown>,

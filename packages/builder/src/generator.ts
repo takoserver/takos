@@ -51,7 +51,9 @@ export class VirtualEntryGenerator {
     return { type: "client", exports, imports: [], content: lines.join("\n") };
   }
 
-  generateTypeDefinitions(options: TypeGenerationOptions): TypeGenerationResult {
+  generateTypeDefinitions(
+    options: TypeGenerationOptions,
+  ): TypeGenerationResult {
     const lines: string[] = [];
 
     lines.push("// Auto-generated TypeScript definitions for Takos Extension");
@@ -130,12 +132,15 @@ export class VirtualEntryGenerator {
 
     lines.push("export interface Extension {");
     lines.push("  identifier: string;");
+    lines.push("  version: string;");
+    lines.push("  isActive: boolean;");
     lines.push("  request(name: string, payload?: unknown): Promise<unknown>;");
     lines.push("}");
     lines.push("");
 
     lines.push("export interface TakosExtensionsAPI {");
     lines.push("  get(identifier: string): Extension | undefined;");
+    lines.push("  all: Extension[];");
     lines.push(
       "  onRequest(name: string, handler: (payload: unknown) => unknown | Promise<unknown>): () => void;",
     );
@@ -148,7 +153,9 @@ export class VirtualEntryGenerator {
     lines.push("  cdn: TakosCdnAPI;");
     lines.push("  events: TakosEventsAPI;");
     lines.push("  extensions: TakosExtensionsAPI;");
-    lines.push("  fetch(url: string, options?: RequestInit): Promise<Response>;");
+    lines.push(
+      "  fetch(url: string, options?: RequestInit): Promise<Response>;",
+    );
     lines.push("}");
     lines.push("");
 
@@ -156,7 +163,9 @@ export class VirtualEntryGenerator {
     lines.push("  kv: TakosKVAPI;");
     lines.push("  events: TakosEventsAPI;");
     lines.push("  extensions: TakosExtensionsAPI;");
-    lines.push("  fetch(url: string, options?: RequestInit): Promise<Response>;");
+    lines.push(
+      "  fetch(url: string, options?: RequestInit): Promise<Response>;",
+    );
     lines.push("}");
     lines.push("");
 
@@ -190,13 +199,19 @@ export class VirtualEntryGenerator {
     return { filePath: options.outputPath, content, typeCount };
   }
 
-  parseActivityTag(value: string, targetFunction: string): ActivityPubConfig | null {
+  parseActivityTag(
+    value: string,
+    targetFunction: string,
+  ): ActivityPubConfig | null {
     const match = value.match(/^[\"']([^\"']+)[\"']/);
     if (!match) return null;
     return { object: match[1], hook: targetFunction };
   }
 
-  parseActivityDecorator(args: unknown[], targetFunction: string): ActivityPubConfig | null {
+  parseActivityDecorator(
+    args: unknown[],
+    targetFunction: string,
+  ): ActivityPubConfig | null {
     if (args.length === 0) return null;
     const object = args[0] as string;
     return { object, hook: targetFunction };

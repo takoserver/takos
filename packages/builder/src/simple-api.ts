@@ -3,6 +3,7 @@
 
 // Access the global takos object if it exists. Use a loose type so that
 // extensions can still run when the API is missing (e.g. during tests).
+import type { Extension } from "./api-helpers.ts";
 const api = (globalThis as { takos?: Partial<SimpleTakosAPI> }).takos ??
   {} as Partial<SimpleTakosAPI>;
 
@@ -61,10 +62,9 @@ export interface SimpleTakosAPI {
     list: (prefix?: string) => Promise<string[]>;
   };
   extensions?: {
-    get?: (id: string) => {
-      identifier: string;
-      request: (name: string, payload?: unknown) => Promise<unknown>;
-    } | undefined;
+    get?: (id: string) => Extension | undefined;
+    /** List of all loaded extensions */
+    all?: Extension[];
     onRequest?: (
       name: string,
       handler: (payload: unknown) => unknown | Promise<unknown>,
