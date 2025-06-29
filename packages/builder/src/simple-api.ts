@@ -12,7 +12,7 @@ export interface SimpleTakosAPI {
     onRequest: (
       name: string,
       handler: (payload: unknown) => unknown | Promise<unknown>,
-    ) => void;
+    ) => () => void;
   };
   kv?: {
     read: (key: string) => Promise<unknown> | void;
@@ -61,29 +61,14 @@ export interface SimpleTakosAPI {
     list: (prefix?: string) => Promise<string[]>;
   };
   extensions?: {
-    all: Array<{
-      identifier: string;
-      version: string;
-      isActive: boolean;
-      request: (name: string, payload?: unknown) => Promise<unknown>;
-    }>;
     get?: (id: string) => {
       identifier: string;
-      version: string;
-      isActive: boolean;
       request: (name: string, payload?: unknown) => Promise<unknown>;
     } | undefined;
-    /**
-     * Directly call another extension's exported API function.
-     */
-    request?: (name: string, payload?: unknown) => Promise<unknown>;
-    /**
-     * Register a handler that other extensions can invoke via `request()`.
-     */
     onRequest?: (
       name: string,
       handler: (payload: unknown) => unknown | Promise<unknown>,
-    ) => void;
+    ) => () => void;
   };
 
   request: (name: string, payload: unknown) => Promise<unknown> | void;
@@ -102,15 +87,19 @@ function request(
   name: string,
   payload: unknown,
 ): Promise<unknown> | void {
-  return api.request?.(name, payload) ?? api.extensions?.request?.(name, payload);
+  return api.request?.(name, payload) ??
+    api.events?.request?.(name, payload);
 }
 
 function onRequest(
   name: string,
   handler: (payload: unknown) => unknown | Promise<unknown>,
-): void {
-  if (api.onRequest) api.onRequest(name, handler);
-  else api.extensions?.onRequest?.(name, handler);
+): (() => void) | void {
+  if (api.onRequest) {
+    api.onRequest(name, handler);
+    return;
+  }
+  return api.events?.onRequest?.(name, handler);
 }
 
 function kvRead(key: string): Promise<unknown> | void {

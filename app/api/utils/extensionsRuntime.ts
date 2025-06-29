@@ -113,31 +113,32 @@ export async function runActivityPubHooks(
   object: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
   let result = object;
+  const type = typeof result.type === "string" ? result.type : undefined;
+  const typeName = type ? `on${type}` : undefined;
+
   for (const [id, ext] of extensions) {
-    const manifest = manifests.get(id);
-    const ap = manifest?.activityPub as
-      | { objects: string[]; hook: string }
-      | undefined;
-    if (ap && ap.hook && Array.isArray(ap.objects) && ext.server) {
-      const objType = result.type as string | undefined;
-      if (objType && ap.objects.includes(objType)) {
+    if (!ext.server) continue;
+
+    const handlers: Array<unknown> = [];
+    if (typeName) handlers.push((ext.server as Record<string, unknown>)[typeName]);
+    handlers.push((ext.server as Record<string, unknown>).onActivityPub);
+
+    for (const h of handlers) {
+      if (typeof h === "function") {
         try {
-          const fn = (ext.server as Record<string, unknown>)[ap.hook];
-          if (typeof fn === "function") {
-            const res =
-              await (fn as (c: string, o: Record<string, unknown>) => unknown)(
-                context,
-                result,
-              );
-            if (res && typeof res === "object") {
-              result = res as Record<string, unknown>;
-            }
+          const res = await (h as (c: string, o: Record<string, unknown>) => unknown)(
+            context,
+            result,
+          );
+          if (res && typeof res === "object") {
+            result = res as Record<string, unknown>;
           }
         } catch (err) {
-          console.error(`ActivityPub hook failed for ${id}:`, err);
+          console.error(`ActivityPub event failed for ${id}:`, err);
         }
       }
     }
   }
+
   return result;
 }

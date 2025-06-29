@@ -11,7 +11,6 @@ export default defineConfig({
       // ActivityPub permissions
       "activitypub:send",
       "activitypub:read",
-      "activitypub:receive:hook",
       "activitypub:actor:read",
       "activitypub:actor:write",
       "plugin-actor:create",

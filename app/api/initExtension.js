@@ -1,12 +1,14 @@
-(function() {
+(function () {
   try {
-    const extensionId = '__EXTENSION_ID__';
+    const extensionId = "__EXTENSION_ID__";
 
     const pending = new Map();
     let seq = 0;
     const requestHandlers = new Map();
 
-    const worker = new Worker('/api/extensions/' + extensionId + '/client.js', { type: 'module' });
+    const worker = new Worker("/api/extensions/" + extensionId + "/client.js", {
+      type: "module",
+    });
 
     function callWorker(type, name, payload) {
       return new Promise((resolve) => {
@@ -21,7 +23,7 @@
       if (id && pending.has(id)) {
         pending.get(id)(result);
         pending.delete(id);
-      } else if (type === 'request' && name) {
+      } else if (type === "request" && name) {
         const handler = requestHandlers.get(name);
         Promise.resolve(handler?.(payload)).then((res) => {
           if (id) worker.postMessage({ id, result: res });
@@ -29,52 +31,55 @@
       }
     };
 
-    window.addEventListener('message', (ev) => {
-      if (ev.data && ev.data.target === 'takos-worker') {
+    window.addEventListener("message", (ev) => {
+      if (ev.data && ev.data.target === "takos-worker") {
         worker.postMessage(ev.data.payload);
       }
     });
 
     window.takos = {
       extensions: {
-        all: [{
-          identifier: extensionId,
-          version: '1.0.0',
-          isActive: true,
-          request: (name, payload) => callWorker('extension', name, payload),
-        }],
-        get: (extId) => extId === extensionId ? window.takos.extensions.all[0] : undefined,
-        request: (name, payload) => callWorker('extension', name, payload),
-        onRequest: (name, handler) => { requestHandlers.set(name, handler); },
+        get: (extId) => ({
+          identifier: extId,
+          request: (name, payload) =>
+            callWorker("extension", `${extId}:${name}`, payload),
+        }),
+        onRequest: (name, handler) => {
+          requestHandlers.set(name, handler);
+          return () => requestHandlers.delete(name);
+        },
       },
       events: {
-        request: (name, payload) => callWorker('event', name, payload),
-        onRequest: (name, handler) => { requestHandlers.set(name, handler); },
+        request: (name, payload) => callWorker("event", name, payload),
+        onRequest: (name, handler) => {
+          requestHandlers.set(name, handler);
+          return () => requestHandlers.delete(name);
+        },
       },
-      request: (name, payload) => callWorker('extension', name, payload),
-      onRequest: (name, handler) => { requestHandlers.set(name, handler); },
     };
 
-    console.log('Takos object initialized for extension:', extensionId);
-
-  } catch(e) {
-    console.error('Failed to initialize takos object:', e);
+    console.log("Takos object initialized for extension:", extensionId);
+  } catch (e) {
+    console.error("Failed to initialize takos object:", e);
     // Fallback basic takos object
     window.takos = {
       extensions: {
-        all: [],
         get: () => {
-          console.error('Extension system not available');
-          return undefined;
+          console.error("Extension system not available");
+          return {
+            identifier: "",
+            request: () =>
+              Promise.reject(new Error("Extension system not available")),
+          };
         },
-        invoke: () => Promise.reject(new Error('Extension system not available'))
+        onRequest: () => () => {},
       },
       events: {
         request: () => {
-          console.error('Event system not available');
+          console.error("Event system not available");
           return Promise.resolve();
-        }
-      }
+        },
+      },
     };
   }
 })();

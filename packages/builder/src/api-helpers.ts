@@ -17,7 +17,7 @@ export interface TakosEventsAPI {
   onRequest(
     name: string,
     handler: (payload: unknown) => unknown | Promise<unknown>,
-  ): void;
+  ): () => void;
 }
 
 export interface TakosKVAPI {
@@ -67,19 +67,15 @@ export interface TakosActivityPubAPI {
 
 export interface Extension {
   identifier: string;
-  version: string;
-  isActive: boolean;
   request(name: string, payload?: unknown): Promise<unknown>;
 }
 
 export interface TakosExtensionsAPI {
   get(identifier: string): Extension | undefined;
-  readonly all: Extension[];
-  request(name: string, payload?: unknown): Promise<unknown>;
   onRequest(
     name: string,
     handler: (payload: unknown) => unknown | Promise<unknown>,
-  ): void;
+  ): () => void;
 }
 
 // コンテキスト別API定義
@@ -89,11 +85,6 @@ export interface TakosServerAPI {
   cdn: TakosCdnAPI;
   events: TakosEventsAPI;
   extensions: TakosExtensionsAPI;
-  request(name: string, payload: unknown): Promise<unknown>;
-  onRequest(
-    name: string,
-    handler: (payload: unknown) => unknown | Promise<unknown>,
-  ): void;
   fetch(url: string, options?: RequestInit): Promise<Response>;
 }
 
@@ -101,22 +92,12 @@ export interface TakosClientAPI {
   kv: TakosKVAPI;
   events: TakosEventsAPI;
   extensions: TakosExtensionsAPI;
-  request(name: string, payload: unknown): Promise<unknown>;
-  onRequest(
-    name: string,
-    handler: (payload: unknown) => unknown | Promise<unknown>,
-  ): void;
   fetch(url: string, options?: RequestInit): Promise<Response>;
 }
 
 export interface TakosUIAPI {
   events: TakosEventsAPI;
   extensions: TakosExtensionsAPI;
-  request(name: string, payload: unknown): Promise<unknown>;
-  onRequest(
-    name: string,
-    handler: (payload: unknown) => unknown | Promise<unknown>,
-  ): void;
 }
 
 // 型安全なTakos APIアクセス関数群
