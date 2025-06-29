@@ -1,11 +1,6 @@
 import { basename, join, resolve } from "jsr:@std/path@1";
 import { existsSync } from "jsr:@std/fs@1";
-import {
-  BlobWriter,
-  TextReader,
-  Uint8ArrayReader,
-  ZipWriter,
-} from "jsr:@zip-js/zip-js@^2.7.62";
+import { BlobWriter, TextReader, Uint8ArrayReader, ZipWriter } from "jsr:@zip-js/zip-js@^2.7.62";
 import * as esbuild from "npm:esbuild";
 import { denoPlugins } from "jsr:@luca/esbuild-deno-loader@^0.11.1";
 import Ajv from "npm:ajv";
@@ -20,6 +15,7 @@ import type {
   EventDefinition,
   ExtensionManifest,
   ModuleAnalysis,
+  Permission,
   TakopackConfig,
   TypeGenerationOptions,
   TypeGenerationResult,
@@ -67,6 +63,10 @@ export class TakopackBuilder {
       // 2. エントリポイント解析
       const analyses = await this.analyzeEntries();
 
+      if (this.config.build?.strictValidation) {
+        await this.validatePermissions();
+      }
+
       // 3. Virtual entrypoint生成
       const virtualEntries = await this.generateVirtualEntries(analyses);
 
@@ -108,9 +108,7 @@ export class TakopackBuilder {
         warnings: [],
       };
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("❌ Build failed:", errorMessage);
 
       return {
@@ -314,9 +312,7 @@ export class TakopackBuilder {
 
       console.log(`✅ Bundled: ${entryPoint} → ${outputPath}`);
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to bundle ${entryPoint}: ${errorMessage}`);
     }
   }
@@ -333,9 +329,7 @@ export class TakopackBuilder {
       description: this.config.manifest.description || "",
       version: this.config.manifest.version,
       identifier: this.config.manifest.identifier,
-      icon: this.config.manifest.icon
-        ? `./${basename(this.config.manifest.icon)}`
-        : undefined,
+      icon: this.config.manifest.icon ? `./${basename(this.config.manifest.icon)}` : undefined,
       apiVersion: "3.0",
       permissions: this.config.manifest.permissions || [],
       extensionDependencies: this.config.manifest.extensionDependencies,
@@ -386,9 +380,7 @@ export class TakopackBuilder {
       console.log(`    Method calls: ${analysis.methodCalls.length}`);
       analysis.methodCalls.forEach((call) => {
         console.log(
-          `      ${call.objectName}.${call.methodName}(${
-            call.args.join(", ")
-          })`,
+          `      ${call.objectName}.${call.methodName}(${call.args.join(", ")})`,
         );
       });
     });
@@ -528,15 +520,17 @@ export class TakopackBuilder {
     endTime: number,
     bundleResult: { server?: string; client?: string },
   ): BuildMetrics {
+    const serverSize = bundleResult.server ? this.getFileSize(bundleResult.server) : 0;
+    const clientSize = bundleResult.client ? this.getFileSize(bundleResult.client) : 0;
     return {
       buildStartTime: startTime,
       buildEndTime: endTime,
       totalDuration: endTime - startTime,
       outputSize: {
-        server: bundleResult.server ? this.getFileSize(bundleResult.server) : 0,
-        client: bundleResult.client ? this.getFileSize(bundleResult.client) : 0,
+        server: serverSize,
+        client: clientSize,
         ui: 0, // TODO: UI計測
-        total: 0,
+        total: serverSize + clientSize,
       },
       warnings: [],
       errors: [],
@@ -562,6 +556,14 @@ export class TakopackBuilder {
       console.log("  🚧 Development mode enabled");
     } else {
       console.log("  🚀 Production build completed");
+    }
+
+    if (this.config.build?.analytics) {
+      const format = (s: number) => `${(s / 1024).toFixed(1)}KB`;
+      console.log(
+        `  📦 Bundle sizes: server ${format(metrics.outputSize.server)}, ` +
+          `client ${format(metrics.outputSize.client)}`,
+      );
     }
   }
 
@@ -650,15 +652,12 @@ export class TakopackBuilder {
         );
 
         const result = {
-          source:
-            (options.source as "client" | "server" | "background" | "ui") ||
+          source: (options.source as "client" | "server" | "background" | "ui") ||
             "client",
           handler: targetFunction,
         };
         console.log(
-          `[DEBUG] parseEventConfig - complex result: ${
-            JSON.stringify(result)
-          }`,
+          `[DEBUG] parseEventConfig - complex result: ${JSON.stringify(result)}`,
         );
         return result;
       }
@@ -731,9 +730,7 @@ export class TakopackBuilder {
 
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("❌ Type definition generation failed:", errorMessage);
       throw error;
     }
@@ -890,12 +887,50 @@ export class TakopackBuilder {
     return hasDefinitions;
   }
 
+  private async validatePermissions(): Promise<void> {
+    const files: string[] = [
+      ...(this.config.entries.server ?? []),
+      ...(this.config.entries.client ?? []),
+    ];
+
+    const required = new Set<Permission>();
+
+    for (const file of files) {
+      if (!existsSync(file)) continue;
+      const code = await Deno.readTextFile(file);
+      if (/takos\.kv\./.test(code)) {
+        required.add("kv:read");
+        required.add("kv:write");
+      }
+      if (/takos\.cdn\./.test(code)) {
+        required.add("cdn:read");
+        required.add("cdn:write");
+      }
+      if (/takos\.ap\./.test(code)) {
+        required.add("activitypub:send");
+        required.add("activitypub:read");
+      }
+      if (/fetchFromTakos|takos\.fetch/.test(code)) {
+        required.add("fetch:net");
+      }
+      if (/takos\.extensions\./.test(code)) {
+        required.add("extensions:invoke");
+      }
+    }
+
+    const manifestPerms = this.config.manifest.permissions ?? [];
+    const missing = [...required].filter((p) => !manifestPerms.includes(p));
+    if (missing.length > 0) {
+      throw new Error(
+        `Missing required permissions in manifest: ${missing.join(", ")}`,
+      );
+    }
+  }
+
   private validateManifestSchema(manifest: ExtensionManifest): void {
     const valid = this.validateManifest(manifest);
     if (!valid) {
-      const errors = this.validateManifest.errors?.map((e) =>
-        `${e.instancePath} ${e.message}`
-      )
+      const errors = this.validateManifest.errors?.map((e) => `${e.instancePath} ${e.message}`)
         .join(", ");
       throw new Error(`Manifest schema validation failed: ${errors}`);
     }

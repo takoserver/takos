@@ -138,6 +138,10 @@ export interface TakopackConfig {
     dev?: boolean;
     outDir?: string;
     minify?: boolean;
+    /** enable build metrics output */
+    analytics?: boolean;
+    /** enable strict manifest permission validation */
+    strictValidation?: boolean;
   };
 
   /** Plugin settings */
