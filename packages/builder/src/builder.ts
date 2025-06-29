@@ -3,8 +3,17 @@ import { existsSync } from "jsr:@std/fs@1";
 import { BlobWriter, TextReader, Uint8ArrayReader, ZipWriter } from "jsr:@zip-js/zip-js@^2.7.62";
 import * as esbuild from "npm:esbuild";
 import { denoPlugins } from "jsr:@luca/esbuild-deno-loader@^0.11.1";
-import Ajv from "npm:ajv";
-import manifestSchema from "../../docs/takopack/manifest.schema.json" assert {
+// @ts-ignore: Deno module resolution issue with Ajv
+import AjvConstructor from "npm:ajv@8.17.1";
+// @ts-ignore: Type definitions issue
+const Ajv = AjvConstructor.default || AjvConstructor;
+
+// Type definition for Ajv error object
+interface ErrorObject {
+  instancePath: string;
+  message?: string;
+}
+import manifestSchema from "../../../docs/takopack/manifest.schema.json" with {
   type: "json",
 };
 
@@ -930,7 +939,7 @@ export class TakopackBuilder {
   private validateManifestSchema(manifest: ExtensionManifest): void {
     const valid = this.validateManifest(manifest);
     if (!valid) {
-      const errors = this.validateManifest.errors?.map((e) => `${e.instancePath} ${e.message}`)
+      const errors = this.validateManifest.errors?.map((e) => `${e.instancePath} ${e.message || 'unknown error'}`)
         .join(", ");
       throw new Error(`Manifest schema validation failed: ${errors}`);
     }
