@@ -785,7 +785,7 @@
             try {
                 log('[UI] UIからサーバーへイベント送信...', 'info');
                 
-                const result = await takos.events.publish("uiToServer", {
+                const result = await takos.events.request("uiToServer", {
                     message: "Hello from UI to Server!",
                     timestamp: new Date().toISOString(),
                     userAgent: navigator.userAgent
@@ -801,7 +801,7 @@
             try {
                 log('[UI] UIからクライアントへイベント送信...', 'info');
                 
-                await takos.events.publish("uiToClient", {
+                await takos.events.request("uiToClient", {
                     message: "Hello from UI to Client!",
                     timestamp: new Date().toISOString(),
                     windowSize: { width: window.innerWidth, height: window.innerHeight }
@@ -891,7 +891,7 @@
                 log('[UI] クライアント関数呼び出し...', 'info');
                 
                 // クライアント関数は直接呼び出せないので、イベント経由
-                await takos.events.publish("uiToClient", {
+                await takos.events.request("uiToClient", {
                     type: "function-call",
                     functionName: "apiTestClient",
                     params: ["call-from-ui", { layer: "ui" }],

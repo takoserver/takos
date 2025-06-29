@@ -159,7 +159,7 @@ export function createTakos(identifier: string) {
     }
   });
   const events = {
-    publish: async (
+    request: async (
       name: string,
       payload: unknown,
       options?: { push?: boolean; token?: string },
@@ -222,6 +222,12 @@ export function createTakos(identifier: string) {
           timestamp: new Date().toISOString(),
         };
       }
+    },
+    onRequest(
+      name: string,
+      handler: (payload: unknown) => unknown | Promise<unknown>,
+    ) {
+      requestHandlers.set(name, handler);
     },
   };
 

@@ -70,7 +70,7 @@
         invoke: () => Promise.reject(new Error('Extension system not available'))
       },
       events: {
-        publish: () => {
+        request: () => {
           console.error('Event system not available');
           return Promise.resolve();
         }
