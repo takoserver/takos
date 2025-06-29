@@ -554,13 +554,13 @@
                 log('[UI] ActivityPub send test を開始...', 'info');
                 
                 // 拡張機能を有効化してから関数を呼び出し
-                const extension = await takos.activateExtension("jp.takos.api-test");
-                if (!extension) {
+                const ext = takos.extensions.get("jp.takos.api-test");
+                if (!ext) {
                     log('[UI] 拡張機能が見つかりません: jp.takos.api-test', 'error');
                     return;
                 }
-                
-                const result = await extension.publish("testActivityPubSend");
+
+                const result = await ext.request("testActivityPubSend");
                 
                 if (result && result[0] === 200) {
                     log(`[UI] ActivityPub send test 成功: ${JSON.stringify(result[1], null, 2)}`, 'success');
@@ -636,13 +636,13 @@
                 log('[UI] Server KV operations test を開始...', 'info');
                 
                 // 拡張機能を有効化してから関数を呼び出し
-                const extension = await takos.activateExtension("jp.takos.api-test");
+                const extension = takos.extensions.get("jp.takos.api-test");
                 if (!extension) {
                     log('[UI] 拡張機能が見つかりません: jp.takos.api-test', 'error');
                     return;
                 }
-                
-                const result = await extension.publish("testKVOperations");
+
+                const result = await extension.request("testKVOperations");
                 
                 if (result && result[0] === 200) {
                     log(`[UI] Server KV test 成功: ${result[1].keysCount} キーを確認`, 'success');
@@ -662,13 +662,13 @@
                 log('[UI] Client KV operations test を開始...', 'info');
                 
                 // 拡張機能を有効化してから関数を呼び出し
-                const extension = await takos.activateExtension("jp.takos.api-test");
+                const extension = takos.extensions.get("jp.takos.api-test");
                 if (!extension) {
                     log('[UI] 拡張機能が見つかりません: jp.takos.api-test', 'error');
                     return;
                 }
-                
-                const result = await extension.publish("testClientKV");
+
+                const result = await extension.request("testClientKV");
                 
                 if (result && result.success) {
                     log(`[UI] Client KV test 成功: ${result.keysCount} キーを確認`, 'success');
@@ -692,13 +692,13 @@
                 log('[UI] CDN operations test を開始...', 'info');
                 
                 // 拡張機能を有効化してから関数を呼び出し
-                const extension = await takos.activateExtension("jp.takos.api-test");
+                const extension = takos.extensions.get("jp.takos.api-test");
                 if (!extension) {
                     log('[UI] 拡張機能が見つかりません: jp.takos.api-test', 'error');
                     return;
                 }
-                
-                const result = await extension.publish("testCDNOperations");
+
+                const result = await extension.request("testCDNOperations");
                 
                 if (result && result[0] === 200) {
                     log(`[UI] CDN test 成功`, 'success');

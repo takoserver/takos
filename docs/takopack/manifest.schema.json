@@ -52,11 +52,6 @@
         "additionalProperties": false
       }
     },
-    "exports": {
-      "type": "array",
-      "description": "APIs exported by this extension (event names)",
-      "items": { "type": "string" }
-    },
     "server": {
       "type": "object",
       "description": "Server entry point",

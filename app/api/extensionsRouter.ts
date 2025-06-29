@@ -21,139 +21,59 @@ app.get("/api/extensions/:id/ui", async (c) => {
       try {
         const extensionId = "${id}";
         
-        // Create a proper takos object for this extension UI
+
+        const pending = new Map();
+        let seq = 0;
+        const requestHandlers = new Map();
+
+        const worker = new Worker('/api/extensions/' + extensionId + '/client.js', { type: 'module' });
+
+        function callWorker(type, name, payload) {
+          return new Promise((resolve) => {
+            const id = ++seq;
+            pending.set(id, resolve);
+            worker.postMessage({ id, type, name, payload });
+          });
+        }
+
+        worker.onmessage = (ev) => {
+          const { id, type, name, payload, result } = ev.data || {};
+          if (id && pending.has(id)) {
+            pending.get(id)(result);
+            pending.delete(id);
+          } else if (type === 'request' && name) {
+            const handler = requestHandlers.get(name);
+            Promise.resolve(handler?.(payload)).then((res) => {
+              if (id) worker.postMessage({ id, result: res });
+            });
+          }
+        };
+
+        window.addEventListener('message', (ev) => {
+          if (ev.data && ev.data.target === 'takos-worker') {
+            worker.postMessage(ev.data.payload);
+          }
+        });
+
         window.takos = {
           extensions: {
             all: [{
               identifier: extensionId,
-              version: "1.0.0",
+              version: '1.0.0',
               isActive: true,
-              activate: () => {
-                return Promise.resolve({                  publish: async (name, payload) => {
-                    try {
-                      console.log('Publishing event:', name, 'with payload:', payload);
-                      const response = await fetch('/api/event', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                          events: [{
-                            identifier: extensionId,
-                            eventId: name,
-                            payload: payload
-                          }]
-                        })
-                      });
-                      
-                      if (response.ok) {
-                        const result = await response.json();
-                        console.log('Event response:', result);
-                        if (result[0]?.success) {
-                          return result[0].result;
-                        } else {
-                          console.error('Event failed:', result[0]);
-                          throw new Error(result[0]?.error || 'Event processing failed');
-                        }
-                      } else {
-                        const error = await response.text();
-                        console.error('Event request failed:', response.status, error);
-                        throw new Error(\`HTTP \${response.status}: \${error}\`);
-                      }
-                    } catch (error) {
-                      console.error('Failed to publish event:', error);
-                      throw error;
-                    }
-                  }
-                });
-              }
+              request: (name, payload) => callWorker('extension', name, payload),
             }],
-            get: (extId) => {
-              console.log('Getting extension:', extId, 'looking for:', extensionId);
-              return extId === extensionId ? window.takos.extensions.all[0] : undefined;
-            },
-            invoke: async (extId, fn, args) => {
-              try {
-                console.log('Invoking extension function:', extId, fn, args);
-                const response = await fetch('/api/event', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    events: [{
-                      identifier: "takos",
-                      eventId: "extensions:invoke",
-                      payload: { id: extId, fn: fn, args: args || [] }
-                    }]
-                  })
-                });
-                
-                if (response.ok) {
-                  const result = await response.json();
-                  console.log('Invoke response:', result);
-                  return result[0]?.result;
-                } else {
-                  const error = await response.text();
-                  console.error('Invoke request failed:', response.status, error);
-                  throw new Error(\`HTTP \${response.status}: \${error}\`);
-                }
-              } catch (error) {
-                console.error('Failed to invoke extension function:', error);
-                throw error;
-              }
-            }
+            get: (extId) => extId === extensionId ? window.takos.extensions.all[0] : undefined,
+            request: (name, payload) => callWorker('extension', name, payload),
+            onRequest: (name, handler) => { requestHandlers.set(name, handler); },
           },
           events: {
-            publish: async (name, payload, options) => {
-              try {
-                console.log('Publishing global event:', name, payload);
-                const response = await fetch('/api/event', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    events: [{
-                      identifier: extensionId,
-                      eventId: name,
-                      payload: payload
-                    }]
-                  })
-                });
-                
-                if (response.ok) {
-                  const result = await response.json();
-                  console.log('Global event response:', result);
-                  return result[0]?.result;
-                } else {
-                  const error = await response.text();
-                  console.error('Global event request failed:', response.status, error);
-                }
-              } catch (error) {
-                console.error('Failed to publish global event:', error);
-              }
-              return Promise.resolve();
-            }
-          }
+            request: (name, payload) => callWorker('event', name, payload),
+            onRequest: (name, handler) => { requestHandlers.set(name, handler); },
+          },
+          request: (name, payload) => callWorker('extension', name, payload),
+          onRequest: (name, handler) => { requestHandlers.set(name, handler); },
         };
-
-        // Start a persistent worker for the extension's client script
-        try {
-          const worker = new Worker('/api/extensions/' + extensionId + '/client.js', { type: 'module' });
-          window.addEventListener('message', (ev) => {
-            if (ev.data && ev.data.target === 'takos-worker') {
-              worker.postMessage(ev.data.payload);
-            }
-          });
-          worker.onmessage = (ev) => {
-            window.postMessage({ source: 'takos-worker', payload: ev.data }, '*');
-          };
-          (window as any).takosWorker = worker;
-          console.log('Worker started for extension:', extensionId);
-        } catch (err) {
-          console.error('Failed to start worker for extension:', err);
-        }
 
         console.log('Takos object initialized for extension:', extensionId);
         

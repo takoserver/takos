@@ -102,11 +102,33 @@ manifest でのイベント宣言は廃止されました。すべてのレイ�
 ### 拡張間 API
 
 - `takos.extensions.get(identifier: string): Extension | undefined`
-- `Extension.activate(): Promise<{ publish(name: string, payload?: unknown): Promise<unknown> }>`
-- `takos.activateExtension(identifier: string): Promise<{ publish(name: string, payload?: unknown): Promise<unknown> } | undefined>`
-  - **必要権限**: `extensions:invoke` / `extensions:export`
+- `Extension.request(name: string, payload?: unknown, opts?: { timeout?: number }): Promise<unknown>`
+- `takos.extensions.request(name: string, payload?: unknown, opts?: { timeout?: number }): Promise<unknown>`
+  (ショートカット)
+- `takos.extensions.onRequest(name: string, handler: (payload: unknown) => unknown): () => void`
+- `takos.request(name: string, payload?: unknown): Promise<unknown>`
+  (グローバル)
+- `takos.onRequest(name: string, handler: (payload: unknown) => unknown): void`
+  (グローバル)
+  - **必要権限**: `extensions:invoke`
 
 権限はすべて `manifest.permissions` に列挙し、必要最低限を宣言してください。
+
+```javascript
+// com.example.lib 側
+takos.extensions.onRequest("com.example.lib:calculateHash", (text) => {
+  return sha256(text);
+});
+
+// 呼び出し側
+const ext = takos.extensions.get("com.example.lib");
+let hash: string | undefined;
+if (ext) {
+  hash = await ext.request("calculateHash", "hello");
+}
+// 直接呼び出す場合
+// const hash = await takos.request("com.example.lib:calculateHash", "hello");
+```
 
 ---
 
@@ -119,55 +141,25 @@ Takos の各 API は `globalThis` 上の `takos` オブジェクトとして公�
 const { takos } = globalThis;
 ```
 
+拡張機能の UI 環境では、この `takos` オブジェクトを通じてバックグラウンド
+ワーカーと通信します。メッセージは `postMessage` 経由で転送され、サンドボックス
+された iframe からでも安全に API を利用できます。
+
 ### 主なプロパティ
 
 下表のように `takos` には拡張機能開発向けの API
 群が集約されています。詳細なメソッドは[APIと権限](#apiと権限)を参照してください。
 
-| プロパティ          | 役割                                                   |
-| ------------------- | ------------------------------------------------------ |
-| `ap`                | ActivityPub 連携用の API。投稿送信やアクター操作を行う |
-| `kv`                | 拡張ごとのキー/値ストア操作                            |
-| `cdn`               | CDN へのファイル保存・取得                             |
-| `events`            | レイヤー間イベントの発行・購読                         |
-| `extensions`        | 他拡張の取得と `activate()` 実行                       |
-| `activateExtension` | ID 指定で拡張の `activate()` を実行                    |
-| `fetch`             | 権限制御付きの `fetch` ラッパー                        |
-
-```typescript
-namespace takos.extensions {
-  function get(identifier: string): Extension | undefined;
-  const all: Extension[];
-}
-interface Extension {
-  identifier: string;
-  version: string;
-  isActive: boolean;
-  activate(): Promise<{
-    publish(name: string, payload?: unknown): Promise<unknown>;
-  }>;
-}
-function activateExtension(
-  identifier: string,
-): Promise<{ publish(name: string, payload?: unknown): Promise<unknown> }>;
-```
-
-利用例:
-
-```javascript
-// 従来の取得方法
-const ext = takos.extensions.get("com.example.lib");
-if (ext) {
-  const api = await ext.activate();
-  const hash = await api.publish("calculateHash", "hello");
-}
-
-// 直接有効化する方法
-const api2 = await takos.activateExtension("com.example.lib");
-if (api2) {
-  const hash2 = await api2.publish("calculateHash", "world");
-}
-```
+| プロパティ   | 役割                                                   |
+| ------------ | ------------------------------------------------------ |
+| `ap`         | ActivityPub 連携用の API。投稿送信やアクター操作を行う |
+| `kv`         | 拡張ごとのキー/値ストア操作                            |
+| `cdn`        | CDN へのファイル保存・取得                             |
+| `events`     | レイヤー間イベントの発行・購読                         |
+| `extensions` | 他拡張との API 通信 (request/onRequest)                |
+| `request`    | 拡張 API 呼び出しのショートカット                      |
+| `onRequest`  | 拡張 API ハンドラー登録                                |
+| `fetch`      | 権限制御付きの `fetch` ラッパー                        |
 
 その他の API も `takos.*` 名前空間に集約されています。 ActivityPub API は
 `takos.ap` で利用できます。
@@ -183,7 +175,8 @@ if (api2) {
 | `cdn`                                                       | ✓         | ―                      | ―               |
 | `events`                                                    | ✓         | ✓                      | ✓               |
 | `ap`                                                        | ✓         | ―                      | ―               |
-| `extensions` / `activateExtension`                          | ✓         | ✓                      | ✓               |
+| `extensions`                                                | ✓         | ✓                      | ✓               |
+| `request`/`onRequest`                                       | ✓         | ✓                      | ✓               |
 | UI URL helpers (`getURL`, `pushURL`, `setURL`, `changeURL`) | ―         | ―                      | ✓               |
 
 ---
@@ -209,8 +202,7 @@ const afterB = await PackB.onReceive(afterA);
 2. manifest から `eventDefinitions` を削除し、`takos.events.onRequest()`
    でハンドラー登録。
 3. ActivityPub API は `ap()` に統合。
-4. `extensionDependencies` と `exports` を利用し、`takos.extensions` API
-   で他拡張と連携。
+4. `extensionDependencies` を利用し、`takos.extensions` API で他拡張と連携。
 
 ---
 
@@ -218,7 +210,7 @@ const afterB = await PackB.onReceive(afterA);
 
 - すべてのレイヤーはサンドボックスで分離されます。
 - `activate()` の戻り値は structuredClone 準拠でシリアライズ。
-- 呼び出し権限は export 元の範囲に限定され、依存循環はエラーとなります。
+- 呼び出し権限は 呼び出し元の拡張に基づき制御され、依存循環はエラーとなります。
 
 ---
 
@@ -227,21 +219,26 @@ const afterB = await PackB.onReceive(afterA);
 ### 記述方法
 
 - `extensionDependencies` で依存 Pack を宣言し、未インストール時は UI で通知。
-- `exports` には公開するイベント名を列挙します。
+
+公開したい処理は `takos.extensions.onRequest()` で登録し、 呼び出し側は
+`extensions.get()` で取得したオブジェクトや `takos.request()`
+を利用して実行します。
 
 ### 権限制御
 
-- `extensions:export` 他拡張へ API を公開する権限。
-- `extensions:invoke` 他拡張の API を取得する権限。
+- `extensions:invoke` 他拡張 API を呼び出す・公開する権限。
 
 ### 利用方法
 
 ```javascript
-const ext = takos.extensions.get("com.example.lib");
-if (ext) {
-  const api = await ext.activate();
-  await api.publish("doSomething");
-}
+// com.example.lib 側 (server.ts など)
+takos.extensions.onRequest("com.example.lib:doSomething", async () => "ok");
+
+// 呼び出し側
+const api = takos.extensions.get("com.example.lib");
+if (api) await api.request("doSomething");
+// または
+// await takos.request("com.example.lib:doSomething");
 ```
 
 TypeScript で型安全に連携でき、npm-semver 準拠で依存解決されます。

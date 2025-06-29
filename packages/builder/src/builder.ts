@@ -321,7 +321,6 @@ export class TakopackBuilder {
       apiVersion: "3.0",
       permissions: this.config.manifest.permissions || [],
       extensionDependencies: this.config.manifest.extensionDependencies,
-      exports: this.config.manifest.exports,
       server: {
         entry: "./server.js",
       },
