@@ -27,9 +27,6 @@ export {
   isClientContext,
   isServerContext,
   isUIContext,
-  kvRead,
-  kvWrite,
-  sendActivityPub,
 } from "./src/api-helpers.ts";
 export type {
   TakosActivityPubAPI,
@@ -45,4 +42,3 @@ export type {
 // Provide a simple wrapper around the global takos API
 export { simpleTakos } from "./src/simple-api.ts";
 export type { SimpleTakosAPI } from "./src/simple-api.ts";
-export * from "./src/simple-api.ts";

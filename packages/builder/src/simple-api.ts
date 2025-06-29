@@ -85,37 +85,37 @@ export interface SimpleTakosAPI {
   fetchFromTakos: (url: string, init?: RequestInit) => Promise<Response> | void;
 }
 
-export function request(
+function request(
   name: string,
   payload: unknown,
 ): Promise<unknown> | void {
   return api.events?.request?.(name, payload);
 }
 
-export function onRequest(
+function onRequest(
   name: string,
   handler: (payload: unknown) => unknown | Promise<unknown>,
 ): void {
   api.events?.onRequest?.(name, handler);
 }
 
-export function kvRead(key: string): Promise<unknown> | void {
+function kvRead(key: string): Promise<unknown> | void {
   return api.kv?.read?.(key);
 }
 
-export function kvWrite(key: string, value: unknown): Promise<void> | void {
+function kvWrite(key: string, value: unknown): Promise<void> | void {
   return api.kv?.write?.(key, value);
 }
 
-export function kvDelete(key: string): Promise<void> | void {
+function kvDelete(key: string): Promise<void> | void {
   return api.kv?.delete?.(key);
 }
 
-export function kvList(prefix?: string): Promise<string[]> | void {
+function kvList(prefix?: string): Promise<string[]> | void {
   return api.kv?.list?.(prefix);
 }
 
-export function fetchFromTakos(
+function fetchFromTakos(
   url: string,
   init?: RequestInit,
 ): Promise<Response> | void {
