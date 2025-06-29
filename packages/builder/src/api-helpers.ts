@@ -24,7 +24,7 @@ export interface TakosKVAPI {
   read(key: string): Promise<unknown>;
   write(key: string, value: unknown): Promise<void>;
   delete(key: string): Promise<void>;
-  list(): Promise<string[]>;
+  list(prefix?: string): Promise<string[]>;
 }
 
 export interface TakosCdnAPI {
@@ -82,14 +82,15 @@ export interface TakosExtensionsAPI {
 // コンテキスト別API定義
 export interface TakosServerAPI {
   kv: TakosKVAPI;
-  activitypub: TakosActivityPubAPI;
   ap: TakosActivityPubAPI;
   cdn: TakosCdnAPI;
   events: TakosEventsAPI;
   extensions: TakosExtensionsAPI;
   activateExtension(
     identifier: string,
-  ): Promise<{ publish(name: string, payload?: unknown): Promise<unknown> } | undefined>;
+  ): Promise<
+    { publish(name: string, payload?: unknown): Promise<unknown> } | undefined
+  >;
   fetch(url: string, options?: RequestInit): Promise<Response>;
 }
 
@@ -99,7 +100,9 @@ export interface TakosClientAPI {
   extensions: TakosExtensionsAPI;
   activateExtension(
     identifier: string,
-  ): Promise<{ publish(name: string, payload?: unknown): Promise<unknown> } | undefined>;
+  ): Promise<
+    { publish(name: string, payload?: unknown): Promise<unknown> } | undefined
+  >;
   fetch(url: string, options?: RequestInit): Promise<Response>;
 }
 
@@ -108,7 +111,9 @@ export interface TakosUIAPI {
   extensions: TakosExtensionsAPI;
   activateExtension(
     identifier: string,
-  ): Promise<{ publish(name: string, payload?: unknown): Promise<unknown> } | undefined>;
+  ): Promise<
+    { publish(name: string, payload?: unknown): Promise<unknown> } | undefined
+  >;
 }
 
 // 型安全なTakos APIアクセス関数群
@@ -200,12 +205,12 @@ export async function sendActivityPub(
   activity: Record<string, unknown>,
 ): Promise<void> {
   const api = getTakosServerAPI();
-  if (!api?.activitypub) {
+  if (!api?.ap) {
     console.warn("ActivityPub API not available in this context (server only)");
     return;
   }
 
-  await api.activitypub.send(activity);
+  await api.ap.send(activity);
 }
 
 // 型ガード関数
@@ -213,7 +218,7 @@ export function isServerContext(api: unknown): api is TakosServerAPI {
   return api !== null &&
     typeof api === "object" &&
     "kv" in api &&
-    "activitypub" in api &&
+    "ap" in api &&
     "cdn" in api &&
     "events" in api &&
     "fetch" in api;
@@ -232,5 +237,5 @@ export function isUIContext(api: unknown): api is TakosUIAPI {
     typeof api === "object" &&
     "events" in api &&
     !("kv" in api) &&
-    !("activitypub" in api);
+    !("ap" in api);
 }

@@ -118,13 +118,16 @@ export async function testClientKV() {
 
     await takos.kv!.write(testKey, testValue);
     const readValue = await takos.kv!.read(testKey);
-    const keys = await takos.kv!.list() || [];
+    const keys = await takos.kv!.list("client_test_key_") || [];
+
+    await takos.kv!.delete(testKey);
 
     return {
       success: true,
       written: testValue,
       read: readValue,
       keysCount: keys.length,
+      deleted: true,
       testKey,
       note: "Client KV storage is isolated from server",
       timestamp: new Date().toISOString(),

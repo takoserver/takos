@@ -10,7 +10,7 @@ interface TestResult {
 }
 
 function App() {
-  const [activeTab, setActiveTab] = createSignal('activitypub')
+  const [activeTab, setActiveTab] = createSignal('ap')
   const [logs, setLogs] = createSignal<string[]>([])
   const [isLoading, setIsLoading] = createSignal(false)
 
@@ -31,7 +31,7 @@ function App() {
     
     try {
       // ActivityPub APIテストの実装
-      const response = await fetch('/api/test/activitypub', { method: 'POST' })
+      const response = await fetch('/api/test/ap', { method: 'POST' })
       const result = await response.json()
       setActivityPubResults(result)
       addLog('ActivityPub APIテスト完了')
@@ -124,8 +124,8 @@ function App() {
       <nav class="nav-tabs">
         <button 
           type="button"
-          class={activeTab() === 'activitypub' ? 'tab active' : 'tab'}
-          onClick={() => setActiveTab('activitypub')}
+          class={activeTab() === 'ap' ? 'tab active' : 'tab'}
+          onClick={() => setActiveTab('ap')}
         >
           ActivityPub
         </button>
@@ -176,7 +176,7 @@ function App() {
 
         <div class="content-area">
           <div class="test-results">
-            {activeTab() === 'activitypub' && (
+            {activeTab() === 'ap' && (
               <div class="test-section">
                 <h2>ActivityPub API テスト</h2>
                 <button type="button" onClick={testActivityPub} disabled={isLoading()} class="btn">

@@ -302,7 +302,7 @@ type Permission =
 // 基本的なサーバー関数
 .serverFunction("getUserData", async (userId: string) => {
   try {
-    const user = await globalThis.takos.activitypub.actor.read(userId);
+    const user = await globalThis.takos.ap.actor.read(userId);
     return [200, { user }];
   } catch (error) {
     return [500, { error: error.message }];
@@ -359,54 +359,6 @@ simpleTakos.onRequest("hello", (payload) => {
 });
 
 await simpleTakos.request("hello", { message: "hi" });
-```
-
-### インスタンスベース開発 (旧仕様)
-
-以前は `ServerExtension` や `ClientExtension` クラスを使ってイベントを
-登録していましたが、v3.1 からは `takos.events` API へ完全移行しました。
-現在はこのクラスベース方式はレガシーサポートのみとなっています。
-
-```typescript
-import { ServerExtension } from "@takopack/builder";
-
-export const MyServer = new ServerExtension();
-
-/** @event("userLogin", { source: "client" }) */
-MyServer.onUserLogin = (data: { username: string }) => {
-  console.log("login", data);
-  return [200, { ok: true }];
-};
-
-export { MyServer };
-```
-
-インスタンス名とメソッド名の組み合わせから `MyServer_onUserLogin`
-のようなラッパー関数が自動生成され、manifest の `handler` として利用されます。
-
-### アプリコンテナ API
-
-複数の拡張機能インスタンスをまとめて登録したい場合は `TakoPack`
-クラスを利用できます。
-
-```typescript
-import { ClientExtension, ServerExtension, TakoPack } from "@takopack/builder";
-
-export const MyServer = new ServerExtension();
-MyServer.onHello = (name: string) => {
-  return [200, { greeting: name }];
-};
-
-export const MyClient = new ClientExtension();
-MyClient.greet = () => {
-  console.log("Hello from client");
-};
-
-const app = new TakoPack()
-  .useServer(MyServer)
-  .useClient(MyClient);
-
-export const functions = app.functions;
 ```
 
 ---
