@@ -69,9 +69,9 @@ deno run --allow-all src/main.ts --production
 ### 最小構成
 
 ```typescript
-import FunctionBasedTakopack from "./builder/main.ts";
+import { TakopackBuilder } from "@takopack/builder";
 
-const extension = new FunctionBasedTakopack()
+const extension = new TakopackBuilder()
   .output("dist")
   .package("my-extension")
   .ui(`
@@ -95,9 +95,9 @@ await extension.build();
 ### 関数を含む構成
 
 ```typescript
-import FunctionBasedTakopack from "./builder/main.ts";
+import { TakopackBuilder } from "@takopack/builder";
 
-const extension = new FunctionBasedTakopack()
+const extension = new TakopackBuilder()
   .output("dist")
   .package("my-extension")
   // サーバー関数
@@ -378,7 +378,7 @@ Builder は自動的に以下を行います：
 ### 開発モード設定
 
 ```typescript
-const extension = new FunctionBasedTakopack()
+const extension = new TakopackBuilder()
   .bundle({
     development: true, // ソースマップ有効、最小化無効
     analytics: true, // ビルド分析表示
@@ -392,7 +392,7 @@ await extension.build();
 ### 本番モード設定
 
 ```typescript
-const extension = new FunctionBasedTakopack()
+const extension = new TakopackBuilder()
   .bundle({
     development: false, // 最小化有効
     analytics: false, // 分析無効
@@ -453,9 +453,9 @@ Builder は以下のエラーを検出します：
 ### シンプルなメモ拡張機能
 
 ```typescript
-import FunctionBasedTakopack from "./builder/main.ts";
+import { TakopackBuilder } from "@takopack/builder";
 
-const memoExtension = new FunctionBasedTakopack()
+const memoExtension = new TakopackBuilder()
   .output("dist")
   .package("simple-memo")
   // メモ保存

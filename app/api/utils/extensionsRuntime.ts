@@ -7,7 +7,8 @@ const serviceAccount = serviceAccountStr ? JSON.parse(serviceAccountStr) : null;
 
 interface LoadedExtension {
   manifest: Record<string, unknown>;
-  server?: Record<string, unknown>;
+  /** Raw server bundle source */
+  serverCode?: string;
 }
 
 const extensions = new Map<string, LoadedExtension>();
@@ -36,20 +37,16 @@ export async function loadExtension(
 ) {
   try {
     const wsManager = WebSocketManager.getInstance();
-    let serverExports: Record<string, unknown> | undefined;
+    let serverCode: string | undefined;
 
     if (doc.server) {
-      const url = URL.createObjectURL(
-        new Blob([doc.server], { type: "text/javascript" }),
-      );
-      const mod = await import(url);
-      serverExports = mod;
+      serverCode = doc.server;
     }
 
     manifests.set(doc.identifier, doc.manifest);
     extensions.set(doc.identifier, {
       manifest: doc.manifest,
-      server: serverExports,
+      serverCode,
     });
 
     // forward client events to connected clients only
@@ -100,12 +97,50 @@ export async function callExtension(
   args: unknown[] = [],
 ): Promise<unknown> {
   const ext = extensions.get(id);
-  if (!ext?.server) throw new Error("extension not found");
-  const fn = (ext.server as Record<string, unknown>)[fnName];
-  if (typeof fn !== "function") {
-    throw new Error(`function not found: ${fnName}`);
-  }
-  return await (fn as (...a: unknown[]) => unknown)(...args);
+  if (!ext?.serverCode) throw new Error("extension not found");
+
+  const modUrl = URL.createObjectURL(
+    new Blob([ext.serverCode], { type: "text/javascript" }),
+  );
+  const workerCode = `let modPromise = import('${modUrl}');\n` +
+    `self.onmessage = async (e) => {` +
+    `  const { id, fn, args } = e.data;` +
+    `  try {` +
+    `    const mod = await modPromise;` +
+    `    const result = await mod[fn](...args);` +
+    `    self.postMessage({ id, result });` +
+    `  } catch (err) {` +
+    `    self.postMessage({ id, error: err?.message ?? String(err) });` +
+    `  }` +
+    `};`;
+
+  const workerUrl = URL.createObjectURL(
+    new Blob([workerCode], { type: "text/javascript" }),
+  );
+
+  const worker = new Worker(workerUrl, { type: "module" });
+
+  return await new Promise((resolve, reject) => {
+    const callId = crypto.randomUUID();
+    function cleanup() {
+      worker.terminate();
+      URL.revokeObjectURL(workerUrl);
+      URL.revokeObjectURL(modUrl);
+    }
+    worker.onmessage = (ev) => {
+      const data = ev.data;
+      if (data && data.id === callId) {
+        cleanup();
+        if ("error" in data) reject(new Error(String(data.error)));
+        else resolve(data.result);
+      }
+    };
+    worker.onerror = (err) => {
+      cleanup();
+      reject(err);
+    };
+    worker.postMessage({ id: callId, fn: fnName, args });
+  });
 }
 
 export async function runActivityPubHooks(
@@ -117,23 +152,20 @@ export async function runActivityPubHooks(
   const typeName = type ? `on${type}` : undefined;
 
   for (const [id, ext] of extensions) {
-    if (!ext.server) continue;
+    if (!ext.serverCode) continue;
 
-    const handlers: Array<unknown> = [];
-    if (typeName) handlers.push((ext.server as Record<string, unknown>)[typeName]);
-    handlers.push((ext.server as Record<string, unknown>).onActivityPub);
+    const handlers: string[] = [];
+    if (typeName) handlers.push(typeName);
+    handlers.push("onActivityPub");
 
     for (const h of handlers) {
-      if (typeof h === "function") {
-        try {
-          const res = await (h as (c: string, o: Record<string, unknown>) => unknown)(
-            context,
-            result,
-          );
-          if (res && typeof res === "object") {
-            result = res as Record<string, unknown>;
-          }
-        } catch (err) {
+      try {
+        const res = await callExtension(id, h, [context, result]);
+        if (res && typeof res === "object") {
+          result = res as Record<string, unknown>;
+        }
+      } catch (err) {
+        if (!(err instanceof Error && err.message.includes("function not found"))) {
           console.error(`ActivityPub event failed for ${id}:`, err);
         }
       }
