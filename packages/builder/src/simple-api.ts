@@ -73,6 +73,17 @@ export interface SimpleTakosAPI {
       isActive: boolean;
       request: (name: string, payload?: unknown) => Promise<unknown>;
     } | undefined;
+    /**
+     * Directly call another extension's exported API function.
+     */
+    request?: (name: string, payload?: unknown) => Promise<unknown>;
+    /**
+     * Register a handler that other extensions can invoke via `request()`.
+     */
+    onRequest?: (
+      name: string,
+      handler: (payload: unknown) => unknown | Promise<unknown>,
+    ) => void;
   };
 
   request: (name: string, payload: unknown) => Promise<unknown> | void;
