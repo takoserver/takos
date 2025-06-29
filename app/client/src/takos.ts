@@ -296,9 +296,21 @@ export function createTakos(identifier: string) {
   };
 
   const extensions = {
+    all: [] as Array<
+      {
+        identifier: string;
+        version: string;
+        isActive: boolean;
+        request(name: string, payload?: unknown): Promise<unknown> | undefined;
+      }
+    >,
     get(id: string) {
       return {
         identifier: id,
+        version: "",
+        get isActive() {
+          return true;
+        },
         async request(name: string, payload?: unknown) {
           try {
             const raw = await call("extensions:invoke", {
@@ -308,7 +320,10 @@ export function createTakos(identifier: string) {
             });
             return unwrapResult(raw);
           } catch (err) {
-            console.warn(`[Client] extension request failed for ${id}:${name}:`, err);
+            console.warn(
+              `[Client] extension request failed for ${id}:${name}:`,
+              err,
+            );
             try {
               const raw = await invoke("invoke_extension_event", {
                 identifier: id,
@@ -317,7 +332,10 @@ export function createTakos(identifier: string) {
               });
               return unwrapResult(raw);
             } catch (err2) {
-              console.error(`[Client] fallback extension request failed:`, err2);
+              console.error(
+                `[Client] fallback extension request failed:`,
+                err2,
+              );
               return undefined;
             }
           }
