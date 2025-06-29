@@ -16,6 +16,8 @@ export const defaultConfig: Partial<TakopackConfig> = {
     dev: false,
     outDir: "dist",
     minify: true,
+    analytics: false,
+    strictValidation: false,
   },
   entries: {
     server: [],
