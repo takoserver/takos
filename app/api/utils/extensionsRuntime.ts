@@ -47,13 +47,25 @@ export async function loadExtension(
     }
 
     manifests.set(doc.identifier, doc.manifest);
-    extensions.set(doc.identifier, { manifest: doc.manifest, server: serverExports });
+    extensions.set(doc.identifier, {
+      manifest: doc.manifest,
+      server: serverExports,
+    });
 
     // forward client events to connected clients only
     if (doc.client) {
       // minimal handler, expecting client to call globalThis.takos.events.publish
-      globalThis.takos ??= {} as any;
-      globalThis.takos.clientPublish = async (
+      const g = globalThis as typeof globalThis & {
+        takos?: {
+          clientPublish?: (
+            name: string,
+            payload: unknown,
+            options?: { push?: boolean; token?: string },
+          ) => Promise<unknown>;
+        };
+      };
+      g.takos ??= {};
+      g.takos.clientPublish = async (
         name: string,
         payload: unknown,
         options?: { push?: boolean; token?: string },
@@ -112,7 +124,11 @@ export async function runActivityPubHooks(
         try {
           const fn = (ext.server as Record<string, unknown>)[ap.hook];
           if (typeof fn === "function") {
-            const res = await (fn as (c: string, o: Record<string, unknown>) => unknown)(context, result);
+            const res =
+              await (fn as (c: string, o: Record<string, unknown>) => unknown)(
+                context,
+                result,
+              );
             if (res && typeof res === "object") {
               result = res as Record<string, unknown>;
             }
