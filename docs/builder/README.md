@@ -302,7 +302,7 @@ type Permission =
 // 基本的なサーバー関数
 .serverFunction("getUserData", async (userId: string) => {
   try {
-    const user = await globalThis.takos.activitypub.actor.read(userId);
+    const user = await globalThis.takos.ap.actor.read(userId);
     return [200, { user }];
   } catch (error) {
     return [500, { error: error.message }];

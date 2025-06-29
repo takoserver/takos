@@ -59,7 +59,7 @@
 - **read**: `takos.kv.read(key: string): Promise<any>`
 - **write**: `takos.kv.write(key: string, value: any): Promise<void>`
 - **delete**: `takos.kv.delete(key: string): Promise<void>`
-- **list**: `takos.kv.list(): Promise<string[]>`
+- **list**: `takos.kv.list(prefix?: string): Promise<string[]>`
   - **必要権限**: `kv:read` / `kv:write`
   - `server.js` と `client.js` / `index.html` のストレージは独立
   - クライアント側では IndexedDB
@@ -124,15 +124,15 @@ const { takos } = globalThis;
 下表のように `takos` には拡張機能開発向けの API
 群が集約されています。詳細なメソッドは[APIと権限](#apiと権限)を参照してください。
 
-| プロパティ           | 役割                                                   |
-| -------------------- | ------------------------------------------------------ |
-| `ap` / `activitypub` | ActivityPub 連携用の API。投稿送信やアクター操作を行う |
-| `kv`                 | 拡張ごとのキー/値ストア操作                            |
-| `cdn`                | CDN へのファイル保存・取得                             |
-| `events`             | レイヤー間イベントの発行・購読                         |
-| `extensions`         | 他拡張の取得と `activate()` 実行                       |
-| `activateExtension`  | ID 指定で拡張の `activate()` を実行                    |
-| `fetch`              | 権限制御付きの `fetch` ラッパー                        |
+| プロパティ          | 役割                                                   |
+| ------------------- | ------------------------------------------------------ |
+| `ap`                | ActivityPub 連携用の API。投稿送信やアクター操作を行う |
+| `kv`                | 拡張ごとのキー/値ストア操作                            |
+| `cdn`               | CDN へのファイル保存・取得                             |
+| `events`            | レイヤー間イベントの発行・購読                         |
+| `extensions`        | 他拡張の取得と `activate()` 実行                       |
+| `activateExtension` | ID 指定で拡張の `activate()` を実行                    |
+| `fetch`             | 権限制御付きの `fetch` ラッパー                        |
 
 ```typescript
 namespace takos.extensions {
@@ -170,7 +170,7 @@ if (api2) {
 ```
 
 その他の API も `takos.*` 名前空間に集約されています。 ActivityPub API は
-`takos.activitypub` のほか、短縮形の `takos.ap` からも利用できます。
+`takos.ap` で利用できます。
 
 ### レイヤー別 API 利用可否
 
@@ -182,7 +182,7 @@ if (api2) {
 | `kv`                                                        | ✓         | ✓                      | ✓               |
 | `cdn`                                                       | ✓         | ―                      | ―               |
 | `events`                                                    | ✓         | ✓                      | ✓               |
-| `activitypub`                                               | ✓         | ―                      | ―               |
+| `ap`                                                        | ✓         | ―                      | ―               |
 | `extensions` / `activateExtension`                          | ✓         | ✓                      | ✓               |
 | UI URL helpers (`getURL`, `pushURL`, `setURL`, `changeURL`) | ―         | ―                      | ✓               |
 
@@ -190,7 +190,7 @@ if (api2) {
 
 ## ActivityPub フック
 
-`activityPub.objects` に指定したオブジェクトを受信すると、`hook` に
+`ap.objects` に指定したオブジェクトを受信すると、`hook` に
 登録した関数が呼び出されます。これらの API はサーバーレイヤー専用です。
 利用可能なレイヤーについては[レイヤー別 API 利用可否](#レイヤー別-api-利用可否)を参照してください。
 
@@ -208,7 +208,7 @@ const afterB = await PackB.onReceive(afterA);
 1. 権限宣言を `manifest.permissions` に集約。
 2. manifest から `eventDefinitions` を削除し、`takos.events.onRequest()`
    でハンドラー登録。
-3. ActivityPub API は `activityPub()` に統合。
+3. ActivityPub API は `ap()` に統合。
 4. `extensionDependencies` と `exports` を利用し、`takos.extensions` API
    で他拡張と連携。
 

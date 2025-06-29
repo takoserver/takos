@@ -3,8 +3,8 @@
 
 // Access the global takos object if it exists. Use a loose type so that
 // extensions can still run when the API is missing (e.g. during tests).
-const api = (globalThis as { takos?: Partial<SimpleTakosAPI> }).takos ?? {} as
-  Partial<SimpleTakosAPI>;
+const api = (globalThis as { takos?: Partial<SimpleTakosAPI> }).takos ??
+  {} as Partial<SimpleTakosAPI>;
 
 export interface SimpleTakosAPI {
   events?: {
@@ -17,26 +17,47 @@ export interface SimpleTakosAPI {
   kv?: {
     read: (key: string) => Promise<unknown> | void;
     write: (key: string, value: unknown) => Promise<void> | void;
-    list: () => Promise<string[]> | void;
+    delete: (key: string) => Promise<void> | void;
+    list: (prefix?: string) => Promise<string[]> | void;
   };
   fetch?: (url: string, init?: RequestInit) => Promise<Response> | void;
   ap?: {
     currentUser: () => Promise<string>;
     send: (activity: Record<string, unknown>) => Promise<void>;
-    list: () => Promise<Record<string, unknown>[]>;
+    read: (id: string) => Promise<Record<string, unknown>>;
+    delete: (id: string) => Promise<void>;
+    list: () => Promise<string[]>;
+    follow: (followerId: string, followeeId: string) => Promise<void>;
+    unfollow: (followerId: string, followeeId: string) => Promise<void>;
+    listFollowers: (actorId: string) => Promise<string[]>;
+    listFollowing: (actorId: string) => Promise<string[]>;
     actor: {
       read: () => Promise<Record<string, unknown>>;
-      update: (key: string, value: unknown) => Promise<void>;
+      update: (key: string, value: string) => Promise<void>;
+      delete: (key: string) => Promise<void>;
     };
     pluginActor: {
-      create: (id: string, data: Record<string, unknown>) => Promise<string>;
-      read: (id: string) => Promise<Record<string, unknown>>;
-      list: () => Promise<Record<string, unknown>[]>;
+      create: (
+        localName: string,
+        profile: Record<string, unknown>,
+      ) => Promise<string>;
+      read: (iri: string) => Promise<Record<string, unknown>>;
+      update: (
+        iri: string,
+        partial: Record<string, unknown>,
+      ) => Promise<void>;
+      delete: (iri: string) => Promise<void>;
+      list: () => Promise<string[]>;
     };
   };
   cdn?: {
-    write: (path: string, data: string, options?: Record<string, unknown>) => Promise<string>;
+    write: (
+      path: string,
+      data: string | Uint8Array,
+      options?: { cacheTTL?: number },
+    ) => Promise<string>;
     read: (path: string) => Promise<string>;
+    delete: (path: string) => Promise<void>;
     list: (prefix?: string) => Promise<string[]>;
   };
   extensions?: {
@@ -59,12 +80,15 @@ export interface SimpleTakosAPI {
   ) => void;
   kvRead: (key: string) => Promise<unknown> | void;
   kvWrite: (key: string, value: unknown) => Promise<void> | void;
-  kvList: () => Promise<string[]> | void;
+  kvDelete: (key: string) => Promise<void> | void;
+  kvList: (prefix?: string) => Promise<string[]> | void;
   fetchFromTakos: (url: string, init?: RequestInit) => Promise<Response> | void;
 }
 
-
-export function request(name: string, payload: unknown): Promise<unknown> | void {
+export function request(
+  name: string,
+  payload: unknown,
+): Promise<unknown> | void {
   return api.events?.request?.(name, payload);
 }
 
@@ -83,20 +107,29 @@ export function kvWrite(key: string, value: unknown): Promise<void> | void {
   return api.kv?.write?.(key, value);
 }
 
-export function kvList(): Promise<string[]> | void {
-  return api.kv?.list?.();
+export function kvDelete(key: string): Promise<void> | void {
+  return api.kv?.delete?.(key);
 }
 
-export function fetchFromTakos(url: string, init?: RequestInit): Promise<Response> | void {
+export function kvList(prefix?: string): Promise<string[]> | void {
+  return api.kv?.list?.(prefix);
+}
+
+export function fetchFromTakos(
+  url: string,
+  init?: RequestInit,
+): Promise<Response> | void {
   return api.fetch?.(url, init);
 }
 
 export const simpleTakos: SimpleTakosAPI = {
   ...(api as Partial<SimpleTakosAPI>),
+  ap: api.ap,
   request,
   onRequest,
   kvRead,
   kvWrite,
+  kvDelete,
   kvList,
   fetchFromTakos,
 };
