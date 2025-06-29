@@ -23,6 +23,7 @@ import {
   verifyIncomingActivity,
 } from "./utils/activitypub.ts";
 import { runActivityPubHooks } from "./utils/extensionsRuntime.ts";
+import { eventManager } from "./eventManager.ts";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -128,11 +129,13 @@ app.post("/users/:username/inbox", async (c) => {
       rawObject: activity,
       isLocal: false,
       userId: account._id.toString(),
-    });    const apContext = (activity as Record<string, unknown>)["@context"] ??
+    });
+    const apContext = (activity as Record<string, unknown>)["@context"] ??
       "https://www.w3.org/ns/activitystreams";
     if (activity.object && typeof activity.object === "object") {
       activity.object = await runActivityPubHooks(
-        String((activity.object as Record<string, unknown>)["@context"]) ?? String(apContext),
+        String((activity.object as Record<string, unknown>)["@context"]) ??
+          String(apContext),
         activity.object as Record<string, unknown>,
       );
     } else {
@@ -181,6 +184,17 @@ app.post("/users/:username/inbox", async (c) => {
       case "Undo":
         await processUndo(activity);
         break;
+    }
+
+    try {
+      await eventManager.trigger(
+        c,
+        "takos",
+        "activitypub:object",
+        { context: String(apContext), object: activity },
+      );
+    } catch (err) {
+      console.error("activitypub:object dispatch failed", err);
     }
 
     return c.json({ status: "accepted" });
@@ -264,7 +278,8 @@ app.post("/users/:username/outbox", async (c) => {
       rawObject: processedActivity,
       isLocal: true,
       userId: account._id.toString(),
-    });    const context =
+    });
+    const context =
       (processedActivity as Record<string, unknown>)["@context"] ??
         "https://www.w3.org/ns/activitystreams";
     if (
@@ -272,7 +287,9 @@ app.post("/users/:username/outbox", async (c) => {
       typeof processedActivity.object === "object"
     ) {
       processedActivity.object = await runActivityPubHooks(
-        String((processedActivity.object as Record<string, unknown>)["@context"]) ??
+        String(
+          (processedActivity.object as Record<string, unknown>)["@context"],
+        ) ??
           String(context),
         processedActivity.object as Record<string, unknown>,
       );
@@ -405,11 +422,13 @@ app.post("/inbox", async (c) => {
       rawObject: activity,
       isLocal: false,
       // userIdは設定しない（共有inboxのため）
-    });    const sharedCtx = (activity as Record<string, unknown>)["@context"] ??
+    });
+    const sharedCtx = (activity as Record<string, unknown>)["@context"] ??
       "https://www.w3.org/ns/activitystreams";
     if (activity.object && typeof activity.object === "object") {
       activity.object = await runActivityPubHooks(
-        String((activity.object as Record<string, unknown>)["@context"]) ?? String(sharedCtx),
+        String((activity.object as Record<string, unknown>)["@context"]) ??
+          String(sharedCtx),
         activity.object as Record<string, unknown>,
       );
     } else {
@@ -451,6 +470,17 @@ app.post("/inbox", async (c) => {
       default:
         // その他のアクティビティは保存のみ
         console.log(`Received activity type: ${activity.type}`);
+    }
+
+    try {
+      await eventManager.trigger(
+        c,
+        "takos",
+        "activitypub:object",
+        { context: String(sharedCtx), object: activity },
+      );
+    } catch (err) {
+      console.error("activitypub:object dispatch failed", err);
     }
 
     return c.json({ status: "accepted" });

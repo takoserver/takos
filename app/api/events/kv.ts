@@ -16,6 +16,7 @@ eventManager.add(
     const doc = await KVItem.findOne({ identifier: id, side, key });
     return doc ? doc.value : null;
   },
+  "kv:read",
 );
 
 eventManager.add(
@@ -35,6 +36,7 @@ eventManager.add(
     );
     return { success: true };
   },
+  "kv:write",
 );
 
 eventManager.add(
@@ -49,6 +51,7 @@ eventManager.add(
     await KVItem.deleteOne({ identifier: id, side, key });
     return { success: true };
   },
+  "kv:write",
 );
 
 eventManager.add(
@@ -65,4 +68,5 @@ eventManager.add(
     const docs = await KVItem.find(query).select("key");
     return docs.map((d) => d.key);
   },
+  "kv:read",
 );

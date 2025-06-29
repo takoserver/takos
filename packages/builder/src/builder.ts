@@ -1,8 +1,17 @@
 import { basename, join, resolve } from "jsr:@std/path@1";
 import { existsSync } from "jsr:@std/fs@1";
-import { BlobWriter, TextReader, Uint8ArrayReader, ZipWriter } from "jsr:@zip-js/zip-js@^2.7.62";
+import {
+  BlobWriter,
+  TextReader,
+  Uint8ArrayReader,
+  ZipWriter,
+} from "jsr:@zip-js/zip-js@^2.7.62";
 import * as esbuild from "npm:esbuild";
 import { denoPlugins } from "jsr:@luca/esbuild-deno-loader@^0.11.1";
+import Ajv from "npm:ajv";
+import manifestSchema from "../../docs/takopack/manifest.schema.json" assert {
+  type: "json",
+};
 
 import type {
   ActivityPubConfig,
@@ -33,6 +42,8 @@ export class TakopackBuilder {
   private analyzer = new ASTAnalyzer();
   private generator = new VirtualEntryGenerator();
   private tempDir = ".takopack-tmp";
+  private ajv = new Ajv({ allowUnionTypes: true });
+  private validateManifest = this.ajv.compile(manifestSchema as object);
 
   constructor(config: TakopackConfig) {
     this.config = { ...defaultConfig, ...config };
@@ -64,6 +75,7 @@ export class TakopackBuilder {
 
       // 5. マニフェスト生成
       const manifest = this.generateManifest(analyses);
+      this.validateManifestSchema(manifest);
 
       // 6. UIファイルコピー
       await this.copyUIFiles();
@@ -96,7 +108,9 @@ export class TakopackBuilder {
         warnings: [],
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       console.error("❌ Build failed:", errorMessage);
 
       return {
@@ -300,7 +314,9 @@ export class TakopackBuilder {
 
       console.log(`✅ Bundled: ${entryPoint} → ${outputPath}`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       throw new Error(`Failed to bundle ${entryPoint}: ${errorMessage}`);
     }
   }
@@ -317,7 +333,9 @@ export class TakopackBuilder {
       description: this.config.manifest.description || "",
       version: this.config.manifest.version,
       identifier: this.config.manifest.identifier,
-      icon: this.config.manifest.icon ? `./${basename(this.config.manifest.icon)}` : undefined,
+      icon: this.config.manifest.icon
+        ? `./${basename(this.config.manifest.icon)}`
+        : undefined,
       apiVersion: "3.0",
       permissions: this.config.manifest.permissions || [],
       extensionDependencies: this.config.manifest.extensionDependencies,
@@ -368,7 +386,9 @@ export class TakopackBuilder {
       console.log(`    Method calls: ${analysis.methodCalls.length}`);
       analysis.methodCalls.forEach((call) => {
         console.log(
-          `      ${call.objectName}.${call.methodName}(${call.args.join(", ")})`,
+          `      ${call.objectName}.${call.methodName}(${
+            call.args.join(", ")
+          })`,
         );
       });
     });
@@ -630,12 +650,15 @@ export class TakopackBuilder {
         );
 
         const result = {
-          source: (options.source as "client" | "server" | "background" | "ui") ||
+          source:
+            (options.source as "client" | "server" | "background" | "ui") ||
             "client",
           handler: targetFunction,
         };
         console.log(
-          `[DEBUG] parseEventConfig - complex result: ${JSON.stringify(result)}`,
+          `[DEBUG] parseEventConfig - complex result: ${
+            JSON.stringify(result)
+          }`,
         );
         return result;
       }
@@ -708,7 +731,9 @@ export class TakopackBuilder {
 
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       console.error("❌ Type definition generation failed:", errorMessage);
       throw error;
     }
@@ -863,5 +888,16 @@ export class TakopackBuilder {
     });
 
     return hasDefinitions;
+  }
+
+  private validateManifestSchema(manifest: ExtensionManifest): void {
+    const valid = this.validateManifest(manifest);
+    if (!valid) {
+      const errors = this.validateManifest.errors?.map((e) =>
+        `${e.instancePath} ${e.message}`
+      )
+        .join(", ");
+      throw new Error(`Manifest schema validation failed: ${errors}`);
+    }
   }
 }

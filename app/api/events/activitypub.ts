@@ -10,6 +10,19 @@ import { deliverActivity, getActor } from "../utils/activitypub.ts";
 import { runActivityPubHooks } from "../utils/extensionsRuntime.ts";
 import { getCookie } from "hono/cookie";
 import { Session } from "../models/sessions.ts";
+import { PluginActor } from "../models/pluginActor.ts";
+import { ActivityPubActor as ActivityPubActorModel } from "../models/activitypub.ts";
+import { generateKeyPair } from "../utils/crypto.ts";
+
+eventManager.add(
+  "takos",
+  "activitypub:object",
+  z.object({ context: z.string(), object: z.record(z.unknown()) }),
+  async (_c, { context, object }) => {
+    return await runActivityPubHooks(context, object);
+  },
+  "activitypub:receive:hook",
+);
 
 // deno-lint-ignore no-explicit-any
 async function requireAuth(c: any) {
@@ -24,17 +37,18 @@ async function requireAuth(c: any) {
 }
 
 // ActivityPub オブジェクト送信
-eventManager.add(  "takos",
+eventManager.add(
+  "takos",
   "activitypub:send",
   z.object({ userId: z.string(), activity: z.record(z.unknown()) }),
   async (c, { userId, activity }) => {
     await requireAuth(c);
     const account = await Account.findById(userId);
     if (!account) throw new Error("アカウントが見つかりません");
-    
+
     // 型安全な活動オブジェクト
     const typedActivity = activity as Record<string, unknown>;
-    
+
     if (!typedActivity.id) {
       typedActivity.id =
         `https://${c.env.ACTIVITYPUB_DOMAIN}/activities/${crypto.randomUUID()}`;
@@ -52,12 +66,18 @@ eventManager.add(  "takos",
       to: Array.isArray(typedActivity.to) ? typedActivity.to.map(String) : [],
       cc: Array.isArray(typedActivity.cc) ? typedActivity.cc.map(String) : [],
       published: new Date(String(publishedDate)),
-      content: typedActivity.content ? String(typedActivity.content) : undefined,
-      summary: typedActivity.summary ? String(typedActivity.summary) : undefined,
+      content: typedActivity.content
+        ? String(typedActivity.content)
+        : undefined,
+      summary: typedActivity.summary
+        ? String(typedActivity.summary)
+        : undefined,
       rawObject: typedActivity,
       isLocal: true,
       userId: account._id.toString(),
-    });    const ctx = typedActivity["@context"] ?? "https://www.w3.org/ns/activitystreams";
+    });
+    const ctx = typedActivity["@context"] ??
+      "https://www.w3.org/ns/activitystreams";
     if (typedActivity.object && typeof typedActivity.object === "object") {
       const objectWithContext = typedActivity.object as Record<string, unknown>;
       typedActivity.object = await runActivityPubHooks(
@@ -107,6 +127,7 @@ eventManager.add(  "takos",
 
     return { id: typedActivity.id };
   },
+  "activitypub:send",
 );
 
 // ActivityPub オブジェクト読み取り
@@ -119,6 +140,7 @@ eventManager.add(
     if (!activity) throw new Error("アクティビティが見つかりません");
     return activity.rawObject;
   },
+  "activitypub:read",
 );
 
 // ActivityPub オブジェクト削除
@@ -153,6 +175,7 @@ eventManager.add(
     }
     return { message: "deleted" };
   },
+  "activitypub:send",
 );
 
 // ActivityPub オブジェクト一覧
@@ -175,6 +198,7 @@ eventManager.add(
       .select("id type actor published");
     return activities.map((a) => a.id);
   },
+  "activitypub:read",
 );
 
 // アクター読み取り
@@ -187,6 +211,7 @@ eventManager.add(
     if (!account) throw new Error("アカウントが見つかりません");
     return account.activityPubActor;
   },
+  "activitypub:actor:read",
 );
 
 // アクター更新
@@ -204,6 +229,7 @@ eventManager.add(
     await account.save();
     return { message: "updated" };
   },
+  "activitypub:actor:write",
 );
 
 // フォロー
@@ -235,7 +261,8 @@ eventManager.add(
       rawObject: followActivity,
       isLocal: true,
       userId: followerAccount._id.toString(),
-    });    const processedFollow = await runActivityPubHooks(
+    });
+    const processedFollow = await runActivityPubHooks(
       String((followActivity as Record<string, unknown>)["@context"]) ??
         "https://www.w3.org/ns/activitystreams",
       followActivity as unknown as Record<string, unknown>,
@@ -258,6 +285,7 @@ eventManager.add(
     }
     return { id: followActivity.id };
   },
+  "activitypub:actor:write",
 );
 
 // アンフォロー
@@ -299,7 +327,8 @@ eventManager.add(
         `${followerAccount.activityPubActor.id}#main-key`,
         followerAccount.privateKeyPem,
       );
-    }    const processedUndo = await runActivityPubHooks(
+    }
+    const processedUndo = await runActivityPubHooks(
       String((undoActivity as Record<string, unknown>)["@context"]) ??
         "https://www.w3.org/ns/activitystreams",
       undoActivity as unknown as Record<string, unknown>,
@@ -307,6 +336,7 @@ eventManager.add(
     Object.assign(undoActivity, processedUndo);
     return { id: undoActivity.id };
   },
+  "activitypub:actor:write",
 );
 
 // フォロワー一覧
@@ -319,6 +349,7 @@ eventManager.add(
       .select("follower");
     return followers.map((f) => f.follower);
   },
+  "activitypub:actor:read",
 );
 
 // フォロー中一覧
@@ -331,4 +362,125 @@ eventManager.add(
       .select("following");
     return following.map((f) => f.following);
   },
+  "activitypub:actor:read",
+);
+
+// ---------------------------------------------------------------------------
+// Plugin Actors
+// ---------------------------------------------------------------------------
+
+eventManager.add(
+  "takos",
+  "plugin-actor:create",
+  z.object({
+    identifier: z.string(),
+    localName: z.string(),
+    profile: z.record(z.unknown()),
+  }),
+  async (c, { identifier, localName, profile }) => {
+    const iri =
+      `https://${c.env.ACTIVITYPUB_DOMAIN}/plugins/${identifier}/${localName}`;
+    const { publicKeyPem, privateKeyPem } = await generateKeyPair();
+    const actor: Record<string, unknown> = {
+      "@context": "https://www.w3.org/ns/activitystreams",
+      id: iri,
+      type: typeof profile.type === "string" ? profile.type : "Service",
+      preferredUsername: localName,
+      inbox: `${iri}/inbox`,
+      outbox: `${iri}/outbox`,
+      followers: `${iri}/followers`,
+      following: `${iri}/following`,
+      ...profile,
+      publicKey: {
+        id: `${iri}#main-key`,
+        owner: iri,
+        publicKeyPem,
+      },
+    };
+
+    await PluginActor.create({
+      identifier,
+      localName,
+      iri,
+      actor,
+      privateKeyPem,
+    });
+
+    await ActivityPubActorModel.create({
+      id: iri,
+      type: String(actor.type),
+      preferredUsername: localName,
+      name: actor.name,
+      summary: actor.summary,
+      icon: actor.icon,
+      image: actor.image,
+      inbox: `${iri}/inbox`,
+      outbox: `${iri}/outbox`,
+      followers: `${iri}/followers`,
+      following: `${iri}/following`,
+      publicKey: actor.publicKey,
+      privateKeyPem,
+      isLocal: true,
+      rawActor: actor,
+    });
+
+    return iri;
+  },
+  "plugin-actor:create",
+);
+
+eventManager.add(
+  "takos",
+  "plugin-actor:read",
+  z.object({ identifier: z.string(), iri: z.string() }),
+  async (_c, { identifier, iri }) => {
+    const doc = await PluginActor.findOne({ identifier, iri });
+    if (!doc) throw new Error("Plugin actor not found");
+    return doc.actor as Record<string, unknown>;
+  },
+  "plugin-actor:read",
+);
+
+eventManager.add(
+  "takos",
+  "plugin-actor:update",
+  z.object({
+    identifier: z.string(),
+    iri: z.string(),
+    partial: z.record(z.unknown()),
+  }),
+  async (_c, { identifier, iri, partial }) => {
+    const doc = await PluginActor.findOne({ identifier, iri });
+    if (!doc) throw new Error("Plugin actor not found");
+    Object.assign(doc.actor, partial);
+    await doc.save();
+    await ActivityPubActorModel.updateOne({ id: iri }, {
+      $set: { rawActor: doc.actor },
+    });
+    return { success: true };
+  },
+  "plugin-actor:write",
+);
+
+eventManager.add(
+  "takos",
+  "plugin-actor:delete",
+  z.object({ identifier: z.string(), iri: z.string() }),
+  async (_c, { identifier, iri }) => {
+    await PluginActor.findOneAndDelete({ identifier, iri });
+    await ActivityPubActorModel.deleteOne({ id: iri });
+    return { success: true };
+  },
+  "plugin-actor:delete",
+);
+
+eventManager.add(
+  "takos",
+  "plugin-actor:list",
+  z.object({ identifier: z.string() }),
+  async (_c, { identifier }) => {
+    const docs = await PluginActor.find({ identifier }).select("iri");
+    return docs.map((d) => d.iri);
+  },
+  "plugin-actor:read",
 );

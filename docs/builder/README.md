@@ -1,6 +1,6 @@
 # 🔧 **Takopack Builder API ドキュメント**
 
-> **バージョン**: v2.0 **最終更新**: 2025-06-01
+> **バージョン**: v3.0 **最終更新**: 2025-06-01
 
 ## 📚 **目次**
 
@@ -158,7 +158,7 @@ await extension.build();
   version: "1.0.0",
   identifier: "com.example.ext",
   permissions: ["kv:read", "activitypub:send"],
-  apiVersion: "2.0"  // オプション（デフォルト: "2.0"）
+  apiVersion: "3.0"  // オプション（デフォルト: "3.0"）
 })
 ```
 
@@ -243,7 +243,7 @@ interface ManifestConfig {
   description: string; // 説明
   version: string; // バージョン（SemVer形式）
   identifier: string; // 識別子（逆FQDN形式）
-  apiVersion?: string; // API バージョン（デフォルト: "2.0"）
+  apiVersion?: string; // API バージョン（デフォルト: "3.0"）
   permissions?: Permission[]; // 権限配列
 }
 ```
@@ -345,9 +345,9 @@ await simpleTakos.request("hello", { message: "hi" });
 
 ### 拡張機能 API の呼び出し
 
-他拡張が公開する機能は `takos.extensions.get()` で取得した
-オブジェクトの `request()` メソッドから実行します。
-公開側では `takos.extensions.onRequest()` でハンドラーを登録します。
+他拡張が公開する機能は `takos.extensions.get()` で取得した オブジェクトの
+`request()` メソッドから実行します。 公開側では `takos.extensions.onRequest()`
+でハンドラーを登録します。
 
 ```typescript
 // com.example.lib 側
