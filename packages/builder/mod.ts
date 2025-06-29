@@ -17,8 +17,6 @@ export { build, dev, watch } from "./src/commands.ts";
 
 // TypeScript型エクスポート
 export type * from "./src/types.ts";
-export { Takos } from "./src/classes.ts";
-export { TakoPack } from "./src/takopack.ts";
 
 // Takos API Helpers
 export {
