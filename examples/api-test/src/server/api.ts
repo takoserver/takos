@@ -215,15 +215,20 @@ export async function testKVOperations() {
     const readValue = await takos.kv!.read(testKey);
     console.log(`[Server] Read from KV:`, readValue);
 
-    // リスト取得
-    const keys = await takos.kv!.list() || [];
-    console.log(`[Server] KV keys count: ${keys.length}`);
+    // リスト取得 (prefix support)
+    const keys = await takos.kv!.list("test_key_") || [];
+    console.log(`[Server] KV keys with prefix 'test_key_': ${keys.length}`);
+
+    // 削除
+    await takos.kv!.delete(testKey);
+    console.log(`[Server] Deleted KV key: ${testKey}`);
 
     return [200, {
       success: true,
       written: testValue,
       read: readValue,
       keysCount: keys.length,
+      deleted: true,
       testKey,
       timestamp: new Date().toISOString(),
     }];
