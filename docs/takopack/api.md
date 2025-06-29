@@ -76,7 +76,6 @@
 - **delete**: `takos.cdn.delete(path: string): Promise<void>`
 - **list**: `takos.cdn.list(prefix?: string): Promise<string[]>`
   - **必要権限**: `cdn:read` / `cdn:write`
-  - **制限**: 合計 20MB まで。エンドポイント `/cdn/<identifier>/<path>`
   - **利用可能レイヤー**: `server` のみ
 
 ### events
