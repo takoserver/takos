@@ -264,7 +264,6 @@ CDN操作テスト
   "permissions": [
     "activitypub:send",
     "activitypub:read",
-    "activitypub:receive:hook",
     "activitypub:actor:read",
     "activitypub:actor:write",
     "plugin-actor:create",

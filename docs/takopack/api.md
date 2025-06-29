@@ -22,11 +22,6 @@
   - **必要権限**: `activitypub:read`
   - **利用可能レイヤー**: `server` のみ
 
-#### フック処理
-
-- ActivityPub オブジェクト受信時のフック (`hook`)
-  - **必要権限**: `activitypub:receive:hook`
-
 #### アクター操作
 
 - **read**: `takos.ap.actor.read(): Promise<object>`
@@ -183,15 +178,17 @@ const { takos } = globalThis;
 
 ---
 
-## ActivityPub フック
+## ActivityPub イベント
 
-`ap.objects` に指定したオブジェクトを受信すると、`hook` に
-登録した関数が呼び出されます。これらの API はサーバーレイヤー専用です。
-利用可能なレイヤーについては[レイヤー別 API 利用可否](#レイヤー別-api-利用可否)を参照してください。
+ActivityPub オブジェクトを受信すると `activitypub:object` イベントが発火します。
+拡張機能は `takos.events.onRequest()` でハンドラーを登録し、
+`{ context, object }` を受け取って処理結果を返せます。
 
 ```javascript
-const afterA = await PackA.onReceive(obj);
-const afterB = await PackB.onReceive(afterA);
+takos.events.onRequest("activitypub:object", async ({ context, object }) => {
+  console.log("Activity received", object);
+  return object;
+});
 ```
 
 ---

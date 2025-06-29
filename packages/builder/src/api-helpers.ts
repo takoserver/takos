@@ -17,7 +17,7 @@ export interface TakosEventsAPI {
   onRequest(
     name: string,
     handler: (payload: unknown) => unknown | Promise<unknown>,
-  ): void;
+  ): () => void;
 }
 
 export interface TakosKVAPI {
@@ -79,7 +79,7 @@ export interface TakosExtensionsAPI {
   onRequest(
     name: string,
     handler: (payload: unknown) => unknown | Promise<unknown>,
-  ): void;
+  ): () => void;
 }
 
 // コンテキスト別API定義

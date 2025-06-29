@@ -220,24 +220,6 @@ const res = await takos.events.request("echo", { text: "ping" });
 // res => { text: "ping!" }
 ```
 
-### ActivityPub メソッド
-
-#### `activityPub(config, hook?): this`
-
-ActivityPubフック処理を設定します。
-
-```typescript
-.activityPub(
-  {
-    objects: ["Note"],
-  },
-  async (context: string, object: any) => {
-    console.log("Note received:", object);
-    return { processed: true };
-  },
-)
-```
-
 ---
 
 ## 5. 設定オプション
@@ -273,7 +255,6 @@ type Permission =
   | "fetch:net"
   | "activitypub:send"
   | "activitypub:read"
-  | "activitypub:receive:hook"
   | "activitypub:actor:read"
   | "activitypub:actor:write"
   | "plugin-actor:create"
@@ -519,69 +500,6 @@ const memoExtension = new FunctionBasedTakopack()
   });
 
 await memoExtension.build();
-```
-
-### ActivityPub 拡張機能
-
-```typescript
-const activityPubExtension = new FunctionBasedTakopack()
-  .output("dist")
-  .package("note-processor")
-  // ActivityPub Note処理
-  .activityPub(
-    {
-      objects: ["Note"],
-    },
-    async (context: string, object: any) => {
-      const note = object.object;
-
-      // キーワード抽出
-      const keywords = extractKeywords(note.content);
-
-      // 統計保存
-      await globalThis.takos.kv.write(
-        `note_stats_${Date.now()}`,
-        { keywords, timestamp: new Date().toISOString() },
-      );
-
-      console.log("Note processed:", keywords);
-      return { processed: true, keywords };
-    },
-  )
-  .serverFunction("getStats", async () => {
-    const keys = await globalThis.takos.kv.list();
-    const statsKeys = keys.filter((k) => k.startsWith("note_stats_"));
-    const stats = [];
-
-    for (const key of statsKeys) {
-      const stat = await globalThis.takos.kv.read(key);
-      stats.push(stat);
-    }
-
-    return [200, { stats }];
-  })
-  .config({
-    name: "Note Processor",
-    description: "Processes ActivityPub Notes and extracts keywords",
-    version: "1.0.0",
-    identifier: "com.example.noteprocessor",
-    permissions: [
-      "activitypub:receive:hook",
-      "kv:read",
-      "kv:write",
-    ],
-  });
-
-// キーワード抽出関数
-function extractKeywords(content: string): string[] {
-  return content
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((word) => word.length > 3)
-    .slice(0, 5);
-}
-
-await activityPubExtension.build();
 ```
 
 ---
