@@ -4,6 +4,7 @@ export interface ExtensionMeta {
   identifier: string;
   name: string;
   icon?: string;
+  version: string;
 }
 
 export const extensionListState = atom<ExtensionMeta[]>([]);

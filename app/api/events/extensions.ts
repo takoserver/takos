@@ -148,6 +148,7 @@ eventManager.add(
     return docs.map((d) => ({
       identifier: d.identifier,
       name: d.manifest.name,
+      version: d.manifest.version,
       icon: d.icon,
     }));
   },
