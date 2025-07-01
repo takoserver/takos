@@ -28,27 +28,32 @@ async function getFirebaseToken(): Promise<string | null> {
 /**
  * キャッシュを活用したWorker作成
  */
-async function createWorkerFromCache(identifier: string): Promise<Worker | null> {
+async function createWorkerFromCache(
+  identifier: string,
+): Promise<Worker | null> {
   try {
     // キャッシュからclient.jsを取得
     const clientJs = await getCachedFile(identifier, "client.js");
-    
+
     if (clientJs) {
       console.log(`📦 Using cached client.js for worker ${identifier}`);
       // BlobURLでWorkerを作成
-      const blob = new Blob([clientJs], { type: 'application/javascript' });
+      const blob = new Blob([clientJs], { type: "application/javascript" });
       const blobUrl = URL.createObjectURL(blob);
       const worker = new Worker(blobUrl, { type: "module" });
-      
+
       // Worker作成後にBlobURLをクリーンアップ
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-      
+
       return worker;
     } else {
       return null;
     }
   } catch (error) {
-    console.warn(`Failed to create worker from cache for ${identifier}:`, error);
+    console.warn(
+      `Failed to create worker from cache for ${identifier}:`,
+      error,
+    );
     return null;
   }
 }
@@ -66,22 +71,32 @@ export function createTakos(identifier: string) {
 
   if (!isTauri && typeof Worker !== "undefined") {
     // キャッシュからWorkerを作成を試行
-    createWorkerFromCache(identifier).then(cachedWorker => {
+    createWorkerFromCache(identifier).then((cachedWorker) => {
       if (cachedWorker) {
         worker = cachedWorker;
         setupWorkerHandlers();
       } else {
         // フォールバック: 従来のAPI経由でWorkerを作成
         console.log(`🌐 Creating worker for ${identifier} from API`);
-        worker = new Worker(`/api/extensions/${identifier}/client.js`, {
+        let base = location.origin;
+        if (base === "null" && parent && parent.location) {
+          base = parent.location.origin;
+        }
+        const url = `${base}/api/extensions/${identifier}/client.js`;
+        worker = new Worker(url, {
           type: "module",
         });
         setupWorkerHandlers();
       }
-    }).catch(error => {
+    }).catch((error) => {
       console.error(`Failed to create worker for ${identifier}:`, error);
       // エラー時のフォールバック
-      worker = new Worker(`/api/extensions/${identifier}/client.js`, {
+      let base = location.origin;
+      if (base === "null" && parent && parent.location) {
+        base = parent.location.origin;
+      }
+      const url = `${base}/api/extensions/${identifier}/client.js`;
+      worker = new Worker(url, {
         type: "module",
       });
       setupWorkerHandlers();
@@ -90,7 +105,7 @@ export function createTakos(identifier: string) {
 
   function setupWorkerHandlers() {
     if (!worker) return;
-    
+
     worker.onmessage = (ev) => {
       const { id, type, name, payload, result } = ev.data || {};
       if (id && pending.has(id)) {
