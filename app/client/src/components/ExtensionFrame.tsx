@@ -1,4 +1,4 @@
-import { createEffect, onCleanup, createSignal } from "solid-js";
+import { createEffect, createSignal, onCleanup } from "solid-js";
 import { useAtom } from "solid-jotai";
 import { selectedExtensionState } from "../states/extensions.ts";
 import { createTakos } from "../takos.ts";
@@ -20,29 +20,37 @@ export default function ExtensionFrame() {
       const currentExtId = extId()!;
       setIsLoading(true);
       setError(null);
-      
+
       try {
         // キャッシュを活用した拡張機能の読み込み
         const loadedExtension = await loadExtension(currentExtId);
-        
+
         if (loadedExtension?.indexHtml) {
           // キャッシュされたHTMLをBlobURLとして設定
-          const blob = new Blob([loadedExtension.indexHtml], { type: 'text/html' });
+          const blob = new Blob([loadedExtension.indexHtml], {
+            type: "text/html",
+          });
           const blobUrl = URL.createObjectURL(blob);
           frame.src = blobUrl;
-          
+
           // 古いBlobURLをクリーンアップ
-          frame.addEventListener('load', () => {
+          frame.addEventListener("load", () => {
             setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
           }, { once: true });
         } else {
           // フォールバック: 従来のAPI経由での読み込み
-          console.warn(`No cached HTML for ${currentExtId}, falling back to API`);
+          console.warn(
+            `No cached HTML for ${currentExtId}, falling back to API`,
+          );
           frame.src = `/api/extensions/${currentExtId}/ui`;
         }
       } catch (err) {
         console.error(`Failed to load extension ${currentExtId}:`, err);
-        setError(`Failed to load extension: ${err instanceof Error ? err.message : String(err)}`);
+        setError(
+          `Failed to load extension: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
         // エラー時のフォールバック
         frame.src = `/api/extensions/${currentExtId}/ui`;
       } finally {
@@ -62,7 +70,7 @@ export default function ExtensionFrame() {
         const child = frame.contentWindow as Window & TakosGlobal;
         child.__takosEventDefs = child.__takosEventDefs || {};
         child.__takosEventDefs[id] = defs;
-        
+
         // 読み込み完了時にエラーをクリア
         setError(null);
       }
@@ -81,18 +89,19 @@ export default function ExtensionFrame() {
       {isLoading() && (
         <div class="absolute inset-0 bg-gray-100 flex items-center justify-center z-10">
           <div class="text-center">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2">
+            </div>
             <div class="text-sm text-gray-600">Loading extension...</div>
           </div>
         </div>
       )}
-      
+
       {error() && (
         <div class="absolute inset-0 bg-red-50 flex items-center justify-center z-10">
           <div class="text-center p-4">
             <div class="text-red-600 mb-2">⚠️ Extension Load Error</div>
             <div class="text-sm text-red-500">{error()}</div>
-            <button 
+            <button
               type="button"
               class="mt-2 px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
               onClick={() => {
@@ -108,12 +117,14 @@ export default function ExtensionFrame() {
           </div>
         </div>
       )}
-      
+
       <iframe
-        ref={frame!}
+        ref={(el) => {
+          frame = el;
+        }}
         sandbox="allow-scripts allow-same-origin"
         class="w-full h-full border-none"
-        style={{ display: isLoading() || error() ? 'none' : 'block' }}
+        style={{ display: isLoading() || error() ? "none" : "block" }}
         onLoad={onLoad}
         onError={() => setError("Failed to load extension frame")}
       />
