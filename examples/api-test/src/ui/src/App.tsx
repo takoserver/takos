@@ -1,5 +1,10 @@
 import './App.css'
 import { createSignal, For } from 'solid-js'
+import type { SimpleTakosAPI } from '../../../../../packages/builder/mod.ts'
+
+// Takos API injected by the parent window
+const takos: SimpleTakosAPI =
+  (globalThis as { takos?: SimpleTakosAPI }).takos ?? ({} as SimpleTakosAPI)
 
 interface TestResult {
   success: boolean
@@ -30,10 +35,11 @@ function App() {
     addLog('ActivityPub APIテストを開始しています...')
     
     try {
-      // ActivityPub APIテストの実装
-      const response = await fetch('/api/test/ap', { method: 'POST' })
-      const result = await response.json()
-      setActivityPubResults(result)
+      const result = (await takos.extensions.request(
+        'jp.takos.api-test:testActivityPubSend',
+        []
+      )) as [number, TestResult]
+      setActivityPubResults(result[1])
       addLog('ActivityPub APIテスト完了')
     } catch (error) {
       addLog(`ActivityPub APIテストでエラーが発生: ${error}`)
@@ -47,9 +53,11 @@ function App() {
     addLog('KV Storage APIテストを開始しています...')
     
     try {
-      const response = await fetch('/api/test/kv', { method: 'POST' })
-      const result = await response.json()
-      setKvResults(result)
+      const result = (await takos.extensions.request(
+        'jp.takos.api-test:testKVOperations',
+        []
+      )) as [number, TestResult]
+      setKvResults(result[1])
       addLog('KV Storage APIテスト完了')
     } catch (error) {
       addLog(`KV Storage APIテストでエラーが発生: ${error}`)
@@ -63,9 +71,11 @@ function App() {
     addLog('CDN APIテストを開始しています...')
     
     try {
-      const response = await fetch('/api/test/cdn', { method: 'POST' })
-      const result = await response.json()
-      setCdnResults(result)
+      const result = (await takos.extensions.request(
+        'jp.takos.api-test:testCDNOperations',
+        []
+      )) as [number, TestResult]
+      setCdnResults(result[1])
       addLog('CDN APIテスト完了')
     } catch (error) {
       addLog(`CDN APIテストでエラーが発生: ${error}`)
@@ -79,9 +89,11 @@ function App() {
     addLog('Events APIテストを開始しています...')
     
     try {
-      const response = await fetch('/api/test/events', { method: 'POST' })
-      const result = await response.json()
-      setEventsResults(result)
+      const result = (await takos.extensions.request(
+        'jp.takos.api-test:testEventsAPI',
+        []
+      )) as [number, TestResult]
+      setEventsResults(result[1])
       addLog('Events APIテスト完了')
     } catch (error) {
       addLog(`Events APIテストでエラーが発生: ${error}`)
@@ -95,9 +107,11 @@ function App() {
     addLog('Extensions APIテストを開始しています...')
     
     try {
-      const response = await fetch('/api/test/extensions', { method: 'POST' })
-      const result = await response.json()
-      setExtensionsResults(result)
+      const result = (await takos.extensions.request(
+        'jp.takos.api-test:testExtensionsAPI',
+        []
+      )) as [number, TestResult]
+      setExtensionsResults(result[1])
       addLog('Extensions APIテスト完了')
     } catch (error) {
       addLog(`Extensions APIテストでエラーが発生: ${error}`)
