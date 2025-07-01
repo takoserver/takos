@@ -2,6 +2,7 @@ import { useAtom, useSetAtom } from "solid-jotai";
 import { selectedAppState } from "../../states/app.ts";
 import {
   extensionListState,
+  type ExtensionMeta,
   selectedExtensionState,
 } from "../../states/extensions.ts";
 import { For, onMount } from "solid-js";
@@ -28,7 +29,7 @@ export default function ChatHeader() {
       });
       if (res.ok) {
         const data = await res.json();
-        const list = data[0]?.result ?? [];
+        const list: ExtensionMeta[] = data[0]?.result ?? [];
         setExtensions(list);
         for (const ext of list) {
           createTakos(ext.identifier);
