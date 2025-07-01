@@ -3,7 +3,7 @@ import { defineConfig } from "../../packages/builder/mod.ts";
 export default defineConfig({
   manifest: {
     name: "API Test Extension",
-    identifier: "jp.takos.api-test2",
+    identifier: "jp.takos.api-test",
     version: "1.0.0",
     description:
       "Comprehensive testing extension for all Takos APIs including ActivityPub, KV storage, CDN, Events, and Extensions API.",
