@@ -79,10 +79,22 @@ export function createTakos(identifier: string) {
         // フォールバック: 従来のAPI経由でWorkerを作成
         console.log(`🌐 Creating worker for ${identifier} from API`);
         let base = location.origin;
-        if (base === "null" && parent && parent.location) {
-          base = parent.location.origin;
+        if (base === "null") {
+          try {
+            base = new URL(document.referrer).origin;
+          } catch {
+            if (parent && parent.location) {
+              try {
+                base = parent.location.origin;
+              } catch {
+                /* ignore */
+              }
+            }
+          }
         }
-        const url = `${base}/api/extensions/${identifier}/client.js`;
+        const url = base && base !== "null"
+          ? `${base}/api/extensions/${identifier}/client.js`
+          : `/api/extensions/${identifier}/client.js`;
         worker = new Worker(url, {
           type: "module",
         });
@@ -92,10 +104,22 @@ export function createTakos(identifier: string) {
       console.error(`Failed to create worker for ${identifier}:`, error);
       // エラー時のフォールバック
       let base = location.origin;
-      if (base === "null" && parent && parent.location) {
-        base = parent.location.origin;
+      if (base === "null") {
+        try {
+          base = new URL(document.referrer).origin;
+        } catch {
+          if (parent && parent.location) {
+            try {
+              base = parent.location.origin;
+            } catch {
+              /* ignore */
+            }
+          }
+        }
       }
-      const url = `${base}/api/extensions/${identifier}/client.js`;
+      const url = base && base !== "null"
+        ? `${base}/api/extensions/${identifier}/client.js`
+        : `/api/extensions/${identifier}/client.js`;
       worker = new Worker(url, {
         type: "module",
       });
