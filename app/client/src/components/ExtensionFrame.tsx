@@ -30,9 +30,17 @@ export default function ExtensionFrame() {
           const basePath = `${location.origin}/api/extensions/${currentExtId}/`;
           let html = loadedExtension.indexHtml;
 
+          const injections: string[] = [];
           if (!html.includes("<base")) {
-            const baseTag = `<base href="${basePath}">`;
-            html = html.replace(/<head>/i, `<head>${baseTag}`);
+            injections.push(`<base href="${basePath}">`);
+          }
+          if (!html.includes("window.takos")) {
+            injections.push(
+              `<script>window.takos = window.takos || {};</script>`,
+            );
+          }
+          if (injections.length) {
+            html = html.replace(/<head>/i, `<head>${injections.join("")}`);
           }
 
           html = html.replace(/(src|href)="\/(.*?)"/g, `$1="${basePath}$2"`);
@@ -73,10 +81,14 @@ export default function ExtensionFrame() {
       if (frame?.contentWindow && extId()) {
         const id = extId()!;
         const takos = createTakos(id);
-        (frame.contentWindow as Window & TakosGlobal).takos = takos;
+        const child = frame.contentWindow as Window & TakosGlobal;
+        if (child.takos && typeof child.takos === "object") {
+          Object.assign(child.takos as Record<string, unknown>, takos);
+        } else {
+          child.takos = takos;
+        }
         const host = window as Window & TakosGlobal;
         const defs = host.__takosEventDefs?.[id] || {};
-        const child = frame.contentWindow as Window & TakosGlobal;
         child.__takosEventDefs = child.__takosEventDefs || {};
         child.__takosEventDefs[id] = defs;
 
