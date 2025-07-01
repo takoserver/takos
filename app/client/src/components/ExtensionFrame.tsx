@@ -26,14 +26,19 @@ export default function ExtensionFrame() {
         const loadedExtension = await loadExtension(currentExtId);
 
         if (loadedExtension?.indexHtml) {
-          // ベースURLを埋め込んでBlobURLを生成
-          const baseTag = `<base href="${location.origin}/">`;
-          const html = loadedExtension.indexHtml.includes("<base")
-            ? loadedExtension.indexHtml
-            : loadedExtension.indexHtml.replace(/<head>/i, `<head>${baseTag}`);
-          const blob = new Blob([html], {
-            type: "text/html",
-          });
+          // ベースURLとアセットパスを補正してBlobURLを生成
+          const basePath = `${location.origin}/api/extensions/${currentExtId}/`;
+          let html = loadedExtension.indexHtml;
+
+          if (!html.includes("<base")) {
+            const baseTag = `<base href="${basePath}">`;
+            html = html.replace(/<head>/i, `<head>${baseTag}`);
+          }
+
+          html = html.replace(/(src|href)="\/(.*?)"/g, `$1="${basePath}$2"`);
+          html = html.replace(/(src|href)='\/(.*?)'/g, `$1='${basePath}$2'`);
+
+          const blob = new Blob([html], { type: "text/html" });
           const blobUrl = URL.createObjectURL(blob);
           frame.src = blobUrl;
 
