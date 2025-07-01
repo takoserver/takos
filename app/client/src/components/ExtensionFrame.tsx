@@ -26,8 +26,12 @@ export default function ExtensionFrame() {
         const loadedExtension = await loadExtension(currentExtId);
 
         if (loadedExtension?.indexHtml) {
-          // キャッシュされたHTMLをBlobURLとして設定
-          const blob = new Blob([loadedExtension.indexHtml], {
+          // ベースURLを埋め込んでBlobURLを生成
+          const baseTag = `<base href="${location.origin}/">`;
+          const html = loadedExtension.indexHtml.includes("<base")
+            ? loadedExtension.indexHtml
+            : loadedExtension.indexHtml.replace(/<head>/i, `<head>${baseTag}`);
+          const blob = new Blob([html], {
             type: "text/html",
           });
           const blobUrl = URL.createObjectURL(blob);
