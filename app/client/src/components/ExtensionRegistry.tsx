@@ -17,7 +17,7 @@ interface Props {
 
 export default function ExtensionRegistry(props: Props = {}) {
   const [packages, setPackages] = createSignal<PackageInfo[]>([]);
-  const [installed, setInstalled] = createSignal<string[]>([]);
+  const [installed, setInstalled] = createSignal<Record<string, string>>({});
   const [query, setQuery] = createSignal("");
   const [isLoading, setIsLoading] = createSignal(false);
   const [installing, setInstalling] = createSignal<string | null>(null);
@@ -67,17 +67,19 @@ export default function ExtensionRegistry(props: Props = {}) {
       });
       if (res.ok) {
         const data = await res.json();
-        const ids = (data[0]?.result ?? []).map((p: { identifier: string }) =>
-          p.identifier
-        );
-        setInstalled(ids);
-        
-        // インストール済み拡張機能をプリロード
+        const list: Array<{ identifier: string; version: string }> =
+          data[0]?.result ?? [];
+        const map: Record<string, string> = {};
+        for (const item of list) {
+          map[item.identifier] = item.version;
+        }
+        setInstalled(map);
+
+        const ids = Object.keys(map);
         console.log(`🚀 Preloading ${ids.length} installed extensions`);
         for (const id of ids) {
           createTakos(id);
-          // バックグラウンドでキャッシュ更新
-          preloadExtension(id).catch(error => 
+          preloadExtension(id).catch((error) =>
             console.warn(`Failed to preload extension ${id}:`, error)
           );
         }
@@ -92,7 +94,11 @@ export default function ExtensionRegistry(props: Props = {}) {
     try {
       const body = {
         events: [
-          { identifier: "takos", eventId: "extensions:install", payload: { id } },
+          {
+            identifier: "takos",
+            eventId: "extensions:install",
+            payload: { id },
+          },
         ],
       };
       const res = await fetch("/api/event", {
@@ -100,12 +106,12 @@ export default function ExtensionRegistry(props: Props = {}) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      
+
       if (res.ok) {
         console.log(`✅ Extension ${id} installed successfully`);
         await fetchInstalled();
         createTakos(id);
-        
+
         // インストール後即座にキャッシュを作成
         console.log(`📦 Caching extension ${id}...`);
         await preloadExtension(id);
@@ -147,7 +153,10 @@ export default function ExtensionRegistry(props: Props = {}) {
         </button>
       </div>
       <ul class="space-y-2 max-h-96 overflow-y-auto">
-        <Show when={packages().length > 0} fallback={<li>No packages found</li>}>
+        <Show
+          when={packages().length > 0}
+          fallback={<li>No packages found</li>}
+        >
           <For each={packages()}>
             {(pkg) => (
               <li class="p-2 border border-gray-700 rounded">
@@ -161,13 +170,14 @@ export default function ExtensionRegistry(props: Props = {}) {
                     <button
                       type="button"
                       class="text-sm text-blue-500 underline disabled:text-gray-500 disabled:no-underline"
-                      disabled={installed().includes(pkg.identifier) || installing() === pkg.identifier}
+                      disabled={Boolean(installed()[pkg.identifier]) ||
+                        installing() === pkg.identifier}
                       onClick={() => install(pkg.identifier)}
                     >
                       {installing() === pkg.identifier
                         ? "Installing..."
-                        : installed().includes(pkg.identifier)
-                        ? "Installed"
+                        : installed()[pkg.identifier]
+                        ? `Installed v${installed()[pkg.identifier]}`
                         : "Install"}
                     </button>
                   </div>
