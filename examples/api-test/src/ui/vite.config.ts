@@ -1,10 +1,11 @@
 import { defineConfig } from 'vite'
 import solid from 'vite-plugin-solid'
+import { viteSingleFile } from 'vite-plugin-singlefile'
 
 // https://vite.dev/config/
 export default defineConfig(({ isSsrBuild }) => {
   return {
-    plugins: [solid({ ssr: true })],
+    plugins: [solid(), viteSingleFile()],
     server: {
       port: 3001,
       proxy: {
@@ -18,12 +19,12 @@ export default defineConfig(({ isSsrBuild }) => {
     build: {
       target: 'es2022',
       outDir: 'dist',
-      sourcemap: true,
+      sourcemap: false,
+      assetsInlineLimit: 100000000, // 100MB - 全てのアセットをインライン化
       rollupOptions: {
         output: isSsrBuild ? {} : {
-          manualChunks: {
-            vendor: ['solid-js'],
-          },
+          inlineDynamicImports: true,
+          manualChunks: undefined, // チャンクを無効化して単一ファイル出力
         },
       },
     },
