@@ -9,7 +9,9 @@ app.get("/api/extensions/:id/ui", async (c) => {
   const ext = await Extension.findOne({ identifier: id });
   if (!ext || !ext.ui) return c.notFound();
   c.header("Content-Type", "text/html; charset=utf-8");
-  const eventDefs = JSON.stringify(ext.manifest?.eventDefinitions || {});  const script =
+  const eventDefs = JSON.stringify(ext.manifest?.eventDefinitions || {});
+  const baseTag = `<base href="/api/extensions/${id}/">`;
+  const script =
     `<script>
     (function() {
       try {
@@ -160,8 +162,8 @@ app.get("/api/extensions/:id/ui", async (c) => {
     })();
     </script>`;
   const html = ext.ui.includes("</head>")
-    ? ext.ui.replace("</head>", script + "</head>")
-    : script + ext.ui;
+    ? ext.ui.replace("</head>", baseTag + script + "</head>")
+    : baseTag + script + ext.ui;
   return c.html(html);
 });
 
