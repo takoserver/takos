@@ -45,6 +45,9 @@ export const getExtensionManifest = async (extId: string): Promise<ExtensionMani
     console.log(`🌐 Fetching manifest for ${extId} from API`);
     const response = await fetch(`/api/extensions/${extId}/manifest.json`);
     if (!response.ok) {
+      if (response.status === 404) {
+        console.warn(`Manifest not found in API for ${extId}, this may indicate the extension is not properly installed`);
+      }
       throw new Error(`Failed to fetch manifest: ${response.status}`);
     }
 
@@ -72,12 +75,15 @@ export const getExtensionFile = async (extId: string, fileName: string): Promise
     const response = await fetch(`/api/extensions/${extId}/${fileName}`);
     if (!response.ok) {
       if (response.status === 404) {
+        console.log(`📄 File ${fileName} not found for ${extId} (404) - this is normal if the file is not required`);
         return null; // ファイルが存在しない（正常）
       }
       throw new Error(`Failed to fetch ${fileName}: ${response.status}`);
     }
 
-    return await response.text();
+    const content = await response.text();
+    console.log(`✅ Successfully fetched ${fileName} for ${extId} (${content.length} bytes)`);
+    return content;
   } catch (error) {
     console.error(`Failed to get ${fileName} for ${extId}:`, error);
     return null;
@@ -100,10 +106,16 @@ export const getExtensionUI = async (extId: string): Promise<string | null> => {
     console.log(`🌐 Fetching UI for ${extId} from API`);
     const response = await fetch(`/api/extensions/${extId}/ui`);
     if (!response.ok) {
+      if (response.status === 404) {
+        console.log(`📄 UI not found for ${extId} (404) - this extension may not have a UI component`);
+        return null;
+      }
       throw new Error(`Failed to fetch UI: ${response.status}`);
     }
 
-    return await response.text();
+    const content = await response.text();
+    console.log(`✅ Successfully fetched UI for ${extId} (${content.length} bytes)`);
+    return content;
   } catch (error) {
     console.error(`Failed to get UI for ${extId}:`, error);
     return null;
@@ -117,18 +129,19 @@ export const getExtensionIcon = async (extId: string): Promise<string | null> =>
   try {
     // キャッシュから取得を試行
     try {
-      const cachedPath = getExtensionAssetPath(extId, "icon.png");
+      const cachedPath = await getExtensionAssetPath(extId, "icon.png");
       if (cachedPath) {
         console.log(`📦 Using cached icon for ${extId}`);
         return cachedPath;
       }
     } catch {
-      // キャッシュにない場合は続行
+      // キャッシュにない場合は続行（エラーを無視）
     }
 
     // キャッシュにない場合、manifestを確認
     const manifest = await getExtensionManifest(extId);
     if (!manifest?.icon) {
+      console.log(`📄 No icon defined in manifest for ${extId}`);
       return null;
     }
 
@@ -136,6 +149,10 @@ export const getExtensionIcon = async (extId: string): Promise<string | null> =>
     console.log(`🌐 Fetching icon for ${extId} from API`);
     const response = await fetch(`/api/extensions/${extId}/${manifest.icon}`);
     if (!response.ok) {
+      if (response.status === 404) {
+        console.log(`📄 Icon not found for ${extId} (404)`);
+        return null;
+      }
       throw new Error(`Failed to fetch icon: ${response.status}`);
     }
 
@@ -157,16 +174,32 @@ export const getExtensionIcon = async (extId: string): Promise<string | null> =>
  */
 export const loadExtension = async (extId: string, forceRefresh = false): Promise<LoadedExtension | null> => {
   try {
+    console.log(`🔍 Loading extension ${extId} (forceRefresh: ${forceRefresh})`);
+    
     // manifestを取得してバージョンチェック
     const manifest = await getExtensionManifest(extId);
     if (!manifest) {
-      console.warn(`No manifest found for extension ${extId}`);
+      console.warn(`❌ No manifest found for extension ${extId}`);
       return null;
     }
+
+    console.log(`📋 Manifest loaded for ${extId}:`, {
+      name: manifest.name,
+      version: manifest.version,
+      hasServer: !!manifest.server?.entry,
+      hasClientBg: !!manifest.client?.entryBackground,
+      hasClientUI: !!manifest.client?.entryUI,
+      hasIcon: !!manifest.icon
+    });
 
     // キャッシュ状態を確認
     const isCachedExt = await isCached(extId);
     const isUpToDate = isCachedExt && await isCacheUpToDate(extId, manifest.version);
+
+    console.log(`💾 Cache status for ${extId}:`, {
+      isCached: isCachedExt,
+      isUpToDate: isUpToDate
+    });
 
     if (!forceRefresh && isUpToDate) {
       // キャッシュが最新の場合、キャッシュから全データを取得
@@ -186,12 +219,34 @@ export const loadExtension = async (extId: string, forceRefresh = false): Promis
     // 新しいデータを取得
     console.log(`🔄 Loading extension ${extId} from API (version: ${manifest.version})`);
     
-    const [serverJs, clientJs, indexHtml, iconDataUrl] = await Promise.all([
-      getExtensionFile(extId, "server.js"),
-      getExtensionFile(extId, "client.js"),
-      getExtensionUI(extId),
-      getExtensionIcon(extId),
-    ]);
+    // manifestに基づいて必要なファイルのみ取得
+    const promises: Promise<string | null>[] = [];
+    
+    // server.jsは必須ではない（serverエントリが定義されている場合のみ）
+    if (manifest.server?.entry) {
+      promises.push(getExtensionFile(extId, "server.js"));
+    } else {
+      promises.push(Promise.resolve(null));
+    }
+    
+    // client.jsは必須ではない（clientエントリが定義されている場合のみ）
+    if (manifest.client?.entryBackground) {
+      promises.push(getExtensionFile(extId, "client.js"));
+    } else {
+      promises.push(Promise.resolve(null));
+    }
+    
+    // UIは必須ではない（clientエントリのentryUIが定義されている場合のみ）
+    if (manifest.client?.entryUI) {
+      promises.push(getExtensionUI(extId));
+    } else {
+      promises.push(Promise.resolve(null));
+    }
+    
+    // アイコンは必須ではない
+    promises.push(getExtensionIcon(extId));
+    
+    const [serverJs, clientJs, indexHtml, iconDataUrl] = await Promise.all(promises);
 
     const loadedExtension: LoadedExtension = {
       manifest,
