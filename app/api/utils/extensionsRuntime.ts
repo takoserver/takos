@@ -11,10 +11,25 @@ interface LoadedExtension {
   serverCode?: string;
 }
 
+interface ExtensionWorker {
+  worker: Worker;
+  modUrl: string;
+}
+
 const extensions = new Map<string, LoadedExtension>();
 const manifests = new Map<string, Record<string, unknown>>();
+const extensionWorkers = new Map<string, ExtensionWorker>();
 
 export async function initExtensions() {
+  // Terminate all existing workers before re-initializing
+  for (const worker of extensionWorkers.values()) {
+    worker.worker.terminate();
+    URL.revokeObjectURL(worker.modUrl);
+  }
+  extensionWorkers.clear();
+  extensions.clear();
+  manifests.clear();
+
   const docs = await Extension.find();
   for (const doc of docs) {
     try {
@@ -23,6 +38,18 @@ export async function initExtensions() {
       console.error(`Failed to load extension ${doc.identifier}:`, err);
     }
   }
+}
+
+export function unloadExtension(identifier: string) {
+  const worker = extensionWorkers.get(identifier);
+  if (worker) {
+    worker.worker.terminate();
+    URL.revokeObjectURL(worker.modUrl);
+    extensionWorkers.delete(identifier);
+  }
+  extensions.delete(identifier);
+  manifests.delete(identifier);
+  console.log(`Unloaded extension: ${identifier}`);
 }
 
 export async function loadExtension(
@@ -36,6 +63,11 @@ export async function loadExtension(
   },
 ) {
   try {
+    // If extension is already loaded, unload it first
+    if (extensions.has(doc.identifier)) {
+      unloadExtension(doc.identifier);
+    }
+
     const wsManager = WebSocketManager.getInstance();
     let serverCode: string | undefined;
 
@@ -48,6 +80,39 @@ export async function loadExtension(
       manifest: doc.manifest,
       serverCode,
     });
+
+    if (serverCode) {
+      const modUrl = URL.createObjectURL(
+        new Blob([serverCode], { type: "text/javascript" }),
+      );
+      const workerCode = `let modPromise = import(\'${modUrl}\');\n` +
+        `self.onmessage = async (e) => {` +
+        `  const { id, fn, args } = e.data;` +
+        `  try {` +
+        `    const mod = await modPromise;` +
+        `    if (typeof mod[fn] !== \'function\') {` +
+        `      throw new Error(\`function not found: \${fn}\`);` +
+        `    }` +
+        `    const result = await mod[fn](...args);` +
+        `    self.postMessage({ id, result });` +
+        `  } catch (err) {` +
+        `    self.postMessage({ id, error: err?.message ?? String(err) });` +
+        `  }` +
+        `};`;
+      
+      const worker = new Worker(
+        URL.createObjectURL(new Blob([workerCode], { type: "text/javascript" })),
+        { type: "module" }
+      );
+
+      worker.onerror = (event) => {
+        console.error(`Error in extension worker for ${doc.identifier}:`, event.message);
+        // You might want to unload the extension here
+        // unloadExtension(doc.identifier);
+      };
+      
+      extensionWorkers.set(doc.identifier, { worker, modUrl });
+    }
 
     // forward client events to connected clients only
     if (doc.client) {
@@ -78,6 +143,7 @@ export async function loadExtension(
         return undefined;
       };
     }
+    console.log(`Loaded extension: ${doc.identifier}`);
   } catch (err) {
     console.error(`Failed to initialize extension ${doc.identifier}:`, err);
   }
@@ -96,49 +162,37 @@ export async function callExtension(
   fnName: string,
   args: unknown[] = [],
 ): Promise<unknown> {
-  const ext = extensions.get(id);
-  if (!ext?.serverCode) throw new Error("extension not found");
+  const workerInfo = extensionWorkers.get(id);
+  if (!workerInfo) {
+    // For extensions without a server script, we just return early.
+    const ext = extensions.get(id);
+    if (ext) return;
+    throw new Error(`extension not found or has no server script: ${id}`);
+  }
 
-  const modUrl = URL.createObjectURL(
-    new Blob([ext.serverCode], { type: "text/javascript" }),
-  );
-  const workerCode = `let modPromise = import('${modUrl}');\n` +
-    `self.onmessage = async (e) => {` +
-    `  const { id, fn, args } = e.data;` +
-    `  try {` +
-    `    const mod = await modPromise;` +
-    `    const result = await mod[fn](...args);` +
-    `    self.postMessage({ id, result });` +
-    `  } catch (err) {` +
-    `    self.postMessage({ id, error: err?.message ?? String(err) });` +
-    `  }` +
-    `};`;
-
-  const workerUrl = URL.createObjectURL(
-    new Blob([workerCode], { type: "text/javascript" }),
-  );
-
-  const worker = new Worker(workerUrl, { type: "module" });
+  const { worker } = workerInfo;
 
   return await new Promise((resolve, reject) => {
     const callId = crypto.randomUUID();
-    function cleanup() {
-      worker.terminate();
-      URL.revokeObjectURL(workerUrl);
-      URL.revokeObjectURL(modUrl);
-    }
-    worker.onmessage = (ev) => {
+    
+    const messageHandler = (ev: MessageEvent) => {
       const data = ev.data;
       if (data && data.id === callId) {
-        cleanup();
+        worker.removeEventListener("message", messageHandler);
         if ("error" in data) reject(new Error(String(data.error)));
         else resolve(data.result);
       }
     };
-    worker.onerror = (err) => {
-      cleanup();
+
+    const errorHandler = (err: ErrorEvent) => {
+      worker.removeEventListener("message", messageHandler);
+      worker.removeEventListener("error", errorHandler);
       reject(err);
     };
+
+    worker.addEventListener("message", messageHandler);
+    worker.addEventListener("error", errorHandler);
+
     worker.postMessage({ id: callId, fn: fnName, args });
   });
 }

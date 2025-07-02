@@ -109,9 +109,15 @@
 
 .content-area {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1fr;
   gap: 2rem;
   align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .content-area {
+    grid-template-columns: 2fr 1fr;
+  }
 }
 
 @media (max-width: 768px) {

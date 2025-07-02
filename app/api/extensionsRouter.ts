@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { Extension } from "./models/extension.ts";
 import type { Env } from "./index.ts";
 import { join, dirname, fromFileUrl } from "@std/path";
+import { loadExtension, unloadExtension } from "./utils/extensionsRuntime.ts";
 
 const initScript = await Deno.readTextFile(new URL("./initExtension.js", import.meta.url));
 
@@ -58,42 +59,71 @@ app.post("/api/extensions/:id/install", async (c) => {
   
   try {
     // 既存の拡張機能をチェック
-    const existing = await Extension.findOne({ identifier: id });
+    let existing = await Extension.findOne({ identifier: id });
     if (existing) {
-      return c.json({ success: true, message: "Extension already installed" });
+      return c.json({ success: true, message: "Extension already installed. Use reload to update." });
     }
 
-    // パッケージからデータを読み取り（仮の実装）
-    // 実際の実装では、レジストリやローカルファイルからパッケージを読み込む
-    
     // デモ用にapi-test拡張機能の場合のみ処理
     if (id === "jp.takos.api-test") {
+      const manifestStr = await loadExtensionFromLocal(id, "manifest.json");
+      if (!manifestStr) throw new Error("manifest.json not found for api-test");
+      const manifest = JSON.parse(manifestStr);
+
+      const server = await loadExtensionFromLocal(id, "server.js");
+      const client = await loadExtensionFromLocal(id, "client.js");
+      const ui = await loadExtensionFromLocal(id, "index.html");
+
       const extension = new Extension({
         identifier: id,
-        manifest: {
-          name: "API Test Extension",
-          version: "1.0.0",
-          description: "Comprehensive testing extension for all Takos APIs",
-          identifier: id,
-          icon: "./icon.png",
-          server: { entry: "./server.js" },
-          client: { entryUI: "./index.html", entryBackground: "./client.js" }
-        },
-        // 実際のファイル内容は別途設定する必要がある
-        server: "// Server JS content would go here",
-        client: "// Client JS content would go here", 
-        ui: "<!DOCTYPE html><html><head><title>API Test</title></head><body><h1>API Test Extension</h1></body></html>",
-        icon: null // アイコンは別途設定
+        manifest,
+        server: server || undefined,
+        client: client || undefined,
+        ui: ui || undefined,
+        // icon はバイナリなので別途処理
       });
 
       await extension.save();
+      await loadExtension(extension); // 新しくインストールした拡張機能をロード
+
       return c.json({ success: true, message: "Extension installed successfully" });
     }
 
     return c.json({ success: false, message: "Extension package not found" }, 404);
   } catch (error) {
     console.error("Failed to install extension:", error);
-    return c.json({ success: false, message: "Installation failed" }, 500);
+    return c.json({ success: false, message: `Installation failed: ${error.message}` }, 500);
+  }
+});
+
+app.post("/api/extensions/:id/uninstall", async (c) => {
+  const id = c.req.param("id");
+  try {
+    const result = await Extension.deleteOne({ identifier: id });
+    if (result.deletedCount === 0) {
+      return c.json({ success: false, message: "Extension not found" }, 404);
+    }
+    unloadExtension(id);
+    return c.json({ success: true, message: "Extension uninstalled successfully" });
+  } catch (error) {
+    console.error(`Failed to uninstall extension ${id}:`, error);
+    return c.json({ success: false, message: "Uninstallation failed" }, 500);
+  }
+});
+
+app.post("/api/extensions/:id/reload", async (c) => {
+  const id = c.req.param("id");
+  try {
+    const extension = await Extension.findOne({ identifier: id });
+    if (!extension) {
+      return c.json({ success: false, message: "Extension not found" }, 404);
+    }
+    // unloadExtension は loadExtension の中で呼ばれるので不要
+    await loadExtension(extension);
+    return c.json({ success: true, message: "Extension reloaded successfully" });
+  } catch (error) {
+    console.error(`Failed to reload extension ${id}:`, error);
+    return c.json({ success: false, message: "Reload failed" }, 500);
   }
 });
 
