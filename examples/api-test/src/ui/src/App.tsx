@@ -131,7 +131,7 @@ function App() {
   return (
     <div class="app">
       <header class="header">
-        <h1>Takos API Test Extension</h1>
+        <h1>Takos API Test Extension v1.1.2</h1>
         <p>すべてのTakos APIの包括的テストツール</p>
       </header>
 
