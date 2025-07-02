@@ -62,13 +62,17 @@ export interface SimpleTakosAPI {
     list: (prefix?: string) => Promise<string[]>;
   };
   extensions?: {
-    get?: (id: string) => Extension | undefined;
+    get?: (id: string) => {
+      identifier: string;
+      request: (name: string, payload?: unknown) => Promise<unknown>;
+    } | undefined;
     /** List of all loaded extensions */
     all?: Extension[];
     onRequest?: (
       name: string,
       handler: (payload: unknown) => unknown | Promise<unknown>,
     ) => () => void;
+    request?: (name: string, payload: unknown) => Promise<unknown> | void;
   };
 
   request: (name: string, payload: unknown) => Promise<unknown> | void;
@@ -128,6 +132,10 @@ function fetchFromTakos(
 export const simpleTakos: SimpleTakosAPI = {
   ...(api as Partial<SimpleTakosAPI>),
   ap: api.ap,
+  extensions: {
+    ...api.extensions,
+    request: api.extensions?.request ?? request,
+  },
   request,
   onRequest,
   kvRead,

@@ -4,7 +4,7 @@ export default defineConfig({
   manifest: {
     name: "API Test Extension",
     identifier: "jp.takos.api-test",
-    version: "1.1.4",
+    version: "1.1.6",
     description:
       "Comprehensive testing extension for all Takos APIs including ActivityPub, KV storage, CDN, Events, and Extensions API.",
     permissions: [

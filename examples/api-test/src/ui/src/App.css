@@ -26,6 +26,26 @@
   opacity: 0.9;
 }
 
+.api-status {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.api-status.available {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #15803d;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.api-status.unavailable {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
 .nav-tabs {
   display: flex;
   background: white;
