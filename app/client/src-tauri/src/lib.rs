@@ -83,7 +83,7 @@ struct EventPayload {
 async fn op_publish_event(
     state: Rc<RefCell<OpState>>,
     #[string] event_name: String,
-    payload: serde_json::Value,
+    #[serde] payload: serde_json::Value,
 ) -> Result<(), CoreError> {
     let (app_handle, identifier) = {
         let state = state.borrow();
