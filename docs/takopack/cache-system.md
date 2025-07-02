@@ -119,8 +119,8 @@ refreshExtensionCache(extId: string): Promise<LoadedExtension | null>
 1. ExtensionFrame読み込み開始
 2. loadExtension(extId) 呼び出し
 3. キャッシュ確認 → 存在する
-4. バージョン確認 → 最新
-5. キャッシュからデータ取得
+4. APIからmanifest取得 → バージョン確認
+5. 最新の場合 → キャッシュからデータ取得
 6. ExtensionFrameでBlobURL経由読み込み
 ```
 
