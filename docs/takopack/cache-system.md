@@ -146,6 +146,13 @@ refreshExtensionCache(extId: string): Promise<LoadedExtension | null>
 6. 新しいデータで読み込み
 ```
 
+> **サーバーとクライアントの同期更新**
+>
+> `refreshExtensionCache` は manifest
+> を取得後、必要なファイルをすべて一括でダウンロードします。そのため `server.js`
+> と `client.js`
+> が常に同じバージョンでキャッシュされ、実行時にバージョン不整合が起きにくくなります。
+
 ## ⚡ パフォーマンス特性
 
 ### 読み込み時間比較
