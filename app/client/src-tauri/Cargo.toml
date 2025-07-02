@@ -23,6 +23,7 @@ tauri-plugin-opener = "2.4.0"
 tauri-plugin-store = "2.3.0"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
+once_cell = "1.19.0"
 deno_runtime = "0.216.0"
 deno_core = "=0.351.0"
 deno_fs = "0.118.0"
