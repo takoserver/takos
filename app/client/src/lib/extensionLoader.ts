@@ -2,12 +2,12 @@
 // キャッシュを活用したスマート拡張機能ローダー
 
 import {
+  cacheExtension,
+  getCachedExtension,
+  getCachedFile,
+  getExtensionAssetPath,
   isCached,
   isCacheUpToDate,
-  cacheExtension,
-  getCachedFile,
-  getCachedExtension,
-  getExtensionAssetPath,
 } from "./cache.ts";
 
 interface ExtensionManifest {
@@ -32,7 +32,9 @@ interface LoadedExtension {
 /**
  * 拡張機能のmanifestを取得（キャッシュ優先、フォールバック: API）
  */
-export const getExtensionManifest = async (extId: string): Promise<ExtensionManifest | null> => {
+export const getExtensionManifest = async (
+  extId: string,
+): Promise<ExtensionManifest | null> => {
   try {
     // まずAPIからmanifestを取得して最新バージョンを確認
     console.log(`🌐 Fetching manifest for ${extId} from API`);
@@ -42,7 +44,10 @@ export const getExtensionManifest = async (extId: string): Promise<ExtensionMani
     }
     console.warn(`Manifest fetch failed for ${extId}: ${response.status}`);
   } catch (error) {
-    console.warn(`Manifest fetch error for ${extId}, falling back to cache:`, error);
+    console.warn(
+      `Manifest fetch error for ${extId}, falling back to cache:`,
+      error,
+    );
   }
 
   // API取得に失敗した場合はキャッシュを利用
@@ -62,7 +67,10 @@ export const getExtensionManifest = async (extId: string): Promise<ExtensionMani
 /**
  * 拡張機能のファイルを取得（キャッシュ優先、フォールバック: API）
  */
-export const getExtensionFile = async (extId: string, fileName: string): Promise<string | null> => {
+export const getExtensionFile = async (
+  extId: string,
+  fileName: string,
+): Promise<string | null> => {
   try {
     // キャッシュから取得を試行
     const cached = await getCachedFile(extId, fileName);
@@ -76,14 +84,18 @@ export const getExtensionFile = async (extId: string, fileName: string): Promise
     const response = await fetch(`/api/extensions/${extId}/${fileName}`);
     if (!response.ok) {
       if (response.status === 404) {
-        console.log(`📄 File ${fileName} not found for ${extId} (404) - this is normal if the file is not required`);
+        console.log(
+          `📄 File ${fileName} not found for ${extId} (404) - this is normal if the file is not required`,
+        );
         return null; // ファイルが存在しない（正常）
       }
       throw new Error(`Failed to fetch ${fileName}: ${response.status}`);
     }
 
     const content = await response.text();
-    console.log(`✅ Successfully fetched ${fileName} for ${extId} (${content.length} bytes)`);
+    console.log(
+      `✅ Successfully fetched ${fileName} for ${extId} (${content.length} bytes)`,
+    );
     return content;
   } catch (error) {
     console.error(`Failed to get ${fileName} for ${extId}:`, error);
@@ -108,14 +120,18 @@ export const getExtensionUI = async (extId: string): Promise<string | null> => {
     const response = await fetch(`/api/extensions/${extId}/ui`);
     if (!response.ok) {
       if (response.status === 404) {
-        console.log(`📄 UI not found for ${extId} (404) - this extension may not have a UI component`);
+        console.log(
+          `📄 UI not found for ${extId} (404) - this extension may not have a UI component`,
+        );
         return null;
       }
       throw new Error(`Failed to fetch UI: ${response.status}`);
     }
 
     const content = await response.text();
-    console.log(`✅ Successfully fetched UI for ${extId} (${content.length} bytes)`);
+    console.log(
+      `✅ Successfully fetched UI for ${extId} (${content.length} bytes)`,
+    );
     return content;
   } catch (error) {
     console.error(`Failed to get UI for ${extId}:`, error);
@@ -126,7 +142,9 @@ export const getExtensionUI = async (extId: string): Promise<string | null> => {
 /**
  * 拡張機能のアイコンを取得（キャッシュ優先、フォールバック: API）
  */
-export const getExtensionIcon = async (extId: string): Promise<string | null> => {
+export const getExtensionIcon = async (
+  extId: string,
+): Promise<string | null> => {
   try {
     // キャッシュから取得を試行
     try {
@@ -173,10 +191,29 @@ export const getExtensionIcon = async (extId: string): Promise<string | null> =>
 /**
  * 拡張機能の完全データを読み込み（スマートキャッシュ）
  */
-export const loadExtension = async (extId: string, forceRefresh = false): Promise<LoadedExtension | null> => {
+export const loadExtension = async (
+  extId: string,
+  forceRefresh = false,
+): Promise<LoadedExtension | null> => {
   try {
-    console.log(`🔍 Loading extension ${extId} (forceRefresh: ${forceRefresh})`);
-    
+    console.log(
+      `🔍 Loading extension ${extId} (forceRefresh: ${forceRefresh})`,
+    );
+
+    const cached = await getCachedExtension(extId);
+
+    // forceRefresh=false でキャッシュが存在する場合はそのまま利用
+    if (cached && !forceRefresh) {
+      console.log(`📦 Using cached extension ${extId} without update check`);
+      return {
+        manifest: cached.manifest,
+        serverJs: cached.files.serverJs,
+        clientJs: cached.files.clientJs,
+        indexHtml: cached.files.indexHtml,
+        iconDataUrl: cached.files.iconDataUrl,
+      };
+    }
+
     // manifestを取得してバージョンチェック
     const manifest = await getExtensionManifest(extId);
     if (!manifest) {
@@ -190,64 +227,73 @@ export const loadExtension = async (extId: string, forceRefresh = false): Promis
       hasServer: !!manifest.server?.entry,
       hasClientBg: !!manifest.client?.entryBackground,
       hasClientUI: !!manifest.client?.entryUI,
-      hasIcon: !!manifest.icon
+      hasIcon: !!manifest.icon,
     });
 
     // キャッシュ状態を確認
-    const isCachedExt = await isCached(extId);
-    const isUpToDate = isCachedExt && await isCacheUpToDate(extId, manifest.version);
+    const isCachedExt = cached ? true : await isCached(extId);
+    const isUpToDate = isCachedExt &&
+      await isCacheUpToDate(extId, manifest.version);
 
     console.log(`💾 Cache status for ${extId}:`, {
       isCached: isCachedExt,
-      isUpToDate: isUpToDate
+      isUpToDate: isUpToDate,
     });
 
-    if (!forceRefresh && isUpToDate) {
-      // キャッシュが最新の場合、キャッシュから全データを取得
-      console.log(`📦 Loading extension ${extId} from cache`);
-      const cached = await getCachedExtension(extId);
-      if (cached) {
+    if (isCachedExt && isUpToDate) {
+      // キャッシュが最新
+      const c = cached ?? await getCachedExtension(extId);
+      if (c) {
+        if (forceRefresh) {
+          console.log(`📦 Cache already up to date for ${extId}`);
+        } else {
+          console.log(`📦 Loading extension ${extId} from cache`);
+        }
         return {
-          manifest: cached.manifest,
-          serverJs: cached.files.serverJs,
-          clientJs: cached.files.clientJs,
-          indexHtml: cached.files.indexHtml,
-          iconDataUrl: cached.files.iconDataUrl,
+          manifest: c.manifest,
+          serverJs: c.files.serverJs,
+          clientJs: c.files.clientJs,
+          indexHtml: c.files.indexHtml,
+          iconDataUrl: c.files.iconDataUrl,
         };
       }
     }
 
     // 新しいデータを取得
-    console.log(`🔄 Loading extension ${extId} from API (version: ${manifest.version})`);
-    
+    console.log(
+      `🔄 Loading extension ${extId} from API (version: ${manifest.version})`,
+    );
+
     // manifestに基づいて必要なファイルのみ取得
     const promises: Promise<string | null>[] = [];
-    
+
     // server.jsは必須ではない（serverエントリが定義されている場合のみ）
     if (manifest.server?.entry) {
       promises.push(getExtensionFile(extId, "server.js"));
     } else {
       promises.push(Promise.resolve(null));
     }
-    
+
     // client.jsは必須ではない（clientエントリが定義されている場合のみ）
     if (manifest.client?.entryBackground) {
       promises.push(getExtensionFile(extId, "client.js"));
     } else {
       promises.push(Promise.resolve(null));
     }
-    
+
     // UIは必須ではない（clientエントリのentryUIが定義されている場合のみ）
     if (manifest.client?.entryUI) {
       promises.push(getExtensionUI(extId));
     } else {
       promises.push(Promise.resolve(null));
     }
-    
+
     // アイコンは必須ではない
     promises.push(getExtensionIcon(extId));
-    
-    const [serverJs, clientJs, indexHtml, iconDataUrl] = await Promise.all(promises);
+
+    const [serverJs, clientJs, indexHtml, iconDataUrl] = await Promise.all(
+      promises,
+    );
 
     const loadedExtension: LoadedExtension = {
       manifest,
@@ -292,7 +338,9 @@ export const preloadExtension = async (extId: string): Promise<void> => {
 /**
  * 拡張機能のキャッシュを強制更新
  */
-export const refreshExtensionCache = async (extId: string): Promise<LoadedExtension | null> => {
+export const refreshExtensionCache = async (
+  extId: string,
+): Promise<LoadedExtension | null> => {
   console.log(`🔄 Force refreshing cache for extension ${extId}`);
   return await loadExtension(extId, true);
 };
