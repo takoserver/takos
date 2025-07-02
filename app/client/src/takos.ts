@@ -2,7 +2,7 @@ import { wsClient } from "./utils/websocketClient.ts";
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken } from "firebase/messaging";
 import { invoke } from "@tauri-apps/api/core";
-import { getCachedFile } from "./lib/cache.ts";
+import { getCachedFile, isCacheUpToDate, cacheExtension, clearExtensionCache } from "./lib/cache.ts";
 
 // Enhanced Tauri detection: check both __TAURI_IPC__ and __TAURI__ globals
 
@@ -26,32 +26,69 @@ async function getFirebaseToken(): Promise<string | null> {
 }
 
 /**
- * キャッシュを活用したWorker作成
+ * キャッシュを検証し、必要であれば更新してWorkerを作成する
  */
-async function createWorkerFromCache(identifier: string): Promise<Worker | null> {
+async function createWorkerAndUpdateCache(identifier: string): Promise<Worker | null> {
   try {
-    // キャッシュからclient.jsを取得
-    const clientJs = await getCachedFile(identifier, "client.js");
-    
-    if (clientJs) {
-      console.log(`📦 Using cached client.js for worker ${identifier}`);
-      // BlobURLでWorkerを作成
-      const blob = new Blob([clientJs], { type: 'application/javascript' });
-      const blobUrl = URL.createObjectURL(blob);
-      const worker = new Worker(blobUrl, { type: "module" });
-      
-      // Worker作成後にBlobURLをクリーンアップ
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-      
-      return worker;
-    } else {
-      return null;
+    // 1. 最新のmanifest.jsonをAPIから取得
+    const manifestRes = await fetch(`/api/extensions/${identifier}/manifest.json`);
+    if (!manifestRes.ok) {
+      console.warn(`Failed to fetch manifest for ${identifier}. Using fallback.`);
+      // manifestが取得できなくても、キャッシュがあればそれを使う試みは継続
+      return createWorkerFromUrl(identifier);
     }
+    const manifest = await manifestRes.json();
+    const currentVersion = manifest.version;
+
+    // 2. キャッシュが最新か確認
+    const isUpToDate = await isCacheUpToDate(identifier, currentVersion);
+    const cachedClientJs = await getCachedFile(identifier, "client.js");
+
+    if (isUpToDate && cachedClientJs) {
+      console.log(`📦 Using up-to-date cached client.js v${currentVersion} for worker ${identifier}`);
+      return createWorkerFromCode(cachedClientJs);
+    }
+
+    // 3. キャッシュが古いか存在しない場合、新しいファイルを取得してキャッシュを更新
+    console.log(`🔄 Cache for ${identifier} is outdated or missing. Fetching new version v${currentVersion}...`);
+    
+    const clientJsRes = await fetch(`/api/extensions/${identifier}/client.js`);
+    if (!clientJsRes.ok) throw new Error("Failed to fetch client.js");
+    const clientJs = await clientJsRes.text();
+
+    // 他のファイルも取得 (キャッシュするため)
+    const serverJsRes = await fetch(`/api/extensions/${identifier}/server.js`);
+    const serverJs = serverJsRes.ok ? await serverJsRes.text() : undefined;
+    
+    const indexHtmlRes = await fetch(`/api/extensions/${identifier}/ui`);
+    const indexHtml = indexHtmlRes.ok ? await indexHtmlRes.text() : undefined;
+
+    // キャッシュを更新
+    await cacheExtension(identifier, manifest, { clientJs, serverJs, indexHtml });
+    
+    return createWorkerFromCode(clientJs);
+
   } catch (error) {
-    console.warn(`Failed to create worker from cache for ${identifier}:`, error);
-    return null;
+    console.error(`Failed to create or update worker for ${identifier}:`, error);
+    // エラーが発生した場合、キャッシュをクリアしてフォールバック
+    await clearExtensionCache(identifier);
+    return createWorkerFromUrl(identifier);
   }
 }
+
+function createWorkerFromCode(code: string): Worker {
+    const blob = new Blob([code], { type: 'application/javascript' });
+    const blobUrl = URL.createObjectURL(blob);
+    const worker = new Worker(blobUrl, { type: "module" });
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000); // Clean up
+    return worker;
+}
+
+function createWorkerFromUrl(identifier: string): Worker {
+    console.log(`🌐 Creating worker for ${identifier} directly from API URL`);
+    return new Worker(`/api/extensions/${identifier}/client.js`, { type: "module" });
+}
+
 
 export function createTakos(identifier: string) {
   const isTauri = "__TAURI_IPC__" in globalThis || "__TAURI__" in globalThis;
@@ -65,26 +102,17 @@ export function createTakos(identifier: string) {
   let seq = 0;
 
   if (!isTauri && typeof Worker !== "undefined") {
-    // キャッシュからWorkerを作成を試行
-    createWorkerFromCache(identifier).then(cachedWorker => {
-      if (cachedWorker) {
-        worker = cachedWorker;
+    // キャッシュを検証・更新し、Workerを作成
+    createWorkerAndUpdateCache(identifier).then(newWorker => {
+      if (newWorker) {
+        worker = newWorker;
         setupWorkerHandlers();
       } else {
-        // フォールバック: 従来のAPI経由でWorkerを作成
-        console.log(`🌐 Creating worker for ${identifier} from API`);
-        worker = new Worker(`/api/extensions/${identifier}/client.js`, {
-          type: "module",
-        });
-        setupWorkerHandlers();
+         // フォールバック
+        console.error(`Failed to create worker for ${identifier}, even with fallbacks.`);
       }
     }).catch(error => {
-      console.error(`Failed to create worker for ${identifier}:`, error);
-      // エラー時のフォールバック
-      worker = new Worker(`/api/extensions/${identifier}/client.js`, {
-        type: "module",
-      });
-      setupWorkerHandlers();
+      console.error(`Unhandled error in worker creation for ${identifier}:`, error);
     });
   }
 
