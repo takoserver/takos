@@ -1,7 +1,7 @@
 use deno_core::FsModuleLoader;
 use deno_core::{
     error::{CoreError, JsError},
-    op2, Extension, ModuleSpecifier, OpState,
+    op2, Extension, ModuleSpecifier, OpState, OpDecl,
 };
 use deno_fs::RealFs;
 use deno_permissions::UnstableSubdomainWildcards;
@@ -18,7 +18,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use sys_traits::impls::RealSys;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::AppHandle;
 use tokio::runtime::Builder;
 use tokio::sync::{mpsc, oneshot};
 
