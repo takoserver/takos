@@ -1,7 +1,7 @@
 use deno_core::FsModuleLoader;
 use deno_core::{
     error::{CoreError, JsError},
-    op2, Extension, ModuleSpecifier, OpState,
+    op2, Extension, ModuleSpecifier, OpDecl, OpState,
 };
 use deno_fs::RealFs;
 use deno_permissions::UnstableSubdomainWildcards;
@@ -18,7 +18,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use sys_traits::impls::RealSys;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use tokio::runtime::Builder;
 use tokio::sync::{mpsc, oneshot};
 
@@ -79,11 +79,13 @@ struct EventPayload {
     payload: serde_json::Value,
 }
 
+const OP_PUBLISH_EVENT_DECL: OpDecl = op_publish_event();
+
 #[op2(async)]
 async fn op_publish_event(
     state: Rc<RefCell<OpState>>,
     #[string] event_name: String,
-    payload: serde_json::Value,
+    #[serde] payload: serde_json::Value,
 ) -> Result<(), CoreError> {
     let (app_handle, identifier) = {
         let state = state.borrow();
@@ -113,15 +115,12 @@ fn spawn_extension_worker(
     let thread_identifier = identifier.clone();
 
     thread::spawn(move || {
-        let runtime = Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
+        let runtime = Builder::new_current_thread().enable_all().build().unwrap();
 
         runtime.block_on(async move {
             let deno_extension = Extension {
                 name: "takos_ext",
-                ops: std::borrow::Cow::from(vec![op_publish_event::DECL]),
+                ops: std::borrow::Cow::from(vec![OP_PUBLISH_EVENT_DECL]),
                 ..Default::default()
             };
 
@@ -219,14 +218,18 @@ async fn load_extension_client(
     client_code: String,
 ) -> Result<(), String> {
     println!("Loading client extension: {}", identifier);
-    let mut workers = WORKERS.lock().map_err(type_error_str)?;
-    if workers.contains_key(&identifier) {
+    let should_unload = {
+        let workers = WORKERS.lock().map_err(type_error_str)?;
+        workers.contains_key(&identifier)
+    };
+
+    if should_unload {
         println!("Extension {} already loaded. Unloading first.", identifier);
         unload_extension_client(identifier.clone()).await?;
     }
 
-    let command_tx =
-        spawn_extension_worker(app_handle, identifier.clone(), client_code)?;
+    let command_tx = spawn_extension_worker(app_handle, identifier.clone(), client_code)?;
+    let mut workers = WORKERS.lock().map_err(type_error_str)?;
     workers.insert(identifier.clone(), ExtensionWorker { command_tx });
     println!("Successfully loaded client extension: {}", identifier);
     Ok(())
@@ -235,8 +238,12 @@ async fn load_extension_client(
 #[tauri::command]
 async fn unload_extension_client(identifier: String) -> Result<(), String> {
     println!("Unloading client extension: {}", identifier);
-    let mut workers = WORKERS.lock().map_err(type_error_str)?;
-    if let Some(worker) = workers.remove(&identifier) {
+    let worker = {
+        let mut workers = WORKERS.lock().map_err(type_error_str)?;
+        workers.remove(&identifier)
+    };
+
+    if let Some(worker) = worker {
         // Send shutdown command, but don't wait for it to complete.
         // The thread will clean itself up.
         let _ = worker.command_tx.send(WorkerCommand::Shutdown).await;
@@ -310,9 +317,11 @@ async fn initial_load_extensions(app_handle: AppHandle) {
     for ext in extensions {
         if let Some(client_code) = ext.client {
             if !client_code.trim().is_empty() {
-                 if let Err(e) = load_extension_client(app_handle.clone(), ext.identifier, client_code).await {
-                     eprintln!("Failed to load extension: {}", e);
-                 }
+                if let Err(e) =
+                    load_extension_client(app_handle.clone(), ext.identifier, client_code).await
+                {
+                    eprintln!("Failed to load extension: {}", e);
+                }
             }
         }
     }

@@ -1118,6 +1118,7 @@ dependencies = [
  "deno_resolver",
  "deno_runtime",
  "log",
+ "once_cell",
  "reqwest",
  "serde",
  "serde_json",
