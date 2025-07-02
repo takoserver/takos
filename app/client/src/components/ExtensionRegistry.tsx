@@ -1,6 +1,9 @@
-import { createSignal, For, onMount, Show } from "solid-js";
+import { createEffect, createSignal, For, onMount, Show } from "solid-js";
 import { createTakos } from "../takos.ts";
-import { preloadExtension } from "../lib/extensionLoader.ts";
+import {
+  preloadExtension,
+  refreshExtensionCache,
+} from "../lib/extensionLoader.ts";
 
 interface PackageInfo {
   identifier: string;
@@ -21,6 +24,10 @@ export default function ExtensionRegistry(props: Props = {}) {
   const [query, setQuery] = createSignal("");
   const [isLoading, setIsLoading] = createSignal(false);
   const [installing, setInstalling] = createSignal<string | null>(null);
+  const [updating, setUpdating] = createSignal<string | null>(null);
+  const [updates, setUpdates] = createSignal<Record<string, string>>({});
+  const AUTO_UPDATE = true;
+  const autoUpdated = new Set<string>();
 
   const fetchPackages = async (q = "") => {
     setIsLoading(true);
@@ -126,6 +133,61 @@ export default function ExtensionRegistry(props: Props = {}) {
     }
   };
 
+  const update = async (id: string) => {
+    setUpdating(id);
+    try {
+      const body = {
+        events: [
+          {
+            identifier: "takos",
+            eventId: "extensions:install",
+            payload: { id },
+          },
+        ],
+      };
+      const res = await fetch("/api/event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        console.log(`✅ Extension ${id} updated`);
+        await fetchInstalled();
+        await refreshExtensionCache(id);
+      } else {
+        console.error(`Failed to update extension ${id}`);
+      }
+    } catch (error) {
+      console.error(`Error updating extension ${id}:`, error);
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const computeUpdates = () => {
+    const list = packages();
+    const installedMap = installed();
+    const map: Record<string, string> = {};
+    for (const pkg of list) {
+      const v = installedMap[pkg.identifier];
+      if (v && v !== pkg.version) {
+        map[pkg.identifier] = pkg.version;
+      }
+    }
+    setUpdates(map);
+    if (AUTO_UPDATE && Object.keys(map).length > 0) {
+      for (const id of Object.keys(map)) {
+        if (autoUpdated.has(id)) continue;
+        autoUpdated.add(id);
+        update(id).catch((err) =>
+          console.error(`Auto update failed for ${id}:`, err)
+        );
+      }
+    }
+  };
+
+  createEffect(computeUpdates);
+
   onMount(() => {
     fetchInstalled();
     fetchPackages();
@@ -167,19 +229,41 @@ export default function ExtensionRegistry(props: Props = {}) {
                     <p class="text-xs text-gray-500">v{pkg.version}</p>
                   </div>
                   <div class="flex items-start">
-                    <button
-                      type="button"
-                      class="text-sm text-blue-500 underline disabled:text-gray-500 disabled:no-underline"
-                      disabled={Boolean(installed()[pkg.identifier]) ||
-                        installing() === pkg.identifier}
-                      onClick={() => install(pkg.identifier)}
+                    <Show
+                      when={installed()[pkg.identifier]}
+                      fallback={
+                        <button
+                          type="button"
+                          class="text-sm text-blue-500 underline disabled:text-gray-500 disabled:no-underline"
+                          disabled={installing() === pkg.identifier}
+                          onClick={() => install(pkg.identifier)}
+                        >
+                          {installing() === pkg.identifier
+                            ? "Installing..."
+                            : "Install"}
+                        </button>
+                      }
                     >
-                      {installing() === pkg.identifier
-                        ? "Installing..."
-                        : installed()[pkg.identifier]
-                        ? `Installed v${installed()[pkg.identifier]}`
-                        : "Install"}
-                    </button>
+                      <Show
+                        when={updates()[pkg.identifier]}
+                        fallback={
+                          <span class="text-sm text-gray-500">
+                            Installed v{installed()[pkg.identifier]}
+                          </span>
+                        }
+                      >
+                        <button
+                          type="button"
+                          class="text-sm text-green-600 underline disabled:text-gray-500 disabled:no-underline"
+                          disabled={updating() === pkg.identifier}
+                          onClick={() => update(pkg.identifier)}
+                        >
+                          {updating() === pkg.identifier
+                            ? "Updating..."
+                            : `Update to v${updates()[pkg.identifier]}`}
+                        </button>
+                      </Show>
+                    </Show>
                   </div>
                 </div>
               </li>

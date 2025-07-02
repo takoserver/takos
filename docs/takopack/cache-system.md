@@ -110,6 +110,13 @@ refreshExtensionCache(extId: string): Promise<LoadedExtension | null>
 - 個別/全体キャッシュクリア
 - キャッシュ強制更新
 - キャッシュサイズ表示
+- 更新ボタンによる再インストールとキャッシュ更新
+
+### 自動更新
+
+`ExtensionRegistry` ではインストール済み拡張機能のバージョンを
+レジストリと比較し、自動で最新バージョンを取得できます。 自動更新は
+`AUTO_UPDATE` フラグで制御されます。
 
 ## 🔄 ワークフロー
 
