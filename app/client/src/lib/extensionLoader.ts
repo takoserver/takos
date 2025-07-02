@@ -34,28 +34,29 @@ interface LoadedExtension {
  */
 export const getExtensionManifest = async (extId: string): Promise<ExtensionManifest | null> => {
   try {
-    // キャッシュから取得を試行
+    // まずAPIからmanifestを取得して最新バージョンを確認
+    console.log(`🌐 Fetching manifest for ${extId} from API`);
+    const response = await fetch(`/api/extensions/${extId}/manifest.json`);
+    if (response.ok) {
+      return await response.json() as ExtensionManifest;
+    }
+    console.warn(`Manifest fetch failed for ${extId}: ${response.status}`);
+  } catch (error) {
+    console.warn(`Manifest fetch error for ${extId}, falling back to cache:`, error);
+  }
+
+  // API取得に失敗した場合はキャッシュを利用
+  try {
     const cached = await getCachedExtension(extId);
     if (cached) {
       console.log(`📦 Using cached manifest for ${extId}`);
       return cached.manifest;
     }
-
-    // キャッシュにない場合、APIから取得
-    console.log(`🌐 Fetching manifest for ${extId} from API`);
-    const response = await fetch(`/api/extensions/${extId}/manifest.json`);
-    if (!response.ok) {
-      if (response.status === 404) {
-        console.warn(`Manifest not found in API for ${extId}, this may indicate the extension is not properly installed`);
-      }
-      throw new Error(`Failed to fetch manifest: ${response.status}`);
-    }
-
-    return await response.json() as ExtensionManifest;
-  } catch (error) {
-    console.error(`Failed to get manifest for ${extId}:`, error);
-    return null;
+  } catch (cacheError) {
+    console.error(`Failed to read cached manifest for ${extId}:`, cacheError);
   }
+
+  return null;
 };
 
 /**
