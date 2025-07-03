@@ -1,8 +1,10 @@
-import { createSignal, onMount } from "solid-js";
+import { createMemo, createSignal, onMount } from "solid-js";
 import AccountSettingsContent from "./home/AccountSettingsContent.tsx";
 import NotificationsContent from "./home/NotificationsContent.tsx";
 import { Account, isDataUrl } from "./home/types.ts";
 import { Setting } from "./Setting/index.tsx";
+import { useAtom } from "solid-jotai";
+import { selectedAccountIdState } from "../states/accounts.ts";
 
 export function Home() {
   const [activeSection, setActiveSection] = createSignal("account");
@@ -10,8 +12,19 @@ export function Home() {
   // サンプルアカウントデータ
   const [accounts, setAccounts] = createSignal<Account[]>([]);
 
-  // 現在選択中のアカウントID
-  const [selectedAccountId, setSelectedAccountId] = createSignal("");
+  // 選択中のアカウントを先頭にした並び順
+  const sortedAccounts = createMemo(() => {
+    const currentId = selectedAccountId();
+    const list = accounts();
+    const selected = list.find((acc) => acc.id === currentId);
+    const others = list.filter((acc) => acc.id !== currentId);
+    return selected ? [selected, ...others] : list;
+  });
+
+  // 現在選択中のアカウントID(グローバル状態)
+  const [selectedAccountId, setSelectedAccountId] = useAtom(
+    selectedAccountIdState,
+  );
 
   // APIでアカウント一覧を取得
   const loadAccounts = async (preserveSelectedId?: string) => {
@@ -145,7 +158,7 @@ export function Home() {
       case "account":
         return (
           <AccountSettingsContent
-            accounts={accounts()}
+            accounts={sortedAccounts()}
             selectedAccountId={selectedAccountId()}
             setSelectedAccountId={setSelectedAccountId}
             addNewAccount={addNewAccount}
