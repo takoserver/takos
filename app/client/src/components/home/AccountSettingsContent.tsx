@@ -152,10 +152,10 @@ const AccountSettingsContent: Component<{
               {(account) => (
                 <button
                   type="button"
-                  class={`group relative flex flex-col items-center p-4 rounded-xl transition-all duration-300 transform hover:scale-105 focus:scale-105 focus:outline-none focus:ring-2 focus:ring-teal-500/50 ${
+                  class={`group relative flex flex-col items-center p-4 rounded-xl transition-all duration-300 transform focus:scale-105 focus:outline-none focus:ring-2 focus:ring-teal-500/50 ${
                     props.selectedAccountId === account.id
-                      ? "bg-gradient-to-br from-teal-600/20 to-teal-700/20 ring-2 ring-teal-500/50 shadow-lg shadow-teal-500/10"
-                      : "bg-gray-800/30 hover:bg-gray-700/40 hover:shadow-lg"
+                      ? "scale-105 bg-gradient-to-br from-teal-600/20 to-teal-700/20 ring-2 ring-teal-500/50 shadow-lg shadow-teal-500/10"
+                      : "bg-gray-800/30 opacity-60 hover:opacity-100 hover:bg-gray-700/40 hover:shadow-lg"
                   }`}
                   onClick={() => props.setSelectedAccountId(account.id)}
                   aria-label={`${account.displayName}のアカウントを選択`}
