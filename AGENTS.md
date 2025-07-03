@@ -31,7 +31,7 @@ takos/
 ## 🎯 重要なコンポーネント
 
 ### 1. Takopack Extension System
-- **場所**: `packages/builder/`, `packages/runtime/`, `packages/unpack/`
+- **場所**: `packages/builder/`, `packages/unpack/`
 - **目的**: 安全な権限ベースの拡張機能システム
 - **特徴**: VSCode風のAPIデザイン、サンドボックス実行
 

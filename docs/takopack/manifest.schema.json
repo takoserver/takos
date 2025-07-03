@@ -52,11 +52,6 @@
         "additionalProperties": false
       }
     },
-    "exports": {
-      "type": "array",
-      "description": "APIs exported by this extension (event names)",
-      "items": { "type": "string" }
-    },
     "server": {
       "type": "object",
       "description": "Server entry point",
@@ -84,23 +79,7 @@
         }
       },
       "additionalProperties": false
-    },
-    "activityPub": {
-      "type": "object",
-      "description": "ActivityPub hooks configuration",
-      "required": ["objects", "hook"],
-      "properties": {
-        "objects": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "hook": { "type": "string" }
-      },
-      "additionalProperties": false
-    },
-    "eventDefinitions": {
-      "type": "object",
-      "description": "Custom event definitions"
     }
+
   }
 }

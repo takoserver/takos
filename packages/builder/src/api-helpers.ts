@@ -13,18 +13,18 @@ export interface TakosEvent<T = unknown> {
 }
 
 export interface TakosEventsAPI {
-  publish<T = unknown>(
-    eventName: string,
-    payload: T,
-    options?: { push?: boolean; token?: string },
-  ): Promise<[number, unknown] | void>;
+  request(name: string, payload: unknown): Promise<unknown>;
+  onRequest(
+    name: string,
+    handler: (payload: unknown) => unknown | Promise<unknown>,
+  ): () => void;
 }
 
 export interface TakosKVAPI {
   read(key: string): Promise<unknown>;
   write(key: string, value: unknown): Promise<void>;
   delete(key: string): Promise<void>;
-  list(): Promise<string[]>;
+  list(prefix?: string): Promise<string[]>;
 }
 
 export interface TakosCdnAPI {
@@ -67,29 +67,30 @@ export interface TakosActivityPubAPI {
 
 export interface Extension {
   identifier: string;
+  request(name: string, payload?: unknown): Promise<unknown>;
+  /** Extension version string */
   version: string;
+  /** Whether the extension is currently active */
   isActive: boolean;
-  activate(): Promise<{
-    publish(name: string, payload?: unknown): Promise<unknown>;
-  }>;
 }
 
 export interface TakosExtensionsAPI {
   get(identifier: string): Extension | undefined;
-  readonly all: Extension[];
+  /** Array of all registered extensions */
+  all: Extension[];
+  onRequest(
+    name: string,
+    handler: (payload: unknown) => unknown | Promise<unknown>,
+  ): () => void;
 }
 
 // コンテキスト別API定義
 export interface TakosServerAPI {
   kv: TakosKVAPI;
-  activitypub: TakosActivityPubAPI;
   ap: TakosActivityPubAPI;
   cdn: TakosCdnAPI;
   events: TakosEventsAPI;
   extensions: TakosExtensionsAPI;
-  activateExtension(
-    identifier: string,
-  ): Promise<{ publish(name: string, payload?: unknown): Promise<unknown> } | undefined>;
   fetch(url: string, options?: RequestInit): Promise<Response>;
 }
 
@@ -97,18 +98,12 @@ export interface TakosClientAPI {
   kv: TakosKVAPI;
   events: TakosEventsAPI;
   extensions: TakosExtensionsAPI;
-  activateExtension(
-    identifier: string,
-  ): Promise<{ publish(name: string, payload?: unknown): Promise<unknown> } | undefined>;
   fetch(url: string, options?: RequestInit): Promise<Response>;
 }
 
 export interface TakosUIAPI {
   events: TakosEventsAPI;
   extensions: TakosExtensionsAPI;
-  activateExtension(
-    identifier: string,
-  ): Promise<{ publish(name: string, payload?: unknown): Promise<unknown> } | undefined>;
 }
 
 // 型安全なTakos APIアクセス関数群
@@ -158,23 +153,6 @@ export function getTakosAPI():
 /**
  * イベントを安全に発行する
  */
-export async function publishEvent<T = unknown>(
-  eventName: string,
-  payload: T,
-  context: "server" | "client" | "ui" = "client",
-  options?: { push?: boolean; token?: string },
-): Promise<void> {
-  const api = context === "server"
-    ? getTakosServerAPI()
-    : context === "client"
-    ? getTakosClientAPI()
-    : getTakosUIAPI();
-  if (!api?.events) {
-    console.warn(`Takos API not available in ${context} context`);
-    return;
-  }
-  await api.events.publish(eventName, payload, options);
-}
 
 /**
  * KVストアに安全にアクセスする
@@ -217,12 +195,12 @@ export async function sendActivityPub(
   activity: Record<string, unknown>,
 ): Promise<void> {
   const api = getTakosServerAPI();
-  if (!api?.activitypub) {
+  if (!api?.ap) {
     console.warn("ActivityPub API not available in this context (server only)");
     return;
   }
 
-  await api.activitypub.send(activity);
+  await api.ap.send(activity);
 }
 
 // 型ガード関数
@@ -230,7 +208,7 @@ export function isServerContext(api: unknown): api is TakosServerAPI {
   return api !== null &&
     typeof api === "object" &&
     "kv" in api &&
-    "activitypub" in api &&
+    "ap" in api &&
     "cdn" in api &&
     "events" in api &&
     "fetch" in api;
@@ -249,5 +227,5 @@ export function isUIContext(api: unknown): api is TakosUIAPI {
     typeof api === "object" &&
     "events" in api &&
     !("kv" in api) &&
-    !("activitypub" in api);
+    !("ap" in api);
 }

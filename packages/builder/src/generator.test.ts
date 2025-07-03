@@ -25,6 +25,7 @@ Deno.test("export wrappers use method name", () => {
         line: 2,
       },
     ],
+    methodCalls: [],
   };
 
   const gen = new VirtualEntryGenerator();
@@ -36,11 +37,10 @@ Deno.test("export wrappers use method name", () => {
 
 Deno.test("parseActivityTag generates config", () => {
   const gen = new VirtualEntryGenerator();
-  const cfg = (gen as unknown as { parseActivityTag: (...args: unknown[]) => unknown })
-    .parseActivityTag(
-      '"Note"',
-      "onReceiveNote",
-    );
+  const cfg = gen.parseActivityTag(
+    '"Note"',
+    "onReceiveNote",
+  );
   if (!cfg || cfg.object !== "Note" || cfg.hook !== "onReceiveNote") {
     throw new Error("ActivityPub config not parsed correctly");
   }
@@ -48,8 +48,7 @@ Deno.test("parseActivityTag generates config", () => {
 
 Deno.test("parseActivityDecorator generates config", () => {
   const gen = new VirtualEntryGenerator();
-  const cfg = (gen as unknown as { parseActivityDecorator: (...args: unknown[]) => unknown })
-    .parseActivityDecorator(["Note"], "onNote");
+  const cfg = gen.parseActivityDecorator(["Note"], "onNote");
   if (!cfg || cfg.object !== "Note" || cfg.hook !== "onNote") {
     throw new Error("ActivityPub decorator not parsed correctly");
   }

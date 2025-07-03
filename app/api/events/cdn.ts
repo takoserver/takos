@@ -5,6 +5,21 @@ import { dirname, join } from "@std/path";
 
 const base = "takos";
 const CDN_ROOT = join(dirname(dirname(import.meta.url)), "public", "cdn");
+const MAX_CDN_BYTES = 20 * 1024 * 1024; // 20MB limit
+
+async function getDirSize(dir: string): Promise<number> {
+  let total = 0;
+  for await (const entry of Deno.readDir(dir)) {
+    const p = join(dir, entry.name);
+    if (entry.isFile) {
+      const stat = await Deno.stat(p);
+      total += stat.size;
+    } else if (entry.isDirectory) {
+      total += await getDirSize(p);
+    }
+  }
+  return total;
+}
 
 function safePath(id: string, path: string): string {
   const p = path.replace(/\.\.\//g, "");
@@ -26,9 +41,14 @@ eventManager.add(
     const bytes = data.startsWith("data:")
       ? Uint8Array.from(atob(data.split(",")[1]), (c) => c.charCodeAt(0))
       : new TextEncoder().encode(data);
+    const dirSize = await getDirSize(join(CDN_ROOT, id));
+    if (dirSize + bytes.length > MAX_CDN_BYTES) {
+      throw new Error("CDN storage limit exceeded");
+    }
     await Deno.writeFile(file, bytes);
     return { url: `/cdn/${id}/${path}` };
   },
+  "cdn:write",
 );
 
 eventManager.add(
@@ -39,6 +59,7 @@ eventManager.add(
     const file = safePath(id, path);
     return await Deno.readTextFile(file);
   },
+  "cdn:read",
 );
 
 eventManager.add(
@@ -50,6 +71,7 @@ eventManager.add(
     await Deno.remove(file);
     return { success: true };
   },
+  "cdn:write",
 );
 
 eventManager.add(
@@ -68,4 +90,5 @@ eventManager.add(
       return [];
     }
   },
+  "cdn:read",
 );

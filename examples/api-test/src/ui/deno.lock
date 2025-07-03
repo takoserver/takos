@@ -1296,12 +1296,6 @@
     }
   },
   "workspace": {
-    "dependencies": [
-      "npm:solid-js@^1.9.4",
-      "npm:vite-plugin-singlefile@^2.2.0",
-      "npm:vite-plugin-solid@^2.11.2",
-      "npm:vite@^6.3.5"
-    ],
     "packageJson": {
       "dependencies": [
         "npm:@types/express@5",

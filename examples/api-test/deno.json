@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "build": "deno run -A ../../packages/cli/cli.ts build",
+    "build": "deno task --cwd src/ui build && deno run -A ../../packages/cli/cli.ts build",
     "dev": "deno run -A ../../packages/cli/cli.ts build --dev",
     "clean": "rm -rf dist"
   },

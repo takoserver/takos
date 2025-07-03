@@ -1,6 +1,6 @@
 # 🔧 **Takopack Builder API ドキュメント**
 
-> **バージョン**: v2.0 **最終更新**: 2025-06-01
+> **バージョン**: v3.0 **最終更新**: 2025-06-01
 
 ## 📚 **目次**
 
@@ -10,10 +10,11 @@
 4. [API リファレンス](#api-リファレンス)
 5. [設定オプション](#設定オプション)
 6. [関数ベース開発](#関数ベース開発)
-7. [esbuildバンドル機能](#esbuildバンドル機能)
-8. [開発モードとデバッグ](#開発モードとデバッグ)
-9. [実例とサンプル](#実例とサンプル)
-10. [トラブルシューティング](#トラブルシューティング)
+7. [拡張機能APIの呼び出し](#拡張機能-api-の呼び出し)
+8. [esbuildバンドル機能](#esbuildバンドル機能)
+9. [開発モードとデバッグ](#開発モードとデバッグ)
+10. [実例とサンプル](#実例とサンプル)
+11. [トラブルシューティング](#トラブルシューティング)
 
 ---
 
@@ -68,9 +69,9 @@ deno run --allow-all src/main.ts --production
 ### 最小構成
 
 ```typescript
-import FunctionBasedTakopack from "./builder/main.ts";
+import { TakopackBuilder } from "@takopack/builder";
 
-const extension = new FunctionBasedTakopack()
+const extension = new TakopackBuilder()
   .output("dist")
   .package("my-extension")
   .ui(`
@@ -94,9 +95,9 @@ await extension.build();
 ### 関数を含む構成
 
 ```typescript
-import FunctionBasedTakopack from "./builder/main.ts";
+import { TakopackBuilder } from "@takopack/builder";
 
-const extension = new FunctionBasedTakopack()
+const extension = new TakopackBuilder()
   .output("dist")
   .package("my-extension")
   // サーバー関数
@@ -117,7 +118,7 @@ const extension = new FunctionBasedTakopack()
     description: "Extension with server and client functions",
     version: "1.0.0",
     identifier: "com.example.myext",
-    permissions: ["kv:read", "kv:write", "events:publish"],
+    permissions: ["kv:read", "kv:write"],
   });
 
 await extension.build();
@@ -157,7 +158,7 @@ await extension.build();
   version: "1.0.0",
   identifier: "com.example.ext",
   permissions: ["kv:read", "activitypub:send"],
-  apiVersion: "2.0"  // オプション（デフォルト: "2.0"）
+  apiVersion: "3.0"  // オプション（デフォルト: "3.0"）
 })
 ```
 
@@ -205,61 +206,18 @@ UI HTMLコンテンツを設定します。
 })
 ```
 
-### イベント関連メソッド
+### Events API
 
-#### `addEvent(eventName: string, definition: EventDefinition, handler: Function): this`
+manifest でのイベント定義は不要になりました。`takos.events` を使って
+どのレイヤーからでもイベントを発行・受信できます。
 
-カスタムイベントを定義します。
-
-```typescript
-.addEvent("customEvent", {
-  source: "client",
-  handler: "handleCustomEvent"
-}, async (payload: any) => {
-  return [200, { processed: true }];
-})
-```
-
-#### 便利メソッド
+#### リクエスト / レスポンス
 
 ```typescript
-// Client → Server
-.addClientToServerEvent("userAction", async (action: string) => {
-  return [200, { action: `Processed: ${action}` }];
-})
+takos.events.onRequest("echo", ({ text }) => ({ text: text + "!" }));
 
-// Server → Client
-.addServerToClientEvent("statusUpdate", async (status: string) => {
-  console.log("Status:", status);
-})
-
-// Background → UI
-.addBackgroundToUIEvent("notification", async (message: string) => {
-  // UI通知処理
-})
-
-// UI → Background
-.addUIToBackgroundEvent("userInput", async (input: string) => {
-  // バックグラウンド処理
-})
-```
-
-### ActivityPub メソッド
-
-#### `activityPub(config, hook?): this`
-
-ActivityPubフック処理を設定します。
-
-```typescript
-.activityPub(
-  {
-    objects: ["Note"],
-  },
-  async (context: string, object: any) => {
-    console.log("Note received:", object);
-    return { processed: true };
-  },
-)
+const res = await takos.events.request("echo", { text: "ping" });
+// res => { text: "ping!" }
 ```
 
 ---
@@ -285,7 +243,7 @@ interface ManifestConfig {
   description: string; // 説明
   version: string; // バージョン（SemVer形式）
   identifier: string; // 識別子（逆FQDN形式）
-  apiVersion?: string; // API バージョン（デフォルト: "2.0"）
+  apiVersion?: string; // API バージョン（デフォルト: "3.0"）
   permissions?: Permission[]; // 権限配列
 }
 ```
@@ -297,7 +255,6 @@ type Permission =
   | "fetch:net"
   | "activitypub:send"
   | "activitypub:read"
-  | "activitypub:receive:hook"
   | "activitypub:actor:read"
   | "activitypub:actor:write"
   | "plugin-actor:create"
@@ -308,7 +265,6 @@ type Permission =
   | "kv:write"
   | "cdn:read"
   | "cdn:write"
-  | "events:publish"
   | "deno:read" // 特権権限
   | "deno:write" // 特権権限
   | "deno:net" // 特権権限
@@ -328,7 +284,7 @@ type Permission =
 // 基本的なサーバー関数
 .serverFunction("getUserData", async (userId: string) => {
   try {
-    const user = await globalThis.takos.activitypub.actor.read(userId);
+    const user = await globalThis.takos.ap.actor.read(userId);
     return [200, { user }];
   } catch (error) {
     return [500, { error: error.message }];
@@ -353,78 +309,57 @@ type Permission =
 
 // UI更新処理
 .clientFunction("updateUI", async (data: any) => {
-  await globalThis.takos.events.publish("dataUpdate", data, { push: true });
+  await globalThis.takos.events.request("dataUpdate", data);
 })
 ```
 
 ### イベントハンドラーの書き方
 
-```typescript
-// サーバーイベントハンドラー（戻り値: [status, body]）
-.addClientToServerEvent("submitForm", async (formData: any) => {
-  if (!formData.name) {
-    return [400, { error: "Name is required" }];
-  }
-  
-  // データ処理
-  await processFormData(formData);
-  return [200, { success: true }];
-})
+`takos.events.onRequest()` を使ってイベント名とハンドラー関数を登録します。
 
-// クライアントイベントハンドラー（戻り値: void）
-.addServerToClientEvent("dataChanged", async (newData: any) => {
-  console.log("Data updated:", newData);
-  // UIに通知
-  await globalThis.takos.events.publish("refresh", newData, { push: true });
-})
+```typescript
+takos.events.onRequest("serverToClient", async (payload) => {
+  console.log("from server", payload);
+  return { ok: true };
+});
+
+takos.events.onRequest("uiToServer", (data) => {
+  return { ok: true };
+});
 ```
 
-### インスタンスベース開発
+#### 簡易APIの利用
 
-Takopack Builder 3.0 では、`ServerExtension` や `ClientExtension` を
-インスタンス化してメソッドを追加するスタイルを推奨しています。 JSDoc
-タグを付与することでイベントや ActivityPub フックを定義できます。
+イベントAPIを手軽に使いたい場合は `simpleTakos` ラッパーを利用できます。
 
 ```typescript
-import { ServerExtension } from "@takopack/builder";
+import { simpleTakos } from "@takopack/builder";
 
-export const MyServer = new ServerExtension();
+simpleTakos.onRequest("hello", (payload) => {
+  console.log(payload);
+  return { received: true };
+});
 
-/** @event("userLogin", { source: "client" }) */
-MyServer.onUserLogin = (data: { username: string }) => {
-  console.log("login", data);
-  return [200, { ok: true }];
-};
-
-export { MyServer };
+await simpleTakos.request("hello", { message: "hi" });
 ```
 
-インスタンス名とメソッド名の組み合わせから `MyServer_onUserLogin`
-のようなラッパー関数が自動生成され、manifest の `handler` として利用されます。
+### 拡張機能 API の呼び出し
 
-### アプリコンテナ API
-
-複数の拡張機能インスタンスをまとめて登録したい場合は `TakoPack`
-クラスを利用できます。
+他拡張が公開する機能は `takos.extensions.get()` で取得した オブジェクトの
+`request()` メソッドから実行します。 公開側では `takos.extensions.onRequest()`
+でハンドラーを登録します。
 
 ```typescript
-import { ClientExtension, ServerExtension, TakoPack } from "@takopack/builder";
+// com.example.lib 側
+takos.extensions.onRequest("com.example.lib:hello", () => {
+  return "hi";
+});
 
-export const MyServer = new ServerExtension();
-MyServer.onHello = (name: string) => {
-  return [200, { greeting: name }];
-};
-
-export const MyClient = new ClientExtension();
-MyClient.greet = () => {
-  console.log("Hello from client");
-};
-
-const app = new TakoPack()
-  .useServer(MyServer)
-  .useClient(MyClient);
-
-export const functions = app.functions;
+// 呼び出し側
+const lib = takos.extensions.get("com.example.lib");
+if (lib) {
+  await lib.request("hello");
+}
 ```
 
 ---
@@ -443,7 +378,7 @@ Builder は自動的に以下を行います：
 ### 開発モード設定
 
 ```typescript
-const extension = new FunctionBasedTakopack()
+const extension = new TakopackBuilder()
   .bundle({
     development: true, // ソースマップ有効、最小化無効
     analytics: true, // ビルド分析表示
@@ -457,7 +392,7 @@ await extension.build();
 ### 本番モード設定
 
 ```typescript
-const extension = new FunctionBasedTakopack()
+const extension = new TakopackBuilder()
   .bundle({
     development: false, // 最小化有効
     analytics: false, // 分析無効
@@ -518,9 +453,9 @@ Builder は以下のエラーを検出します：
 ### シンプルなメモ拡張機能
 
 ```typescript
-import FunctionBasedTakopack from "./builder/main.ts";
+import { TakopackBuilder } from "@takopack/builder";
 
-const memoExtension = new FunctionBasedTakopack()
+const memoExtension = new TakopackBuilder()
   .output("dist")
   .package("simple-memo")
   // メモ保存
@@ -554,7 +489,7 @@ const memoExtension = new FunctionBasedTakopack()
         <script>
           async function saveMemo() {
             const memo = document.getElementById('memo').value;
-            await takos.events.publish('saveMemo', memo, { push: true });
+            await takos.events.request('saveMemo', memo);
           }
         </script>
       </body>
@@ -565,73 +500,10 @@ const memoExtension = new FunctionBasedTakopack()
     description: "A simple memo-taking extension",
     version: "1.0.0",
     identifier: "com.example.simplememo",
-    permissions: ["kv:read", "kv:write", "events:publish"],
+    permissions: ["kv:read", "kv:write"],
   });
 
 await memoExtension.build();
-```
-
-### ActivityPub 拡張機能
-
-```typescript
-const activityPubExtension = new FunctionBasedTakopack()
-  .output("dist")
-  .package("note-processor")
-  // ActivityPub Note処理
-  .activityPub(
-    {
-      objects: ["Note"],
-    },
-    async (context: string, object: any) => {
-      const note = object.object;
-
-      // キーワード抽出
-      const keywords = extractKeywords(note.content);
-
-      // 統計保存
-      await globalThis.takos.kv.write(
-        `note_stats_${Date.now()}`,
-        { keywords, timestamp: new Date().toISOString() },
-      );
-
-      console.log("Note processed:", keywords);
-      return { processed: true, keywords };
-    },
-  )
-  .serverFunction("getStats", async () => {
-    const keys = await globalThis.takos.kv.list();
-    const statsKeys = keys.filter((k) => k.startsWith("note_stats_"));
-    const stats = [];
-
-    for (const key of statsKeys) {
-      const stat = await globalThis.takos.kv.read(key);
-      stats.push(stat);
-    }
-
-    return [200, { stats }];
-  })
-  .config({
-    name: "Note Processor",
-    description: "Processes ActivityPub Notes and extracts keywords",
-    version: "1.0.0",
-    identifier: "com.example.noteprocessor",
-    permissions: [
-      "activitypub:receive:hook",
-      "kv:read",
-      "kv:write",
-    ],
-  });
-
-// キーワード抽出関数
-function extractKeywords(content: string): string[] {
-  return content
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((word) => word.length > 3)
-    .slice(0, 5);
-}
-
-await activityPubExtension.build();
 ```
 
 ---

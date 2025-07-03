@@ -1,32 +1,74 @@
-import { createEffect, onCleanup } from "solid-js";
+import { createEffect, onCleanup, createSignal } from "solid-js";
 import { useAtom } from "solid-jotai";
 import { selectedExtensionState } from "../states/extensions.ts";
 import { createTakos } from "../takos.ts";
+import { loadExtension } from "../lib/extensionLoader.ts";
+
+interface TakosGlobal {
+  takos?: unknown;
+  __takosEventDefs?: Record<string, Record<string, unknown>>;
+}
 
 export default function ExtensionFrame() {
   const [extId] = useAtom(selectedExtensionState);
+  const [isLoading, setIsLoading] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
   let frame: HTMLIFrameElement | undefined;
 
-  createEffect(() => {
+  createEffect(async () => {
     if (frame && extId()) {
-      frame.src = `/api/extensions/${extId()}/ui`;
+      const currentExtId = extId()!;
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // キャッシュを活用した拡張機能の読み込み
+        const loadedExtension = await loadExtension(currentExtId);
+        
+        if (loadedExtension?.indexHtml) {
+          // キャッシュされたHTMLをBlobURLとして設定
+          const blob = new Blob([loadedExtension.indexHtml], { type: 'text/html' });
+          const blobUrl = URL.createObjectURL(blob);
+          frame.src = blobUrl;
+          
+          // 古いBlobURLをクリーンアップ
+          frame.addEventListener('load', () => {
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+          }, { once: true });
+        } else {
+          // フォールバック: 従来のAPI経由での読み込み
+          console.warn(`No cached HTML for ${currentExtId}, falling back to API`);
+          frame.src = `/api/extensions/${currentExtId}/ui`;
+        }
+      } catch (err) {
+        console.error(`Failed to load extension ${currentExtId}:`, err);
+        setError(`Failed to load extension: ${err instanceof Error ? err.message : String(err)}`);
+        // エラー時のフォールバック
+        frame.src = `/api/extensions/${currentExtId}/ui`;
+      } finally {
+        setIsLoading(false);
+      }
     }
   });
 
-  async function onLoad() {
+  function onLoad() {
     try {
       if (frame?.contentWindow && extId()) {
         const id = extId()!;
         const takos = createTakos(id);
-        (frame.contentWindow as any).takos = takos;
-        const host = window as any;
+        (frame.contentWindow as Window & TakosGlobal).takos = takos;
+        const host = window as Window & TakosGlobal;
         const defs = host.__takosEventDefs?.[id] || {};
-        const child = frame.contentWindow as any;
+        const child = frame.contentWindow as Window & TakosGlobal;
         child.__takosEventDefs = child.__takosEventDefs || {};
         child.__takosEventDefs[id] = defs;
+        
+        // 読み込み完了時にエラーをクリア
+        setError(null);
       }
-    } catch (_e) {
-      /* ignore */
+    } catch (err) {
+      console.error("Failed to setup takos in iframe:", err);
+      setError("Failed to initialize extension environment");
     }
   }
 
@@ -35,11 +77,46 @@ export default function ExtensionFrame() {
   });
 
   return (
-    <iframe
-      ref={frame!}
-      sandbox="allow-scripts allow-same-origin"
-      class="w-full h-full border-none"
-      onLoad={onLoad}
-    />
+    <div class="w-full h-full relative">
+      {isLoading() && (
+        <div class="absolute inset-0 bg-gray-100 flex items-center justify-center z-10">
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+            <div class="text-sm text-gray-600">Loading extension...</div>
+          </div>
+        </div>
+      )}
+      
+      {error() && (
+        <div class="absolute inset-0 bg-red-50 flex items-center justify-center z-10">
+          <div class="text-center p-4">
+            <div class="text-red-600 mb-2">⚠️ Extension Load Error</div>
+            <div class="text-sm text-red-500">{error()}</div>
+            <button 
+              type="button"
+              class="mt-2 px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
+              onClick={() => {
+                setError(null);
+                // エラー時の再読み込み
+                if (frame && extId()) {
+                  frame.src = `/api/extensions/${extId()}/ui`;
+                }
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+      
+      <iframe
+        ref={frame!}
+        sandbox="allow-scripts allow-same-origin"
+        class="w-full h-full border-none"
+        style={{ display: isLoading() || error() ? 'none' : 'block' }}
+        onLoad={onLoad}
+        onError={() => setError("Failed to load extension frame")}
+      />
+    </div>
   );
 }

@@ -1,5 +1,37 @@
 import './App.css'
 import { createSignal, For } from 'solid-js'
+import type { SimpleTakosAPI } from '../../../../../packages/builder/mod.ts'
+
+// Takos API injected by the parent window (browser environment)
+declare global {
+  interface Window {
+    takos?: SimpleTakosAPI;
+  }
+}
+
+const getTakosAPI = () => {
+  // In browser environment, check for window.takos
+  if (typeof window !== 'undefined' && window.takos) {
+    return window.takos;
+  }
+  
+  // Fallback to globalThis
+  const api = (globalThis as { takos?: SimpleTakosAPI }).takos;
+  return api || ({} as SimpleTakosAPI);
+};
+
+const takos: SimpleTakosAPI = getTakosAPI();
+
+// Debug logging
+console.log('Takos API object:', takos)
+console.log('Takos extensions:', takos.extensions)
+console.log('Window takos:', typeof window !== 'undefined' ? window.takos : 'N/A')
+
+// Check if Takos API is available
+const isTakosAvailable = () => {
+  return takos && typeof takos === 'object' && 
+         takos.extensions && typeof takos.extensions.get === 'function'
+}
 
 interface TestResult {
   success: boolean
@@ -10,7 +42,7 @@ interface TestResult {
 }
 
 function App() {
-  const [activeTab, setActiveTab] = createSignal('activitypub')
+  const [activeTab, setActiveTab] = createSignal('ap')
   const [logs, setLogs] = createSignal<string[]>([])
   const [isLoading, setIsLoading] = createSignal(false)
 
@@ -30,10 +62,20 @@ function App() {
     addLog('ActivityPub APIテストを開始しています...')
     
     try {
-      // ActivityPub APIテストの実装
-      const response = await fetch('/api/test/activitypub', { method: 'POST' })
-      const result = await response.json()
-      setActivityPubResults(result)
+      if (!isTakosAvailable()) {
+        throw new Error('Takos API is not available or not properly initialized')
+      }
+      
+      const extension = takos.extensions!.get!('jp.takos.api-test')
+      if (!extension || !extension.request) {
+        throw new Error('Extension jp.takos.api-test not found or request method not available')
+      }
+      
+      const result = (await extension.request(
+        'testActivityPubSend',
+        []
+      )) as [number, TestResult]
+      setActivityPubResults(result[1])
       addLog('ActivityPub APIテスト完了')
     } catch (error) {
       addLog(`ActivityPub APIテストでエラーが発生: ${error}`)
@@ -47,9 +89,20 @@ function App() {
     addLog('KV Storage APIテストを開始しています...')
     
     try {
-      const response = await fetch('/api/test/kv', { method: 'POST' })
-      const result = await response.json()
-      setKvResults(result)
+      if (!isTakosAvailable()) {
+        throw new Error('Takos API is not available or not properly initialized')
+      }
+      
+      const extension = takos.extensions!.get!('jp.takos.api-test')
+      if (!extension || !extension.request) {
+        throw new Error('Extension jp.takos.api-test not found or request method not available')
+      }
+      
+      const result = (await extension.request(
+        'testKVOperations',
+        []
+      )) as [number, TestResult]
+      setKvResults(result[1])
       addLog('KV Storage APIテスト完了')
     } catch (error) {
       addLog(`KV Storage APIテストでエラーが発生: ${error}`)
@@ -63,9 +116,20 @@ function App() {
     addLog('CDN APIテストを開始しています...')
     
     try {
-      const response = await fetch('/api/test/cdn', { method: 'POST' })
-      const result = await response.json()
-      setCdnResults(result)
+      if (!isTakosAvailable()) {
+        throw new Error('Takos API is not available or not properly initialized')
+      }
+      
+      const extension = takos.extensions!.get!('jp.takos.api-test')
+      if (!extension || !extension.request) {
+        throw new Error('Extension jp.takos.api-test not found or request method not available')
+      }
+      
+      const result = (await extension.request(
+        'testCDNOperations',
+        []
+      )) as [number, TestResult]
+      setCdnResults(result[1])
       addLog('CDN APIテスト完了')
     } catch (error) {
       addLog(`CDN APIテストでエラーが発生: ${error}`)
@@ -79,9 +143,20 @@ function App() {
     addLog('Events APIテストを開始しています...')
     
     try {
-      const response = await fetch('/api/test/events', { method: 'POST' })
-      const result = await response.json()
-      setEventsResults(result)
+      if (!isTakosAvailable()) {
+        throw new Error('Takos API is not available or not properly initialized')
+      }
+      
+      const extension = takos.extensions!.get!('jp.takos.api-test')
+      if (!extension || !extension.request) {
+        throw new Error('Extension jp.takos.api-test not found or request method not available')
+      }
+      
+      const result = (await extension.request(
+        'testEventsAPI',
+        []
+      )) as [number, TestResult]
+      setEventsResults(result[1])
       addLog('Events APIテスト完了')
     } catch (error) {
       addLog(`Events APIテストでエラーが発生: ${error}`)
@@ -95,9 +170,20 @@ function App() {
     addLog('Extensions APIテストを開始しています...')
     
     try {
-      const response = await fetch('/api/test/extensions', { method: 'POST' })
-      const result = await response.json()
-      setExtensionsResults(result)
+      if (!isTakosAvailable()) {
+        throw new Error('Takos API is not available or not properly initialized')
+      }
+      
+      const extension = takos.extensions!.get!('jp.takos.api-test')
+      if (!extension || !extension.request) {
+        throw new Error('Extension jp.takos.api-test not found or request method not available')
+      }
+      
+      const result = (await extension.request(
+        'testExtensionsAPI',
+        []
+      )) as [number, TestResult]
+      setExtensionsResults(result[1])
       addLog('Extensions APIテスト完了')
     } catch (error) {
       addLog(`Extensions APIテストでエラーが発生: ${error}`)
@@ -117,15 +203,18 @@ function App() {
   return (
     <div class="app">
       <header class="header">
-        <h1>Takos API Test Extension</h1>
+        <h1>Takos API Test Extension v1.1.6</h1>
         <p>すべてのTakos APIの包括的テストツール</p>
+        <div class={`api-status ${isTakosAvailable() ? 'available' : 'unavailable'}`}>
+          Takos API: {isTakosAvailable() ? '✅ 利用可能' : '❌ 利用不可'}
+        </div>
       </header>
 
       <nav class="nav-tabs">
         <button 
           type="button"
-          class={activeTab() === 'activitypub' ? 'tab active' : 'tab'}
-          onClick={() => setActiveTab('activitypub')}
+          class={activeTab() === 'ap' ? 'tab active' : 'tab'}
+          onClick={() => setActiveTab('ap')}
         >
           ActivityPub
         </button>
@@ -176,7 +265,7 @@ function App() {
 
         <div class="content-area">
           <div class="test-results">
-            {activeTab() === 'activitypub' && (
+            {activeTab() === 'ap' && (
               <div class="test-section">
                 <h2>ActivityPub API テスト</h2>
                 <button type="button" onClick={testActivityPub} disabled={isLoading()} class="btn">

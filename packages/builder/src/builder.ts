@@ -1,13 +1,21 @@
 import { basename, join, resolve } from "jsr:@std/path@1";
 import { existsSync } from "jsr:@std/fs@1";
-import {
-  BlobWriter,
-  TextReader,
-  Uint8ArrayReader,
-  ZipWriter,
-} from "jsr:@zip-js/zip-js@^2.7.62";
+import { BlobWriter, TextReader, Uint8ArrayReader, ZipWriter } from "jsr:@zip-js/zip-js@^2.7.62";
 import * as esbuild from "npm:esbuild";
 import { denoPlugins } from "jsr:@luca/esbuild-deno-loader@^0.11.1";
+// @ts-ignore: Deno module resolution issue with Ajv
+import AjvConstructor from "npm:ajv@8.17.1";
+// @ts-ignore: Type definitions issue
+const Ajv = AjvConstructor.default || AjvConstructor;
+
+// Type definition for Ajv error object
+interface ErrorObject {
+  instancePath: string;
+  message?: string;
+}
+import manifestSchema from "../../../docs/takopack/manifest.schema.json" with {
+  type: "json",
+};
 
 import type {
   ActivityPubConfig,
@@ -16,6 +24,7 @@ import type {
   EventDefinition,
   ExtensionManifest,
   ModuleAnalysis,
+  Permission,
   TakopackConfig,
   TypeGenerationOptions,
   TypeGenerationResult,
@@ -38,6 +47,8 @@ export class TakopackBuilder {
   private analyzer = new ASTAnalyzer();
   private generator = new VirtualEntryGenerator();
   private tempDir = ".takopack-tmp";
+  private ajv = new Ajv({ allowUnionTypes: true });
+  private validateManifest = this.ajv.compile(manifestSchema as object);
 
   constructor(config: TakopackConfig) {
     this.config = { ...defaultConfig, ...config };
@@ -61,6 +72,10 @@ export class TakopackBuilder {
       // 2. エントリポイント解析
       const analyses = await this.analyzeEntries();
 
+      if (this.config.build?.strictValidation) {
+        await this.validatePermissions();
+      }
+
       // 3. Virtual entrypoint生成
       const virtualEntries = await this.generateVirtualEntries(analyses);
 
@@ -69,6 +84,7 @@ export class TakopackBuilder {
 
       // 5. マニフェスト生成
       const manifest = this.generateManifest(analyses);
+      this.validateManifestSchema(manifest);
 
       // 6. UIファイルコピー
       await this.copyUIFiles();
@@ -101,9 +117,7 @@ export class TakopackBuilder {
         warnings: [],
       };
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("❌ Build failed:", errorMessage);
 
       return {
@@ -199,21 +213,23 @@ export class TakopackBuilder {
 
     // サーバーエントリ生成
     if (analyses.server.length > 0) {
-      result.server = this.generator.generateServerEntry(analyses.server);
+      const serverEntry = this.generator.generateServerEntry(analyses.server);
+      result.server = serverEntry;
 
       // ファイルに書き出し
       const serverPath = join(this.tempDir, "_entry_server.ts");
-      await Deno.writeTextFile(serverPath, result.server.content);
+      await Deno.writeTextFile(serverPath, serverEntry.content);
       console.log(`📝 Generated server virtual entry: ${serverPath}`);
     }
 
     // クライアントエントリ生成
     if (analyses.client.length > 0) {
-      result.client = this.generator.generateClientEntry(analyses.client);
+      const clientEntry = this.generator.generateClientEntry(analyses.client);
+      result.client = clientEntry;
 
       // ファイルに書き出し
       const clientPath = join(this.tempDir, "_entry_client.ts");
-      await Deno.writeTextFile(clientPath, result.client.content);
+      await Deno.writeTextFile(clientPath, clientEntry.content);
       console.log(`📝 Generated client virtual entry: ${clientPath}`);
     }
 
@@ -305,9 +321,7 @@ export class TakopackBuilder {
 
       console.log(`✅ Bundled: ${entryPoint} → ${outputPath}`);
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to bundle ${entryPoint}: ${errorMessage}`);
     }
   }
@@ -324,13 +338,10 @@ export class TakopackBuilder {
       description: this.config.manifest.description || "",
       version: this.config.manifest.version,
       identifier: this.config.manifest.identifier,
-      icon: this.config.manifest.icon
-        ? `./${basename(this.config.manifest.icon)}`
-        : undefined,
+      icon: this.config.manifest.icon ? `./${basename(this.config.manifest.icon)}` : undefined,
       apiVersion: "3.0",
       permissions: this.config.manifest.permissions || [],
       extensionDependencies: this.config.manifest.extensionDependencies,
-      exports: this.config.manifest.exports,
       server: {
         entry: "./server.js",
       },
@@ -340,8 +351,7 @@ export class TakopackBuilder {
       },
     };
 
-    // イベント定義とActivityPub設定をAST解析結果から抽出
-    const eventDefinitions: Record<string, EventDefinition> = {};
+    // ActivityPub設定をAST解析結果から抽出
     const activityPubConfigs: ActivityPubConfig[] = [];
 
     const exportedClassSet = new Set<string>();
@@ -350,7 +360,7 @@ export class TakopackBuilder {
       analysis.exports.forEach((exp) => {
         if (exp.type === "class") exportedClassSet.add(exp.name);
       });
-    });    // デバッグ用: AST解析結果を出力
+    }); // デバッグ用: AST解析結果を出力
     console.log("🔍 AST Analysis Debug:");
     [...analyses.server, ...analyses.client].forEach((analysis) => {
       console.log(`  File: ${analysis.filePath}`);
@@ -371,38 +381,21 @@ export class TakopackBuilder {
       console.log(`    Exports: ${analysis.exports.length}`);
       analysis.exports.forEach((exp) => {
         console.log(
-          `      export ${exp.type} ${exp.name} ${exp.instanceOf ? `(instanceOf: ${exp.instanceOf})` : ''}`,
+          `      export ${exp.type} ${exp.name} ${
+            exp.instanceOf ? `(instanceOf: ${exp.instanceOf})` : ""
+          }`,
         );
       });
       console.log(`    Method calls: ${analysis.methodCalls.length}`);
       analysis.methodCalls.forEach((call) => {
         console.log(
-          `      ${call.objectName}.${call.methodName}(${call.args.join(', ')})`,
+          `      ${call.objectName}.${call.methodName}(${call.args.join(", ")})`,
         );
-      });    });
-
-    // クラスベースのイベント定義のみをサポート（JSDoc/デコレータは廃止）
-    const hasEventDefinitions = this.extractEventDefinitionsFromClasses(analyses, eventDefinitions);
-    
-    // イベント定義が必須
-    if (!hasEventDefinitions) {
-      throw new Error(
-        `❌ No event definitions found. Event definitions using classes are required.\n\n` +
-        `Please use class-based event definitions in your client/server files:\n\n` +
-        `import { Takos } from "../../../../packages/builder/src/classes.ts";\n\n` +
-        `export const takos = new Takos();\n\n` +
-        `takos\n` +
-        `  .client("eventName", handlerFunction)\n` +
-        `  .server("serverEvent", serverHandler)\n` +
-        `  .ui("uiEvent", uiHandler);\n\n` +
-        `JSDoc-based event definitions (@event) and decorators are no longer supported.`
-      );
-    }
+      });
+    });
 
     // マニフェストに追加
-    if (Object.keys(eventDefinitions).length > 0) {
-      manifest.eventDefinitions = eventDefinitions;
-    }
+    // v3 では manifest.eventDefinitions を生成しない
     if (activityPubConfigs.length > 0) {
       manifest.activityPub = {
         objects: activityPubConfigs.map((c) => c.object),
@@ -536,23 +529,17 @@ export class TakopackBuilder {
     endTime: number,
     bundleResult: { server?: string; client?: string },
   ): BuildMetrics {
+    const serverSize = bundleResult.server ? this.getFileSize(bundleResult.server) : 0;
+    const clientSize = bundleResult.client ? this.getFileSize(bundleResult.client) : 0;
     return {
       buildStartTime: startTime,
       buildEndTime: endTime,
       totalDuration: endTime - startTime,
-      bundlingDuration: 0, // TODO: 個別計測
-      validationDuration: 0,
-      compressionDuration: 0,
       outputSize: {
-        server: bundleResult.server ? this.getFileSize(bundleResult.server) : 0,
-        client: bundleResult.client ? this.getFileSize(bundleResult.client) : 0,
+        server: serverSize,
+        client: clientSize,
         ui: 0, // TODO: UI計測
-        total: 0,
-      },
-      functionCounts: {
-        server: 0, // TODO: カウント
-        client: 0,
-        events: 0,
+        total: serverSize + clientSize,
       },
       warnings: [],
       errors: [],
@@ -579,6 +566,14 @@ export class TakopackBuilder {
     } else {
       console.log("  🚀 Production build completed");
     }
+
+    if (this.config.build?.analytics) {
+      const format = (s: number) => `${(s / 1024).toFixed(1)}KB`;
+      console.log(
+        `  📦 Bundle sizes: server ${format(metrics.outputSize.server)}, ` +
+          `client ${format(metrics.outputSize.client)}`,
+      );
+    }
   }
 
   /**
@@ -593,33 +588,44 @@ export class TakopackBuilder {
     }
   } /**
    * JSDocタグからイベント名を抽出
-   */  private extractEventNameFromTag(value: string): string | null {
+   */
+
+  private extractEventNameFromTag(value: string): string | null {
     console.log(`[DEBUG] extractEventNameFromTag - value: "${value}"`);
-    
+
     // まず複雑な形式 "("eventName", { ... })" を試す
     const match = value.match(/^\("([^"']+)"/);
     console.log(`[DEBUG] extractEventNameFromTag - complex match: ${match}`);
-    
+
     if (match) {
       const result = match[1];
-      console.log(`[DEBUG] extractEventNameFromTag - complex result: ${result}`);
+      console.log(
+        `[DEBUG] extractEventNameFromTag - complex result: ${result}`,
+      );
       return result;
     }
-    
+
     // シンプルな形式 " eventName" を試す
     const simpleMatch = value.trim();
-    console.log(`[DEBUG] extractEventNameFromTag - simple match: "${simpleMatch}"`);
-    
-    if (simpleMatch && !simpleMatch.includes("(") && !simpleMatch.includes("{")) {
-      console.log(`[DEBUG] extractEventNameFromTag - simple result: ${simpleMatch}`);
+    console.log(
+      `[DEBUG] extractEventNameFromTag - simple match: "${simpleMatch}"`,
+    );
+
+    if (
+      simpleMatch && !simpleMatch.includes("(") && !simpleMatch.includes("{")
+    ) {
+      console.log(
+        `[DEBUG] extractEventNameFromTag - simple result: ${simpleMatch}`,
+      );
       return simpleMatch;
     }
-    
+
     console.log(`[DEBUG] extractEventNameFromTag - no match found`);
     return null;
-  }/**
+  } /**
    * イベント設定をパース
    */
+
   private parseEventConfig(
     value: string,
     targetFunction: string,
@@ -628,11 +634,11 @@ export class TakopackBuilder {
       console.log(
         `[DEBUG] parseEventConfig - value: "${value}", targetFunction: "${targetFunction}"`,
       );
-      
+
       // まず複雑な形式 "("eventName", { ... })" を試す
       const complexMatch = value.match(/^\("([^"']+)"(?:,\s*({.+}))?/);
       console.log(`[DEBUG] parseEventConfig - complex match: ${complexMatch}`);
-      
+
       if (complexMatch) {
         let options: Record<string, unknown> = {};
         if (complexMatch[2]) {
@@ -664,10 +670,12 @@ export class TakopackBuilder {
         );
         return result;
       }
-      
+
       // シンプルな形式 " eventName" の場合はデフォルト設定を使用
       const simpleValue = value.trim();
-      if (simpleValue && !simpleValue.includes("(") && !simpleValue.includes("{")) {
+      if (
+        simpleValue && !simpleValue.includes("(") && !simpleValue.includes("{")
+      ) {
         const result = {
           source: "client" as const,
           handler: targetFunction,
@@ -677,7 +685,7 @@ export class TakopackBuilder {
         );
         return result;
       }
-        console.log(`[DEBUG] parseEventConfig - no match found`);
+      console.log(`[DEBUG] parseEventConfig - no match found`);
       return null;
     } catch (error) {
       console.log(`[DEBUG] parseEventConfig - error: ${error}`);
@@ -731,9 +739,7 @@ export class TakopackBuilder {
 
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("❌ Type definition generation failed:", errorMessage);
       throw error;
     }
@@ -828,14 +834,8 @@ export class TakopackBuilder {
    * Takopack拡張クラスかどうかを判定
    */
   private isTakopackExtensionClass(className: string): boolean {
-    const takopackClasses = [
-      "Takos",
-      "TakopackExtension", 
-      "ServerExtension",
-      "ClientExtension",
-      "UIExtension"
-    ];
-    return takopackClasses.includes(className);
+    // チェーン形式のTakosクラスのみをサポート
+    return className === "Takos";
   }
 
   /**
@@ -843,49 +843,105 @@ export class TakopackBuilder {
    */
   private extractEventDefinitionsFromClasses(
     analyses: { server: ModuleAnalysis[]; client: ModuleAnalysis[] },
-    eventDefinitions: Record<string, EventDefinition>
+    eventDefinitions: Record<string, EventDefinition>,
   ): boolean {
     let hasDefinitions = false;
-    
+
     [...analyses.server, ...analyses.client].forEach((analysis) => {
-      analysis.exports.forEach((exp) => {
-        if (exp.instanceOf && this.isTakopackExtensionClass(exp.instanceOf)) {
-          console.log(`✅ Found Takopack extension instance: ${exp.name} (${exp.instanceOf})`);
-          
-          // このインスタンスのメソッド呼び出しを探す
-          analysis.methodCalls.forEach((call) => {
-            if (call.objectName === exp.name) {
-              console.log(`🔧 Processing method call: ${call.objectName}.${call.methodName}(${call.args.join(', ')})`);
-              
-              // server, client, ui, background メソッドかどうかチェック
-              if (['server', 'client', 'ui', 'background'].includes(call.methodName)) {
-                const eventName = call.args[0] as string;
-                const handlerArg = call.args[1];
-                let handlerName = '';
-                
-                if (typeof handlerArg === 'string') {
-                  // 関数名が文字列で渡された場合
-                  handlerName = handlerArg;
-                } else {
-                  // 関数オブジェクトが渡された場合、その関数名を推測
-                  handlerName = 'anonymous';
-                }
-                
-                if (eventName) {
-                  eventDefinitions[eventName] = {
-                    source: call.methodName as "client" | "server" | "background" | "ui",
-                    handler: handlerName,
-                  };
-                  console.log(`✅ Registered event: ${eventName} -> ${handlerName} (${call.methodName})`);
-                  hasDefinitions = true;
-                }
-              }
+      // チェーン形式メソッド呼び出しからイベント定義を抽出
+      analysis.methodCalls.forEach((call) => {
+        // Takopackのクラス名から直接呼び出されているメソッドを検出
+        if (this.isTakopackExtensionClass(call.objectName)) {
+          console.log(
+            `🔗 Processing chained method call: ${call.objectName}.${call.methodName}(${
+              call.args.join(", ")
+            })`,
+          );
+
+          // server, client, ui, background メソッドかどうかチェック
+          if (
+            ["server", "client", "ui", "background"].includes(call.methodName)
+          ) {
+            const eventName = call.args[0] as string;
+            const handlerArg = call.args[1];
+            let handlerName = "";
+
+            if (typeof handlerArg === "string") {
+              // 関数名が文字列で渡された場合
+              handlerName = handlerArg;
+            } else {
+              // 関数オブジェクトが渡された場合、その関数名を推測
+              handlerName = "anonymous";
             }
-          });
+
+            if (eventName) {
+              eventDefinitions[eventName] = {
+                source: call.methodName as
+                  | "client"
+                  | "server"
+                  | "background"
+                  | "ui",
+                handler: handlerName,
+              };
+              console.log(
+                `✅ Registered chained event: ${eventName} -> ${handlerName} (${call.methodName})`,
+              );
+              hasDefinitions = true;
+            }
+          }
         }
       });
     });
-    
+
     return hasDefinitions;
+  }
+
+  private async validatePermissions(): Promise<void> {
+    const files: string[] = [
+      ...(this.config.entries.server ?? []),
+      ...(this.config.entries.client ?? []),
+    ];
+
+    const required = new Set<Permission>();
+
+    for (const file of files) {
+      if (!existsSync(file)) continue;
+      const code = await Deno.readTextFile(file);
+      if (/takos\.kv\./.test(code)) {
+        required.add("kv:read");
+        required.add("kv:write");
+      }
+      if (/takos\.cdn\./.test(code)) {
+        required.add("cdn:read");
+        required.add("cdn:write");
+      }
+      if (/takos\.ap\./.test(code)) {
+        required.add("activitypub:send");
+        required.add("activitypub:read");
+      }
+      if (/fetchFromTakos|takos\.fetch/.test(code)) {
+        required.add("fetch:net");
+      }
+      if (/takos\.extensions\./.test(code)) {
+        required.add("extensions:invoke");
+      }
+    }
+
+    const manifestPerms = this.config.manifest.permissions ?? [];
+    const missing = [...required].filter((p) => !manifestPerms.includes(p));
+    if (missing.length > 0) {
+      throw new Error(
+        `Missing required permissions in manifest: ${missing.join(", ")}`,
+      );
+    }
+  }
+
+  private validateManifestSchema(manifest: ExtensionManifest): void {
+    const valid = this.validateManifest(manifest);
+    if (!valid) {
+      const errors = this.validateManifest.errors?.map((e) => `${e.instancePath} ${e.message || 'unknown error'}`)
+        .join(", ");
+      throw new Error(`Manifest schema validation failed: ${errors}`);
+    }
   }
 }
