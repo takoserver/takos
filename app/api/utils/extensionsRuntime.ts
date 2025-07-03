@@ -85,13 +85,92 @@ export async function loadExtension(
       const modUrl = URL.createObjectURL(
         new Blob([serverCode], { type: "text/javascript" }),
       );
-      const workerCode = `let modPromise = import(\'${modUrl}\');\n` +
+      const workerCode = `const extensionId = '${doc.identifier}';\n` +
+        `const requestHandlers = new Map();\n` +
+        `globalThis.takos = {\n` +
+        `  events: {\n` +
+        `    request(name, payload) {\n` +
+        `      const h = requestHandlers.get(name);\n` +
+        `      if (h) return Promise.resolve(h(payload));\n` +
+        `      self.postMessage({ type: 'publish', name, payload });\n` +
+        `      return Promise.resolve(undefined);\n` +
+        `    },\n` +
+        `    onRequest(name, handler) {\n` +
+        `      requestHandlers.set(name, handler);\n` +
+        `      self[name] = handler;\n` +
+        `      return () => { requestHandlers.delete(name); delete self[name]; };\n` +
+        `    }\n` +
+        `  },\n` +
+        `  kv: {\n` +
+        `    read(key) {\n` +
+        `      return fetch('http://localhost:3001/api/event', {\n` +
+        `        method: 'POST',\n` +
+        `        headers: { 'Content-Type': 'application/json' },\n` +
+        `        body: JSON.stringify({ events: [{ identifier: 'takos', eventId: 'kv:read', payload: { id: extensionId, key, side: 'server' } }] })\n` +
+        `      }).then(r=>r.json()).then(r=>r[0]?.result);\n` +
+        `    },\n` +
+        `    write(key, value) {\n` +
+        `      return fetch('http://localhost:3001/api/event', {\n` +
+        `        method: 'POST',\n` +
+        `        headers: { 'Content-Type': 'application/json' },\n` +
+        `        body: JSON.stringify({ events: [{ identifier: 'takos', eventId: 'kv:write', payload: { id: extensionId, key, value, side: 'server' } }] })\n` +
+        `      }).then(r=>r.json()).then(r=>r[0]?.result);\n` +
+        `    },\n` +
+        `    delete(key) {\n` +
+        `      return fetch('http://localhost:3001/api/event', {\n` +
+        `        method: 'POST',\n` +
+        `        headers: { 'Content-Type': 'application/json' },\n` +
+        `        body: JSON.stringify({ events: [{ identifier: 'takos', eventId: 'kv:delete', payload: { id: extensionId, key, side: 'server' } }] })\n` +
+        `      }).then(r=>r.json()).then(r=>r[0]?.result);\n` +
+        `    },\n` +
+        `    list(prefix) {\n` +
+        `      return fetch('http://localhost:3001/api/event', {\n` +
+        `        method: 'POST',\n` +
+        `        headers: { 'Content-Type': 'application/json' },\n` +
+        `        body: JSON.stringify({ events: [{ identifier: 'takos', eventId: 'kv:list', payload: { id: extensionId, prefix, side: 'server' } }] })\n` +
+        `      }).then(r=>r.json()).then(r=>r[0]?.result);\n` +
+        `    }\n` +
+        `  },\n` +
+        `  cdn: {\n` +
+        `    write(path, data, opts) {\n` +
+        `      const payload = { id: extensionId, path, data: typeof data === 'string' ? data : 'data:application/octet-stream;base64,' + btoa(String.fromCharCode(...new Uint8Array(data))), cacheTTL: opts?.cacheTTL };\n` +
+        `      return fetch('http://localhost:3001/api/event', {\n` +
+        `        method: 'POST',\n` +
+        `        headers: { 'Content-Type': 'application/json' },\n` +
+        `        body: JSON.stringify({ events: [{ identifier: 'takos', eventId: 'cdn:write', payload }] })\n` +
+        `      }).then(r=>r.json()).then(r=>r[0]?.result?.url);\n` +
+        `    },\n` +
+        `    read(path) {\n` +
+        `      return fetch('http://localhost:3001/api/event', {\n` +
+        `        method: 'POST',\n` +
+        `        headers: { 'Content-Type': 'application/json' },\n` +
+        `        body: JSON.stringify({ events: [{ identifier: 'takos', eventId: 'cdn:read', payload: { id: extensionId, path } }] })\n` +
+        `      }).then(r=>r.json()).then(r=>r[0]?.result);\n` +
+        `    },\n` +
+        `    delete(path) {\n` +
+        `      return fetch('http://localhost:3001/api/event', {\n` +
+        `        method: 'POST',\n` +
+        `        headers: { 'Content-Type': 'application/json' },\n` +
+        `        body: JSON.stringify({ events: [{ identifier: 'takos', eventId: 'cdn:delete', payload: { id: extensionId, path } }] })\n` +
+        `      }).then(r=>r.json()).then(r=>r[0]?.result);\n` +
+        `    },\n` +
+        `    list(prefix) {\n` +
+        `      return fetch('http://localhost:3001/api/event', {\n` +
+        `        method: 'POST',\n` +
+        `        headers: { 'Content-Type': 'application/json' },\n` +
+        `        body: JSON.stringify({ events: [{ identifier: 'takos', eventId: 'cdn:list', payload: { id: extensionId, prefix } }] })\n` +
+        `      }).then(r=>r.json()).then(r=>r[0]?.result);\n` +
+        `    }\n` +
+        `  },\n` +
+        `  fetch(url, init) { return fetch(url, init); }\n` +
+        `};\n` +
+        `let modPromise = import('${modUrl}');\n` +
         `self.onmessage = async (e) => {` +
         `  const { id, fn, args } = e.data;` +
         `  try {` +
         `    const mod = await modPromise;` +
-        `    if (typeof mod[fn] !== \'function\') {` +
-        `      throw new Error(\`function not found: \${fn}\`);` +
+        `    if (typeof mod[fn] !== 'function') {` +
+        `      throw new Error(\`function not found: ${fn}\`);` +
         `    }` +
         `    const result = await mod[fn](...args);` +
         `    self.postMessage({ id, result });` +
@@ -99,18 +178,33 @@ export async function loadExtension(
         `    self.postMessage({ id, error: err?.message ?? String(err) });` +
         `  }` +
         `};`;
-      
+
       const worker = new Worker(
-        URL.createObjectURL(new Blob([workerCode], { type: "text/javascript" })),
-        { type: "module" }
+        URL.createObjectURL(
+          new Blob([workerCode], { type: "text/javascript" }),
+        ),
+        { type: "module" },
       );
 
       worker.onerror = (event) => {
-        console.error(`Error in extension worker for ${doc.identifier}:`, event.message);
+        console.error(
+          `Error in extension worker for ${doc.identifier}:`,
+          event.message,
+        );
         // You might want to unload the extension here
         // unloadExtension(doc.identifier);
       };
-      
+
+      worker.addEventListener("message", (ev) => {
+        const data = ev.data;
+        if (data && data.type === "publish") {
+          wsManager.distributeEvent(
+            `${doc.identifier}:${data.name}`,
+            data.payload,
+          );
+        }
+      });
+
       extensionWorkers.set(doc.identifier, { worker, modUrl });
     }
 
@@ -174,7 +268,7 @@ export async function callExtension(
 
   return await new Promise((resolve, reject) => {
     const callId = crypto.randomUUID();
-    
+
     const messageHandler = (ev: MessageEvent) => {
       const data = ev.data;
       if (data && data.id === callId) {
@@ -219,7 +313,9 @@ export async function runActivityPubHooks(
           result = res as Record<string, unknown>;
         }
       } catch (err) {
-        if (!(err instanceof Error && err.message.includes("function not found"))) {
+        if (
+          !(err instanceof Error && err.message.includes("function not found"))
+        ) {
           console.error(`ActivityPub event failed for ${id}:`, err);
         }
       }
