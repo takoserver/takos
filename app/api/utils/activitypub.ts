@@ -144,12 +144,12 @@ export function ensurePem(
 
 function parseSignatureHeader(header: string): Record<string, string> {
   const params: Record<string, string> = {};
-  for (const part of header.split(",")) {
-    const eqIndex = part.indexOf("=");
-    if (eqIndex === -1) continue;
-    const k = part.slice(0, eqIndex).trim();
-    const v = part.slice(eqIndex + 1).trim();
-    params[k] = v.replace(/^"|"$/g, "");
+  const regex = /([a-zA-Z0-9_-]+)\s*=\s*("[^"]*"|[^,]*)/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(header)) !== null) {
+    const key = match[1];
+    const value = match[2].trim().replace(/^"|"$/g, "");
+    params[key] = value;
   }
   return params;
 }
@@ -226,7 +226,10 @@ export async function verifyHttpSignature(
       console.log("Digest verification passed");
     }
 
-    const headersList = params.headers.split(" ");
+    const headersList = params.headers
+      .split(/\s+/)
+      .map((h) => h.toLowerCase())
+      .filter((h) => h.length > 0);
     const url = new URL(req.url);
     const lines: string[] = [];
 
