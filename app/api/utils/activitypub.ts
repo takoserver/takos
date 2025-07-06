@@ -76,7 +76,7 @@ async function signAndSend(
     headers,
     body,
   });
-  console.log(res)
+  console.log(res);
   // Log the response status and body for debugging
   const responseBody = await res.text();
   console.log(`Response from ${inboxUrl}: ${res.status} ${res.statusText}`);
@@ -115,10 +115,10 @@ export async function deliverActivityPubObject(
   object: unknown,
   actor: string,
 ): Promise<void> {
-  const deliveryPromises = inboxes.map(inbox => {
+  const deliveryPromises = inboxes.map((inbox) => {
     if (inbox.startsWith("http")) {
       // Individual errors are caught within sendActivityPubObject, so we can just fire and forget here.
-      return sendActivityPubObject(inbox, object, actor).catch(err => {
+      return sendActivityPubObject(inbox, object, actor).catch((err) => {
         console.error(`Failed to deliver to ${inbox}`, err);
       });
     }
@@ -390,8 +390,19 @@ export async function resolveActor(
     return await actorRes.json();
   } catch {
     /* ignore */
-    return null;
   }
+
+  // WebFingerが使えないサーバー用のフォールバック
+  try {
+    const directUrl = `https://${domain}/users/${username}`;
+    const res = await fetch(directUrl, {
+      headers: { Accept: "application/activity+json" },
+    });
+    if (res.ok) return await res.json();
+  } catch {
+    /* ignore */
+  }
+  return null;
 }
 
 export function getDomain(
@@ -555,11 +566,13 @@ export interface RemoteActor {
   publicKeyId: string;
 }
 
-export async function resolveRemoteActor(actorIri: string): Promise<RemoteActor> {
+export async function resolveRemoteActor(
+  actorIri: string,
+): Promise<RemoteActor> {
   const actor = await fetchJson(actorIri);
 
-  const inbox =
-    actor.endpoints?.sharedInbox ?? actor.inbox ?? actor["ldp:inbox"];
+  const inbox = actor.endpoints?.sharedInbox ?? actor.inbox ??
+    actor["ldp:inbox"];
   if (!inbox) throw new Error("inbox not found in actor document");
 
   return {
