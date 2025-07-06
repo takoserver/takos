@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import Account from "./models/account.ts";
 import ActivityPubObject from "./models/activitypub_object.ts";
+import ExternalActor from "./models/external_actor.ts";
 
 import { activityHandlers } from "./activity_handlers.ts";
 
@@ -173,10 +174,22 @@ app.get("/activitypub/actor-proxy", async (c) => {
       return c.json({ error: "Invalid URL" }, 400);
     }
 
+    // 既存キャッシュを確認
+    const cached = await ExternalActor.findOne({ actorUrl }).lean();
+    if (cached) {
+      return c.json({
+        name: cached.name,
+        preferredUsername: cached.preferredUsername,
+        icon: cached.icon,
+        summary: cached.summary,
+      });
+    }
+
     // ActivityPub Accept ヘッダーでリクエスト
     const response = await fetch(actorUrl, {
       headers: {
-        "Accept": "application/activity+json, application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\"",
+        "Accept":
+          'application/activity+json, application/ld+json; profile="https://www.w3.org/ns/activitystreams"',
         "User-Agent": "Takos ActivityPub Client/1.0",
       },
     });
@@ -186,8 +199,20 @@ app.get("/activitypub/actor-proxy", async (c) => {
     }
 
     const actor = await response.json();
-    
-    // 必要な情報のみを返す（セキュリティのため）
+
+    // DBにキャッシュ保存
+    await ExternalActor.findOneAndUpdate(
+      { actorUrl },
+      {
+        name: actor.name || "",
+        preferredUsername: actor.preferredUsername || "",
+        icon: actor.icon || null,
+        summary: actor.summary || "",
+        cachedAt: new Date(),
+      },
+      { upsert: true },
+    );
+
     return c.json({
       name: actor.name || "",
       preferredUsername: actor.preferredUsername || "",
