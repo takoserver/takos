@@ -14,6 +14,7 @@ export class VirtualEntryGenerator {
     for (const a of analyses) {
       const modVar = `mod${idx++}`;
       lines.push(`import * as ${modVar} from '${a.filePath}';`);
+      // from JSDoc tags
       for (const tag of a.jsDocTags || []) {
         if (tag.tag === "event") {
           const name = this.extractEventName(tag.value);
@@ -21,6 +22,17 @@ export class VirtualEntryGenerator {
             lines.push(
               `export const ${name} = (...args: any[]) => ${modVar}.${tag.targetFunction}(...args);`,
             );
+            exports.push(name);
+          }
+        }
+      }
+      // from decorators
+      for (const dec of a.decorators || []) {
+        if (dec.name === "event" && dec.targetFunction) {
+          const arg = dec.args[0];
+          const name = typeof arg === "string" ? arg.replace(/^['"]|['"]$/g, "") : undefined;
+          if (name) {
+            lines.push(`export const ${name} = (...args: any[]) => ${modVar}.${dec.targetFunction}(...args);`);
             exports.push(name);
           }
         }
@@ -36,6 +48,7 @@ export class VirtualEntryGenerator {
     for (const a of analyses) {
       const modVar = `mod${idx++}`;
       lines.push(`import * as ${modVar} from '${a.filePath}';`);
+      // from JSDoc tags
       for (const tag of a.jsDocTags || []) {
         if (tag.tag === "event") {
           const name = this.extractEventName(tag.value);
@@ -43,6 +56,17 @@ export class VirtualEntryGenerator {
             lines.push(
               `export const ${name} = (...args: any[]) => ${modVar}.${tag.targetFunction}(...args);`,
             );
+            exports.push(name);
+          }
+        }
+      }
+      // from decorators
+      for (const dec of a.decorators || []) {
+        if (dec.name === "event" && dec.targetFunction) {
+          const arg = dec.args[0];
+          const name = typeof arg === "string" ? arg.replace(/^['"]|['"]$/g, "") : undefined;
+          if (name) {
+            lines.push(`export const ${name} = (...args: any[]) => ${modVar}.${dec.targetFunction}(...args);`);
             exports.push(name);
           }
         }
