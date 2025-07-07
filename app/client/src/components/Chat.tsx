@@ -679,7 +679,7 @@ export function Chat() {
               <div class="flex-1 relative">
                 <textarea
                   value={newMessage()}
-                  onInput={(e) => setNewMessage(e.target.value)}
+                  onInput={(e) => setNewMessage(e.currentTarget.value)}
                   placeholder={isMobile()
                     ? "メッセージ..."
                     : "メッセージを入力..."}
