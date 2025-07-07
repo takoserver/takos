@@ -37,7 +37,6 @@ import {
   saveMLSGroupStates,
   saveMLSKeyPair,
 } from "./e2ee/storage.ts";
-import ChatHeader from "./header/header.tsx";
 
 interface ChatMessage {
   id: string;
@@ -332,7 +331,6 @@ export function Chat() {
 
   return (
     <>
-      <ChatHeader />
       <div class="wrapper w-full">
         <main
           class={`p-talk ${
@@ -416,39 +414,54 @@ export function Chat() {
               <div class="p-talk-chat-main flex-grow overflow-y-auto">
                 <ul class="p-talk-chat-main__ul">
                   <For each={messages()}>
-                    {(message) => (
-                      <li
-                        class={`c-talk-chat ${message.isMe ? "self" : "other"}`}
-                      >
-                        <div class="c-talk-chat-box">
-                          <Show when={!message.isMe}>
-                            <div class="c-talk-chat-icon">
-                              {isUrl(message.avatar)
-                                ? <img src={message.avatar} alt="avatar" />
-                                : message.avatar}
-                            </div>
-                          </Show>
-                          <div class="c-talk-chat-right">
-                            <Show when={!message.isMe}>
-                              <p class="c-talk-chat-name">
-                                {message.displayName}
-                              </p>
+                    {(message, i) => {
+                      const prev = messages()[i() - 1];
+                      const isPrimary = !prev || prev.author !== message.author;
+                      const cls = `c-talk-chat ${
+                        message.isMe ? "self" : "other"
+                      } ${isPrimary ? "primary" : "subsequent"}`;
+                      return (
+                        <li class={cls}>
+                          <div class="c-talk-chat-box">
+                            <Show when={!message.isMe && isPrimary}>
+                              <div class="c-talk-chat-icon">
+                                {isUrl(message.avatar)
+                                  ? <img src={message.avatar} alt="avatar" />
+                                  : message.avatar}
+                              </div>
                             </Show>
-                            <div class="c-talk-chat-msg">
-                              <p>{message.content}</p>
+                            <div class="c-talk-chat-right">
+                              <Show when={!message.isMe && isPrimary}>
+                                <p class="c-talk-chat-name">
+                                  {message.displayName}
+                                </p>
+                              </Show>
+                              <div class="flex items-end">
+                                <Show when={message.isMe}>
+                                  <span class="text-xs text-gray-500 mr-2">
+                                    {message.timestamp.toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </Show>
+                                <div class="c-talk-chat-msg">
+                                  <p>{message.content}</p>
+                                </div>
+                                <Show when={!message.isMe}>
+                                  <span class="text-xs text-gray-500 ml-2">
+                                    {message.timestamp.toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </Show>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <p class="c-talk-chat-date">
-                          <span class="c-talk-chat-date-box">
-                            {message.timestamp.toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </p>
-                      </li>
-                    )}
+                        </li>
+                      );
+                    }}
                   </For>
                 </ul>
               </div>
