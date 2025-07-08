@@ -371,6 +371,8 @@ export function Chat() {
 
   createEffect(() => {
     account();
+    setKeyPair(null);
+    setGroups({});
     loadGroupStates();
     ensureKeyPair();
   });
