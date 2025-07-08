@@ -292,7 +292,9 @@ export function Chat() {
 
   // モバイルでの部屋選択時の動作
   const selectRoom = (roomId: string) => {
-    console.log("selected room:", roomId); // for debug
+    if (import.meta.env.DEV) {
+      console.log("selected room:", roomId);
+    }
     setSelectedRoom(roomId);
     if (isMobile()) {
       setShowRoomList(false); // モバイルではチャット画面に切り替え
