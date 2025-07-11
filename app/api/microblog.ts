@@ -93,9 +93,14 @@ app.use("*", authRequired);
 
 app.get("/microblog", async (c) => {
   const domain = getDomain(c);
-  const list = await ActivityPubObject.find({ type: "Note" }).sort({
-    published: -1,
-  }).lean();
+  const page = parseInt(c.req.query("page") ?? "1", 10);
+  const limit = Math.min(parseInt(c.req.query("limit") ?? "20", 10), 100);
+  const skip = (page - 1) * limit;
+  const list = await ActivityPubObject.find({ type: "Note" })
+    .sort({ published: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
 
   // ユーザー情報をバッチで取得
   const identifiers = list.map((doc: ActivityPubObjectType) =>
