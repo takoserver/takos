@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { broadcastEvent } from "./events.ts";
 import KeyPackage from "./models/key_package.ts";
 import EncryptedMessage from "./models/encrypted_message.ts";
 import PublicMessage from "./models/public_message.ts";
@@ -323,6 +324,16 @@ app.post("/users/:user/messages", async (c) => {
     console.error("deliver failed", err);
   });
 
+  broadcastEvent([...to, acct], "encrypted", {
+    id: msg._id.toString(),
+    from: msg.from,
+    to: msg.to,
+    content: msg.content,
+    mediaType: msg.mediaType,
+    encoding: msg.encoding,
+    createdAt: msg.createdAt,
+  });
+
   return c.json({ result: "sent", id: msg._id.toString() });
 });
 
@@ -373,6 +384,16 @@ app.post("/users/:user/publicMessages", async (c) => {
   (activity as ActivityPubActivity).cc = [];
   deliverActivityPubObject(to, activity, sender).catch((err) => {
     console.error("deliver failed", err);
+  });
+
+  broadcastEvent([...to, acct], "public", {
+    id: msg._id.toString(),
+    from: msg.from,
+    to: msg.to,
+    content: msg.content,
+    mediaType: msg.mediaType,
+    encoding: msg.encoding,
+    createdAt: msg.createdAt,
   });
 
   return c.json({ result: "sent", id: msg._id.toString() });

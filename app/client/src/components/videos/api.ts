@@ -24,28 +24,30 @@ export const createVideo = (
 ): Promise<Video | null> => {
   return new Promise((resolve) => {
     try {
-      const wsUrl = apiUrl("/api/videos/upload").replace(/^http/, "ws");
+      const wsUrl = apiUrl("/api/ws").replace(/^http/, "ws");
       const ws = new WebSocket(wsUrl);
       let uploaded = false;
 
+      ws.onopen = () => {
+        ws.send(
+          JSON.stringify({
+            type: "video-upload",
+            payload: {
+              author: data.author,
+              title: data.title,
+              description: data.description ?? "",
+              hashtagsStr: data.hashtags?.join(" ") ?? "",
+              isShort: data.isShort ?? false,
+              duration: data.duration ?? "",
+              originalName: data.file.name,
+            },
+          }),
+        );
+      };
+
       ws.onmessage = async (evt) => {
         const msg = JSON.parse(evt.data);
-        if (msg.status === "ready for metadata") {
-          ws.send(
-            JSON.stringify({
-              type: "metadata",
-              payload: {
-                author: data.author,
-                title: data.title,
-                description: data.description ?? "",
-                hashtagsStr: data.hashtags?.join(" ") ?? "",
-                isShort: data.isShort ?? false,
-                duration: data.duration ?? "",
-                originalName: data.file.name,
-              },
-            }),
-          );
-        } else if (msg.status === "ready for binary") {
+        if (msg.status === "ready for binary") {
           const chunkSize = 1024 * 512; // 512KB 程度
           for (let offset = 0; offset < data.file.size; offset += chunkSize) {
             const slice = data.file.slice(offset, offset + chunkSize);

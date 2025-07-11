@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import { upgradeWebSocket } from "hono/deno";
 import { extname } from "@std/path";
 import { createStorage } from "./services/object-storage.ts";
 import ActivityPubObject from "./models/activitypub_object.ts";
@@ -80,109 +79,6 @@ async function deliverVideoToFollowers(
 
 const app = new Hono();
 app.use("*", authRequired);
-
-const videoUploadWs = upgradeWebSocket((c) => {
-  const chunks: Uint8Array[] = [];
-  let storageKey: string | undefined;
-  let videoMetadata: {
-    author: string;
-    title: string;
-    description: string;
-    hashtagsStr: string;
-    isShort: boolean;
-    duration: string;
-    originalName: string;
-  } | undefined;
-
-  return {
-    onOpen(_evt, ws) {
-      console.log("WebSocket connection opened");
-      ws.send(JSON.stringify({ status: "ready for metadata" }));
-    },
-    onMessage(evt, ws) {
-      // First message is assumed to be JSON metadata
-      if (typeof evt.data === "string") {
-        try {
-          const data = JSON.parse(evt.data);
-          if (data.type === "metadata" && data.payload) {
-            videoMetadata = data.payload;
-
-            if (!videoMetadata || !videoMetadata.originalName) {
-              ws.close(1003, "Invalid metadata payload");
-              return;
-            }
-
-            const ext = extname(videoMetadata.originalName) || ".mp4";
-            storageKey = `${crypto.randomUUID()}${ext}`;
-
-            ws.send(JSON.stringify({ status: "ready for binary" }));
-            return;
-          }
-        } catch (_e) {
-          ws.close(1003, "Invalid metadata format");
-          return;
-        }
-      }
-
-      // Subsequent messages are binary data
-      if (evt.data instanceof ArrayBuffer) {
-        if (storageKey) {
-          chunks.push(new Uint8Array(evt.data));
-        } else {
-          ws.close(1003, "Not ready for binary data");
-        }
-      }
-    },
-    async onClose(_evt, _ws) {
-      console.log("WebSocket connection closed");
-      if (storageKey && videoMetadata && chunks.length > 0) {
-        const data = new Uint8Array(chunks.reduce((a, b) => a + b.length, 0));
-        let offset = 0;
-        for (const cbuf of chunks) {
-          data.set(cbuf, offset);
-          offset += cbuf.length;
-        }
-        const stored = await storage.put(`videos/${storageKey}`, data);
-        const videoUrl = stored.startsWith("http")
-          ? stored
-          : `/api/video-files/${storageKey}`;
-
-        const domain = getDomain(c);
-        const video = new ActivityPubObject({
-          type: "Video",
-          attributedTo: videoMetadata.author,
-          content: videoMetadata.description,
-          published: new Date(),
-          extra: {
-            title: videoMetadata.title,
-            hashtags: videoMetadata.hashtagsStr
-              ? videoMetadata.hashtagsStr.split(" ")
-              : [],
-            isShort: videoMetadata.isShort,
-            duration: videoMetadata.duration || "",
-            likes: 0,
-            views: 0,
-            thumbnail: `/api/placeholder/${
-              videoMetadata.isShort ? "225/400" : "400/225"
-            }`,
-            videoUrl,
-          },
-        });
-
-        await video.save();
-        deliverVideoToFollowers(video, videoMetadata.author, domain);
-        console.log("Video metadata saved to database.");
-      } else {
-        console.log("Upload incomplete, cleaning up.");
-      }
-    },
-    onError(evt, _ws) {
-      console.error("WebSocket error:", evt);
-    },
-  };
-});
-
-app.get("/videos/upload", videoUploadWs);
 
 app.get("/videos", async (c) => {
   const domain = getDomain(c);
