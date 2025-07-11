@@ -21,7 +21,7 @@ import {
   sendEncryptedMessage,
   sendPublicMessage,
 } from "./e2ee/api.ts";
-import { getDomain } from "../utils/config.ts";
+import { apiUrl, getDomain } from "../utils/config.ts";
 import {
   decryptGroupMessage,
   deriveMLSSecret,
@@ -116,6 +116,7 @@ export function Chat(props: ChatProps) {
     });
   };
   let poller: number | undefined;
+  let messageSocket: WebSocket | null = null;
   let textareaRef: HTMLTextAreaElement | undefined;
 
   const adjustHeight = () => {
@@ -474,15 +475,6 @@ export function Chat(props: ChatProps) {
       loadMessages(room, true);
     }
     if (poller) clearInterval(poller);
-    poller = setInterval(() => {
-      const currentRoomId = selectedRoom();
-      if (currentRoomId) {
-        const currentRoom = chatRooms().find((r) => r.id === currentRoomId);
-        if (currentRoom) {
-          loadMessages(currentRoom, true);
-        }
-      }
-    }, 5000);
   };
 
   // チャット一覧に戻る（モバイル用）
@@ -504,6 +496,100 @@ export function Chat(props: ChatProps) {
       loadMessages(room, true);
     }
     adjustHeight();
+
+    const user = account();
+    if (user) {
+      const id = `${user.userName}@${getDomain()}`;
+      const wsUrl = apiUrl("/api/ws").replace(/^http/, "ws");
+      messageSocket = new WebSocket(wsUrl);
+      messageSocket.onopen = () => {
+        messageSocket?.send(JSON.stringify({ type: "subscribe", user: id }));
+      };
+      messageSocket.onmessage = async (evt) => {
+        const payload = JSON.parse(evt.data);
+        if (payload.event !== "encrypted" && payload.event !== "public") return;
+        const msg = payload.data as {
+          id: string;
+          from: string;
+          to: string[];
+          content: string;
+          mediaType: string;
+          encoding: string;
+          createdAt: string;
+        };
+        const partner = msg.from === id
+          ? msg.to.find((t) => t !== id) ?? msg.to[0]
+          : msg.from;
+        let room = chatRooms().find((r) => r.id === partner);
+        if (!room) {
+          const infos = await fetchUserInfoBatch([partner], user.id);
+          if (infos.length > 0) {
+            const info = infos[0];
+            room = {
+              id: partner,
+              name: info.displayName || info.userName,
+              userName: info.userName,
+              domain: info.domain,
+              avatar: info.authorAvatar ||
+                info.userName.charAt(0).toUpperCase(),
+              unreadCount: 0,
+              type: "dm",
+              members: [partner],
+              lastMessage: "",
+              lastMessageTime: undefined,
+            };
+            setChatRooms((r) => [...r, room!]);
+          } else {
+            return;
+          }
+        }
+
+        let text = msg.content;
+        let group = groups()[room.id];
+        if (payload.event === "encrypted") {
+          if (!group) {
+            const kp = await ensureKeyPair();
+            if (kp) {
+              const [pu, pd] = splitActor(room.members[0]);
+              const partnerPub = await getPartnerKey(pu, pd);
+              if (partnerPub) {
+                const secret = await deriveMLSSecret(kp.privateKey, partnerPub);
+                group = { members: room.members, epoch: Date.now(), secret };
+                setGroups({ ...groups(), [room.id]: group });
+                saveGroupStates();
+              }
+            }
+          }
+          if (group) {
+            const plain = await decryptGroupMessage(group, msg.content);
+            text = plain ?? "";
+          } else {
+            text = "";
+          }
+        }
+
+        const isMe = msg.from === id;
+        const displayName = isMe
+          ? user.displayName || user.userName
+          : room.name;
+        const newMsg: ChatMessage = {
+          id: msg.id,
+          author: msg.from,
+          displayName,
+          address: msg.from,
+          content: text,
+          timestamp: new Date(msg.createdAt),
+          type: "text",
+          isMe,
+          avatar: room.avatar,
+        };
+
+        if (selectedRoom() === room.id) {
+          setMessages((m) => [...m, newMsg]);
+        }
+        updateRoomLast(room.id, newMsg);
+      };
+    }
   });
 
   createEffect(() => {
@@ -550,6 +636,7 @@ export function Chat(props: ChatProps) {
   onCleanup(() => {
     globalThis.removeEventListener("resize", checkMobile);
     if (poller) clearInterval(poller);
+    if (messageSocket) messageSocket.close();
   });
 
   return (

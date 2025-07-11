@@ -17,6 +17,7 @@ import nodeinfo from "./nodeinfo.ts";
 import e2ee from "./e2ee.ts";
 import relays from "./relays.ts";
 import videos from "./videos.ts";
+import events from "./events.ts";
 
 const env = await load();
 
@@ -36,6 +37,7 @@ app.route("/api", communities);
 app.route("/api", relays);
 app.route("/api", users);
 app.route("/api", userInfo);
+app.route("/api", events);
 app.route("/api", e2ee);
 app.route("/api", activitypub); // ActivityPubプロキシAPI用
 app.route("/api", group);
