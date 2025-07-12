@@ -9,6 +9,7 @@ import {
 } from "solid-js";
 import { useAtom } from "solid-jotai";
 import { selectedRoomState } from "../states/chat.ts";
+import { useNavigate } from "@solidjs/router";
 import { activeAccount } from "../states/account.ts";
 import { fetchUserInfoBatch } from "./microblog/api.ts";
 import {
@@ -92,6 +93,7 @@ export function Chat(props: ChatProps) {
   // 暗号化はデフォルトではオフにしておく
   const [useEncryption, setUseEncryption] = createSignal(false);
   const [partnerHasKey, setPartnerHasKey] = createSignal(true);
+  const navigate = useNavigate();
   const partnerKeyCache = new Map<string, string | null>();
   const messageLimit = 30;
   const [cursor, setCursor] = createSignal<string | null>(null);
@@ -509,6 +511,7 @@ export function Chat(props: ChatProps) {
     console.log("selected room:", roomId); // for debug
     setPartnerHasKey(true);
     setSelectedRoom(roomId);
+    navigate(`/chat/${roomId}`);
     if (isMobile()) {
       setShowRoomList(false); // モバイルではチャット画面に切り替え
     }
