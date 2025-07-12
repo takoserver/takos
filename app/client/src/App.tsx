@@ -5,16 +5,25 @@ import { darkModeState, languageState } from "./states/settings.ts";
 import { LoginForm } from "./components/LoginForm.tsx";
 import { EncryptionKeyForm } from "./components/EncryptionKeyForm.tsx";
 import { Application } from "./components/Application.tsx";
+import { AppPage, selectedAppState } from "./states/app.ts";
+import { selectedRoomState } from "./states/chat.ts";
 import { apiFetch } from "./utils/config.ts";
 import { useInitialLoad } from "./utils/initialLoad.ts";
 import "./App.css";
 import "./stylesheet.css";
 
-function App() {
+interface AppProps {
+  initialPage?: AppPage;
+  initialRoomId?: string | null;
+}
+
+function App(props: AppProps) {
   const [isLoggedIn, setIsLoggedIn] = useAtom(loginState);
   const [encryptionKey, setEncryptionKey] = useAtom(encryptionKeyState);
   const [darkMode, setDarkMode] = useAtom(darkModeState);
   const [language, setLanguage] = useAtom(languageState);
+  const [_selectedApp, setSelectedApp] = useAtom(selectedAppState);
+  const [_selectedRoom, setSelectedRoom] = useAtom(selectedRoomState);
   const [skippedEncryptionKey, setSkippedEncryptionKey] = createSignal(false);
 
   // 共通の初期データ取得
@@ -22,6 +31,9 @@ function App() {
 
   // アプリケーション初期化時にログイン状態を確認
   onMount(async () => {
+    if (props.initialPage) setSelectedApp(props.initialPage);
+    if (props.initialRoomId) setSelectedRoom(props.initialRoomId);
+
     const storedKey = localStorage.getItem("encryptionKey");
     if (storedKey) {
       setEncryptionKey(storedKey);
