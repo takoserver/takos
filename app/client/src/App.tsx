@@ -1,5 +1,5 @@
 import { createEffect, createSignal, onMount, Show } from "solid-js";
-import { hashIntegration, Route, Router } from "@solidjs/router";
+import { HashRouter, Route } from "@solidjs/router";
 import { useAtom } from "solid-jotai";
 import { encryptionKeyState, loginState } from "./states/session.ts";
 import { darkModeState, languageState } from "./states/settings.ts";
@@ -89,7 +89,7 @@ function App() {
       when={isLoggedIn()}
       fallback={<LoginForm onLoginSuccess={() => setIsLoggedIn(true)} />}
     >
-      <Router source={hashIntegration()}>
+      <HashRouter>
         <Route
           path="/"
           component={() => (
@@ -104,7 +104,7 @@ function App() {
           )}
         />
         <Route path="/users/:username" component={UserProfilePage} />
-      </Router>
+      </HashRouter>
       <Show when={encryptionKeyFormVisible()}>
         <div style="
             position: fixed;
