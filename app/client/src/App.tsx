@@ -1,10 +1,14 @@
 import { createEffect, createSignal, onMount, Show } from "solid-js";
+import { Route, Routes } from "@solidjs/router";
 import { useAtom } from "solid-jotai";
 import { encryptionKeyState, loginState } from "./states/session.ts";
 import { darkModeState, languageState } from "./states/settings.ts";
 import { LoginForm } from "./components/LoginForm.tsx";
 import { EncryptionKeyForm } from "./components/EncryptionKeyForm.tsx";
 import { Application } from "./components/Application.tsx";
+import PostView from "./components/PostView.tsx";
+import ChatRoomPage from "./components/ChatRoomPage.tsx";
+import UserProfilePage from "./components/UserProfilePage.tsx";
 import { apiFetch } from "./utils/config.ts";
 import { useInitialLoad } from "./utils/initialLoad.ts";
 import "./App.css";
@@ -85,7 +89,22 @@ function App() {
       when={isLoggedIn()}
       fallback={<LoginForm onLoginSuccess={() => setIsLoggedIn(true)} />}
     >
-      <Application onShowEncryptionKeyForm={showEncryptionKeyForm} />
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Application onShowEncryptionKeyForm={showEncryptionKeyForm} />
+          }
+        />
+        <Route path="/posts/:id" element={<PostView />} />
+        <Route
+          path="/chat/:roomId"
+          element={
+            <ChatRoomPage onShowEncryptionKeyForm={showEncryptionKeyForm} />
+          }
+        />
+        <Route path="/users/:username" element={<UserProfilePage />} />
+      </Routes>
       <Show when={encryptionKeyFormVisible()}>
         <div style="
             position: fixed;
