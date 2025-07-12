@@ -149,7 +149,7 @@ type PostItemProps = {
   formatDate: (dateString: string) => string;
 };
 
-function PostItem(props: PostItemProps) {
+export function PostItem(props: PostItemProps) {
   const {
     post,
     tab,
