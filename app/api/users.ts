@@ -79,6 +79,38 @@ app.get("/users/:username", async (c) => {
   }
 });
 
+// ユーザーの投稿一覧取得
+app.get("/users/:username/posts", async (c) => {
+  try {
+    const domain = getDomain(c);
+    const username = c.req.param("username");
+    const user = await Account.findOne({ userName: username }).lean();
+    if (!user) {
+      return c.json({ error: "User not found" }, 404);
+    }
+
+    const posts = await ActivityPubObject.find({
+      type: "Note",
+      attributedTo: username,
+    }).sort({ published: -1 }).limit(50).lean();
+
+    const formatted = posts.map((post) =>
+      formatUserInfoForPost({
+        userName: username,
+        displayName: user.displayName,
+        authorAvatar: user.avatarInitial || "",
+        domain,
+        isLocal: true,
+      }, post)
+    );
+
+    return c.json(formatted);
+  } catch (error) {
+    console.error("Error fetching user posts:", error);
+    return c.json({ error: "Failed to fetch user posts" }, 500);
+  }
+});
+
 // フォロー
 app.post("/users/:username/follow", async (c) => {
   try {

@@ -1,4 +1,5 @@
 import { createResource, createSignal, For, Show } from "solid-js";
+import { A, useNavigate } from "@solidjs/router";
 import { renderNoteContent } from "../../utils/render.ts";
 import { getDomain } from "../../utils/config.ts";
 import type { MicroblogPost } from "./types.ts";
@@ -149,7 +150,7 @@ type PostItemProps = {
   formatDate: (dateString: string) => string;
 };
 
-function PostItem(props: PostItemProps) {
+export function PostItem(props: PostItemProps) {
   const {
     post,
     tab,
@@ -164,6 +165,8 @@ function PostItem(props: PostItemProps) {
 
   // ユーザー情報を整理
   const userInfo = formatUserInfo(post);
+
+  const navigate = useNavigate();
 
   // 外部ユーザーの追加情報を取得
   type ExternalInfo = {
@@ -207,21 +210,29 @@ function PostItem(props: PostItemProps) {
   };
 
   return (
-    <div class="p-4 hover:bg-gray-950/50 transition-colors cursor-pointer">
+    <div
+      class="p-4 hover:bg-gray-950/50 transition-colors cursor-pointer"
+      onClick={() => navigate(`/posts/${post.id}`)}
+    >
       <div class="flex space-x-3">
         <div class="flex-shrink-0">
-          <UserAvatar
-            avatarUrl={finalUserInfo().authorAvatar}
-            username={finalUserInfo().userName}
-            size="w-12 h-12"
-            isExternal={!userInfo.isLocalUser}
-          />
+          <A href={`/users/${encodeURIComponent(finalUserInfo().userName)}`}>
+            <UserAvatar
+              avatarUrl={finalUserInfo().authorAvatar}
+              username={finalUserInfo().userName}
+              size="w-12 h-12"
+              isExternal={!userInfo.isLocalUser}
+            />
+          </A>
         </div>
         <div class="flex-1 min-w-0">
           <div class="flex flex-wrap items-center gap-x-2 mb-1">
-            <span class="font-bold text-white hover:underline cursor-pointer truncate">
+            <A
+              href={`/users/${encodeURIComponent(finalUserInfo().userName)}`}
+              class="font-bold text-white hover:underline cursor-pointer truncate"
+            >
               {finalUserInfo().displayName}
-            </span>
+            </A>
             <span class="text-gray-500 truncate">
               @{finalUserInfo().userName}
             </span>

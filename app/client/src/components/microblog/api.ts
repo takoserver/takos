@@ -454,6 +454,24 @@ export const fetchUserProfile = async (username: string) => {
   }
 };
 
+// 指定ユーザーの投稿一覧を取得
+export const fetchUserPosts = async (
+  username: string,
+): Promise<MicroblogPost[]> => {
+  try {
+    const response = await apiFetch(
+      `/api/users/${encodeURIComponent(username)}/posts`,
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch user posts");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching user posts:", error);
+    return [];
+  }
+};
+
 // ユーザー情報の型定義
 export interface UserInfo {
   userName: string;

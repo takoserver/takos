@@ -1,14 +1,48 @@
 import { createEffect, createSignal, onMount, Show } from "solid-js";
+import { HashRouter, useLocation } from "@solidjs/router";
 import { useAtom } from "solid-jotai";
 import { encryptionKeyState, loginState } from "./states/session.ts";
 import { darkModeState, languageState } from "./states/settings.ts";
 import { LoginForm } from "./components/LoginForm.tsx";
 import { EncryptionKeyForm } from "./components/EncryptionKeyForm.tsx";
 import { Application } from "./components/Application.tsx";
+import { selectedAppState } from "./states/app.ts";
+import { selectedRoomState } from "./states/chat.ts";
+import { currentPostIdState, currentProfileState } from "./states/microblog.ts";
 import { apiFetch } from "./utils/config.ts";
 import { useInitialLoad } from "./utils/initialLoad.ts";
 import "./App.css";
 import "./stylesheet.css";
+
+function UrlWatcher() {
+  const location = useLocation();
+  const [, setSelectedApp] = useAtom(selectedAppState);
+  const [, setSelectedRoom] = useAtom(selectedRoomState);
+  const [, setCurrentPostId] = useAtom(currentPostIdState);
+  const [, setCurrentProfile] = useAtom(currentProfileState);
+
+  createEffect(() => {
+    const path = location.pathname;
+    const parts = path.split("/").filter(Boolean);
+    if (parts[0] === "chat" && parts[1]) {
+      setSelectedApp("chat");
+      setSelectedRoom(parts[1]);
+    } else if (parts[0] === "posts" && parts[1]) {
+      setSelectedApp("microblog");
+      setCurrentPostId(parts[1]);
+      setCurrentProfile(null);
+    } else if (parts[0] === "users" && parts[1]) {
+      setSelectedApp("microblog");
+      setCurrentProfile(parts[1]);
+      setCurrentPostId(null);
+    } else {
+      setCurrentPostId(null);
+      setCurrentProfile(null);
+    }
+  });
+
+  return null;
+}
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useAtom(loginState);
@@ -85,7 +119,10 @@ function App() {
       when={isLoggedIn()}
       fallback={<LoginForm onLoginSuccess={() => setIsLoggedIn(true)} />}
     >
-      <Application onShowEncryptionKeyForm={showEncryptionKeyForm} />
+      <HashRouter>
+        <UrlWatcher />
+        <Application onShowEncryptionKeyForm={showEncryptionKeyForm} />
+      </HashRouter>
       <Show when={encryptionKeyFormVisible()}>
         <div style="
             position: fixed;
