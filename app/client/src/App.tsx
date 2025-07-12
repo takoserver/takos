@@ -14,17 +14,42 @@ import { useInitialLoad } from "./utils/initialLoad.ts";
 import "./App.css";
 import "./stylesheet.css";
 
+function UrlWatcher() {
+  const location = useLocation();
+  const [, setSelectedApp] = useAtom(selectedAppState);
+  const [, setSelectedRoom] = useAtom(selectedRoomState);
+  const [, setCurrentPostId] = useAtom(currentPostIdState);
+  const [, setCurrentProfile] = useAtom(currentProfileState);
+
+  createEffect(() => {
+    const path = location.pathname;
+    const parts = path.split("/").filter(Boolean);
+    if (parts[0] === "chat" && parts[1]) {
+      setSelectedApp("chat");
+      setSelectedRoom(parts[1]);
+    } else if (parts[0] === "posts" && parts[1]) {
+      setSelectedApp("microblog");
+      setCurrentPostId(parts[1]);
+      setCurrentProfile(null);
+    } else if (parts[0] === "users" && parts[1]) {
+      setSelectedApp("microblog");
+      setCurrentProfile(parts[1]);
+      setCurrentPostId(null);
+    } else {
+      setCurrentPostId(null);
+      setCurrentProfile(null);
+    }
+  });
+
+  return null;
+}
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useAtom(loginState);
   const [encryptionKey, setEncryptionKey] = useAtom(encryptionKeyState);
   const [darkMode, setDarkMode] = useAtom(darkModeState);
   const [language, setLanguage] = useAtom(languageState);
   const [skippedEncryptionKey, setSkippedEncryptionKey] = createSignal(false);
-  const location = useLocation();
-  const [, setSelectedApp] = useAtom(selectedAppState);
-  const [, setSelectedRoom] = useAtom(selectedRoomState);
-  const [, setCurrentPostId] = useAtom(currentPostIdState);
-  const [, setCurrentProfile] = useAtom(currentProfileState);
 
   // 共通の初期データ取得
   useInitialLoad();
@@ -75,28 +100,6 @@ function App() {
     localStorage.setItem("language", language());
   });
 
-  // URL変化に応じて状態を更新
-  createEffect(() => {
-    const path = location.pathname;
-    const parts = path.split("/").filter(Boolean);
-    if (parts[0] === "chat" && parts[1]) {
-      setSelectedApp("chat");
-      setSelectedRoom(parts[1]);
-    }
-    if (parts[0] === "posts" && parts[1]) {
-      setSelectedApp("microblog");
-      setCurrentPostId(parts[1]);
-    } else {
-      setCurrentPostId(null);
-    }
-    if (parts[0] === "users" && parts[1]) {
-      setSelectedApp("microblog");
-      setCurrentProfile(parts[1]);
-    } else {
-      setCurrentProfile(null);
-    }
-  });
-
   const [encryptionKeyFormVisible, setEncryptionKeyFormVisible] = createSignal(
     false,
   );
@@ -117,6 +120,7 @@ function App() {
       fallback={<LoginForm onLoginSuccess={() => setIsLoggedIn(true)} />}
     >
       <HashRouter>
+        <UrlWatcher />
         <Application onShowEncryptionKeyForm={showEncryptionKeyForm} />
       </HashRouter>
       <Show when={encryptionKeyFormVisible()}>
