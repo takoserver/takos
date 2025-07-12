@@ -4,12 +4,19 @@ import {
   createSignal,
   onCleanup,
   onMount,
+  Show,
 } from "solid-js";
 import { useAtom } from "solid-jotai";
 import { activeAccount } from "../states/account.ts";
 import { StoryTray, StoryViewer } from "./microblog/Story.tsx";
 import { PostForm, PostList } from "./microblog/Post.tsx";
 import { CommunityView } from "./microblog/Community.tsx";
+import PostView from "./PostView.tsx";
+import UserProfilePage from "./UserProfilePage.tsx";
+import {
+  currentPostIdState,
+  currentProfileState,
+} from "../states/microblog.ts";
 import {
   _replyToPost,
   createPost,
@@ -34,6 +41,8 @@ import type {
 export function Microblog() {
   // タブ切り替え: "recommend" | "following" | "community"
   const [account] = useAtom(activeAccount);
+  const [currentPostId, _setCurrentPostId] = useAtom(currentPostIdState);
+  const [currentProfile, _setCurrentProfile] = useAtom(currentProfileState);
   const [tab, setTab] = createSignal<"recommend" | "following" | "community">(
     "recommend",
   );
@@ -527,6 +536,20 @@ export function Microblog() {
           quoteId={quoteTarget()}
           currentUser={account() || undefined}
         />
+        <Show when={currentPostId()}>
+          {(pid) => (
+            <div class="fixed inset-0 bg-black/70 overflow-y-auto z-50">
+              <PostView id={pid} />
+            </div>
+          )}
+        </Show>
+        <Show when={currentProfile()}>
+          {(uname) => (
+            <div class="fixed inset-0 bg-black/70 overflow-y-auto z-50">
+              <UserProfilePage username={uname} />
+            </div>
+          )}
+        </Show>
       </div>
     </>
   );

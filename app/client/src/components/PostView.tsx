@@ -1,11 +1,9 @@
 import { createResource, Show } from "solid-js";
-import { useParams } from "@solidjs/router";
 import { fetchPostById } from "./microblog/api.ts";
 import { PostItem } from "./microblog/Post.tsx";
 
-export default function PostView() {
-  const params = useParams();
-  const [post] = createResource(() => fetchPostById(params.id));
+export default function PostView(props: { id: string }) {
+  const [post] = createResource(() => fetchPostById(props.id));
   const formatDate = (d: string) => new Date(d).toLocaleString();
   const noop = () => {};
   return (

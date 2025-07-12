@@ -1,12 +1,10 @@
 import { createResource, For, Show } from "solid-js";
-import { useParams } from "@solidjs/router";
 import { fetchUserPosts, fetchUserProfile } from "./microblog/api.ts";
 import { PostItem } from "./microblog/Post.tsx";
 
-export default function UserProfilePage() {
-  const params = useParams();
-  const [info] = createResource(() => fetchUserProfile(params.username));
-  const [posts] = createResource(() => fetchUserPosts(params.username));
+export default function UserProfilePage(props: { username: string }) {
+  const [info] = createResource(() => fetchUserProfile(props.username));
+  const [posts] = createResource(() => fetchUserPosts(props.username));
   const formatDate = (d: string) => new Date(d).toLocaleString();
   const noop = () => {};
   return (

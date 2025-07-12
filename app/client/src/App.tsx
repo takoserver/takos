@@ -1,14 +1,14 @@
 import { createEffect, createSignal, onMount, Show } from "solid-js";
-import { HashRouter, Route } from "@solidjs/router";
+import { HashRouter, useLocation } from "@solidjs/router";
 import { useAtom } from "solid-jotai";
 import { encryptionKeyState, loginState } from "./states/session.ts";
 import { darkModeState, languageState } from "./states/settings.ts";
 import { LoginForm } from "./components/LoginForm.tsx";
 import { EncryptionKeyForm } from "./components/EncryptionKeyForm.tsx";
 import { Application } from "./components/Application.tsx";
-import PostView from "./components/PostView.tsx";
-import ChatRoomPage from "./components/ChatRoomPage.tsx";
-import UserProfilePage from "./components/UserProfilePage.tsx";
+import { selectedAppState } from "./states/app.ts";
+import { selectedRoomState } from "./states/chat.ts";
+import { currentPostIdState, currentProfileState } from "./states/microblog.ts";
 import { apiFetch } from "./utils/config.ts";
 import { useInitialLoad } from "./utils/initialLoad.ts";
 import "./App.css";
@@ -20,6 +20,11 @@ function App() {
   const [darkMode, setDarkMode] = useAtom(darkModeState);
   const [language, setLanguage] = useAtom(languageState);
   const [skippedEncryptionKey, setSkippedEncryptionKey] = createSignal(false);
+  const location = useLocation();
+  const [, setSelectedApp] = useAtom(selectedAppState);
+  const [, setSelectedRoom] = useAtom(selectedRoomState);
+  const [, setCurrentPostId] = useAtom(currentPostIdState);
+  const [, setCurrentProfile] = useAtom(currentProfileState);
 
   // 共通の初期データ取得
   useInitialLoad();
@@ -70,6 +75,28 @@ function App() {
     localStorage.setItem("language", language());
   });
 
+  // URL変化に応じて状態を更新
+  createEffect(() => {
+    const path = location.pathname;
+    const parts = path.split("/").filter(Boolean);
+    if (parts[0] === "chat" && parts[1]) {
+      setSelectedApp("chat");
+      setSelectedRoom(parts[1]);
+    }
+    if (parts[0] === "posts" && parts[1]) {
+      setSelectedApp("microblog");
+      setCurrentPostId(parts[1]);
+    } else {
+      setCurrentPostId(null);
+    }
+    if (parts[0] === "users" && parts[1]) {
+      setSelectedApp("microblog");
+      setCurrentProfile(parts[1]);
+    } else {
+      setCurrentProfile(null);
+    }
+  });
+
   const [encryptionKeyFormVisible, setEncryptionKeyFormVisible] = createSignal(
     false,
   );
@@ -90,20 +117,7 @@ function App() {
       fallback={<LoginForm onLoginSuccess={() => setIsLoggedIn(true)} />}
     >
       <HashRouter>
-        <Route
-          path="/"
-          component={() => (
-            <Application onShowEncryptionKeyForm={showEncryptionKeyForm} />
-          )}
-        />
-        <Route path="/posts/:id" component={PostView} />
-        <Route
-          path="/chat/:roomId"
-          component={() => (
-            <ChatRoomPage onShowEncryptionKeyForm={showEncryptionKeyForm} />
-          )}
-        />
-        <Route path="/users/:username" component={UserProfilePage} />
+        <Application onShowEncryptionKeyForm={showEncryptionKeyForm} />
       </HashRouter>
       <Show when={encryptionKeyFormVisible()}>
         <div style="
