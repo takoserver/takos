@@ -8,6 +8,7 @@ import {
   Show,
 } from "solid-js";
 import { useAtom } from "solid-jotai";
+import { useNavigate, useParams } from "@solidjs/router";
 import { selectedRoomState } from "../states/chat.ts";
 import { activeAccount } from "../states/account.ts";
 import { fetchUserInfoBatch } from "./microblog/api.ts";
@@ -78,6 +79,8 @@ interface ChatProps {
 }
 
 export function Chat(props: ChatProps) {
+  const navigate = useNavigate();
+  const params = useParams();
   const [selectedRoom, setSelectedRoom] = useAtom(selectedRoomState); // グローバル状態を使用
   const [account] = useAtom(activeAccount);
   const [encryptionKey, setEncryptionKey] = useAtom(encryptionKeyState);
@@ -509,6 +512,7 @@ export function Chat(props: ChatProps) {
     console.log("selected room:", roomId); // for debug
     setPartnerHasKey(true);
     setSelectedRoom(roomId);
+    navigate(`/chat/${roomId}`);
     if (isMobile()) {
       setShowRoomList(false); // モバイルではチャット画面に切り替え
     }
@@ -532,6 +536,7 @@ export function Chat(props: ChatProps) {
   const backToRoomList = () => {
     setShowRoomList(true);
     setSelectedRoom(null); // チャンネル選択状態をリセット
+    navigate("/chat");
     if (poller) clearInterval(poller);
   };
 
@@ -542,6 +547,9 @@ export function Chat(props: ChatProps) {
     loadRooms();
     loadGroupStates();
     ensureKeyPair();
+    if (params.roomId) {
+      setSelectedRoom(params.roomId);
+    }
     const room = chatRooms().find((r) => r.id === selectedRoom());
     if (room) {
       loadMessages(room, true);

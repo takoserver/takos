@@ -2,8 +2,16 @@
 import { render } from "solid-js/web";
 import { registerSW } from "virtual:pwa-register";
 
+import { Router } from "@solidjs/router";
 import App from "./App.tsx";
 
-render(() => <App />, document.getElementById("root")!);
+render(
+  () => (
+    <Router>
+      <App />
+    </Router>
+  ),
+  document.getElementById("root")!,
+);
 // サービスワーカーを登録してPWAを有効化
 registerSW({ immediate: true });

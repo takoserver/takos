@@ -18,6 +18,8 @@ import e2ee from "./e2ee.ts";
 import relays from "./relays.ts";
 import videos from "./videos.ts";
 import { fetchOgpData } from "./services/ogp.ts";
+import { serveDir, serveFile } from "@std/http/file_server";
+import { join } from "@std/path";
 
 const env = await load();
 
@@ -58,6 +60,16 @@ app.get("/api/ogp", async (c) => {
   } else {
     return c.json({ error: "Failed to fetch OGP data" }, 500);
   }
+});
+
+const distDir = join(new URL("./", import.meta.url).pathname, "../client/dist");
+
+app.get("*", async (c) => {
+  const res = await serveDir(c.req.raw, { fsRoot: distDir, urlRoot: "" });
+  if (res.status === 404 && c.req.method === "GET") {
+    return serveFile(c.req.raw, join(distDir, "index.html"));
+  }
+  return res;
 });
 
 Deno.serve(app.fetch);

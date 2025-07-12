@@ -4,6 +4,15 @@ import { createSignal, onMount, Show } from "solid-js";
 import { useAtom } from "solid-jotai";
 import { AppPage, selectedAppState } from "../../states/app.ts";
 import { selectedRoomState } from "../../states/chat.ts";
+import { A } from "@solidjs/router";
+
+const pathMap: Record<AppPage, string> = {
+  home: "/",
+  chat: "/chat",
+  tools: "/tools",
+  microblog: "/microblog",
+  videos: "/videos",
+};
 
 const HeaderButton = (props: { page: AppPage; children: JSX.Element }) => {
   const [selectedApp, setSelectedApp] = useAtom(selectedAppState);
@@ -15,7 +24,7 @@ const HeaderButton = (props: { page: AppPage; children: JSX.Element }) => {
       }`}
       onClick={() => setSelectedApp(props.page)}
     >
-      {props.children}
+      <A href={pathMap[props.page]}>{props.children}</A>
     </li>
   );
 };
