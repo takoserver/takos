@@ -44,3 +44,10 @@ API を利用できます。
 - `GET /admin/instances/:host` インスタンスの詳細を取得
 - `PUT /admin/instances/:host/env` インスタンスの環境変数を更新
 - `PUT /admin/instances/:host/password` インスタンスのログインパスワードを変更
+
+### インスタンスへのログイン
+
+各インスタンスでは `/login` へパスワードを POST
+すると管理画面にアクセスできます。 `POST /admin/instances`
+で登録したパスワードは `hashedPassword` と `salt` として
+インスタンスの環境変数に保存され、ログイン時に照合されます。
