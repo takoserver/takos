@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import Instance from "./models/instance.ts";
-import { authRequired } from "./auth.ts";
+import { authRequired, hash } from "./auth.ts";
 
 export function createAdminApp() {
   const app = new Hono();
@@ -16,14 +16,22 @@ export function createAdminApp() {
 
   app.post(
     "/admin/instances",
-    zValidator("json", z.object({ host: z.string() })),
+    zValidator(
+      "json",
+      z.object({ host: z.string(), password: z.string() }),
+    ),
     async (c) => {
-      const { host } = c.req.valid("json");
+      const { host, password } = c.req.valid("json");
       const exists = await Instance.findOne({ host });
       if (exists) {
         return c.json({ error: "already exists" }, 400);
       }
-      const inst = new Instance({ host });
+      const salt = crypto.randomUUID();
+      const hashedPassword = await hash(password + salt);
+      const inst = new Instance({
+        host,
+        env: { hashedPassword, salt },
+      });
       await inst.save();
       return c.json({ success: true });
     },
@@ -51,6 +59,22 @@ export function createAdminApp() {
       const inst = await Instance.findOne({ host });
       if (!inst) return c.json({ error: "not found" }, 404);
       inst.env = { ...(inst.env ?? {}), ...env };
+      await inst.save();
+      return c.json({ success: true });
+    },
+  );
+
+  app.put(
+    "/admin/instances/:host/password",
+    zValidator("json", z.object({ password: z.string() })),
+    async (c) => {
+      const host = c.req.param("host");
+      const { password } = c.req.valid("json");
+      const inst = await Instance.findOne({ host });
+      if (!inst) return c.json({ error: "not found" }, 404);
+      const salt = crypto.randomUUID();
+      const hashedPassword = await hash(password + salt);
+      inst.env = { ...(inst.env ?? {}), hashedPassword, salt };
       await inst.save();
       return c.json({ success: true });
     },

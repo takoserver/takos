@@ -3,7 +3,7 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import HostUser from "./models/user.ts";
 import HostSession from "./models/session.ts";
 
-async function hash(text: string): Promise<string> {
+export async function hash(text: string): Promise<string> {
   const buf = new TextEncoder().encode(text);
   const hashBuf = await crypto.subtle.digest("SHA-256", buf);
   return Array.from(new Uint8Array(hashBuf)).map((b) =>

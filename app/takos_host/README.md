@@ -39,7 +39,8 @@ API を利用できます。
 管理 API では以下のエンドポイントが利用できます。
 
 - `GET /admin/instances` 登録済みインスタンス一覧を取得
-- `POST /admin/instances` 新しいインスタンスを追加
+- `POST /admin/instances` 新しいインスタンスを追加 (パスワードを設定)
 - `DELETE /admin/instances/:host` インスタンスを削除
 - `GET /admin/instances/:host` インスタンスの詳細を取得
 - `PUT /admin/instances/:host/env` インスタンスの環境変数を更新
+- `PUT /admin/instances/:host/password` インスタンスのログインパスワードを変更
