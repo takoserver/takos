@@ -23,3 +23,21 @@ takos を運用できるようにすることが目的です。
 ホスト側ではドメイン名を基にインスタンスを識別し、takos の API
 を共通モジュールとして読み込んで処理します。これにより複数の takos
 サーバーを一元管理できます。
+
+## ログインと管理 API
+
+`ROOT_DOMAIN` で指定したドメインは takos host
+自身のログインページとして機能します。 `/auth`
+でアカウント登録やログインを行い、セッション Cookie を得た状態で `/admin` 以下の
+API を利用できます。
+
+- `POST /auth/register` 新規ユーザー登録
+- `POST /auth/login` ログイン
+- `GET /auth/status` セッション状態確認
+- `DELETE /auth/logout` ログアウト
+
+管理 API では以下のエンドポイントが利用できます。
+
+- `GET /admin/instances` 登録済みインスタンス一覧を取得
+- `POST /admin/instances` 新しいインスタンスを追加
+- `DELETE /admin/instances/:host` インスタンスを削除
