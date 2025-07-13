@@ -41,3 +41,5 @@ API を利用できます。
 - `GET /admin/instances` 登録済みインスタンス一覧を取得
 - `POST /admin/instances` 新しいインスタンスを追加
 - `DELETE /admin/instances/:host` インスタンスを削除
+- `GET /admin/instances/:host` インスタンスの詳細を取得
+- `PUT /admin/instances/:host/env` インスタンスの環境変数を更新

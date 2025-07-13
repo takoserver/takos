@@ -35,5 +35,26 @@ export function createAdminApp() {
     return c.json({ success: true });
   });
 
+  app.get("/admin/instances/:host", async (c) => {
+    const host = c.req.param("host");
+    const inst = await Instance.findOne({ host }).lean();
+    if (!inst) return c.json({ error: "not found" }, 404);
+    return c.json({ host: inst.host, env: inst.env });
+  });
+
+  app.put(
+    "/admin/instances/:host/env",
+    zValidator("json", z.record(z.string(), z.string())),
+    async (c) => {
+      const host = c.req.param("host");
+      const env = c.req.valid("json");
+      const inst = await Instance.findOne({ host });
+      if (!inst) return c.json({ error: "not found" }, 404);
+      inst.env = { ...(inst.env ?? {}), ...env };
+      await inst.save();
+      return c.json({ success: true });
+    },
+  );
+
   return app;
 }
