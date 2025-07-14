@@ -4,7 +4,7 @@ import { zValidator } from "@hono/zod-validator";
 import Instance from "./models/instance.ts";
 import { authRequired, hash } from "./auth.ts";
 
-export function createAdminApp(invalidate?: (host: string) => void) {
+export function createUserApp(invalidate?: (host: string) => void) {
   const app = new Hono();
 
   app.use("/*", authRequired);

@@ -26,7 +26,7 @@ const LoginPage: Component = () => {
             <h2 class="text-3xl font-semibold mb-2 text-white">
               takos host ログイン
             </h2>
-            <p class="text-gray-400 text-sm">管理画面へログイン</p>
+            <p class="text-gray-400 text-sm">ダッシュボードへログイン</p>
           </div>
           <form onSubmit={login} class="space-y-6">
             <div>

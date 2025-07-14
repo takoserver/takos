@@ -3,7 +3,7 @@ import { load } from "jsr:@std/dotenv";
 import { createTakosApp } from "../api/server.ts";
 import { connectDatabase } from "../api/db.ts";
 import Instance from "./models/instance.ts";
-import { createAdminApp } from "./admin.ts";
+import { createUserApp } from "./admin.ts";
 import { authApp } from "./auth.ts";
 import { serveStatic } from "hono/deno";
 import type { Context } from "hono";
@@ -12,7 +12,7 @@ const env = await load();
 await connectDatabase(env);
 
 const apps = new Map<string, Hono>();
-const adminApp = createAdminApp((host) => {
+const userApp = createUserApp((host) => {
   apps.delete(host);
 });
 const rootDomain = env["ROOT_DOMAIN"] ?? "";
@@ -84,7 +84,7 @@ if (!isDev && rootDomain) {
 }
 
 root.route("/auth", authApp);
-root.route("/user", adminApp);
+root.route("/user", userApp);
 
 root.all("/*", async (c) => {
   const host = c.req.header("host") ?? "";
