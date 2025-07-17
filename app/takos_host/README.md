@@ -73,11 +73,12 @@ $ deno task dev
 
 ### インスタンスへのログイン
 
-各インスタンスでは基本的に OAuth を利用してログインします。まず
-`/oauth/authorize` と `/oauth/token` を経由してアクセストークンを取得し、
-インスタンスの `/api/oauth/login`
-へ送信することでダッシュボードへアクセスできます。OAuth クライアントの登録は
-`/user/oauth/clients` から行ってください。
+各インスタンスでは基本的に OAuth を利用してログインします。ログイン画面から
+takos host の `/oauth/authorize` へ遷移し、認可後に返される `code` を
+インスタンスの `/api/oauth/login` へ送信すると、サーバー側でアクセストークンを
+取得してセッションを開始します。インスタンス作成時に必要な OAuth クライアントは
+自動登録されますが、追加で登録したい場合は `/user/oauth/clients` を利用してくだ
+さい。
 
 パスワードを設定した場合は `/login` へパスワードを POST
 してログインできます。`POST /user/instances` で指定したパスワードは

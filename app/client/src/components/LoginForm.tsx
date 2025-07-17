@@ -30,6 +30,31 @@ export function LoginForm(props: LoginFormProps) {
     } catch {
       // ignore
     }
+
+    const params = new URLSearchParams(globalThis.location.search);
+    const code = params.get("code");
+    if (code) {
+      setIsLoading(true);
+      try {
+        const res = await apiFetch("/api/oauth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          props.onLoginSuccess();
+          history.replaceState(null, "", globalThis.location.pathname);
+          return;
+        }
+        setError(data.error || "OAuth ログインに失敗しました");
+      } catch (err) {
+        console.error("OAuth login failed:", err);
+        setError("通信エラーが発生しました");
+      } finally {
+        setIsLoading(false);
+      }
+    }
   });
 
   onMount(() => {
