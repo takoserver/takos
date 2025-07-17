@@ -6,6 +6,7 @@ import { startRelayPolling } from "./services/relay_poller.ts";
 import login from "./login.ts";
 import logout from "./logout.ts";
 import oauthLogin from "./oauth_login.ts";
+import oauthToken from "./oauth_token.ts";
 import session from "./session.ts";
 import accounts from "./accounts.ts";
 import notifications from "./notifications.ts";
@@ -36,6 +37,7 @@ export async function createTakosApp(env?: Record<string, string>) {
   app.route("/api", logout);
   if (e["OAUTH_HOST"] || e["ROOT_DOMAIN"]) {
     app.route("/api", oauthLogin);
+    app.route("/api", oauthToken);
   }
   app.route("/api", session);
   app.route("/api", accounts);

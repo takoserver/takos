@@ -20,6 +20,7 @@ export function LoginForm(props: LoginFormProps) {
   const [serverUrl, setServerUrl] = createSignal("");
   const inTauri = isTauri();
   const [oauthHost, setOauthHost] = createSignal<string | null>(null);
+  const [oauthClientId, setOauthClientId] = createSignal<string | null>(null);
 
   onMount(async () => {
     try {
@@ -27,9 +28,47 @@ export function LoginForm(props: LoginFormProps) {
       if (res.ok) {
         const data = await res.json();
         setOauthHost(data.oauthHost ?? null);
+        setOauthClientId(data.oauthClientId ?? null);
       }
     } catch {
       // ignore
+    }
+
+    const params = new URLSearchParams(globalThis.location.search);
+    const code = params.get("code");
+    if (code && oauthHost() && oauthClientId()) {
+      try {
+        const tokenRes = await apiFetch("/api/oauth/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
+        });
+        if (tokenRes.ok) {
+          const tokenData = await tokenRes.json();
+          const loginRes = await apiFetch("/api/oauth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accessToken: tokenData.access_token }),
+          });
+          const loginData = await loginRes.json();
+          if (loginData.success) {
+            props.onLoginSuccess();
+          } else {
+            setError(loginData.error || "OAuthログインに失敗しました");
+          }
+        } else {
+          const data = await tokenRes.json();
+          setError(data.error || "OAuthトークン取得に失敗しました");
+        }
+      } catch {
+        setError("通信エラーが発生しました");
+      }
+      params.delete("code");
+      const q = params.toString();
+      const url = q
+        ? `${globalThis.location.pathname}?${q}`
+        : globalThis.location.pathname;
+      history.replaceState(null, "", url);
     }
   });
 
@@ -85,7 +124,7 @@ export function LoginForm(props: LoginFormProps) {
       : `https://${oauthHost()}`;
     const redirect = getOrigin();
     const url = `${base}/oauth/authorize?client_id=${
-      encodeURIComponent(redirect)
+      encodeURIComponent(oauthClientId() ?? "")
     }&redirect_uri=${encodeURIComponent(redirect)}`;
     globalThis.location.href = url;
   };
