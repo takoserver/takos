@@ -1,5 +1,7 @@
-import Notification from "../models/notification.ts";
+import NotificationRepository from "../repositories/notification_repository.ts";
 import { sendNotification as sendFcm } from "./fcm.ts";
+
+const repo = new NotificationRepository();
 
 /**
  * 通知を追加するユーティリティ関数
@@ -10,11 +12,7 @@ export async function addNotification(
   type: string = "info",
   env: Record<string, string>,
 ) {
-  const n = new Notification({ title, message, type });
-  (n as unknown as { $locals?: { env?: Record<string, string> } }).$locals = {
-    env,
-  };
-  await n.save();
+  const n = await repo.create({ title, message, type }, env);
   await sendFcm(title, message, env);
   return n;
 }

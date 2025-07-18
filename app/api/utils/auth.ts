@@ -1,28 +1,30 @@
 import { MiddlewareHandler } from "hono";
-import Session from "../models/session.ts";
+import SessionRepository from "../repositories/session_repository.ts";
 import { getEnv } from "../../shared/config.ts";
 import { createAuthMiddleware } from "../../shared/auth.ts";
+
+const sessionRepo = new SessionRepository();
 
 const authRequired: MiddlewareHandler = createAuthMiddleware({
   cookieName: "sessionId",
   errorMessage: "認証が必要です",
   findSession: async (sid, c) => {
     const env = getEnv(c);
-    return await Session.findOne({
+    return await sessionRepo.findOne({
       sessionId: sid,
       tenant_id: env["ACTIVITYPUB_DOMAIN"],
     });
   },
   deleteSession: async (sid, c) => {
     const env = getEnv(c);
-    await Session.deleteOne({
+    await sessionRepo.delete({
       sessionId: sid,
       tenant_id: env["ACTIVITYPUB_DOMAIN"],
     });
   },
   updateSession: async (session, expires) => {
-    (session as unknown as { expiresAt: Date }).expiresAt = expires;
-    await (session as unknown as { save: () => Promise<void> }).save();
+    const sid = (session as unknown as { sessionId: string }).sessionId;
+    await sessionRepo.updateOne({ sessionId: sid }, { expiresAt: expires });
   },
 });
 

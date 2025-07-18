@@ -1,5 +1,7 @@
 import { Hono } from "hono";
-import Account from "./models/account.ts";
+import AccountRepository from "./repositories/account_repository.ts";
+
+const accountRepo = new AccountRepository();
 import type { Document } from "mongoose";
 import {
   createFollowActivity,
@@ -67,7 +69,7 @@ app.use("/accounts/*", authRequired);
 app.get("/accounts", async (c) => {
   const env = getEnv(c);
   const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
-  const list = await Account.find({ tenant_id: tenantId }).lean<AccountDoc[]>();
+  const list = await accountRepo.find({ tenant_id: tenantId }) as AccountDoc[];
   const formatted = list.map((doc: AccountDoc) => ({
     id: String(doc._id),
     userName: doc.userName,
@@ -98,7 +100,7 @@ app.post("/accounts", async (c) => {
   }
 
   // Check if username already exists
-  const existingAccount = await Account.findOne({
+  const existingAccount = await accountRepo.findOne({
     userName: username.trim(),
     tenant_id: tenantId,
   });
@@ -109,7 +111,7 @@ app.post("/accounts", async (c) => {
   const keys = privateKey && publicKey
     ? { privateKey, publicKey }
     : await generateKeyPair();
-  const account = new Account({
+  const account = await accountRepo.create({
     userName: username.trim(),
     displayName: displayName ?? username.trim(),
     avatarInitial: icon ??
@@ -119,10 +121,7 @@ app.post("/accounts", async (c) => {
     followers: [],
     following: [],
     tenant_id: tenantId,
-  });
-  (account as unknown as { $locals?: { env?: Record<string, string> } })
-    .$locals = { env };
-  await account.save();
+  }, env) as AccountDoc;
   return jsonResponse(c, {
     id: String(account._id),
     userName: account.userName,
@@ -138,9 +137,9 @@ app.get("/accounts/:id", async (c) => {
   const env = getEnv(c);
   const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
   const id = c.req.param("id");
-  const account = await Account.findOne({ _id: id, tenant_id: tenantId }).lean<
-    AccountDoc
-  >();
+  const account = await accountRepo.findOne({ _id: id, tenant_id: tenantId }) as
+    | AccountDoc
+    | null;
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
   return jsonResponse(c, {
     id: String(account._id),
@@ -170,10 +169,9 @@ app.put("/accounts/:id", async (c) => {
   if (Array.isArray(updates.followers)) data.followers = updates.followers;
   if (Array.isArray(updates.following)) data.following = updates.following;
 
-  const account = await Account.findOneAndUpdate(
+  const account = await accountRepo.update(
     { _id: id, tenant_id: tenantId },
     data,
-    { new: true },
   );
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
   return jsonResponse(c, {
@@ -192,10 +190,9 @@ app.post("/accounts/:id/followers", async (c) => {
   const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
   const id = c.req.param("id");
   const { follower } = await c.req.json();
-  const account = await Account.findOneAndUpdate(
+  const account = await accountRepo.update(
     { _id: id, tenant_id: tenantId },
     { $addToSet: { followers: follower } },
-    { new: true },
   );
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
   return jsonResponse(c, { followers: account.followers });
@@ -206,10 +203,9 @@ app.delete("/accounts/:id/followers", async (c) => {
   const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
   const id = c.req.param("id");
   const { follower } = await c.req.json();
-  const account = await Account.findOneAndUpdate(
+  const account = await accountRepo.update(
     { _id: id, tenant_id: tenantId },
     { $pull: { followers: follower } },
-    { new: true },
   );
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
   return jsonResponse(c, { followers: account.followers });
@@ -220,10 +216,9 @@ app.post("/accounts/:id/following", async (c) => {
   const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
   const id = c.req.param("id");
   const { target } = await c.req.json();
-  const account = await Account.findOneAndUpdate(
+  const account = await accountRepo.update(
     { _id: id, tenant_id: tenantId },
     { $addToSet: { following: target } },
-    { new: true },
   );
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
   return jsonResponse(c, { following: account.following });
@@ -233,9 +228,9 @@ app.get("/accounts/:id/following", async (c) => {
   const env = getEnv(c);
   const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
   const id = c.req.param("id");
-  const account = await Account.findOne({ _id: id, tenant_id: tenantId }).lean<
-    AccountDoc
-  >();
+  const account = await accountRepo.findOne({ _id: id, tenant_id: tenantId }) as
+    | AccountDoc
+    | null;
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
   return jsonResponse(c, { following: account.following });
 });
@@ -245,10 +240,9 @@ app.delete("/accounts/:id/following", async (c) => {
   const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
   const id = c.req.param("id");
   const { target } = await c.req.json();
-  const account = await Account.findOneAndUpdate(
+  const account = await accountRepo.update(
     { _id: id, tenant_id: tenantId },
     { $pull: { following: target } },
-    { new: true },
   );
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
   return jsonResponse(c, { following: account.following });
@@ -262,10 +256,9 @@ app.post("/accounts/:id/follow", async (c) => {
   if (typeof target !== "string" || typeof userName !== "string") {
     return jsonResponse(c, { error: "Invalid body" }, 400);
   }
-  const account = await Account.findOneAndUpdate(
+  const account = await accountRepo.update(
     { _id: id, tenant_id: tenantId },
     { $addToSet: { following: target } },
-    { new: true },
   );
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
 
@@ -275,7 +268,7 @@ app.post("/accounts/:id/follow", async (c) => {
     const targetUrl = new URL(target);
     if (targetUrl.host === domain && targetUrl.pathname.startsWith("/users/")) {
       const username = targetUrl.pathname.split("/")[2];
-      await Account.updateOne({ userName: username, tenant_id: tenantId }, {
+      await accountRepo.updateOne({ userName: username, tenant_id: tenantId }, {
         $addToSet: { followers: actorId },
       });
     } else {
@@ -326,10 +319,9 @@ app.delete("/accounts/:id/follow", async (c) => {
   if (typeof target !== "string") {
     return jsonResponse(c, { error: "Invalid body" }, 400);
   }
-  const account = await Account.findOneAndUpdate(
+  const account = await accountRepo.update(
     { _id: id, tenant_id: tenantId },
     { $pull: { following: target } },
-    { new: true },
   );
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
 
@@ -339,7 +331,7 @@ app.delete("/accounts/:id/follow", async (c) => {
     const targetUrl = new URL(target);
     if (targetUrl.host === domain && targetUrl.pathname.startsWith("/users/")) {
       const username = targetUrl.pathname.split("/")[2];
-      await Account.updateOne({ userName: username, tenant_id: tenantId }, {
+      await accountRepo.updateOne({ userName: username, tenant_id: tenantId }, {
         $pull: { followers: actorId },
       });
     } else {
@@ -370,7 +362,7 @@ app.delete("/accounts/:id", async (c) => {
   const env = getEnv(c);
   const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
   const id = c.req.param("id");
-  const account = await Account.findOneAndDelete({
+  const account = await accountRepo.delete({
     _id: id,
     tenant_id: tenantId,
   });

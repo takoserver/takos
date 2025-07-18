@@ -1,10 +1,15 @@
-import ObjectStore, { objectStoreSchema } from "../models/object_store.ts";
-import FollowEdge from "../models/follow_edge.ts";
+import ObjectStoreRepository from "../repositories/object_store_repository.ts";
+import FollowEdgeRepository from "../repositories/follow_edge_repository.ts";
 import { createObjectId } from "../utils/activitypub.ts";
-import RelayEdge from "../models/relay_edge.ts";
+import RelayEdgeRepository from "../repositories/relay_edge_repository.ts";
 import type { InferSchemaType, PipelineStage, SortOrder } from "mongoose";
 
+import { objectStoreSchema } from "../models/object_store.ts";
 type ObjectStoreType = InferSchemaType<typeof objectStoreSchema>;
+
+const objectRepo = new ObjectStoreRepository();
+const followRepo = new FollowEdgeRepository();
+const relayRepo = new RelayEdgeRepository();
 
 export async function saveNote(
   env: Record<string, string>,
@@ -28,18 +33,14 @@ export async function saveNote(
     attributedTo: actor,
     ...extra,
   };
-  const doc = new ObjectStore({
+  const doc = await objectRepo.create({
     _id: id,
     raw,
     type: "Note",
     actor_id: actor,
     tenant_id: env["ACTIVITYPUB_DOMAIN"],
     aud,
-  });
-  (doc as unknown as { $locals?: { env?: Record<string, string> } }).$locals = {
-    env,
-  };
-  await doc.save();
+  }, env);
   return doc;
 }
 
@@ -53,11 +54,7 @@ export async function saveObject(
   if (!("tenant_id" in data) && env["ACTIVITYPUB_DOMAIN"]) {
     data.tenant_id = env["ACTIVITYPUB_DOMAIN"];
   }
-  const doc = new ObjectStore(data);
-  (doc as unknown as { $locals?: { env?: Record<string, string> } }).$locals = {
-    env,
-  };
-  await doc.save();
+  const doc = await objectRepo.create(data, env);
   return doc;
 }
 
@@ -67,16 +64,15 @@ export async function updateObject(
   update: Record<string, unknown>,
 ) {
   const tenantId = env["ACTIVITYPUB_DOMAIN"];
-  return await ObjectStore.findOneAndUpdate(
+  return await objectRepo.update(
     { _id: id, tenant_id: tenantId },
     update,
-    { new: true },
   );
 }
 
 export async function deleteObject(env: Record<string, string>, id: string) {
   const tenantId = env["ACTIVITYPUB_DOMAIN"];
-  return await ObjectStore.findOneAndDelete({ _id: id, tenant_id: tenantId });
+  return await objectRepo.delete({ _id: id, tenant_id: tenantId });
 }
 
 export async function deleteManyObjects(
@@ -84,7 +80,7 @@ export async function deleteManyObjects(
   filter: Record<string, unknown>,
 ) {
   const tenantId = env["ACTIVITYPUB_DOMAIN"];
-  return await ObjectStore.deleteMany({ ...filter, tenant_id: tenantId });
+  return await objectRepo.deleteMany({ ...filter, tenant_id: tenantId });
 }
 
 export async function findObjects(
@@ -95,9 +91,7 @@ export async function findObjects(
   const tenantId = env["ACTIVITYPUB_DOMAIN"];
   const f = { ...filter } as Record<string, unknown>;
   if (tenantId) f.tenant_id = tenantId;
-  return await ObjectStore.find(f).sort(sort ?? {}).lean<
-    ObjectStoreType[]
-  >();
+  return await objectRepo.find(f, sort) as ObjectStoreType[];
 }
 
 export async function getPublicNotes(
@@ -107,16 +101,18 @@ export async function getPublicNotes(
 ): Promise<
   ObjectStoreType[]
 > {
-  const query = ObjectStore.find({
+  const tenantId = env["ACTIVITYPUB_DOMAIN"];
+  const filter: Record<string, unknown> = {
     type: "Note",
     "aud.to": "https://www.w3.org/ns/activitystreams#Public",
-  });
-  const tenantId = env["ACTIVITYPUB_DOMAIN"];
-  if (tenantId) query.where("tenant_id").equals(tenantId);
-  if (before) query.where("created_at").lt(before.getTime());
-  return await query.sort({ created_at: -1 }).limit(limit).lean<
-    ObjectStoreType[]
-  >();
+  };
+  if (tenantId) filter.tenant_id = tenantId;
+  if (before) filter.created_at = { $lt: before };
+  return await objectRepo.find(
+    filter,
+    { created_at: -1 },
+    limit,
+  ) as ObjectStoreType[];
 }
 
 export async function getTimeline(
@@ -150,7 +146,7 @@ export async function getTimeline(
     pipeline.push({ $match: { "objs.created_at": { $lt: before } } });
   }
   pipeline.push({ $sort: { "objs.created_at": -1 } }, { $limit: limit });
-  const docs = await FollowEdge.aggregate(pipeline).exec();
+  const docs = await followRepo.aggregate(pipeline);
   return docs.map((d) => d.objs as ObjectStoreType);
 }
 
@@ -159,13 +155,13 @@ export async function getObject(
   id: string,
 ): Promise<ObjectStoreType | null> {
   const tenantId = env["ACTIVITYPUB_DOMAIN"];
-  return await ObjectStore.findOne({ _id: id, tenant_id: tenantId }).lean<
-    ObjectStoreType | null
-  >();
+  return await objectRepo.findOne({ _id: id, tenant_id: tenantId }) as
+    | ObjectStoreType
+    | null;
 }
 
 export async function addFollowEdge(tenantId: string, actorId: string) {
-  await FollowEdge.updateOne(
+  await followRepo.updateOne(
     { tenant_id: tenantId, actor_id: actorId },
     { $setOnInsert: { since: new Date() } },
     { upsert: true },
@@ -173,7 +169,7 @@ export async function addFollowEdge(tenantId: string, actorId: string) {
 }
 
 export async function removeFollowEdge(tenantId: string, actorId: string) {
-  await FollowEdge.deleteOne({ tenant_id: tenantId, actor_id: actorId });
+  await followRepo.delete({ tenant_id: tenantId, actor_id: actorId });
 }
 
 export async function addRelayEdge(
@@ -181,7 +177,7 @@ export async function addRelayEdge(
   relay: string,
   mode: "pull" | "push" = "pull",
 ) {
-  await RelayEdge.updateOne(
+  await relayRepo.updateOne(
     { tenant_id: tenantId, relay, mode },
     { $setOnInsert: { since: new Date() } },
     { upsert: true },
@@ -189,19 +185,19 @@ export async function addRelayEdge(
 }
 
 export async function removeRelayEdge(tenantId: string, relay: string) {
-  await RelayEdge.deleteOne({ tenant_id: tenantId, relay });
+  await relayRepo.delete({ tenant_id: tenantId, relay });
 }
 
 export async function listPullRelays(tenantId: string) {
-  const docs = await RelayEdge.find({ tenant_id: tenantId, mode: "pull" }).lean<
-    { relay: string }[]
-  >();
+  const docs = await relayRepo.find({ tenant_id: tenantId, mode: "pull" }) as {
+    relay: string;
+  }[];
   return docs.map((d) => d.relay);
 }
 
 export async function listPushRelays(tenantId: string) {
-  const docs = await RelayEdge.find({ tenant_id: tenantId, mode: "push" }).lean<
-    { relay: string }[]
-  >();
+  const docs = await relayRepo.find({ tenant_id: tenantId, mode: "push" }) as {
+    relay: string;
+  }[];
   return docs.map((d) => d.relay);
 }
