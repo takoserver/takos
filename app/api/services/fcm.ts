@@ -1,5 +1,7 @@
 import admin from "firebase-admin";
-import FcmToken from "../models/fcm_token.ts";
+import FcmTokenRepository from "../repositories/fcm_token_repository.ts";
+
+const repo = new FcmTokenRepository();
 
 let initialized = false;
 
@@ -27,7 +29,7 @@ export async function registerToken(
   env: Record<string, string>,
 ) {
   init(env);
-  await FcmToken.updateOne(
+  await repo.updateOne(
     { token, tenant_id: env["ACTIVITYPUB_DOMAIN"] },
     { token, userName },
     { upsert: true },
@@ -38,7 +40,7 @@ export async function unregisterToken(
   token: string,
   env: Record<string, string>,
 ) {
-  await FcmToken.deleteOne({ token, tenant_id: env["ACTIVITYPUB_DOMAIN"] });
+  await repo.delete({ token, tenant_id: env["ACTIVITYPUB_DOMAIN"] });
 }
 
 export async function sendNotification(
@@ -48,8 +50,9 @@ export async function sendNotification(
 ) {
   init(env);
   if (!initialized) return;
-  const list = await FcmToken.find({ tenant_id: env["ACTIVITYPUB_DOMAIN"] })
-    .lean<Array<{ token: string }>>();
+  const list = await repo.find({ tenant_id: env["ACTIVITYPUB_DOMAIN"] }) as {
+    token: string;
+  }[];
   const tokens: string[] = list.map((t: { token: string }) => t.token);
   if (tokens.length === 0) return;
   await admin.messaging().sendEachForMulticast({

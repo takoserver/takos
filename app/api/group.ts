@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import Group from "./models/group.ts";
+import GroupRepository from "./repositories/group_repository.ts";
 import { findObjects, saveObject } from "./services/unified_store.ts";
 import { getEnv } from "../shared/config.ts";
 import {
@@ -38,9 +38,11 @@ function buildGroupActivity(
 
 const app = new Hono();
 
+const groupRepo = new GroupRepository();
+
 app.get("/communities/:name", async (c) => {
   const name = c.req.param("name");
-  const group = await Group.findOne({ name }).lean();
+  const group = await groupRepo.findOne({ name });
   if (!group) return jsonResponse(c, { error: "Not found" }, 404);
   const domain = getDomain(c);
   const actor = createGroupActor(domain, {
@@ -55,7 +57,14 @@ app.get("/communities/:name", async (c) => {
 
 app.post("/communities/:name/inbox", async (c) => {
   const name = c.req.param("name");
-  const group = await Group.findOne({ name });
+  const group = await groupRepo.findOne({ name }) as
+    | {
+      banned: string[];
+      pendingFollowers: string[];
+      followers: string[];
+      privateKey: string;
+    }
+    | null;
   if (!group) return jsonResponse(c, { error: "Not found" }, 404);
   const bodyText = await c.req.text();
   const verified = await verifyHttpSignature(c.req.raw, bodyText);
@@ -69,11 +78,11 @@ app.post("/communities/:name/inbox", async (c) => {
       return jsonResponse(c, { error: "Forbidden" }, 403);
     }
     if (group.isPrivate) {
-      await Group.updateOne({ name }, {
+      await groupRepo.updateOne({ name }, {
         $addToSet: { pendingFollowers: actor },
       });
     } else {
-      await Group.updateOne({ name }, { $addToSet: { followers: actor } });
+      await groupRepo.updateOne({ name }, { $addToSet: { followers: actor } });
       const accept = createAcceptActivity(
         domain,
         `https://${domain}/communities/${name}`,
@@ -208,7 +217,7 @@ app.get("/communities/:name/outbox", async (c) => {
 app.get("/communities/:name/followers", async (c) => {
   const name = c.req.param("name");
   const page = parseInt(c.req.query("page") || "0");
-  const group = await Group.findOne({ name }).lean();
+  const group = await groupRepo.findOne({ name });
   if (!group) return jsonResponse(c, { error: "Not found" }, 404);
   const domain = getDomain(c);
   const list = group.followers ?? [];

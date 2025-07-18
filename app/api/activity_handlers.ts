@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import Account from "./models/account.ts";
+import AccountRepository from "./repositories/account_repository.ts";
 import {
   addFollowEdge,
   saveObject as storeObject,
@@ -16,6 +16,8 @@ export type ActivityHandler = (
   username: string,
   c: unknown,
 ) => Promise<void>;
+
+const accountRepo = new AccountRepository();
 
 async function saveObject(
   env: Record<string, string>,
@@ -89,7 +91,7 @@ export const activityHandlers: Record<string, ActivityHandler> = {
     c: unknown,
   ) {
     if (typeof activity.actor !== "string") return;
-    await Account.updateOne(
+    await accountRepo.updateOne(
       { userName: username },
       { $addToSet: { followers: activity.actor } },
     );

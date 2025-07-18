@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import Account from "./models/account.ts";
+import AccountRepository from "./repositories/account_repository.ts";
 import { findObjects } from "./services/unified_store.ts";
-import Group from "./models/group.ts";
+import GroupRepository from "./repositories/group_repository.ts";
 import { getDomain, resolveActor } from "./utils/activitypub.ts";
 import { getEnv } from "../shared/config.ts";
 import authRequired from "./utils/auth.ts";
@@ -18,6 +18,8 @@ interface SearchResult {
 }
 
 const app = new Hono();
+const accountRepo = new AccountRepository();
+const groupRepo = new GroupRepository();
 app.use("/search/*", authRequired);
 
 function escapeRegex(str: string): string {
@@ -42,11 +44,18 @@ app.get("/search", async (c) => {
   const results: SearchResult[] = [];
 
   if (type === "all" || type === "users") {
-    const users = await Account.find({
-      $or: [{ userName: regex }, { displayName: regex }],
-    })
-      .limit(20)
-      .lean();
+    const users = await accountRepo.find(
+      { $or: [{ userName: regex }, { displayName: regex }] },
+      undefined,
+      20,
+    ) as Array<
+      {
+        _id: unknown;
+        userName: string;
+        displayName: string;
+        avatarInitial?: string;
+      }
+    >;
     const domain = getDomain(c);
     for (const u of users) {
       results.push({
@@ -79,14 +88,11 @@ app.get("/search", async (c) => {
   }
 
   if (type === "all" || type === "communities") {
-    const communities = await Group.find({
-      $or: [
-        { name: regex },
-        { description: regex },
-      ],
-    })
-      .limit(20)
-      .lean();
+    const communities = await groupRepo.find(
+      { $or: [{ name: regex }, { description: regex }] },
+      undefined,
+      20,
+    ) as Array<{ _id: unknown; name: string; description: string }>;
     const domain = getDomain(c);
     for (const com of communities) {
       results.push({

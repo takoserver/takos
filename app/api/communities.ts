@@ -6,8 +6,8 @@ import {
   saveObject,
   updateObject,
 } from "./services/unified_store.ts";
-import Account from "./models/account.ts";
-import Group from "./models/group.ts";
+import AccountRepository from "./repositories/account_repository.ts";
+import GroupRepository from "./repositories/group_repository.ts";
 import {
   createAcceptActivity,
   createBlockActivity,
@@ -56,15 +56,19 @@ async function generateKeyPair() {
 const app = new Hono();
 app.use("/communities/*", authRequired);
 
+const accountRepo = new AccountRepository();
+const groupRepo = new GroupRepository();
+
 // コミュニティ一覧取得
 app.get("/communities", async (c) => {
   try {
     const domain = getDomain(c);
     const env = getEnv(c);
     const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const communities = await Group.find({ tenant_id: tenantId }).sort({
-      name: 1,
-    }).lean();
+    const communities = await groupRepo.find(
+      { tenant_id: tenantId },
+      { name: 1 },
+    );
 
     const formatted = await Promise.all(
       communities.map(async (community: Record<string, unknown>) => {
@@ -121,7 +125,7 @@ app.post("/communities", async (c) => {
     }
 
     // 同名のコミュニティが存在するかチェック
-    const existingCommunity = await Group.findOne({
+    const existingCommunity = await groupRepo.findOne({
       name,
       tenant_id: tenantId,
     });
@@ -132,7 +136,7 @@ app.post("/communities", async (c) => {
 
     const keys = await generateKeyPair();
 
-    const community = new Group({
+    const community = await groupRepo.create({
       tenant_id: tenantId,
       name,
       description: description || "",
@@ -146,10 +150,7 @@ app.post("/communities", async (c) => {
       banned: [],
       privateKey: keys.privateKey,
       publicKey: keys.publicKey,
-    });
-    (community as unknown as { $locals?: { env?: Record<string, string> } })
-      .$locals = { env };
-    await community.save();
+    }, env);
 
     return c.json({
       id: community._id.toString(),
@@ -179,8 +180,7 @@ app.get("/communities/:id", async (c) => {
     const env = getEnv(c);
     const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
     const id = c.req.param("id");
-    const community = await Group.findOne({ _id: id, tenant_id: tenantId })
-      .lean();
+    const community = await groupRepo.findOne({ _id: id, tenant_id: tenantId });
 
     if (!community) {
       return c.json({ error: "Community not found" }, 404);
@@ -223,7 +223,9 @@ app.post("/communities/:id/join", async (c) => {
       return c.json({ error: "Username is required" }, 400);
     }
 
-    const community = await Group.findById(id);
+    const community = await groupRepo.findById(id) as
+      | { members: string[]; banned: string[] }
+      | null;
     if (!community) {
       return c.json({ error: "Community not found" }, 404);
     }
@@ -234,8 +236,7 @@ app.post("/communities/:id/join", async (c) => {
 
     if (!members.includes(username)) {
       members.push(username);
-      community.members = members;
-      await community.save();
+      await groupRepo.updateOne({ _id: id }, { members });
     }
 
     return c.json({ success: true, memberCount: members.length });
@@ -255,7 +256,9 @@ app.post("/communities/:id/leave", async (c) => {
       return c.json({ error: "Username is required" }, 400);
     }
 
-    const community = await Group.findById(id);
+    const community = await groupRepo.findById(id) as
+      | { members: string[] }
+      | null;
     if (!community) {
       return c.json({ error: "Community not found" }, 404);
     }
@@ -263,8 +266,7 @@ app.post("/communities/:id/leave", async (c) => {
     const members = community.members as string[] || [];
     const updatedMembers = members.filter((member) => member !== username);
 
-    community.members = updatedMembers;
-    await community.save();
+    await groupRepo.updateOne({ _id: id }, { members: updatedMembers });
 
     return c.json({ success: true, memberCount: updatedMembers.length });
   } catch (error) {
@@ -287,8 +289,9 @@ app.get("/communities/:id/posts", async (c) => {
 
     const formatted = await Promise.all(
       posts.map(async (post: Record<string, unknown>) => {
-        const account = await Account.findOne({ userName: post.attributedTo })
-          .lean();
+        const account = await accountRepo.findOne({
+          userName: post.attributedTo,
+        }) as { displayName?: string; avatarInitial?: string } | null;
 
         const postId = typeof post._id === "string"
           ? post._id
@@ -330,7 +333,15 @@ app.post("/communities/:id/posts", async (c) => {
     }
 
     // コミュニティが存在するかチェック
-    const community = await Group.findById(communityId);
+    const community = await groupRepo.findById(communityId) as
+      | {
+        name: string;
+        privateKey: string;
+        followers: string[];
+        banned: string[];
+        moderators: string[];
+      }
+      | null;
     if (!community) {
       return c.json({ error: "Community not found" }, 404);
     }
@@ -353,7 +364,9 @@ app.post("/communities/:id/posts", async (c) => {
       },
     );
 
-    const account = await Account.findOne({ userName: author }).lean();
+    const account = await accountRepo.findOne({ userName: author }) as
+      | { displayName?: string; avatarInitial?: string }
+      | null;
 
     return c.json({
       id: String(post._id),
@@ -410,7 +423,14 @@ app.post("/communities/:communityId/posts/:postId/remove", async (c) => {
       return c.json({ error: "Username is required" }, 400);
     }
 
-    const community = await Group.findById(communityId);
+    const community = await groupRepo.findById(communityId) as
+      | {
+        name: string;
+        moderators: string[];
+        followers: string[];
+        privateKey: string;
+      }
+      | null;
     if (!community) return c.json({ error: "Community not found" }, 404);
 
     if (!community.moderators.includes(username)) {
@@ -455,7 +475,9 @@ app.post("/communities/:communityId/posts/:postId/remove", async (c) => {
 app.get("/communities/:id/pending-followers", async (c) => {
   try {
     const id = c.req.param("id");
-    const community = await Group.findById(id).lean();
+    const community = await groupRepo.findById(id) as
+      | { pendingFollowers?: string[] }
+      | null;
     if (!community) return c.json({ error: "Community not found" }, 404);
     return c.json({ pending: community.pendingFollowers || [] });
   } catch (error) {
@@ -473,7 +495,15 @@ app.post("/communities/:id/pending-followers/approve", async (c) => {
     if (typeof username !== "string" || typeof actor !== "string") {
       return c.json({ error: "Invalid body" }, 400);
     }
-    const community = await Group.findById(id);
+    const community = await groupRepo.findById(id) as
+      | {
+        name: string;
+        moderators: string[];
+        pendingFollowers: string[];
+        followers: string[];
+        privateKey: string;
+      }
+      | null;
     if (!community) return c.json({ error: "Community not found" }, 404);
     if (!community.moderators.includes(username)) {
       return c.json({ error: "Forbidden" }, 403);
@@ -485,7 +515,10 @@ app.post("/communities/:id/pending-followers/approve", async (c) => {
       a !== actor
     );
     community.followers.push(actor);
-    await community.save();
+    await groupRepo.updateOne({ _id: id }, {
+      pendingFollowers: community.pendingFollowers,
+      followers: community.followers,
+    });
     const accept = createAcceptActivity(
       domain,
       `https://${domain}/communities/${community.name}`,
@@ -519,7 +552,9 @@ app.post("/communities/:id/pending-followers/reject", async (c) => {
     if (typeof username !== "string" || typeof actor !== "string") {
       return c.json({ error: "Invalid body" }, 400);
     }
-    const community = await Group.findById(id);
+    const community = await groupRepo.findById(id) as
+      | { moderators: string[]; pendingFollowers: string[] }
+      | null;
     if (!community) return c.json({ error: "Community not found" }, 404);
     if (!community.moderators.includes(username)) {
       return c.json({ error: "Forbidden" }, 403);
@@ -527,7 +562,10 @@ app.post("/communities/:id/pending-followers/reject", async (c) => {
     community.pendingFollowers = community.pendingFollowers.filter((a) =>
       a !== actor
     );
-    await community.save();
+    await groupRepo.updateOne(
+      { _id: id },
+      { pendingFollowers: community.pendingFollowers },
+    );
     return c.json({ success: true });
   } catch (error) {
     console.error("Error rejecting follower:", error);
@@ -546,7 +584,16 @@ app.post("/communities/:id/block", async (c) => {
       return c.json({ error: "Invalid body" }, 400);
     }
 
-    const community = await Group.findById(id);
+    const community = await groupRepo.findById(id) as
+      | {
+        name: string;
+        moderators: string[];
+        banned: string[];
+        followers: string[];
+        members: string[];
+        privateKey: string;
+      }
+      | null;
     if (!community) return c.json({ error: "Community not found" }, 404);
 
     if (!community.moderators.includes(username)) {
@@ -558,7 +605,11 @@ app.post("/communities/:id/block", async (c) => {
     }
     community.followers = community.followers.filter((f) => f !== target);
     community.members = community.members.filter((m) => m !== target);
-    await community.save();
+    await groupRepo.updateOne({ _id: id }, {
+      banned: community.banned,
+      followers: community.followers,
+      members: community.members,
+    });
 
     const block = createBlockActivity(
       domain,

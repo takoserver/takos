@@ -1,11 +1,12 @@
 import { Hono } from "hono";
-import Account from "./models/account.ts";
+import AccountRepository from "./repositories/account_repository.ts";
 import { findObjects } from "./services/unified_store.ts";
 import { getDomain } from "./utils/activitypub.ts";
 import { getEnv } from "../shared/config.ts";
 // NodeInfo は外部からの参照を想定しているため認証は不要
 
 const app = new Hono();
+const accountRepo = new AccountRepository();
 // app.use("*", authRequired); // 認証ミドルウェアは適用しない
 
 app.get("/.well-known/nodeinfo", (c) => {
@@ -22,7 +23,8 @@ app.get("/.well-known/nodeinfo", (c) => {
 
 app.get("/nodeinfo/2.0", async (c) => {
   const version = getEnv(c)["TAKOS_VERSION"] ?? "1.0.0";
-  const users = await Account.countDocuments();
+  const countRes = await accountRepo.aggregate([{ $count: "count" }]);
+  const users = countRes[0]?.count ?? 0;
   const posts = (await findObjects(getEnv(c), {})).length;
 
   return c.json({
@@ -45,7 +47,8 @@ app.get("/nodeinfo/2.0", async (c) => {
 app.get("/api/v1/instance", async (c) => {
   const domain = getDomain(c);
   const version = getEnv(c)["TAKOS_VERSION"] ?? "1.0.0";
-  const userCount = await Account.countDocuments();
+  const userCountRes = await accountRepo.aggregate([{ $count: "count" }]);
+  const userCount = userCountRes[0]?.count ?? 0;
   const statusCount = (await findObjects(getEnv(c), {})).length;
 
   return c.json({
@@ -71,7 +74,8 @@ app.get("/api/v1/instance", async (c) => {
 
 app.get("/.well-known/x-nodeinfo2", async (c) => {
   const version = getEnv(c)["TAKOS_VERSION"] ?? "1.0.0";
-  const users = await Account.countDocuments();
+  const userRes = await accountRepo.aggregate([{ $count: "count" }]);
+  const users = userRes[0]?.count ?? 0;
   const posts = (await findObjects(getEnv(c), {})).length;
 
   return c.json({

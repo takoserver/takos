@@ -1,4 +1,4 @@
-import SystemKey from "../models/system_key.ts";
+import SystemKeyRepository from "../repositories/system_key_repository.ts";
 
 function bufferToBase64(buffer: ArrayBuffer): string {
   let binary = "";
@@ -34,16 +34,16 @@ export async function generateKeyPair() {
   };
 }
 
+const repo = new SystemKeyRepository();
+
 export async function getSystemKey(domain: string) {
-  let doc = await SystemKey.findOne({ domain }).lean<{
-    domain: string;
-    privateKey: string;
-    publicKey: string;
-  }>();
+  let doc = await repo.findOne({ domain }) as
+    | { domain: string; privateKey: string; publicKey: string }
+    | null;
   if (!doc) {
     const keys = await generateKeyPair();
     doc = { domain, ...keys };
-    await SystemKey.create(doc);
+    await repo.create(doc);
   }
   return doc;
 }

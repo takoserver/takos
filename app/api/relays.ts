@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import Relay from "./models/relay.ts";
+import RelayRepository from "./repositories/relay_repository.ts";
 import authRequired from "./utils/auth.ts";
 import { getEnv } from "../shared/config.ts";
 import { addRelayEdge, removeRelayEdge } from "./services/unified_store.ts";
@@ -14,10 +14,11 @@ import {
 } from "./utils/activitypub.ts";
 import { getSystemKey } from "./services/system_actor.ts";
 const app = new Hono();
+const relayRepo = new RelayRepository();
 app.use("/relays/*", authRequired);
 
 app.get("/relays", async (c) => {
-  const list = await Relay.find().lean<{ _id: unknown; inboxUrl: string }[]>();
+  const list = await relayRepo.find({}) as { _id: unknown; inboxUrl: string }[];
   const relays = list.map((r) => ({ id: String(r._id), inboxUrl: r.inboxUrl }));
   return jsonResponse(c, { relays });
 });
@@ -27,10 +28,9 @@ app.post(
   zValidator("json", z.object({ inboxUrl: z.string() })),
   async (c) => {
     const { inboxUrl } = c.req.valid("json") as { inboxUrl: string };
-    const exists = await Relay.findOne({ inboxUrl });
+    const exists = await relayRepo.findOne({ inboxUrl });
     if (exists) return jsonResponse(c, { error: "Already exists" }, 409);
-    const relay = new Relay({ inboxUrl });
-    await relay.save();
+    const relay = await relayRepo.create({ inboxUrl });
     const env = getEnv(c);
     const tenant = env["ACTIVITYPUB_DOMAIN"] ?? getDomain(c);
     try {
@@ -56,7 +56,9 @@ app.post(
 
 app.delete("/relays/:id", async (c) => {
   const id = c.req.param("id");
-  const relay = await Relay.findByIdAndDelete(id);
+  const relay = await relayRepo.delete({ _id: id }) as
+    | { inboxUrl: string }
+    | null;
   if (!relay) return jsonResponse(c, { error: "Relay not found" }, 404);
   const env = getEnv(c);
   const tenant = env["ACTIVITYPUB_DOMAIN"] ?? getDomain(c);

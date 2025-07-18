@@ -10,12 +10,14 @@ import {
 } from "./utils/activitypub.ts";
 import { getEnv } from "../shared/config.ts";
 import { activityHandlers } from "./activity_handlers.ts";
-import Group from "./models/group.ts";
-import Account from "./models/account.ts";
+import GroupRepository from "./repositories/group_repository.ts";
+import AccountRepository from "./repositories/account_repository.ts";
 import { getObject, saveObject } from "./services/unified_store.ts";
 import { addInboxEntry } from "./services/inbox.ts";
 
 const app = new Hono();
+const groupRepo = new GroupRepository();
+const accountRepo = new AccountRepository();
 
 app.post("/system/inbox", async (c) => {
   const body = await c.req.text();
@@ -90,7 +92,7 @@ app.post("/inbox", async (c) => {
           }
           continue;
         }
-        const account = await Account.findOne({
+        const account = await accountRepo.findOne({
           userName: username,
           tenant_id: env["ACTIVITYPUB_DOMAIN"],
         });
@@ -100,7 +102,7 @@ app.post("/inbox", async (c) => {
       }
       if (parts[0] === "communities" && parts[1]) {
         const name = parts[1];
-        const group = await Group.findOne({
+        const group = await groupRepo.findOne({
           name,
           tenant_id: env["ACTIVITYPUB_DOMAIN"],
         });
@@ -108,14 +110,14 @@ app.post("/inbox", async (c) => {
         if (activity.type === "Follow" && typeof activity.actor === "string") {
           if (group.banned.includes(activity.actor)) continue;
           if (group.isPrivate) {
-            await Group.updateOne({
+            await groupRepo.updateOne({
               name,
               tenant_id: env["ACTIVITYPUB_DOMAIN"],
             }, {
               $addToSet: { pendingFollowers: activity.actor },
             });
           } else {
-            await Group.updateOne({
+            await groupRepo.updateOne({
               name,
               tenant_id: env["ACTIVITYPUB_DOMAIN"],
             }, {

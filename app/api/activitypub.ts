@@ -1,12 +1,12 @@
 import { Hono } from "hono";
-import Account from "./models/account.ts";
-import Group from "./models/group.ts";
+import AccountRepository from "./repositories/account_repository.ts";
+import GroupRepository from "./repositories/group_repository.ts";
 import { findObjects, saveObject } from "./services/unified_store.ts";
-import KeyPackage from "./models/key_package.ts";
+import KeyPackageRepository from "./repositories/key_package_repository.ts";
 import { getEnv } from "../shared/config.ts";
 
 import { activityHandlers } from "./activity_handlers.ts";
-import RemoteActor from "./models/remote_actor.ts";
+import RemoteActorRepository from "./repositories/remote_actor_repository.ts";
 import { getSystemKey } from "./services/system_actor.ts";
 
 import {
@@ -23,6 +23,11 @@ const app = new Hono();
 import { logger } from "hono/logger";
 app.use(logger());
 
+const accountRepo = new AccountRepository();
+const groupRepo = new GroupRepository();
+const keyPackageRepo = new KeyPackageRepository();
+const remoteActorRepo = new RemoteActorRepository();
+
 app.get("/.well-known/webfinger", async (c) => {
   const resource = c.req.query("resource");
   if (!resource?.startsWith("acct:")) {
@@ -36,7 +41,7 @@ app.get("/.well-known/webfinger", async (c) => {
   const domain = expected ?? host;
   if (username.startsWith("!")) {
     const gname = username.slice(1);
-    const group = await Group.findOne({ name: gname });
+    const group = await groupRepo.findOne({ name: gname });
     if (!group) return jsonResponse(c, { error: "Not found" }, 404);
     const jrd = {
       subject: `acct:!${gname}@${domain}`,
@@ -63,7 +68,7 @@ app.get("/.well-known/webfinger", async (c) => {
     };
     return jsonResponse(c, jrd, 200, "application/jrd+json");
   }
-  const account = await Account.findOne({ userName: username });
+  const account = await accountRepo.findOne({ userName: username });
   if (!account) return jsonResponse(c, { error: "Not found" }, 404);
   const jrd = {
     subject: `acct:${username}@${domain}`,
@@ -101,7 +106,9 @@ app.get("/users/:username", async (c) => {
     });
     return jsonResponse(c, actor, 200, "application/activity+json");
   }
-  const account = await Account.findOne({ userName: username }).lean();
+  const account = await accountRepo.findOne({ userName: username }) as
+    | { userName: string; displayName: string; publicKey: string }
+    | null;
   if (!account) return jsonResponse(c, { error: "Not found" }, 404);
   const domain = getDomain(c);
 
@@ -110,7 +117,9 @@ app.get("/users/:username", async (c) => {
     displayName: account.displayName,
     publicKey: account.publicKey,
   });
-  const packages = await KeyPackage.find({ userName: username }).lean();
+  const packages = await keyPackageRepo.find({ userName: username }) as Array<
+    { _id: unknown }
+  >;
   actor.keyPackages = {
     type: "Collection",
     id: `https://${domain}/users/${username}/keyPackages`,
@@ -129,7 +138,9 @@ app.get("/users/:username/avatar", async (c) => {
       `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="100%" height="100%" fill="#6b7280"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-size="60" fill="#fff" font-family="sans-serif">S</text></svg>`;
     return c.body(svg, 200, { "content-type": "image/svg+xml" });
   }
-  const account = await Account.findOne({ userName: username }).lean();
+  const account = await accountRepo.findOne({ userName: username }) as
+    | { followers?: string[] }
+    | null;
   if (!account) return c.body("Not Found", 404);
 
   let icon = account.avatarInitial ||
@@ -254,7 +265,7 @@ app.post("/users/:username/inbox", async (c) => {
     }
     return jsonResponse(c, { status: "ok" }, 200, "application/activity+json");
   }
-  const account = await Account.findOne({ userName: username });
+  const account = await accountRepo.findOne({ userName: username });
   if (!account) return jsonResponse(c, { error: "Not found" }, 404);
   const bodyText = await c.req.text();
   const verified = await verifyHttpSignature(c.req.raw, bodyText);
@@ -286,7 +297,9 @@ app.get("/users/:username/followers", async (c) => {
     );
   }
   const page = c.req.query("page");
-  const account = await Account.findOne({ userName: username }).lean();
+  const account = await accountRepo.findOne({ userName: username }) as
+    | { following?: string[] }
+    | null;
   if (!account) return jsonResponse(c, { error: "Not found" }, 404);
   const domain = getDomain(c);
   const list = account.followers ?? [];
@@ -342,7 +355,9 @@ app.get("/users/:username/following", async (c) => {
     );
   }
   const page = c.req.query("page");
-  const account = await Account.findOne({ userName: username }).lean();
+  const account = await accountRepo.findOne({ userName: username }) as
+    | { following?: string[] }
+    | null;
   if (!account) return jsonResponse(c, { error: "Not found" }, 404);
   const domain = getDomain(c);
   const list = account.following ?? [];
@@ -395,7 +410,14 @@ app.get("/activitypub/actor-proxy", async (c) => {
     }
 
     // 既存キャッシュを確認
-    const cached = await RemoteActor.findOne({ actorUrl }).lean();
+    const cached = await remoteActorRepo.findOne({ actorUrl }) as
+      | {
+        name: string;
+        preferredUsername: string;
+        icon?: unknown;
+        summary: string;
+      }
+      | null;
     if (cached) {
       return c.json({
         name: cached.name,
@@ -421,7 +443,7 @@ app.get("/activitypub/actor-proxy", async (c) => {
     const actor = await response.json();
 
     // DBに保存
-    await RemoteActor.findOneAndUpdate(
+    await remoteActorRepo.updateOne(
       { actorUrl },
       {
         name: actor.name || "",

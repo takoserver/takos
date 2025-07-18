@@ -1,10 +1,10 @@
 import { Hono } from "hono";
-import KeyPackage from "./models/key_package.ts";
-import EncryptedMessage from "./models/encrypted_message.ts";
-import PublicMessage from "./models/public_message.ts";
-import EncryptedKeyPair from "./models/encrypted_keypair.ts";
+import KeyPackageRepository from "./repositories/key_package_repository.ts";
+import EncryptedMessageRepository from "./repositories/encrypted_message_repository.ts";
+import PublicMessageRepository from "./repositories/public_message_repository.ts";
+import EncryptedKeypairRepository from "./repositories/encrypted_keypair_repository.ts";
 import { saveObject } from "./services/unified_store.ts";
-import Account from "./models/account.ts";
+import AccountRepository from "./repositories/account_repository.ts";
 import authRequired from "./utils/auth.ts";
 import { getEnv } from "../shared/config.ts";
 import { rateLimit } from "./utils/rate_limit.ts";
@@ -28,7 +28,7 @@ interface ActivityPubActivity {
   to?: unknown;
   cc?: unknown;
 }
-import RemoteActor from "./models/remote_actor.ts";
+import RemoteActorRepository from "./repositories/remote_actor_repository.ts";
 
 async function resolveActorCached(
   acct: string,
@@ -40,10 +40,10 @@ async function resolveActorCached(
   const hostRegex = new RegExp(
     `^https?://${host.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}/`,
   );
-  const cached = await RemoteActor.findOne({
+  const cached = await remoteActorRepo.findOne({
     preferredUsername: name,
     actorUrl: { $regex: hostRegex },
-  }).lean();
+  });
 
   let actor:
     | (ActivityPubActor & { keyPackages?: string | { id?: string } })
@@ -68,7 +68,7 @@ async function resolveActorCached(
       | (ActivityPubActor & { keyPackages?: string | { id?: string } })
       | null;
     if (actor) {
-      await RemoteActor.findOneAndUpdate(
+      await remoteActorRepo.updateOne(
         { actorUrl: actor.id },
         {
           name: actor.name || "",
@@ -87,13 +87,22 @@ async function resolveActorCached(
 
 const app = new Hono();
 
+const keyPackageRepo = new KeyPackageRepository();
+const encMsgRepo = new EncryptedMessageRepository();
+const pubMsgRepo = new PublicMessageRepository();
+const keyPairRepo = new EncryptedKeypairRepository();
+const accountRepo = new AccountRepository();
+const remoteActorRepo = new RemoteActorRepository();
+
 async function deliverToFollowers(
   env: Record<string, string>,
   user: string,
   activity: unknown,
   domain: string,
 ) {
-  const account = await Account.findOne({ userName: user }).lean();
+  const account = await accountRepo.findOne({ userName: user }) as
+    | { followers?: string[] }
+    | null;
   if (!account || !account.followers) return;
   const followerInboxes = await Promise.all(
     account.followers.map(async (actorUrl: string) => {
@@ -131,7 +140,7 @@ app.get("/users/:user/keyPackages", async (c) => {
   }
 
   if (host === domain) {
-    const list = await KeyPackage.find({ userName: acct }).lean();
+    const list = await keyPackageRepo.find({ userName: acct });
     const items = list.map((doc) => ({
       id: `https://${domain}/users/${user}/keyPackage/${doc._id}`,
       type: "KeyPackage",
@@ -171,7 +180,7 @@ app.get("/users/:user/keyPackages", async (c) => {
 app.get("/users/:user/keyPackage/:keyId", async (c) => {
   const user = c.req.param("user");
   const keyId = c.req.param("keyId");
-  const doc = await KeyPackage.findOne({ _id: keyId, userName: user }).lean();
+  const doc = await keyPackageRepo.findOne({ _id: keyId, userName: user });
   if (!doc) return c.body("Not Found", 404);
   const domain = getDomain(c);
   const object = {
@@ -196,7 +205,7 @@ app.post("/users/:user/keyPackages", authRequired, async (c) => {
   if (typeof content !== "string") {
     return c.json({ error: "content is required" }, 400);
   }
-  const pkg = await KeyPackage.create({
+  const pkg = await keyPackageRepo.create({
     userName: user,
     content,
     mediaType: mediaType ?? "message/mls",
@@ -225,7 +234,7 @@ app.post("/users/:user/keyPackages", authRequired, async (c) => {
 app.delete("/users/:user/keyPackages/:keyId", authRequired, async (c) => {
   const user = c.req.param("user");
   const keyId = c.req.param("keyId");
-  await KeyPackage.deleteOne({ _id: keyId, userName: user });
+  await keyPackageRepo.delete({ _id: keyId, userName: user });
   const domain = getDomain(c);
   const actorId = `https://${domain}/users/${user}`;
   const removeActivity = createRemoveActivity(
@@ -245,7 +254,7 @@ app.delete("/users/:user/keyPackages/:keyId", authRequired, async (c) => {
 
 app.get("/users/:user/encryptedKeyPair", async (c) => {
   const user = c.req.param("user");
-  const doc = await EncryptedKeyPair.findOne({ userName: user }).lean();
+  const doc = await keyPairRepo.findOne({ userName: user });
   if (!doc) return c.json({ content: null });
   return c.json({ content: doc.content });
 });
@@ -256,7 +265,7 @@ app.post("/users/:user/encryptedKeyPair", authRequired, async (c) => {
   if (typeof content !== "string") {
     return c.json({ error: "invalid body" }, 400);
   }
-  await EncryptedKeyPair.findOneAndUpdate({ userName: user }, { content }, {
+  await keyPairRepo.updateOne({ userName: user }, { content }, {
     upsert: true,
   });
   return c.json({ result: "ok" });
@@ -264,7 +273,7 @@ app.post("/users/:user/encryptedKeyPair", authRequired, async (c) => {
 
 app.delete("/users/:user/encryptedKeyPair", authRequired, async (c) => {
   const user = c.req.param("user");
-  await EncryptedKeyPair.deleteOne({ userName: user });
+  await keyPairRepo.delete({ userName: user });
   return c.json({ result: "removed" });
 });
 
@@ -272,7 +281,7 @@ app.post("/users/:user/resetKeys", authRequired, async (c) => {
   const user = c.req.param("user");
   const domain = getDomain(c);
   const actorId = `https://${domain}/users/${user}`;
-  const keyPkgs = await KeyPackage.find({ userName: user }).lean();
+  const keyPkgs = await keyPackageRepo.find({ userName: user });
   for (const pkg of keyPkgs) {
     const removeActivity = createRemoveActivity(
       domain,
@@ -287,8 +296,8 @@ app.post("/users/:user/resetKeys", authRequired, async (c) => {
     await deliverToFollowers(getEnv(c), user, removeActivity, domain);
     await deliverToFollowers(getEnv(c), user, deleteActivity, domain);
   }
-  await KeyPackage.deleteMany({ userName: user });
-  await EncryptedKeyPair.deleteOne({ userName: user });
+  await keyPackageRepo.deleteMany({ userName: user });
+  await keyPairRepo.delete({ userName: user });
   return c.json({ result: "reset" });
 });
 
@@ -306,7 +315,7 @@ app.post(
     if (!Array.isArray(to) || typeof content !== "string") {
       return c.json({ error: "invalid body" }, 400);
     }
-    const msg = await EncryptedMessage.create({
+    const msg = await encMsgRepo.create({
       from: acct,
       to,
       content,
@@ -377,7 +386,7 @@ app.post(
     if (!Array.isArray(to) || typeof content !== "string") {
       return c.json({ error: "invalid body" }, 400);
     }
-    const msg = await PublicMessage.create({
+    const msg = await pubMsgRepo.create({
       from: acct,
       to,
       content,
@@ -478,14 +487,20 @@ app.get("/users/:user/messages", authRequired, async (c) => {
   );
   const before = c.req.query("before");
   const after = c.req.query("after");
-  const query = EncryptedMessage.find(condition);
+  const filter = { ...condition } as Record<string, unknown>;
   if (before) {
-    query.where("createdAt").lt(new Date(before) as unknown as number);
+    filter.createdAt = {
+      ...(filter.createdAt as Record<string, Date> || {}),
+      $lt: new Date(before),
+    };
   }
   if (after) {
-    query.where("createdAt").gt(new Date(after) as unknown as number);
+    filter.createdAt = {
+      ...(filter.createdAt as Record<string, Date> || {}),
+      $gt: new Date(after),
+    };
   }
-  const list = await query.sort({ createdAt: -1 }).limit(limit).lean();
+  const list = await encMsgRepo.find(filter, { createdAt: -1 }, limit);
   list.reverse();
   const messages = list.map((doc) => ({
     id: doc._id.toString(),
@@ -544,14 +559,20 @@ app.get("/users/:user/publicMessages", authRequired, async (c) => {
   );
   const before = c.req.query("before");
   const after = c.req.query("after");
-  const query = PublicMessage.find(condition);
+  const filter = { ...condition } as Record<string, unknown>;
   if (before) {
-    query.where("createdAt").lt(new Date(before) as unknown as number);
+    filter.createdAt = {
+      ...(filter.createdAt as Record<string, Date> || {}),
+      $lt: new Date(before),
+    };
   }
   if (after) {
-    query.where("createdAt").gt(new Date(after) as unknown as number);
+    filter.createdAt = {
+      ...(filter.createdAt as Record<string, Date> || {}),
+      $gt: new Date(after),
+    };
   }
-  const list = await query.sort({ createdAt: -1 }).limit(limit).lean();
+  const list = await pubMsgRepo.find(filter, { createdAt: -1 }, limit);
   list.reverse();
   const messages = list.map((doc) => ({
     id: doc._id.toString(),

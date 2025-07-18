@@ -4,9 +4,11 @@ import { compare } from "bcrypt"; // bcrypt で検証
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { getEnv } from "../shared/config.ts";
-import Session from "./models/session.ts";
+import SessionRepository from "./repositories/session_repository.ts";
 
 const app = new Hono();
+
+const sessionRepo = new SessionRepository();
 
 app.post(
   "/login",
@@ -38,11 +40,7 @@ app.post(
       const sessionId = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-      const session = new Session({ sessionId, expiresAt });
-      // Mongoose 互換の $locals に環境変数を渡す
-      (session as unknown as { $locals?: { env?: Record<string, string> } })
-        .$locals = { env };
-      await session.save();
+      await sessionRepo.create({ sessionId, expiresAt }, env);
 
       // ✅ Cookie 設定
       setCookie(c, "sessionId", sessionId, {

@@ -1,9 +1,10 @@
-import Tenant from "../models/tenant.ts";
+import TenantRepository from "../repositories/tenant_repository.ts";
+
+const repo = new TenantRepository();
 
 export async function ensureTenant(id: string, domain: string) {
-  const exists = await Tenant.findById(id).lean();
+  const exists = await repo.findById(id);
   if (!exists) {
-    const t = new Tenant({ _id: id, domain });
-    await t.save();
+    await repo.create({ _id: id, domain });
   }
 }
