@@ -1,7 +1,7 @@
 import { MiddlewareHandler } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import Session from "../models/session.ts";
-import { getEnv } from "./env_store.ts";
+import { getEnv } from "../../../shared/config.ts";
 
 const authRequired: MiddlewareHandler = async (c, next) => {
   const sessionId = getCookie(c, "sessionId");

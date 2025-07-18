@@ -1,4 +1,5 @@
-import { load, stringify } from "jsr:@std/dotenv";
+import { stringify } from "jsr:@std/dotenv";
+import { initConfig } from "./shared/config.ts";
 import { ensureFile } from "jsr:@std/fs/ensure-file";
 import { join } from "jsr:@std/path";
 import { connectDatabase } from "./app/api/db.ts";
@@ -41,7 +42,7 @@ async function generateKeyPair() {
 async function main() {
   const envPath = join("app", "api", ".env");
   await ensureFile(envPath);
-  const env = await load({ envPath });
+  const env = await initConfig({ envPath });
 
   const pass = prompt("ログイン用パスワードを入力してください:") ?? "";
   if (!pass) {

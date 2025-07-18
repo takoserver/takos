@@ -1,9 +1,9 @@
 import { createTakosApp } from "./server.ts";
 import { connectDatabase } from "./db.ts";
 import { ensureTenant } from "./services/tenant.ts";
-import { load } from "jsr:@std/dotenv";
+import { initConfig } from "../../shared/config.ts";
 
-const env = await load();
+const env = await initConfig();
 await connectDatabase(env);
 if (env["ACTIVITYPUB_DOMAIN"]) {
   const domain = env["ACTIVITYPUB_DOMAIN"];
