@@ -3,7 +3,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import RelayRepository from "./repositories/relay_repository.ts";
 import authRequired from "./utils/auth.ts";
-import { getEnv } from "../shared/config.ts";
+import { getEnv } from "../../shared/config.ts";
 import { addRelayEdge, removeRelayEdge } from "./services/unified_store.ts";
 import {
   createFollowActivity,

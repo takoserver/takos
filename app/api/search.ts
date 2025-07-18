@@ -3,7 +3,7 @@ import AccountRepository from "./repositories/account_repository.ts";
 import { findObjects } from "./services/unified_store.ts";
 import GroupRepository from "./repositories/group_repository.ts";
 import { getDomain, resolveActor } from "./utils/activitypub.ts";
-import { getEnv } from "../shared/config.ts";
+import { getEnv } from "../../shared/config.ts";
 import authRequired from "./utils/auth.ts";
 
 interface SearchResult {

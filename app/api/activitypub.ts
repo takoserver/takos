@@ -3,7 +3,7 @@ import AccountRepository from "./repositories/account_repository.ts";
 import GroupRepository from "./repositories/group_repository.ts";
 import { findObjects, saveObject } from "./services/unified_store.ts";
 import KeyPackageRepository from "./repositories/key_package_repository.ts";
-import { getEnv } from "../shared/config.ts";
+import { getEnv } from "../../shared/config.ts";
 
 import { activityHandlers } from "./activity_handlers.ts";
 import RemoteActorRepository from "./repositories/remote_actor_repository.ts";

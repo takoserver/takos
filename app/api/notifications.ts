@@ -3,7 +3,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import NotificationRepository from "./repositories/notification_repository.ts";
 import authRequired from "./utils/auth.ts";
-import { getEnv } from "../shared/config.ts";
+import { getEnv } from "../../shared/config.ts";
 
 const repo = new NotificationRepository();
 

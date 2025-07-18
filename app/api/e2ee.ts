@@ -6,7 +6,7 @@ import EncryptedKeypairRepository from "./repositories/encrypted_keypair_reposit
 import { saveObject } from "./services/unified_store.ts";
 import AccountRepository from "./repositories/account_repository.ts";
 import authRequired from "./utils/auth.ts";
-import { getEnv } from "../shared/config.ts";
+import { getEnv } from "../../shared/config.ts";
 import { rateLimit } from "./utils/rate_limit.ts";
 import {
   type ActivityPubActor,

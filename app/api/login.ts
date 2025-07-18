@@ -5,7 +5,6 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { getEnv } from "../shared/config.ts";
 import SessionRepository from "./repositories/session_repository.ts";
-
 const app = new Hono();
 
 const sessionRepo = new SessionRepository();
