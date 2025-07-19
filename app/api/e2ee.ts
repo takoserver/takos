@@ -295,7 +295,7 @@ app.post("/users/:user/resetKeys", authRequired, async (c) => {
 app.post(
   "/users/:user/messages",
   authRequired,
-  rateLimit({ windowMs: 60_000, limit: 20 }),
+  rateLimit({ windowMs: 60_000, limit: 2000 }),
   async (c) => {
     const acct = c.req.param("user");
     const [sender, senderDomain] = acct.split("@");
@@ -365,7 +365,7 @@ app.post(
 app.post(
   "/users/:user/publicMessages",
   authRequired,
-  rateLimit({ windowMs: 60_000, limit: 20 }),
+  rateLimit({ windowMs: 60_000, limit: 2000 }),
   async (c) => {
     const acct = c.req.param("user");
     const [sender, senderDomain] = acct.split("@");

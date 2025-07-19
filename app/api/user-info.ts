@@ -17,12 +17,10 @@ app.get("/user-info/:identifier", async (c) => {
     if (!identifier) {
       return c.json({ error: "User identifier is required" }, 400);
     }
-
     const userInfo = await getUserInfo(identifier, domain);
 
     return c.json(userInfo);
   } catch (error) {
-    console.error("Error fetching user info:", error);
     return c.json({ error: "Failed to fetch user info" }, 500);
   }
 });
