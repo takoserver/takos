@@ -23,6 +23,12 @@ import {
 } from "./e2ee/api.ts";
 import { getDomain } from "../utils/config.ts";
 import {
+  type ActorID,
+  isUrl,
+  normalizeActor,
+  splitActor,
+} from "../utils/chat.ts";
+import {
   decryptGroupMessage,
   deriveMLSSecret,
   encryptGroupMessage,
@@ -44,8 +50,6 @@ import {
 } from "./e2ee/storage.ts";
 import { decryptWithPassword, encryptWithPassword } from "../utils/crypto.ts";
 import { encryptionKeyState } from "../states/session.ts";
-
-type ActorID = string;
 
 interface ChatMessage {
   id: string;
@@ -127,16 +131,6 @@ export function Chat(props: ChatProps) {
     if (textareaRef) {
       textareaRef.style.height = "auto";
       textareaRef.style.height = `${textareaRef.scrollHeight}px`;
-    }
-  };
-
-  const isUrl = (value?: string): boolean => {
-    if (!value) return false;
-    try {
-      const url = new URL(value.trim());
-      return url.protocol === "http:" || url.protocol === "https:";
-    } catch {
-      return false;
     }
   };
 
@@ -1090,29 +1084,4 @@ export function Chat(props: ChatProps) {
       </div>
     </>
   );
-}
-
-function splitActor(actor: ActorID): [string, string | undefined] {
-  if (actor.startsWith("http")) {
-    const url = new URL(actor);
-    return [url.pathname.split("/").pop()!, url.hostname];
-  }
-  if (actor.includes("@")) {
-    const [user, domain] = actor.split("@");
-    return [user, domain];
-  }
-  return [actor, undefined];
-}
-
-function normalizeActor(actor: ActorID): string {
-  if (actor.startsWith("http")) {
-    try {
-      const url = new URL(actor);
-      const name = url.pathname.split("/").pop()!;
-      return `${name}@${url.hostname}`;
-    } catch {
-      return actor;
-    }
-  }
-  return actor;
 }
