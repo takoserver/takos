@@ -150,7 +150,7 @@ ActivityPub の `Video` オブジェクトを利用して動画を投稿でき�
 
 ほかのインスタンスと連携するためのリレーサーバーを管理します。
 
-- `GET /api/relays` – 登録済みリレー一覧を取得
+- `GET /api/relays` – 現在のテナントに登録されているリレー一覧を取得
 - `POST /api/relays` – `{ "inboxUrl": "https://relay.example/inbox" }`
   を送信して追加
 - `DELETE /api/relays/:id` – リレーを削除

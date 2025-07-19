@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import Relay from "./models/relay.ts";
+import RelayEdge from "./models/relay_edge.ts";
 import authRequired from "./utils/auth.ts";
 import { getEnv } from "../../shared/config.ts";
 import { addRelayEdge, removeRelayEdge } from "./services/unified_store.ts";
@@ -17,8 +18,16 @@ const app = new Hono();
 app.use("/relays/*", authRequired);
 
 app.get("/relays", async (c) => {
+  const env = getEnv(c);
+  const tenant = env["ACTIVITYPUB_DOMAIN"] ?? getDomain(c);
+  const edges = await RelayEdge.find({ tenant_id: tenant }).lean<
+    { relay: string }[]
+  >();
+  const hosts = Array.from(new Set(edges.map((e) => e.relay)));
   const list = await Relay.find().lean<{ _id: unknown; inboxUrl: string }[]>();
-  const relays = list.map((r) => ({ id: String(r._id), inboxUrl: r.inboxUrl }));
+  const relays = list
+    .filter((r) => hosts.includes(new URL(r.inboxUrl).hostname))
+    .map((r) => ({ id: String(r._id), inboxUrl: r.inboxUrl }));
   return jsonResponse(c, { relays });
 });
 
