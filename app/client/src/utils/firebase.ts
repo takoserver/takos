@@ -5,10 +5,11 @@ import {
   type Messaging,
   onMessage,
 } from "firebase/messaging";
-import swUrl from "../firebase-messaging-sw.ts?url";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { apiFetch } from "./config.ts";
+
+const swUrl = new URL("../firebase-messaging-sw.ts", import.meta.url).href;
 
 let firebaseConfig: Record<string, unknown> | null = null;
 let vapidKey: string | null = null;
