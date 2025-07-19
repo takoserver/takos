@@ -5,6 +5,7 @@ import {
   type Messaging,
   onMessage,
 } from "firebase/messaging";
+import swUrl from "../firebase-messaging-sw.ts?url";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { apiFetch } from "./config.ts";
@@ -36,10 +37,9 @@ async function ensureMessaging(): Promise<Messaging> {
   if (!config) throw new Error("firebase config not loaded");
   const app = initializeApp(config as Record<string, string>);
   messaging = getMessaging(app);
-  const reg = await navigator.serviceWorker.register(
-    "/firebase-messaging-sw.js",
-    { type: "module" },
-  );
+  const reg = await navigator.serviceWorker.register(swUrl, {
+    type: "module",
+  });
   reg.active?.postMessage({ type: "config", config });
   return messaging;
 }
