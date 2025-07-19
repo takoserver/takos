@@ -15,6 +15,15 @@ let firebaseConfig: Record<string, unknown> | null = null;
 let vapidKey: string | null = null;
 const isTauri = typeof window !== "undefined" && "__TAURI_IPC__" in window;
 
+function isValidVapidKey(key: string): boolean {
+  try {
+    const bin = atob(key.replace(/-/g, "+").replace(/_/g, "/"));
+    return bin.length === 65;
+  } catch {
+    return false;
+  }
+}
+
 async function loadConfig(): Promise<Record<string, unknown> | null> {
   if (firebaseConfig) return firebaseConfig;
   try {
@@ -59,6 +68,10 @@ export async function requestFcmToken(): Promise<string | null> {
   }
   try {
     const msg = await ensureMessaging();
+    if (vapidKey && !isValidVapidKey(vapidKey)) {
+      console.error("VAPIDキーが不正です");
+      return null;
+    }
     const token = await getToken(msg, {
       vapidKey: vapidKey ?? undefined,
       serviceWorkerRegistration:
