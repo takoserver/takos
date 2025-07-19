@@ -278,7 +278,14 @@ export function Chat(props: ChatProps) {
     if (!group) {
       const kp = await ensureKeyPair();
       if (kp) {
-        const partnerPub = await getPartnerKey(partnerUser, partnerDomain);
+        let partnerPub: string | null = null;
+        const isSelf = partnerUser === user.userName &&
+          (!partnerDomain || partnerDomain === getDomain());
+        if (isSelf) {
+          partnerPub = kp.publicKey;
+        } else {
+          partnerPub = await getPartnerKey(partnerUser, partnerDomain);
+        }
         if (partnerPub) {
           const secret = await deriveMLSSecret(kp.privateKey, partnerPub);
           group = { members: room.members, epoch: Date.now(), secret };
@@ -465,7 +472,14 @@ export function Chat(props: ChatProps) {
           return;
         }
         const [partnerUser, partnerDomain] = splitActor(room.members[0]);
-        const partnerPub = await getPartnerKey(partnerUser, partnerDomain);
+        let partnerPub: string | null;
+        const isSelf = partnerUser === user.userName &&
+          (!partnerDomain || partnerDomain === getDomain());
+        if (isSelf) {
+          partnerPub = kp.publicKey;
+        } else {
+          partnerPub = await getPartnerKey(partnerUser, partnerDomain);
+        }
         if (!partnerPub) {
           setPartnerHasKey(false);
           return;
