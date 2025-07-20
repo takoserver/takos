@@ -11,6 +11,8 @@ import {
   instancesState,
   loggedInState,
   pathState,
+  recaptchaV2SiteKeyState,
+  recaptchaV3SiteKeyState,
   rootDomainState,
   termsRequiredState,
 } from "./state.ts";
@@ -22,6 +24,8 @@ export default function App() {
   const [, setInstances] = useAtom(instancesState);
   const [, setRootDomain] = useAtom(rootDomainState);
   const [, setTermsRequired] = useAtom(termsRequiredState);
+  const [, setRecaptchaV3] = useAtom(recaptchaV3SiteKeyState);
+  const [, setRecaptchaV2] = useAtom(recaptchaV2SiteKeyState);
 
   globalThis.addEventListener("popstate", () => {
     setPath(globalThis.location.pathname.replace(/\/$/, ""));
@@ -32,6 +36,8 @@ export default function App() {
     setLoggedIn(status.login);
     setRootDomain(status.rootDomain ?? "");
     setTermsRequired(status.termsRequired ?? false);
+    setRecaptchaV3(status.recaptchaV3SiteKey ?? "");
+    setRecaptchaV2(status.recaptchaV2SiteKey ?? "");
   };
 
   const loadInstances = async () => {

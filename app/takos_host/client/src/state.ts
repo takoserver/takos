@@ -10,3 +10,5 @@ export const instancesState = atom<Instance[]>([]);
 export const hostState = atom("");
 export const rootDomainState = atom("");
 export const termsRequiredState = atom(false);
+export const recaptchaV3SiteKeyState = atom("");
+export const recaptchaV2SiteKeyState = atom("");

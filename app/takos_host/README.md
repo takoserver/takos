@@ -98,8 +98,13 @@ OAuth ボタンを表示します。
    - `FREE_PLAN_LIMIT` で無料プランのインスタンス数上限を指定します。
    - `RESERVED_SUBDOMAINS`
      には利用禁止とするサブドメインをカンマ区切りで設定します。
-   - `TERMS_FILE` に利用規約(テキストまたは Markdown)の
-     ファイルパスを指定します。Markdown の場合は HTML として表示されます。
+
+- `TERMS_FILE` に利用規約(テキストまたは Markdown)の
+  ファイルパスを指定します。Markdown の場合は HTML として表示されます。
+- `RECAPTCHA_V3_SITE_KEY` と `RECAPTCHA_V3_SECRET_KEY` を設定すると
+  ログインと登録時に reCAPTCHA v3 を使用します。`RECAPTCHA_V3_THRESHOLD`
+  でスコアの閾値を変更できます。v3 で弾かれた場合に v2 へ切り替えるには
+  `RECAPTCHA_V2_SITE_KEY` と `RECAPTCHA_V2_SECRET_KEY` も設定してください。
 
 - `FREE_PLAN_LIMIT` で無料プランのインスタンス数上限を指定します。
 - `RESERVED_SUBDOMAINS`

@@ -17,6 +17,8 @@ export interface Status {
   login: boolean;
   rootDomain?: string;
   termsRequired?: boolean;
+  recaptchaV3SiteKey?: string;
+  recaptchaV2SiteKey?: string;
 }
 
 export async function fetchStatus(): Promise<Status> {
@@ -27,19 +29,24 @@ export async function fetchStatus(): Promise<Status> {
     login: data.login as boolean,
     rootDomain: data.rootDomain,
     termsRequired: data.termsRequired,
+    recaptchaV3SiteKey: data.recaptchaV3SiteKey,
+    recaptchaV2SiteKey: data.recaptchaV2SiteKey,
   };
 }
 
 export async function login(
   userName: string,
   password: string,
-): Promise<boolean> {
+  recaptchaToken?: string,
+): Promise<{ success: boolean; v2Required: boolean }> {
   const res = await fetch("/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userName, password }),
+    body: JSON.stringify({ userName, password, recaptchaToken }),
   });
-  return res.ok;
+  if (res.ok) return { success: true, v2Required: false };
+  const data = await res.json().catch(() => ({}));
+  return { success: false, v2Required: data.v2 === true };
 }
 
 export async function register(
@@ -47,11 +54,18 @@ export async function register(
   email: string,
   password: string,
   accepted: boolean,
+  recaptchaToken?: string,
 ): Promise<boolean> {
   const res = await fetch("/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userName, email, password, accepted }),
+    body: JSON.stringify({
+      userName,
+      email,
+      password,
+      accepted,
+      recaptchaToken,
+    }),
   });
   return res.ok;
 }

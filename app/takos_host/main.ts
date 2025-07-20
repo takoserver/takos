@@ -40,7 +40,15 @@ const consumerApp = createConsumerApp(
   },
   { rootDomain, freeLimit, reservedSubdomains },
 );
-const authApp = createAuthApp({ rootDomain, termsRequired: !!termsText });
+const authApp = createAuthApp({
+  rootDomain,
+  termsRequired: !!termsText,
+  recaptchaV3SiteKey: env["RECAPTCHA_V3_SITE_KEY"],
+  recaptchaV2SiteKey: env["RECAPTCHA_V2_SITE_KEY"],
+  recaptchaV3Secret: env["RECAPTCHA_V3_SECRET_KEY"],
+  recaptchaV2Secret: env["RECAPTCHA_V2_SECRET_KEY"],
+  recaptchaThreshold: Number(env["RECAPTCHA_V3_THRESHOLD"] ?? "0.5"),
+});
 const isDev = Deno.env.get("DEV") === "1";
 
 function parseHost(value: string | undefined): string {
@@ -158,6 +166,6 @@ root.all("/*", async (c) => {
   return app.fetch(c.req.raw);
 });
 
-root.use(logger())
+root.use(logger());
 
 Deno.serve({ port: 8001 }, root.fetch);

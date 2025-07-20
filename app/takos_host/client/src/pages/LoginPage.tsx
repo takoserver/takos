@@ -1,19 +1,74 @@
 import { Component, createSignal, Show } from "solid-js";
 import { useAtom } from "solid-jotai";
 import { login as apiLogin } from "../api.ts";
-import { loggedInState, passwordState, userNameState } from "../state.ts";
+import {
+  loggedInState,
+  passwordState,
+  recaptchaV2SiteKeyState,
+  recaptchaV3SiteKeyState,
+  userNameState,
+} from "../state.ts";
 
 const LoginPage: Component = () => {
   const [userName, setUserName] = useAtom(userNameState);
   const [password, setPassword] = useAtom(passwordState);
   const [, setLoggedIn] = useAtom(loggedInState);
+  const [v3key] = useAtom(recaptchaV3SiteKeyState);
+  const [v2key] = useAtom(recaptchaV2SiteKeyState);
   const [error, setError] = createSignal("");
+  const [needV2, setNeedV2] = createSignal(false);
+  let widgetId: number | null = null;
+
+  const executeV2 = () =>
+    new Promise<string>((resolve) => {
+      if (widgetId !== null) {
+        globalThis.grecaptcha.reset(widgetId);
+      }
+      widgetId = globalThis.grecaptcha.render("recaptcha", {
+        sitekey: v2key(),
+        callback: (token: string) => resolve(token),
+      });
+    });
+
+  onMount(() => {
+    if (v3key()) {
+      const s = document.createElement("script");
+      s.src = `https://www.google.com/recaptcha/api.js?render=${v3key()}`;
+      document.head.appendChild(s);
+    }
+  });
 
   const login = async (e: SubmitEvent) => {
     e.preventDefault();
-    if (await apiLogin(userName(), password())) {
+    let token: string | undefined;
+    if (!needV2() && v3key()) {
+      try {
+        token = await globalThis.grecaptcha.execute(v3key(), {
+          action: "login",
+        });
+      } catch {
+        if (v2key()) setNeedV2(true);
+      }
+    }
+    if (needV2() && v2key()) {
+      if (!globalThis.grecaptcha.render) {
+        await new Promise((r) => {
+          const s = document.createElement("script");
+          s.src = "https://www.google.com/recaptcha/api.js";
+          s.async = true;
+          s.onload = () => r(null);
+          document.head.appendChild(s);
+        });
+      }
+      token = await executeV2();
+    }
+    const result = await apiLogin(userName(), password(), token);
+    if (result.success) {
       setLoggedIn(true);
       globalThis.location.href = "/user";
+    } else if (result.v2Required) {
+      setNeedV2(true);
+      setError("reCAPTCHA を完了してください");
     } else {
       setError("ログインに失敗しました");
     }
@@ -62,6 +117,9 @@ const LoginPage: Component = () => {
                 required
               />
             </div>
+            <Show when={needV2()}>
+              <div id="recaptcha" />
+            </Show>
             <Show when={error()}>
               <p class="text-red-400 text-sm font-medium bg-red-900/30 p-3 rounded-md">
                 {error()}

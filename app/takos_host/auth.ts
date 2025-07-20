@@ -5,6 +5,7 @@ import HostUser from "./models/user.ts";
 import HostSession from "./models/session.ts";
 import { sendVerifyMail } from "./mailer.ts";
 import { createAuthMiddleware } from "../../shared/auth.ts";
+import { verifyRecaptchaV2, verifyRecaptchaV3 } from "./recaptcha.ts";
 
 /** bcrypt.hash をラップ（saltRounds = 10） */
 export async function hash(text: string): Promise<string> {
@@ -15,14 +16,30 @@ export async function hash(text: string): Promise<string> {
 export function createAuthApp(options?: {
   rootDomain?: string;
   termsRequired?: boolean;
+  recaptchaV3SiteKey?: string;
+  recaptchaV2SiteKey?: string;
+  recaptchaV3Secret?: string;
+  recaptchaV2Secret?: string;
+  recaptchaThreshold?: number;
 }) {
   const app = new Hono();
   const rootDomain = options?.rootDomain ?? "";
   const termsRequired = options?.termsRequired ?? false;
+  const recaptchaV3SiteKey = options?.recaptchaV3SiteKey ?? "";
+  const recaptchaV2SiteKey = options?.recaptchaV2SiteKey ?? "";
+  const recaptchaV3Secret = options?.recaptchaV3Secret ?? "";
+  const recaptchaV2Secret = options?.recaptchaV2Secret ?? "";
+  const recaptchaThreshold = options?.recaptchaThreshold ?? 0.5;
 
   /* --------------------------- REGISTER --------------------------- */
   app.post("/register", async (c) => {
-    const { userName, email, password, accepted } = await c.req.json();
+    const {
+      userName,
+      email,
+      password,
+      accepted,
+      recaptchaToken,
+    } = await c.req.json();
     if (
       typeof userName !== "string" ||
       typeof email !== "string" ||
@@ -30,6 +47,26 @@ export function createAuthApp(options?: {
       (termsRequired && accepted !== true)
     ) {
       return c.json({ error: "invalid" }, 400);
+    }
+
+    if (recaptchaV3Secret) {
+      const ok = await verifyRecaptchaV3(
+        recaptchaToken,
+        recaptchaV3Secret,
+        "register",
+        recaptchaThreshold,
+      );
+      if (!ok) {
+        if (recaptchaV2Secret) {
+          return c.json({ error: "recaptcha", v2: true }, 400);
+        }
+        return c.json({ error: "recaptcha" }, 400);
+      }
+    } else if (recaptchaV2Secret) {
+      const ok = await verifyRecaptchaV2(recaptchaToken, recaptchaV2Secret);
+      if (!ok) {
+        return c.json({ error: "recaptcha" }, 400);
+      }
     }
 
     const exists = await HostUser.findOne({ $or: [{ userName }, { email }] });
@@ -129,9 +166,29 @@ export function createAuthApp(options?: {
 
   /* ----------------------------- LOGIN ---------------------------- */
   app.post("/login", async (c) => {
-    const { userName, password } = await c.req.json();
+    const { userName, password, recaptchaToken } = await c.req.json();
     if (typeof userName !== "string" || typeof password !== "string") {
       return c.json({ error: "invalid" }, 400);
+    }
+
+    if (recaptchaV3Secret) {
+      const ok = await verifyRecaptchaV3(
+        recaptchaToken,
+        recaptchaV3Secret,
+        "login",
+        recaptchaThreshold,
+      );
+      if (!ok) {
+        if (recaptchaV2Secret) {
+          return c.json({ error: "recaptcha", v2: true }, 400);
+        }
+        return c.json({ error: "recaptcha" }, 400);
+      }
+    } else if (recaptchaV2Secret) {
+      const ok = await verifyRecaptchaV2(recaptchaToken, recaptchaV2Secret);
+      if (!ok) {
+        return c.json({ error: "recaptcha" }, 400);
+      }
     }
 
     const user = await HostUser.findOne({ userName });
@@ -159,7 +216,15 @@ export function createAuthApp(options?: {
   /* --------------------------- STATUS ----------------------------- */
   app.get("/status", async (c) => {
     const sid = getCookie(c, "hostSessionId");
-    if (!sid) return c.json({ login: false, rootDomain, termsRequired });
+    if (!sid) {
+      return c.json({
+        login: false,
+        rootDomain,
+        termsRequired,
+        recaptchaV3SiteKey,
+        recaptchaV2SiteKey,
+      });
+    }
 
     const session = await HostSession.findOne({ sessionId: sid });
     if (session && session.expiresAt > new Date()) {
@@ -178,11 +243,19 @@ export function createAuthApp(options?: {
         user: session.user,
         rootDomain,
         termsRequired,
+        recaptchaV3SiteKey,
+        recaptchaV2SiteKey,
       });
     }
 
     if (session) await HostSession.deleteOne({ sessionId: sid });
-    return c.json({ login: false, rootDomain, termsRequired });
+    return c.json({
+      login: false,
+      rootDomain,
+      termsRequired,
+      recaptchaV3SiteKey,
+      recaptchaV2SiteKey,
+    });
   });
 
   /* ---------------------------- LOGOUT ---------------------------- */

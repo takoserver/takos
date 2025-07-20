@@ -5,6 +5,8 @@ import {
   emailState,
   loggedInState,
   passwordState,
+  recaptchaV2SiteKeyState,
+  recaptchaV3SiteKeyState,
   termsRequiredState,
   userNameState,
 } from "../state.ts";
@@ -16,12 +18,57 @@ const RegisterPage: Component = () => {
   const [password, setPassword] = useAtom(passwordState);
   const [, setLoggedIn] = useAtom(loggedInState);
   const [termsRequired] = useAtom(termsRequiredState);
+  const [v3key] = useAtom(recaptchaV3SiteKeyState);
+  const [v2key] = useAtom(recaptchaV2SiteKeyState);
   const [agreed, setAgreed] = createSignal(false);
   const [error, setError] = createSignal("");
+  const [needV2, setNeedV2] = createSignal(false);
+  let widgetId: number | null = null;
+
+  const executeV2 = () =>
+    new Promise<string>((resolve) => {
+      if (widgetId !== null) {
+        globalThis.grecaptcha.reset(widgetId);
+      }
+      widgetId = globalThis.grecaptcha.render("recaptcha-reg", {
+        sitekey: v2key(),
+        callback: (token: string) => resolve(token),
+      });
+    });
+
+  onMount(() => {
+    if (v3key()) {
+      const s = document.createElement("script");
+      s.src = `https://www.google.com/recaptcha/api.js?render=${v3key()}`;
+      document.head.appendChild(s);
+    }
+  });
 
   const signup = async (e: SubmitEvent) => {
     e.preventDefault();
-    if (await apiRegister(userName(), email(), password(), agreed())) {
+    let token: string | undefined;
+    if (!needV2() && v3key()) {
+      try {
+        token = await globalThis.grecaptcha.execute(v3key(), {
+          action: "register",
+        });
+      } catch {
+        if (v2key()) setNeedV2(true);
+      }
+    }
+    if (needV2() && v2key()) {
+      if (!globalThis.grecaptcha.render) {
+        await new Promise((r) => {
+          const s = document.createElement("script");
+          s.src = "https://www.google.com/recaptcha/api.js";
+          s.async = true;
+          s.onload = () => r(null);
+          document.head.appendChild(s);
+        });
+      }
+      token = await executeV2();
+    }
+    if (await apiRegister(userName(), email(), password(), agreed(), token)) {
       setUserName(userName());
       setLoggedIn(false);
       navigate("/verify");
@@ -89,6 +136,9 @@ const RegisterPage: Component = () => {
                 required
               />
             </div>
+            <Show when={needV2()}>
+              <div id="recaptcha-reg" />
+            </Show>
             <Show when={termsRequired}>
               <div class="flex items-center">
                 <input
