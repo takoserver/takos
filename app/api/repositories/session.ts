@@ -1,4 +1,4 @@
-import Session from "../models/session.ts";
+import Session from "../models/takos/session.ts";
 
 export interface SessionData {
   _id?: string;

@@ -15,6 +15,19 @@ export interface DB {
   listTimeline(actor: string, opts: ListOpts): Promise<unknown[]>;
   follow(follower: string, target: string): Promise<void>;
   unfollow?(follower: string, target: string): Promise<void>;
+  listAccounts(): Promise<unknown[]>;
+  createAccount(data: Record<string, unknown>): Promise<unknown>;
+  findAccountById(id: string): Promise<unknown | null>;
+  findAccountByUserName(username: string): Promise<unknown | null>;
+  updateAccountById(
+    id: string,
+    update: Record<string, unknown>,
+  ): Promise<unknown | null>;
+  deleteAccountById(id: string): Promise<boolean>;
+  addFollower(id: string, follower: string): Promise<string[]>;
+  removeFollower(id: string, follower: string): Promise<string[]>;
+  addFollowing(id: string, target: string): Promise<string[]>;
+  removeFollowing(id: string, target: string): Promise<string[]>;
   saveNote(
     domain: string,
     author: string,

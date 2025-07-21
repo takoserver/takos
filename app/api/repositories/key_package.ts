@@ -7,7 +7,7 @@ export interface KeyPackageData {
   createdAt?: Date;
 }
 
-import KeyPackage from "../models/key_package.ts";
+import KeyPackage from "../models/takos/key_package.ts";
 
 export async function listKeyPackages(
   env: Record<string, string>,

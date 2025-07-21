@@ -8,7 +8,7 @@ export interface MessageData {
   createdAt?: Date;
 }
 
-import EncryptedMessage from "../models/encrypted_message.ts";
+import EncryptedMessage from "../models/takos/encrypted_message.ts";
 
 export async function createEncryptedMessage(data: {
   from: string;

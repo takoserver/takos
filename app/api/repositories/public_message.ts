@@ -8,7 +8,7 @@ export interface PublicMessageData {
   createdAt?: Date;
 }
 
-import PublicMessage from "../models/public_message.ts";
+import PublicMessage from "../models/takos/public_message.ts";
 
 export async function createPublicMessage(
   env: Record<string, string>,

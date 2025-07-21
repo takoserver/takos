@@ -5,7 +5,7 @@ export interface EncryptedKeyPairData {
   createdAt?: Date;
 }
 
-import EncryptedKeyPair from "../models/encrypted_keypair.ts";
+import EncryptedKeyPair from "../models/takos/encrypted_keypair.ts";
 
 export async function findEncryptedKeyPair(
   userName: string,

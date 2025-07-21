@@ -7,7 +7,7 @@ export interface NotificationData {
   createdAt: Date;
 }
 
-import Notification from "../models/notification.ts";
+import Notification from "../models/takos/notification.ts";
 
 export async function listNotifications(
   env: Record<string, string>,

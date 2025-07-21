@@ -6,7 +6,7 @@ export interface RemoteActorData {
   summary: string;
 }
 
-import RemoteActor from "../models/remote_actor.ts";
+import RemoteActor from "../models/takos/remote_actor.ts";
 
 export async function findRemoteActorByUrl(
   url: string,

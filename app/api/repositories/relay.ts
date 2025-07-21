@@ -1,4 +1,4 @@
-import Relay from "../models/relay.ts";
+import Relay from "../models/takos/relay.ts";
 
 export interface RelayData {
   _id?: string;

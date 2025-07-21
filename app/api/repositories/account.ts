@@ -1,4 +1,4 @@
-import Account from "../models/account.ts";
+import Account from "../models/takos/account.ts";
 
 export interface AccountData {
   _id?: string;
