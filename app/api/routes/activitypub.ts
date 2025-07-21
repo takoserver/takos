@@ -198,8 +198,13 @@ app.post("/users/:username/outbox", async (c) => {
     actor_id: `https://${domain}/users/${username}`,
     aud: { to: body.to ?? [], cc: body.cc ?? [] },
   });
+  const saved = object as {
+    toObject(): Record<string, unknown>;
+    to: string[];
+    cc: string[];
+  };
   // contentをstringに変換して渡す
-  const stored = object.toObject();
+  const stored = saved.toObject();
   const activity = buildActivityFromStored(
     {
       _id: stored._id,
@@ -213,7 +218,7 @@ app.post("/users/:username/outbox", async (c) => {
     true,
   );
   deliverActivityPubObject(
-    [...object.to, ...object.cc],
+    [...saved.to, ...saved.cc],
     activity,
     username,
     domain,
