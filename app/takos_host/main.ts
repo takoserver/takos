@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { loadConfig } from "../shared/config.ts";
 import { join } from "@std/path";
+import { takosEnv } from "./takos_env.ts";
 import { createTakosApp } from "../api/server.ts";
 import { connectDatabase } from "../shared/db.ts";
 import { ensureTenant } from "../api/services/tenant.ts";
@@ -37,11 +38,8 @@ const hostEnv = await loadConfig({
   envPath: join("app", "takos_host", ".env"),
 });
 
-
 hostEnv["DB_MODE"] = "host";
 await connectDatabase(hostEnv);
-
-const takosEnv = await loadConfig({ envPath: join("app", "api", ".env") });
 
 const apps = new Map<string, Hono>();
 const rootDomain =
