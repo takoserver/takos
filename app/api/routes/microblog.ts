@@ -8,7 +8,7 @@ import { createDB } from "../db.ts";
 import { getEnv } from "../../shared/config.ts";
 
 type ActivityPubObjectType = ActivityObject;
-import { findAccountByUserName } from "../repositories/account.ts";
+import { findAccountByUserName } from "../db.ts";
 import {
   buildActivityFromStored,
   createAnnounceActivity,

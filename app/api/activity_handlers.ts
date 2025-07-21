@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { addFollowerByName } from "./repositories/account.ts";
+import { addFollowerByName } from "./db.ts";
 import { createDB } from "./db.ts";
 import {
   createAcceptActivity,

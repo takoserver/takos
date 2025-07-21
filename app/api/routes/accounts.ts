@@ -12,7 +12,7 @@ import {
   removeFollowerByName,
   removeFollowing,
   updateAccountById,
-} from "../repositories/account.ts";
+} from "../db.ts";
 import {
   createFollowActivity,
   createUndoFollowActivity,

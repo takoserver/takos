@@ -5,18 +5,15 @@ import Message from "../models/takos/message.ts";
 import FollowEdge from "../models/takos/follow_edge.ts";
 import RelayEdge from "../models/takos/relay_edge.ts";
 import { createObjectId } from "./utils/activitypub.ts";
-import {
-  addFollower as addFollowerAccount,
-  addFollowing as addFollowingAccount,
-  createAccount as createAccountRepo,
-  deleteAccountById as deleteAccountByIdRepo,
-  findAccountById as findAccountByIdRepo,
-  findAccountByUserName as findAccountByUserNameRepo,
-  listAccounts as listAccountsRepo,
-  removeFollower as removeFollowerAccount,
-  removeFollowing as removeFollowingAccount,
-  updateAccountById as updateAccountByIdRepo,
-} from "./repositories/account.ts";
+import Account from "../models/takos/account.ts";
+import EncryptedKeyPair from "../models/takos/encrypted_keypair.ts";
+import EncryptedMessage from "../models/takos/encrypted_message.ts";
+import KeyPackage from "../models/takos/key_package.ts";
+import Notification from "../models/takos/notification.ts";
+import PublicMessage from "../models/takos/public_message.ts";
+import Relay from "../models/takos/relay.ts";
+import RemoteActor from "../models/takos/remote_actor.ts";
+import Session from "../models/takos/session.ts";
 import mongoose from "mongoose";
 import type { DB, ListOpts } from "../shared/db.ts";
 import type { SortOrder } from "mongoose";
@@ -83,43 +80,66 @@ export class MongoDBLocal implements DB {
   }
 
   async listAccounts() {
-    return await listAccountsRepo(this.env);
+    return await Account.find({}).lean();
   }
 
   async createAccount(data: Record<string, unknown>) {
-    return await createAccountRepo(this.env, data as never);
+    const doc = new Account({
+      ...data,
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"] ?? "",
+    });
+    (doc as unknown as { $locals?: { env?: Record<string, string> } }).$locals =
+      {
+        env: this.env,
+      };
+    await doc.save();
+    return doc.toObject();
   }
 
   async findAccountById(id: string) {
-    return await findAccountByIdRepo(this.env, id);
+    return await Account.findOne({ _id: id }).lean();
   }
 
   async findAccountByUserName(username: string) {
-    return await findAccountByUserNameRepo(this.env, username);
+    return await Account.findOne({ userName: username }).lean();
   }
 
   async updateAccountById(id: string, update: Record<string, unknown>) {
-    return await updateAccountByIdRepo(this.env, id, update);
+    return await Account.findOneAndUpdate({ _id: id }, update, { new: true })
+      .lean();
   }
 
   async deleteAccountById(id: string) {
-    return await deleteAccountByIdRepo(this.env, id);
+    const res = await Account.findOneAndDelete({ _id: id });
+    return !!res;
   }
 
   async addFollower(id: string, follower: string) {
-    return await addFollowerAccount(this.env, id, follower);
+    const acc = await Account.findOneAndUpdate({ _id: id }, {
+      $addToSet: { followers: follower },
+    }, { new: true });
+    return acc?.followers ?? [];
   }
 
   async removeFollower(id: string, follower: string) {
-    return await removeFollowerAccount(this.env, id, follower);
+    const acc = await Account.findOneAndUpdate({ _id: id }, {
+      $pull: { followers: follower },
+    }, { new: true });
+    return acc?.followers ?? [];
   }
 
   async addFollowing(id: string, target: string) {
-    return await addFollowingAccount(this.env, id, target);
+    const acc = await Account.findOneAndUpdate({ _id: id }, {
+      $addToSet: { following: target },
+    }, { new: true });
+    return acc?.following ?? [];
   }
 
   async removeFollowing(id: string, target: string) {
-    return await removeFollowingAccount(this.env, id, target);
+    const acc = await Account.findOneAndUpdate({ _id: id }, {
+      $pull: { following: target },
+    }, { new: true });
+    return acc?.following ?? [];
   }
 
   async saveNote(
@@ -382,43 +402,62 @@ export class MongoDBHost implements DB {
   }
 
   async listAccounts() {
-    return await listAccountsRepo(this.env);
+    return await Account.find({}).lean();
   }
 
   async createAccount(data: Record<string, unknown>) {
-    return await createAccountRepo(this.env, data as never);
+    const doc = new Account({
+      ...data,
+      tenant_id: this.tenantId,
+    });
+    await doc.save();
+    return doc.toObject();
   }
 
   async findAccountById(id: string) {
-    return await findAccountByIdRepo(this.env, id);
+    return await Account.findOne({ _id: id }).lean();
   }
 
   async findAccountByUserName(username: string) {
-    return await findAccountByUserNameRepo(this.env, username);
+    return await Account.findOne({ userName: username }).lean();
   }
 
   async updateAccountById(id: string, update: Record<string, unknown>) {
-    return await updateAccountByIdRepo(this.env, id, update);
+    return await Account.findOneAndUpdate({ _id: id }, update, { new: true })
+      .lean();
   }
 
   async deleteAccountById(id: string) {
-    return await deleteAccountByIdRepo(this.env, id);
+    const res = await Account.findOneAndDelete({ _id: id });
+    return !!res;
   }
 
   async addFollower(id: string, follower: string) {
-    return await addFollowerAccount(this.env, id, follower);
+    const acc = await Account.findOneAndUpdate({ _id: id }, {
+      $addToSet: { followers: follower },
+    }, { new: true });
+    return acc?.followers ?? [];
   }
 
   async removeFollower(id: string, follower: string) {
-    return await removeFollowerAccount(this.env, id, follower);
+    const acc = await Account.findOneAndUpdate({ _id: id }, {
+      $pull: { followers: follower },
+    }, { new: true });
+    return acc?.followers ?? [];
   }
 
   async addFollowing(id: string, target: string) {
-    return await addFollowingAccount(this.env, id, target);
+    const acc = await Account.findOneAndUpdate({ _id: id }, {
+      $addToSet: { following: target },
+    }, { new: true });
+    return acc?.following ?? [];
   }
 
   async removeFollowing(id: string, target: string) {
-    return await removeFollowingAccount(this.env, id, target);
+    const acc = await Account.findOneAndUpdate({ _id: id }, {
+      $pull: { following: target },
+    }, { new: true });
+    return acc?.following ?? [];
   }
 
   async saveNote(
@@ -665,4 +704,435 @@ export function createDB(env: Record<string, string>): DB {
     return new MongoDBHost(env);
   }
   return new MongoDBLocal(env);
+}
+
+// ------------------------------
+// 既存リポジトリのラッパー関数群
+// ------------------------------
+
+export async function listAccounts(env: Record<string, string>) {
+  const db = createDB(env);
+  return await db.listAccounts();
+}
+
+export async function createAccount(
+  env: Record<string, string>,
+  data: Record<string, unknown>,
+) {
+  const db = createDB(env);
+  return await db.createAccount(data);
+}
+
+export async function findAccountById(env: Record<string, string>, id: string) {
+  const db = createDB(env);
+  return await db.findAccountById(id);
+}
+
+export async function findAccountByUserName(
+  env: Record<string, string>,
+  username: string,
+) {
+  const db = createDB(env);
+  return await db.findAccountByUserName(username);
+}
+
+export async function updateAccountById(
+  env: Record<string, string>,
+  id: string,
+  update: Record<string, unknown>,
+) {
+  const db = createDB(env);
+  return await db.updateAccountById(id, update);
+}
+
+export async function deleteAccountById(
+  env: Record<string, string>,
+  id: string,
+) {
+  const db = createDB(env);
+  return await db.deleteAccountById(id);
+}
+
+export async function addFollower(
+  env: Record<string, string>,
+  id: string,
+  follower: string,
+) {
+  const db = createDB(env);
+  return await db.addFollower(id, follower);
+}
+
+export async function removeFollower(
+  env: Record<string, string>,
+  id: string,
+  follower: string,
+) {
+  const db = createDB(env);
+  return await db.removeFollower(id, follower);
+}
+
+export async function addFollowing(
+  env: Record<string, string>,
+  id: string,
+  target: string,
+) {
+  const db = createDB(env);
+  return await db.addFollowing(id, target);
+}
+
+export async function removeFollowing(
+  env: Record<string, string>,
+  id: string,
+  target: string,
+) {
+  const db = createDB(env);
+  return await db.removeFollowing(id, target);
+}
+
+export async function addFollowerByName(
+  _env: Record<string, string>,
+  username: string,
+  follower: string,
+) {
+  await Account.updateOne({ userName: username }, {
+    $addToSet: { followers: follower },
+  });
+}
+
+export async function removeFollowerByName(
+  _env: Record<string, string>,
+  username: string,
+  follower: string,
+) {
+  await Account.updateOne({ userName: username }, {
+    $pull: { followers: follower },
+  });
+}
+
+export async function searchAccounts(
+  _env: Record<string, string>,
+  query: RegExp,
+  limit = 20,
+) {
+  return await Account.find({
+    $or: [{ userName: query }, { displayName: query }],
+  })
+    .limit(limit)
+    .lean();
+}
+
+export async function updateAccountByUserName(
+  _env: Record<string, string>,
+  username: string,
+  update: Record<string, unknown>,
+) {
+  await Account.updateOne({ userName: username }, update);
+}
+
+export async function findAccountsByUserNames(
+  _env: Record<string, string>,
+  usernames: string[],
+) {
+  return await Account.find({ userName: { $in: usernames } }).lean();
+}
+
+export async function countAccounts(_env: Record<string, string>) {
+  return await Account.countDocuments({});
+}
+
+export async function createEncryptedMessage(data: {
+  from: string;
+  to: string[];
+  content: string;
+  mediaType?: string;
+  encoding?: string;
+}) {
+  const doc = await EncryptedMessage.create({
+    from: data.from,
+    to: data.to,
+    content: data.content,
+    mediaType: data.mediaType ?? "message/mls",
+    encoding: data.encoding ?? "base64",
+  });
+  return doc.toObject();
+}
+
+export async function findEncryptedMessages(
+  condition: Record<string, unknown>,
+  opts: { before?: string; after?: string; limit?: number } = {},
+) {
+  const query = EncryptedMessage.find(condition);
+  if (opts.before) {
+    query.where("createdAt").lt(new Date(opts.before) as unknown as number);
+  }
+  if (opts.after) {
+    query.where("createdAt").gt(new Date(opts.after) as unknown as number);
+  }
+  const list = await query
+    .sort({ createdAt: -1 })
+    .limit(opts.limit ?? 50)
+    .lean();
+  return list;
+}
+
+export async function findEncryptedKeyPair(
+  userName: string,
+) {
+  return await EncryptedKeyPair.findOne({ userName }).lean();
+}
+
+export async function upsertEncryptedKeyPair(
+  userName: string,
+  content: string,
+) {
+  await EncryptedKeyPair.findOneAndUpdate({ userName }, { content }, {
+    upsert: true,
+  });
+}
+
+export async function deleteEncryptedKeyPair(userName: string) {
+  await EncryptedKeyPair.deleteOne({ userName });
+}
+
+export async function listKeyPackages(
+  env: Record<string, string>,
+  userName: string,
+) {
+  const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
+  return await KeyPackage.find({ userName, tenant_id: tenantId }).lean();
+}
+
+export async function findKeyPackage(
+  env: Record<string, string>,
+  userName: string,
+  id: string,
+) {
+  const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
+  return await KeyPackage.findOne({ _id: id, userName, tenant_id: tenantId })
+    .lean();
+}
+
+export async function createKeyPackage(
+  env: Record<string, string>,
+  userName: string,
+  content: string,
+  mediaType = "message/mls",
+  encoding = "base64",
+) {
+  const doc = new KeyPackage({
+    userName,
+    content,
+    mediaType,
+    encoding,
+    tenant_id: env["ACTIVITYPUB_DOMAIN"] ?? "",
+  });
+  (doc as unknown as { $locals?: { env?: Record<string, string> } }).$locals = {
+    env,
+  };
+  await doc.save();
+  return doc.toObject();
+}
+
+export async function deleteKeyPackage(
+  env: Record<string, string>,
+  userName: string,
+  id: string,
+) {
+  const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
+  await KeyPackage.deleteOne({ _id: id, userName, tenant_id: tenantId });
+}
+
+export async function deleteKeyPackagesByUser(
+  env: Record<string, string>,
+  userName: string,
+) {
+  const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
+  await KeyPackage.deleteMany({ userName, tenant_id: tenantId });
+}
+
+export async function createPublicMessage(
+  env: Record<string, string>,
+  data: {
+    from: string;
+    to: string[];
+    content: string;
+    mediaType?: string;
+    encoding?: string;
+  },
+) {
+  const doc = new PublicMessage({
+    from: data.from,
+    to: data.to,
+    content: data.content,
+    mediaType: data.mediaType ?? "message/mls",
+    encoding: data.encoding ?? "base64",
+    tenant_id: env["ACTIVITYPUB_DOMAIN"] ?? "",
+  });
+  (doc as unknown as { $locals?: { env?: Record<string, string> } }).$locals = {
+    env,
+  };
+  await doc.save();
+  return doc.toObject();
+}
+
+export async function findPublicMessages(
+  env: Record<string, string>,
+  condition: Record<string, unknown>,
+  opts: { before?: string; after?: string; limit?: number } = {},
+) {
+  const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
+  const query = PublicMessage.find({ ...condition, tenant_id: tenantId });
+  if (opts.before) {
+    query.where("createdAt").lt(new Date(opts.before) as unknown as number);
+  }
+  if (opts.after) {
+    query.where("createdAt").gt(new Date(opts.after) as unknown as number);
+  }
+  const list = await query
+    .sort({ createdAt: -1 })
+    .limit(opts.limit ?? 50)
+    .lean();
+  return list;
+}
+
+export async function listNotifications(env: Record<string, string>) {
+  const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
+  return await Notification.find({ tenant_id: tenantId })
+    .sort({ createdAt: -1 })
+    .lean();
+}
+
+export async function createNotification(
+  env: Record<string, string>,
+  title: string,
+  message: string,
+  type: string,
+) {
+  const doc = new Notification({ title, message, type });
+  (doc as unknown as { $locals?: { env?: Record<string, string> } }).$locals = {
+    env,
+  };
+  await doc.save();
+  return doc.toObject();
+}
+
+export async function markNotificationRead(
+  env: Record<string, string>,
+  id: string,
+) {
+  const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
+  const res = await Notification.findOneAndUpdate(
+    { _id: id, tenant_id: tenantId },
+    { read: true },
+  );
+  return !!res;
+}
+
+export async function deleteNotification(
+  env: Record<string, string>,
+  id: string,
+) {
+  const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
+  const res = await Notification.findOneAndDelete({
+    _id: id,
+    tenant_id: tenantId,
+  });
+  return !!res;
+}
+
+export async function findRelaysByHosts(hosts: string[]) {
+  const docs = await Relay.find({ host: { $in: hosts } }).lean();
+  return docs.map((d) => ({
+    _id: String(d._id),
+    host: d.host,
+    inboxUrl: d.inboxUrl,
+  }));
+}
+
+export async function findRelayByHost(host: string) {
+  const doc = await Relay.findOne({ host }).lean();
+  return doc
+    ? { _id: String(doc._id), host: doc.host, inboxUrl: doc.inboxUrl }
+    : null;
+}
+
+export async function createRelay(data: { host: string; inboxUrl: string }) {
+  const doc = new Relay({ host: data.host, inboxUrl: data.inboxUrl });
+  await doc.save();
+  return { _id: String(doc._id), host: doc.host, inboxUrl: doc.inboxUrl };
+}
+
+export async function deleteRelayById(id: string) {
+  const doc = await Relay.findByIdAndDelete(id).lean();
+  return doc
+    ? { _id: String(doc._id), host: doc.host, inboxUrl: doc.inboxUrl }
+    : null;
+}
+
+export async function findRemoteActorByUrl(url: string) {
+  return await RemoteActor.findOne({ actorUrl: url }).lean();
+}
+
+export async function findRemoteActorsByUrls(urls: string[]) {
+  return await RemoteActor.find({ actorUrl: { $in: urls } }).lean();
+}
+
+export async function upsertRemoteActor(data: {
+  actorUrl: string;
+  name: string;
+  preferredUsername: string;
+  icon: unknown;
+  summary: string;
+}) {
+  await RemoteActor.findOneAndUpdate(
+    { actorUrl: data.actorUrl },
+    {
+      name: data.name,
+      preferredUsername: data.preferredUsername,
+      icon: data.icon,
+      summary: data.summary,
+      cachedAt: new Date(),
+    },
+    { upsert: true },
+  );
+}
+
+export async function createSession(
+  _env: Record<string, string>,
+  sessionId: string,
+  expiresAt: Date,
+  tenantId: string,
+) {
+  const doc = new Session({
+    sessionId,
+    expiresAt,
+    tenant_id: tenantId,
+  });
+  (doc as unknown as { $locals?: { env?: Record<string, string> } }).$locals = {
+    env: _env,
+  };
+  await doc.save();
+  return doc.toObject();
+}
+
+export async function findSessionById(
+  _env: Record<string, string>,
+  sessionId: string,
+) {
+  return await Session.findOne({ sessionId }).lean();
+}
+
+export async function deleteSessionById(
+  _env: Record<string, string>,
+  sessionId: string,
+) {
+  await Session.deleteOne({ sessionId });
+}
+
+export async function updateSessionExpires(
+  _env: Record<string, string>,
+  sessionId: string,
+  expires: Date,
+) {
+  await Session.updateOne({ sessionId }, { expiresAt: expires });
 }
