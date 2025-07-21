@@ -22,6 +22,12 @@ import {
 } from "./utils/activitypub.ts";
 import { deliverToFollowers } from "./utils/deliver.ts";
 import { getUserInfo, getUserInfoBatch } from "./services/user-info.ts";
+import { videoSchema } from "./models/video.ts";
+import type { InferSchemaType } from "mongoose";
+
+type VideoDoc = InferSchemaType<typeof videoSchema> & {
+  toObject(): InferSchemaType<typeof videoSchema>;
+};
 
 let storage: ObjectStorage;
 export async function initVideoModule(env: Record<string, string>) {
@@ -115,7 +121,7 @@ export function initVideoWebSocket() {
           thumbnail: `/api/placeholder/${meta.isShort ? "225/400" : "400/225"}`,
           videoUrl,
         },
-      );
+      ) as VideoDoc;
 
       const baseObj = video.toObject();
       const videoObject = buildActivityFromStored(
@@ -222,7 +228,7 @@ app.post("/videos", rateLimit({ windowMs: 60_000, limit: 5 }), async (c) => {
       thumbnail: `/api/placeholder/${isShort ? "225/400" : "400/225"}`,
       videoUrl,
     },
-  );
+  ) as VideoDoc;
 
   const baseObj = video.toObject();
   const videoObject = buildActivityFromStored(
@@ -273,7 +279,9 @@ app.post("/videos/:id/like", async (c) => {
   const id = c.req.param("id");
   const env = getEnv(c);
   const db = createDB(env);
-  const doc = await db.getObject(id);
+  const doc = await db.getObject(id) as
+    | { extra?: Record<string, unknown> }
+    | null;
   if (!doc) return c.json({ error: "Not found" }, 404);
   const extra = doc.extra as Record<string, unknown> ?? {};
   const likes = typeof extra.likes === "number" ? extra.likes + 1 : 1;
@@ -286,7 +294,9 @@ app.post("/videos/:id/view", async (c) => {
   const id = c.req.param("id");
   const env = getEnv(c);
   const db = createDB(env);
-  const doc = await db.updateVideo(id, { $inc: { "extra.views": 1 } });
+  const doc = await db.updateVideo(id, { $inc: { "extra.views": 1 } }) as {
+    extra?: Record<string, unknown>;
+  } | null;
   if (!doc) return c.json({ error: "Not found" }, 404);
   const extra = (doc.extra ?? {}) as Record<string, unknown>;
   const views = typeof extra.views === "number" ? extra.views : 0;

@@ -21,7 +21,7 @@ function withTenant(
 
 type ObjectStoreType = InferSchemaType<typeof objectStoreSchema>;
 type NoteType = InferSchemaType<typeof noteSchema>;
-type VideoType = InferSchemaType<typeof videoSchema>;
+export type VideoType = InferSchemaType<typeof videoSchema>;
 type MessageType = InferSchemaType<typeof messageSchema>;
 export type ActivityObject =
   | NoteType
