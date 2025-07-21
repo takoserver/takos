@@ -1,5 +1,6 @@
 import { createDB } from "../db.ts";
 import type { DB } from "../../shared/db.ts";
+import type { AccountDoc } from "../../shared/types.ts";
 import { resolveActor } from "../utils/activitypub.ts";
 
 function isUrl(value: string): boolean {
@@ -211,7 +212,7 @@ export async function getUserInfoBatch(
   }
 
   if (localIds.length > 0) {
-    const accounts = await db.findAccountsByUserNames(
+    const accounts: AccountDoc[] = await db.findAccountsByUserNames(
       localIds.map((l) => l.username),
     );
     const accountMap = new Map(accounts.map((acc) => [acc.userName, acc]));

@@ -1,6 +1,7 @@
 import { createDB } from "../db.ts";
 import { getEnv } from "../../shared/config.ts";
 import { getSystemKey } from "../services/system_actor.ts";
+import type { AccountDoc } from "../../shared/types.ts";
 import type { Context } from "hono";
 
 function base64ToArrayBuffer(base64: string): ArrayBuffer {
@@ -142,7 +143,7 @@ export async function sendActivityPubObject(
     key = { userName: "system", privateKey: sys.privateKey };
   } else {
     const db = createDB(env);
-    const account = await db.findAccountByUserName(actor);
+    const account: AccountDoc | null = await db.findAccountByUserName(actor);
     if (!account) throw new Error("actor not found");
     key = { userName: actor, privateKey: account.privateKey };
   }
