@@ -1,4 +1,4 @@
-import { createDB } from "../db.ts";
+import { createDB } from "../db/mod.ts";
 import { getEnv } from "../../shared/config.ts";
 import { getSystemKey } from "../services/system_actor.ts";
 import type { Context } from "hono";

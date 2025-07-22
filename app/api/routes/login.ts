@@ -4,7 +4,7 @@ import { compare } from "bcrypt"; // bcrypt で検証
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { getEnv } from "../../shared/config.ts";
-import { createDB } from "../db.ts";
+import { createDB } from "../db/mod.ts";
 
 const app = new Hono();
 

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { createDB } from "../db.ts";
+import { createDB } from "../db/mod.ts";
 import { getEnv } from "../../shared/config.ts";
 import {
   createFollowActivity,

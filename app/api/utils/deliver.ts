@@ -1,4 +1,4 @@
-import { createDB } from "../db.ts";
+import { createDB } from "../db/mod.ts";
 import { deliverActivityPubObject, fetchActorInbox } from "./activitypub.ts";
 
 export async function deliverToFollowers(
