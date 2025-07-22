@@ -2,7 +2,7 @@ import { Hono, type MiddlewareHandler } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { compare, genSalt, hash as bcryptHash } from "bcrypt";
 import HostUser from "./models/user.ts";
-import HostSession from "./models/session.ts";
+import HostUserSession from "./models/user_session.ts";
 import { sendVerifyMail } from "./mailer.ts";
 import { createAuthMiddleware } from "../shared/auth.ts";
 
@@ -114,7 +114,7 @@ export function createAuthApp(options?: {
 
     const sessionId = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await new HostSession({ sessionId, user: user._id, expiresAt }).save();
+    await new HostUserSession({ sessionId, user: user._id, expiresAt }).save();
 
     setCookie(c, "hostSessionId", sessionId, {
       httpOnly: true,
@@ -143,7 +143,7 @@ export function createAuthApp(options?: {
 
     const sessionId = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    await new HostSession({ sessionId, user: user._id, expiresAt }).save();
+    await new HostUserSession({ sessionId, user: user._id, expiresAt }).save();
 
     setCookie(c, "hostSessionId", sessionId, {
       httpOnly: true,
@@ -161,7 +161,7 @@ export function createAuthApp(options?: {
     const sid = getCookie(c, "hostSessionId");
     if (!sid) return c.json({ login: false, rootDomain, termsRequired });
 
-    const session = await HostSession.findOne({ sessionId: sid });
+    const session = await HostUserSession.findOne({ sessionId: sid });
     if (session && session.expiresAt > new Date()) {
       // 期限延長
       session.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -181,7 +181,7 @@ export function createAuthApp(options?: {
       });
     }
 
-    if (session) await HostSession.deleteOne({ sessionId: sid });
+    if (session) await HostUserSession.deleteOne({ sessionId: sid });
     return c.json({ login: false, rootDomain, termsRequired });
   });
 
@@ -189,7 +189,7 @@ export function createAuthApp(options?: {
   app.delete("/logout", async (c) => {
     const sid = getCookie(c, "hostSessionId");
     if (sid) {
-      await HostSession.deleteOne({ sessionId: sid });
+      await HostUserSession.deleteOne({ sessionId: sid });
       deleteCookie(c, "hostSessionId", { path: "/" });
     }
     return c.json({ success: true });
@@ -203,9 +203,9 @@ export const authRequired: MiddlewareHandler = createAuthMiddleware({
   cookieName: "hostSessionId",
   errorMessage: "unauthorized",
   findSession: async (sid) =>
-    await HostSession.findOne({ sessionId: sid }).populate("user"),
+    await HostUserSession.findOne({ sessionId: sid }).populate("user"),
   deleteSession: async (sid) => {
-    await HostSession.deleteOne({ sessionId: sid });
+    await HostUserSession.deleteOne({ sessionId: sid });
   },
   updateSession: async (session, expires) => {
     (session as unknown as { expiresAt: Date }).expiresAt = expires;

@@ -1,4 +1,4 @@
-import HostSession from "../models/session.ts";
+import HostUserSession from "../models/user_session.ts";
 
 export interface HostSessionData {
   _id?: string;
@@ -10,7 +10,7 @@ export interface HostSessionData {
 export async function findHostSessionById(
   sessionId: string,
 ): Promise<HostSessionData | null> {
-  return await HostSession.findOne({ sessionId }).lean<
+  return await HostUserSession.findOne({ sessionId }).lean<
     HostSessionData | null
   >();
 }
@@ -20,7 +20,7 @@ export async function createHostSession(
   expiresAt: Date,
   user: unknown,
 ): Promise<HostSessionData> {
-  const doc = new HostSession({
+  const doc = new HostUserSession({
     sessionId,
     expiresAt,
     user,
@@ -33,5 +33,5 @@ export async function updateHostSession(
   sessionId: string,
   expiresAt: Date,
 ): Promise<void> {
-  await HostSession.updateOne({ sessionId }, { expiresAt });
+  await HostUserSession.updateOne({ sessionId }, { expiresAt });
 }

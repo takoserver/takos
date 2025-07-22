@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const hostSessionSchema = new mongoose.Schema({
+const userSessionSchema = new mongoose.Schema({
   sessionId: { type: String, required: true, unique: true },
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -11,8 +11,8 @@ const hostSessionSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-const HostSession = mongoose.models.HostSession ??
-  mongoose.model("HostSession", hostSessionSchema);
+const HostUserSession = mongoose.models.HostUserSession ??
+  mongoose.model("HostUserSession", userSessionSchema);
 
-export default HostSession;
-export { hostSessionSchema };
+export default HostUserSession;
+export { userSessionSchema };
