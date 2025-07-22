@@ -4,10 +4,7 @@ import { cors } from "hono/cors";
 import OAuthClient from "../models/takos_host/oauth_client.ts";
 import OAuthCode from "../models/takos_host/oauth_code.ts";
 import OAuthToken from "../models/takos_host/oauth_token.ts";
-import {
-  findHostSessionById,
-  updateHostSession,
-} from "./repositories/session.ts";
+import HostSession from "../models/takos_host/session.ts";
 
 export const oauthApp = new Hono();
 // CORSミドルウェアの節約化
@@ -28,12 +25,12 @@ oauthApp.get("/authorize", async (c) => {
   }
   const sid = getCookie(c, "hostSessionId");
   if (!sid) return c.text("login required", 401);
-  const session = await findHostSessionById(sid);
+  const session = await HostSession.findOne({ sessionId: sid });
   if (!session || session.expiresAt <= new Date()) {
     return c.text("login required", 401);
   }
   const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  await updateHostSession(sid, newExpiresAt);
+  await HostSession.updateOne({ sessionId: sid }, { expiresAt: newExpiresAt });
   setCookie(c, "hostSessionId", sid, {
     httpOnly: true,
     secure: c.req.url.startsWith("https://"),

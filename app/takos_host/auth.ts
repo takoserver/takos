@@ -164,12 +164,12 @@ export function createAuthApp(options?: {
     const session = await HostSession.findOne({ sessionId: sid });
     if (session && session.expiresAt > new Date()) {
       // 期限延長
-      session.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      await session.save();
+      const newExp = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      await HostSession.updateOne({ sessionId: sid }, { expiresAt: newExp });
       setCookie(c, "hostSessionId", sid, {
         httpOnly: true,
         secure: c.req.url.startsWith("https://"),
-        expires: session.expiresAt,
+        expires: newExp,
         sameSite: "Lax",
         path: "/",
       });
@@ -208,8 +208,9 @@ export const authRequired: MiddlewareHandler = createAuthMiddleware({
     await HostSession.deleteOne({ sessionId: sid });
   },
   updateSession: async (session, expires) => {
-    (session as unknown as { expiresAt: Date }).expiresAt = expires;
-    await (session as unknown as { save: () => Promise<void> }).save();
+    await HostSession.updateOne({
+      sessionId: (session as unknown as { sessionId: string }).sessionId,
+    }, { expiresAt: expires });
   },
   attach: (c, session) => {
     c.set("user", (session as unknown as { user: unknown }).user);
