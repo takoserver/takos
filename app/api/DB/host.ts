@@ -44,22 +44,37 @@ export class MongoDBHost implements DB {
   }
 
   async listTimeline(actor: string, opts: ListOpts) {
-    const docs = await HostFollowEdge.aggregate([
-      { $match: { tenant_id: this.tenantId } },
-      {
-        $lookup: {
-          from: "object_store",
-          localField: "actor_id",
-          foreignField: "actor_id",
-          as: "objs",
+    const follows = await HostFollowEdge.find({
+      tenant_id: this.tenantId,
+    }).lean<{ actor_id: string }[]>();
+    const relayDocs = await HostRelayEdge.find({
+      tenant_id: this.tenantId,
+      mode: "pull",
+    }).lean<{ relay: string }[]>();
+    const followed = follows.map((f) => f.actor_id);
+    const relays = relayDocs.map((r) => r.relay);
+
+    const query = HostObjectStore.find({
+      type: "Note",
+      $and: [
+        {
+          $or: [
+            { actor_id: { $in: followed } },
+            { tenant_id: { $in: relays } },
+          ],
         },
-      },
-      { $unwind: "$objs" },
-      { $match: { "objs.actor_id": actor } },
-      { $sort: { "objs.created_at": -1 } },
-      { $limit: opts.limit ?? 40 },
-    ]).exec();
-    return docs.map((d) => d.objs);
+        {
+          $or: [
+            { "aud.to": actor },
+            { "aud.cc": actor },
+            { "aud.to": "https://www.w3.org/ns/activitystreams#Public" },
+          ],
+        },
+      ],
+    });
+
+    if (opts.before) query.where("created_at").lt(opts.before.getTime());
+    return await query.sort({ created_at: -1 }).limit(opts.limit ?? 40).lean();
   }
 
   async follow(_: string, target: string) {
@@ -201,8 +216,14 @@ export class MongoDBHost implements DB {
   }
 
   async getPublicNotes(limit: number, before?: Date) {
-    const query = HostObjectStore.find({
+    const relays = await HostRelayEdge.find({
       tenant_id: this.tenantId,
+      mode: "pull",
+    }).lean<{ relay: string }[]>();
+    const tenants = [this.tenantId, ...relays.map((r) => r.relay)];
+
+    const query = HostObjectStore.find({
+      tenant_id: { $in: tenants },
       type: "Note",
       "aud.to": "https://www.w3.org/ns/activitystreams#Public",
     });
