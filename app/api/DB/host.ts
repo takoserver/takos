@@ -27,9 +27,11 @@ export class MongoDBHost implements DB {
   }
 
   async getObject(id: string) {
+    const relays = await this.listPullRelays();
+    const tenants = [this.tenantId, ...relays];
     return await HostObjectStore.findOne({
       _id: id,
-      tenant_id: this.tenantId,
+      tenant_id: { $in: tenants },
     }).lean();
   }
 
@@ -208,9 +210,11 @@ export class MongoDBHost implements DB {
     filter: Record<string, unknown>,
     sort?: Record<string, SortOrder>,
   ) {
+    const relays = await this.listPullRelays();
+    const tenants = [this.tenantId, ...relays];
     return await HostObjectStore.find({
       ...filter,
-      tenant_id: this.tenantId,
+      tenant_id: { $in: tenants },
       type: "Note",
     }).sort(sort ?? {}).lean();
   }
@@ -279,9 +283,11 @@ export class MongoDBHost implements DB {
     filter: Record<string, unknown>,
     sort?: Record<string, SortOrder>,
   ) {
+    const relays = await this.listPullRelays();
+    const tenants = [this.tenantId, ...relays];
     return await HostObjectStore.find({
       ...filter,
-      tenant_id: this.tenantId,
+      tenant_id: { $in: tenants },
       type: "Video",
     }).sort(sort ?? {}).lean();
   }
@@ -331,9 +337,11 @@ export class MongoDBHost implements DB {
     filter: Record<string, unknown>,
     sort?: Record<string, SortOrder>,
   ) {
+    const relays = await this.listPullRelays();
+    const tenants = [this.tenantId, ...relays];
     return await HostObjectStore.find({
       ...filter,
-      tenant_id: this.tenantId,
+      tenant_id: { $in: tenants },
       type: "Message",
     }).sort(sort ?? {}).lean();
   }
@@ -342,9 +350,11 @@ export class MongoDBHost implements DB {
     filter: Record<string, unknown>,
     sort?: Record<string, SortOrder>,
   ) {
+    const relays = await this.listPullRelays();
+    const tenants = [this.tenantId, ...relays];
     return await HostObjectStore.find({
       ...filter,
-      tenant_id: this.tenantId,
+      tenant_id: { $in: tenants },
     }).sort(sort ?? {}).lean();
   }
 
