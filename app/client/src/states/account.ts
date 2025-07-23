@@ -19,8 +19,12 @@ export const accounts = atom<Account[]>(
 
 export const setAccounts = atom(
   (get) => get(accounts),
-  (_get, set, newAccounts: Account[]) => {
+  (get, set, newAccounts: Account[]) => {
     set(accounts, newAccounts);
+    // アクティブアカウントが未設定で一件のみ渡された場合は自動選択
+    if (!get(activeAccountId) && newAccounts.length > 0) {
+      set(activeAccountId, newAccounts[0].id);
+    }
   },
 );
 
