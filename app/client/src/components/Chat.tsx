@@ -667,7 +667,6 @@ export function Chat(props: ChatProps) {
       isMe: true,
       avatar: room.avatar,
     });
-    loadMessages(room, true);
   };
 
   // 画面サイズ検出
