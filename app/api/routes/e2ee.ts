@@ -376,13 +376,12 @@ app.post(
       encoding: msg.encoding,
       createdAt: msg.createdAt,
       attachments: Array.isArray(attachments)
-        ? attachments.map((att, idx) => ({
-          url: `https://${domain}/api/message-attachments/${msg._id}/${idx}`,
-          mediaType: (att as { mediaType?: string }).mediaType ||
-            "application/octet-stream",
-          key: (att as { key?: string }).key,
-          iv: (att as { iv?: string }).iv,
-        }))
+        ? attachments as {
+          url: string;
+          mediaType?: string;
+          key?: string;
+          iv?: string;
+        }[]
         : undefined,
     };
     const msgType = isPublic ? "publicMessage" : "encryptedMessage";
@@ -419,8 +418,6 @@ app.get("/users/:user/messages", authRequired, async (c) => {
   if (!partnerActor && partnerUser && partnerDomain) {
     partnerActor = `https://${partnerDomain}/users/${partnerUser}`;
   }
-  const domain = getDomain(c);
-
   const condition = partnerAcct
     ? {
       $or: [
@@ -477,18 +474,12 @@ app.get("/users/:user/messages", authRequired, async (c) => {
     createdAt: doc.createdAt,
     attachments:
       Array.isArray((doc.extra as Record<string, unknown>)?.attachments)
-        ? (doc.extra as { attachments: unknown[] }).attachments.map(
-          (_: unknown, idx: number) => ({
-            url: `https://${domain}/api/message-attachments/${doc._id}/${idx}`,
-            mediaType: ((doc.extra as { attachments: { mediaType?: string }[] })
-              .attachments[idx].mediaType) ||
-              "application/octet-stream",
-            key: ((doc.extra as { attachments: { key?: string }[] })
-              .attachments[idx].key),
-            iv: ((doc.extra as { attachments: { iv?: string }[] })
-              .attachments[idx].iv),
-          }),
-        )
+        ? (doc.extra as { attachments: unknown[] }).attachments as {
+          url: string;
+          mediaType?: string;
+          key?: string;
+          iv?: string;
+        }[]
         : undefined,
   }));
   return c.json(messages);

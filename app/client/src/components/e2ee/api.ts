@@ -85,6 +85,24 @@ export const deleteKeyPackage = async (
   }
 };
 
+export const uploadEncryptedAttachment = async (
+  data: { data: string; mediaType?: string },
+): Promise<string | null> => {
+  try {
+    const res = await apiFetch("/api/attachments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return typeof json.url === "string" ? json.url : null;
+  } catch (err) {
+    console.error("Error uploading attachment:", err);
+    return null;
+  }
+};
+
 export const sendEncryptedMessage = async (
   user: string,
   data: {

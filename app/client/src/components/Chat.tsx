@@ -22,6 +22,7 @@ import {
   saveEncryptedKeyPair,
   sendEncryptedMessage,
   sendPublicMessage,
+  uploadEncryptedAttachment,
 } from "./e2ee/api.ts";
 import { getDomain } from "../utils/config.ts";
 import { addMessageHandler, removeMessageHandler } from "../utils/ws.ts";
@@ -573,13 +574,20 @@ export function Chat(props: ChatProps) {
       let atts: unknown[] | undefined;
       if (imageFile()) {
         const enc = await encryptFile(imageFile()!);
-        atts = [{
-          type: "Image",
+        const url = await uploadEncryptedAttachment({
+          data: enc.data,
           mediaType: enc.mediaType,
-          content: enc.data,
-          key: enc.key,
-          iv: enc.iv,
-        }];
+        });
+        if (url) {
+          atts = [{
+            type: "Image",
+            mediaType: enc.mediaType,
+            url,
+            key: enc.key,
+            iv: enc.iv,
+          }];
+          note.attachment = atts;
+        }
       }
       const cipher = await encryptGroupMessage(group, JSON.stringify(note));
       const success = await sendEncryptedMessage(
@@ -607,13 +615,20 @@ export function Chat(props: ChatProps) {
       let atts: unknown[] | undefined;
       if (imageFile()) {
         const enc = await encryptFile(imageFile()!);
-        atts = [{
-          type: "Image",
+        const url = await uploadEncryptedAttachment({
+          data: enc.data,
           mediaType: enc.mediaType,
-          content: enc.data,
-          key: enc.key,
-          iv: enc.iv,
-        }];
+        });
+        if (url) {
+          atts = [{
+            type: "Image",
+            mediaType: enc.mediaType,
+            url,
+            key: enc.key,
+            iv: enc.iv,
+          }];
+          note.attachment = atts;
+        }
       }
       const success = await sendPublicMessage(
         `${user.userName}@${getDomain()}`,
