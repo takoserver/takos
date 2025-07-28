@@ -10,12 +10,14 @@ export const fetchActivityPubObjects = async (
   type?: string,
 ): Promise<ActivityPubObject[]> => {
   try {
-    const url = type
-      ? `/users/${encodeURIComponent(username)}/outbox?type=${
-        encodeURIComponent(type)
-      }`
-      : `/users/${encodeURIComponent(username)}/outbox`;
-    const response = await apiFetch(url);
+    const qs = new URLSearchParams();
+    if (username.includes("@")) {
+      qs.set("acct", username);
+    } else {
+      qs.set("username", username);
+    }
+    if (type) qs.set("type", type);
+    const response = await apiFetch(`/api/activitypub/outbox?${qs}`);
     if (!response.ok) {
       throw new Error("Failed to fetch ActivityPub objects");
     }

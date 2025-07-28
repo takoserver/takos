@@ -12,6 +12,7 @@ import {
   deliverActivityPubObject,
   getDomain,
   jsonResponse,
+  resolveActorFromAcct,
   verifyHttpSignature,
 } from "../utils/activitypub.ts";
 
@@ -456,6 +457,119 @@ app.get("/activitypub/actor-proxy", async (c) => {
   } catch (error) {
     console.error("Error proxying ActivityPub actor:", error);
     return c.json({ error: "Failed to fetch actor information" }, 500);
+  }
+});
+
+// ActivityPub アウトボックス取得（ローカル・リモート両対応）
+app.get("/activitypub/outbox", async (c) => {
+  try {
+    const username = c.req.query("username");
+    const acct = c.req.query("acct");
+    const url = c.req.query("url");
+    const type = c.req.query("type");
+
+    if (username && typeof username === "string") {
+      if (username === "system") {
+        const domain = getDomain(c);
+        return jsonResponse(
+          c,
+          {
+            "@context": "https://www.w3.org/ns/activitystreams",
+            id: `https://${domain}/users/system/outbox`,
+            type: "OrderedCollection",
+            totalItems: 0,
+            orderedItems: [],
+          },
+          200,
+          "application/activity+json",
+        );
+      }
+
+      const domain = getDomain(c);
+      // deno-lint-ignore no-explicit-any
+      const query: any = { attributedTo: username };
+      if (type) query.type = type;
+      const env = getEnv(c);
+      const db = createDB(env);
+      const objects = await db.findObjects(query, { published: -1 });
+      const outbox = {
+        "@context": "https://www.w3.org/ns/activitystreams",
+        id: `https://${domain}/users/${username}/outbox`,
+        type: "OrderedCollection",
+        totalItems: objects.length,
+        // deno-lint-ignore no-explicit-any
+        orderedItems: objects.map((n: any) =>
+          buildActivityFromStored(
+            { ...n, content: n.content ?? "" },
+            domain,
+            username,
+          )
+        ),
+      };
+      return jsonResponse(c, outbox, 200, "application/activity+json");
+    }
+
+    // リモート取得
+    let outboxUrl = url;
+
+    if (!outboxUrl && acct && typeof acct === "string") {
+      const actor = await resolveActorFromAcct(acct).catch(() => null);
+      if (actor && typeof actor.outbox === "string") {
+        outboxUrl = actor.outbox;
+      } else {
+        return c.json({ error: "Outbox not found" }, 404);
+      }
+    }
+
+    if (!outboxUrl || typeof outboxUrl !== "string") {
+      return c.json({ error: "username, acct or url is required" }, 400);
+    }
+
+    const headers = {
+      "Accept":
+        'application/activity+json, application/ld+json; profile="https://www.w3.org/ns/activitystreams"',
+      "User-Agent": "Takos ActivityPub Client/1.0",
+    };
+
+    let res = await fetch(outboxUrl, { headers });
+    if (!res.ok) {
+      throw new Error(`Failed to fetch outbox: ${res.status}`);
+    }
+    const data = await res.json() as Record<string, unknown>;
+    let items = (data.orderedItems as unknown[]) ?? [];
+    if (!Array.isArray(items) && data.first) {
+      const first = typeof data.first === "string"
+        ? data.first
+        : (data.first as { id?: string }).id;
+      if (first) {
+        res = await fetch(first, { headers });
+        if (res.ok) {
+          const page = await res.json() as Record<string, unknown>;
+          items = (page.orderedItems as unknown[]) ??
+            (page.items as unknown[]) ?? [];
+        }
+      }
+    }
+
+    if (type && Array.isArray(items)) {
+      items = items.filter((o) => (o as { type?: string }).type === type);
+    }
+
+    return jsonResponse(
+      c,
+      {
+        "@context": data["@context"] ?? "https://www.w3.org/ns/activitystreams",
+        id: outboxUrl,
+        type: "OrderedCollection",
+        totalItems: Array.isArray(items) ? items.length : 0,
+        orderedItems: items,
+      },
+      200,
+      "application/activity+json",
+    );
+  } catch (error) {
+    console.error("Error fetching ActivityPub outbox:", error);
+    return c.json({ error: "Failed to fetch outbox" }, 500);
   }
 });
 

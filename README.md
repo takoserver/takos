@@ -98,6 +98,8 @@ deno task build
 - `/.well-known/webfinger` – WebFinger でアクターを検索
 - `/users/:username` – `Person` アクター情報を JSON-LD で返します
 - `/users/:username/outbox` – `Note` の投稿と取得
+- `/activitypub/outbox` – `username` や `acct` を指定して任意のアクターの outbox
+  を取得
 - `/users/:username/inbox` – ActivityPub 受信エンドポイント。`Create` Activity
   の場合はオブジェクトを `object_store` に保存し、他の Activity
   は保存せず処理のみ行います。処理は Activity タイプごとにハンドラー化し、

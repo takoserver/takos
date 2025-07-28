@@ -38,8 +38,7 @@ export default function Profile() {
     () => username(),
     async (name) => {
       if (!name) return [];
-      const localName = name.includes("@") ? name.split("@")[0] : name;
-      const objs = await fetchActivityPubObjects(localName, "Note");
+      const objs = await fetchActivityPubObjects(name, "Note");
       const displayName = info()?.displayName || name;
       const avatar = info()?.avatarInitial || "";
       return objs.map((o) => ({
