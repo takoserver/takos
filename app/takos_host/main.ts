@@ -4,6 +4,7 @@ import { createTakosApp } from "../api/server.ts";
 import { connectDatabase } from "../shared/db.ts";
 import { ensureTenant } from "../api/services/tenant.ts";
 import { createDB } from "../api/DB/mod.ts";
+import { ensureStoryTTLIndex } from "../api/DB/ensure_story_ttl.ts";
 import Instance from "./models/instance.ts";
 import { createConsumerApp } from "./consumer.ts";
 import { createAuthApp } from "./auth.ts";
@@ -44,6 +45,9 @@ const hostEnv = await loadConfig({
 
 hostEnv["DB_MODE"] = "host";
 await connectDatabase(hostEnv);
+const db = createDB(hostEnv);
+const native = await db.getDatabase();
+await ensureStoryTTLIndex(native);
 
 const apps = new Map<string, Hono>();
 const rootDomain =
