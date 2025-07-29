@@ -1,4 +1,5 @@
 import { hashSync } from "bcryptjs";
+import { b64ToBuf, bufToB64 } from "../../shared/base64.ts";
 
 export const encryptWithPassword = async (
   data: string,
@@ -26,9 +27,8 @@ export const encryptWithPassword = async (
     key,
     enc.encode(data),
   );
-  const result = [salt, iv, new Uint8Array(encrypted)].map((u8) =>
-    btoa(String.fromCharCode(...u8))
-  ).join(":");
+  const result = [salt, iv, new Uint8Array(encrypted)].map((u8) => bufToB64(u8))
+    .join(":");
   return result;
 };
 
@@ -38,9 +38,9 @@ export const decryptWithPassword = async (
 ): Promise<string | null> => {
   const [s, i, d] = data.split(":");
   if (!s || !i || !d) return null;
-  const salt = Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-  const iv = Uint8Array.from(atob(i), (c) => c.charCodeAt(0));
-  const encData = Uint8Array.from(atob(d), (c) => c.charCodeAt(0));
+  const salt = b64ToBuf(s);
+  const iv = b64ToBuf(i);
+  const encData = b64ToBuf(d);
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
