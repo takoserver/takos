@@ -1,19 +1,14 @@
 import { createDB } from "../DB/mod.ts";
 import type { DB } from "../../shared/db.ts";
+import { b64ToBuf, bufToB64 } from "../../shared/encoding.ts";
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
   const b64 = pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes.buffer;
+  return b64ToBuf(b64).buffer;
 }
 
 function encodeBase64Url(buf: ArrayBuffer | Uint8Array): string {
-  const bytes = buf instanceof ArrayBuffer ? new Uint8Array(buf) : buf;
-  let binary = "";
-  for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(
+  return bufToB64(buf).replace(/\+/g, "-").replace(/\//g, "_").replace(
     /=+$/,
     "",
   );

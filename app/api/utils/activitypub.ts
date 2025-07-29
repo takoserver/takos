@@ -1,25 +1,12 @@
 import { createDB } from "../DB/mod.ts";
 import { getEnv } from "../../shared/config.ts";
 import { getSystemKey } from "../services/system_actor.ts";
+import { b64ToBuf, bufToB64 } from "../../shared/encoding.ts";
 import type { Context } from "hono";
-
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes.buffer;
-}
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
   const b64 = pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
-  return base64ToArrayBuffer(b64);
-}
-
-function arrayBufferToBase64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
-  let binary = "";
-  for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary);
+  return b64ToBuf(b64).buffer;
 }
 
 async function applySignature(
@@ -39,7 +26,7 @@ async function applySignature(
 
   let digest = "";
   if (headersToSign.includes("digest")) {
-    const digestValue = arrayBufferToBase64(
+    const digestValue = bufToB64(
       await crypto.subtle.digest("SHA-256", encoder.encode(body)),
     );
     digest = `SHA-256=${digestValue}`;
@@ -73,7 +60,7 @@ async function applySignature(
     cryptoKey,
     encoder.encode(signingString),
   );
-  const signatureB64 = arrayBufferToBase64(signature);
+  const signatureB64 = bufToB64(signature);
   const keyId = `${key.id}#main-key`;
   headers.set(
     "Signature",
@@ -272,7 +259,7 @@ export async function verifyDigest(
   const digestHeader = req.headers.get("digest");
   if (!digestHeader) return true;
   const encoder = new TextEncoder();
-  const expectedDigest = arrayBufferToBase64(
+  const expectedDigest = bufToB64(
     await crypto.subtle.digest("SHA-256", encoder.encode(body)),
   );
   return digestHeader === `SHA-256=${expectedDigest}`;
@@ -337,7 +324,7 @@ export async function verifyHttpSignature(
       ["verify"],
     );
 
-    const signatureBytes = base64ToArrayBuffer(params.signature);
+    const signatureBytes = b64ToBuf(params.signature);
     const signingStringBytes = encoder.encode(signingString);
 
     const verified = await crypto.subtle.verify(

@@ -8,6 +8,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { apiFetch } from "./config.ts";
+import { b64ToBuf } from "../../../shared/encoding.ts";
 
 const swUrl = new URL("../firebase-messaging-sw.ts", import.meta.url).href;
 
@@ -19,8 +20,8 @@ function isValidVapidKey(key: string): boolean {
   try {
     const base64 = key.replace(/-/g, "+").replace(/_/g, "/");
     const padded = base64 + "=".repeat((4 - base64.length % 4) % 4);
-    const bin = atob(padded);
-    return bin.length === 65;
+    const buf = b64ToBuf(padded);
+    return buf.length === 65;
   } catch {
     return false;
   }

@@ -15,6 +15,7 @@ import {
   jsonResponse,
   verifyHttpSignature,
 } from "../utils/activitypub.ts";
+import { b64ToBuf } from "../../shared/encoding.ts";
 
 const app = new Hono();
 
@@ -146,9 +147,7 @@ app.get("/users/:username/avatar", async (c) => {
     const match = icon.match(/^data:(image\/[^;]+);base64,(.+)$/);
     if (match) {
       const [, type, data] = match;
-      const binary = atob(data);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const bytes = b64ToBuf(data);
       return c.body(bytes, 200, { "content-type": type });
     }
   }
