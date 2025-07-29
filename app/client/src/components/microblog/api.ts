@@ -1,4 +1,9 @@
-import type { ActivityPubObject, MicroblogPost, Story } from "./types.ts";
+import type {
+  ActivityPubObject,
+  MicroblogPost,
+  Story,
+  StoryElement,
+} from "./types.ts";
 import { apiFetch, getDomain } from "../../utils/config.ts";
 import { loadCacheEntry, saveCacheEntry } from "../e2ee/storage.ts";
 
@@ -297,9 +302,7 @@ export const fetchStories = async (): Promise<Story[]> => {
 };
 
 export const createStory = async (
-  content: string,
-  mediaUrl?: string,
-  mediaType?: "image" | "video",
+  elements: StoryElement[],
   backgroundColor?: string,
   textColor?: string,
 ): Promise<boolean> => {
@@ -311,9 +314,7 @@ export const createStory = async (
       },
       body: JSON.stringify({
         author: "user",
-        content,
-        mediaUrl,
-        mediaType,
+        elements,
         backgroundColor,
         textColor,
       }),
