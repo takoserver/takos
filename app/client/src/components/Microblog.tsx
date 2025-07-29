@@ -186,7 +186,10 @@ export function Microblog() {
     return user ? fetchFollowingPosts(user.userName) : Promise.resolve([]);
   });
 
-  const [stories, { refetch: refetchStories }] = createResource(fetchStories);
+  const [stories, { refetch: refetchStories }] = createResource(() => {
+    const user = account();
+    return user ? fetchStories(user.userName) : Promise.resolve([]);
+  });
   const [selectedStory, setSelectedStory] = createSignal<Story | null>(null);
   const [showStoryViewer, setShowStoryViewer] = createSignal(false);
   const [currentStoryIndex, setCurrentStoryIndex] = createSignal(0);
