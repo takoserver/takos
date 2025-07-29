@@ -1,0 +1,23 @@
+{
+  "@context": {
+    "sto": "https://github.com/takoserver/takos/ns/story#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "Story": { "@id": "sto:Story", "@type": "@id" },
+    "StoryElement": { "@id": "sto:StoryElement", "@type": "@id" },
+    "elements": { "@id": "sto:elements", "@type": "@set" },
+    "mediaUrl": { "@id": "sto:mediaUrl", "@type": "@id" },
+    "mediaType": { "@id": "sto:mediaType", "@type": "xsd:string" },
+    "expiresAt": { "@id": "sto:expiresAt", "@type": "xsd:dateTime" },
+    "backgroundColor": { "@id": "sto:backgroundColor", "@type": "xsd:string" },
+    "textColor": { "@id": "sto:textColor", "@type": "xsd:string" },
+    "viewCount": { "@id": "sto:viewCount", "@type": "xsd:integer" },
+    "x": { "@id": "sto:x", "@type": "xsd:double" },
+    "y": { "@id": "sto:y", "@type": "xsd:double" },
+    "width": { "@id": "sto:width", "@type": "xsd:double" },
+    "height": { "@id": "sto:height", "@type": "xsd:double" },
+    "start": { "@id": "sto:start", "@type": "xsd:double" },
+    "duration": { "@id": "sto:duration", "@type": "xsd:double" },
+    "text": { "@id": "sto:text", "@type": "xsd:string" },
+    "color": { "@id": "sto:color", "@type": "xsd:string" }
+  }
+}

@@ -13,7 +13,7 @@ json
 編集する
 {
   "@context": {
-    "sto": "https://takos.dev/ns/story#",
+    "sto": "https://github.com/takoserver/takos/ns/story#",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "Story": { "@id": "sto:Story", "@type": "@id" },
     "StoryElement": { "@id": "sto:StoryElement", "@type": "@id" },
@@ -43,7 +43,7 @@ json
 {
   "@context": [
     "https://www.w3.org/ns/activitystreams",
-    "https://github.com/takoserver/takos/blob/master/docs/story.md"
+    "https://raw.githubusercontent.com/takoserver/takos/master/app/api/story-context-multi.jsonld"
   ],
   "id": "https://example.com/story/456",
   "type": ["Story", "Image", "Object"],
@@ -92,7 +92,7 @@ json
 3. Takos への実装のポイント
 データ構造の変更 – Story オブジェクトに elements 配列を追加し、それぞれの要素を type・mediaUrl・text・位置情報とともに保存します。既存の content・mediaUrl・mediaType フィールドは廃止し、elements に統一することを推奨します。移行期は elements から mediaUrl などを生成する処理を入れても良いでしょう。
 
-JSON‑LD コンテキストの更新 – 新しいコンテキスト（例: story-context-multi.jsonld）を Takos サーバーに追加し、@context 配列で参照できるようにします。要素の type は ActivityStreams の Image や Video、Text にフォールバックさせることで互換性を保ちます
+JSON‑LD コンテキストの更新 – 新しいコンテキスト（例: story-context-multi.jsonld）を GitHub リポジトリに追加し、@context 配列で参照できるようにします。要素の type は ActivityStreams の Image や Video、Text にフォールバックさせることで互換性を保ちます
 w3.org
 。
 
