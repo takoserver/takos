@@ -283,9 +283,11 @@ export const _replyToPost = async (
   }
 };
 
-export const fetchStories = async (): Promise<Story[]> => {
+export const fetchStories = async (username: string): Promise<Story[]> => {
   try {
-    const response = await apiFetch("/api/stories");
+    const response = await apiFetch(
+      `/api/stories/${encodeURIComponent(username)}`,
+    );
     if (!response.ok) {
       throw new Error("Failed to fetch stories");
     }

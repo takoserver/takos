@@ -8,6 +8,8 @@ import {
 } from "./utils/activitypub.ts";
 import { broadcast, sendToUser } from "./routes/ws.ts";
 import { formatUserInfoForPost, getUserInfo } from "./services/user-info.ts";
+import { saveFile } from "./services/file.ts";
+import { fetchBearcap } from "./utils/bearcap.ts";
 
 export type ActivityHandler = (
   activity: Record<string, unknown>,
@@ -131,5 +133,57 @@ export const activityHandlers: Record<string, ActivityHandler> = {
         console.error("Delivery failed:", err);
       },
     );
+  },
+
+  async Add(activity: Record<string, unknown>, username: string, c: unknown) {
+    if (typeof activity.object !== "object" || !activity.object) return;
+    const obj = activity.object as Record<string, unknown>;
+    if (obj.type !== "Story") return;
+    const env = (c as { get: (k: string) => unknown }).get("env") as Record<
+      string,
+      string
+    >;
+    let mediaUrl: string | undefined;
+    if (typeof obj.object === "string" && obj.object.startsWith("bear:")) {
+      const data = await fetchBearcap(obj.object);
+      if (data) {
+        const saved = await saveFile(data, env);
+        mediaUrl = saved.url;
+      }
+    }
+    const db = createDB(env);
+    await db.saveObject({
+      _id: typeof obj.id === "string" ? obj.id : undefined,
+      type: "Story",
+      attributedTo: typeof activity.actor === "string"
+        ? activity.actor
+        : username,
+      content: "",
+      published: new Date(),
+      extra: {
+        mediaUrl,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+      actor_id: typeof activity.actor === "string" ? activity.actor : username,
+      raw: activity,
+    });
+  },
+
+  async Delete(
+    activity: Record<string, unknown>,
+    _username: string,
+    c: unknown,
+  ) {
+    if (typeof activity.object !== "object" || !activity.object) return;
+    const obj = activity.object as Record<string, unknown>;
+    if (obj.type !== "Story") return;
+    const id = typeof obj.id === "string" ? obj.id : null;
+    if (!id) return;
+    const env = (c as { get: (k: string) => unknown }).get("env") as Record<
+      string,
+      string
+    >;
+    const db = createDB(env);
+    await db.updateObject(id, { type: "Tombstone", deleted_at: new Date() });
   },
 };

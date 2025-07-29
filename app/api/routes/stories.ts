@@ -2,8 +2,13 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createDB } from "../DB/mod.ts";
 import authRequired from "../utils/auth.ts";
-import { createObjectId } from "../utils/activitypub.ts";
+import {
+  createAddActivity,
+  createObjectId,
+  getDomain,
+} from "../utils/activitypub.ts";
 import { getEnv } from "../../shared/config.ts";
+import { deliverToFollowers } from "../utils/deliver.ts";
 
 /** ストーリーオブジェクト型定義 */
 type Story = {
@@ -24,6 +29,25 @@ type Story = {
 const app = new Hono();
 app.use("/stories/*", authRequired);
 
+async function listStoriesFor(
+  user: string,
+  env: Record<string, string>,
+): Promise<Story[]> {
+  const db = createDB(env);
+  const account = await db.findAccountByUserName(user);
+  if (!account) return [];
+  const domain = env["ACTIVITYPUB_DOMAIN"] ?? "";
+  const actorUrl = `https://${domain}/users/${user}`;
+  const actors = [actorUrl, ...(account.following ?? [])];
+  const stories = await db.findObjects({
+    type: "Story",
+    actor_id: { $in: actors },
+    "extra.expiresAt": { $gt: new Date() },
+    deleted_at: { $exists: false },
+  }, { published: -1 }) as Story[];
+  return stories;
+}
+
 // CORSミドルウェア
 app.use(
   "/api/stories/*",
@@ -34,31 +58,24 @@ app.use(
   }),
 );
 
-// ストーリー一覧取得
-app.get("/api/stories", async (c) => {
+// ストーリー一覧取得（自分とフォロー先）
+app.get("/api/stories/:actor", async (c) => {
   try {
     const env = getEnv(c);
-    const db = createDB(env);
-    const stories = await db.findObjects({
-      type: "Story",
-      "extra.expiresAt": { $gt: new Date() },
-    }, { published: -1 });
-
-    const formatted = stories.map((s) => {
-      const story = s as Story;
-      return {
-        id: String(story._id),
-        author: story.attributedTo,
-        content: story.content,
-        mediaUrl: story.extra.mediaUrl,
-        mediaType: story.extra.mediaType,
-        backgroundColor: story.extra.backgroundColor,
-        textColor: story.extra.textColor,
-        createdAt: story.published,
-        expiresAt: story.extra.expiresAt,
-        views: story.extra.views,
-      };
-    });
+    const actor = c.req.param("actor");
+    const stories = await listStoriesFor(actor, env);
+    const formatted = stories.map((story) => ({
+      id: String(story._id),
+      author: story.attributedTo,
+      content: story.content,
+      mediaUrl: story.extra.mediaUrl,
+      mediaType: story.extra.mediaType,
+      backgroundColor: story.extra.backgroundColor,
+      textColor: story.extra.textColor,
+      createdAt: story.published,
+      expiresAt: story.extra.expiresAt,
+      views: story.extra.views,
+    }));
     return c.json(formatted);
   } catch (error) {
     console.error("Error fetching stories:", error);
@@ -82,7 +99,7 @@ app.post("/api/stories", async (c) => {
     expiresAt.setHours(expiresAt.getHours() + 24);
 
     const env = getEnv(c);
-    const domain = env["ACTIVITYPUB_DOMAIN"] ?? "";
+    const domain = env["ACTIVITYPUB_DOMAIN"] ?? getDomain(c);
     const db = createDB(env);
     const story = await db.saveObject(
       {
@@ -103,6 +120,17 @@ app.post("/api/stories", async (c) => {
         aud: { to: ["https://www.w3.org/ns/activitystreams#Public"], cc: [] },
       },
     ) as Story;
+
+    const activity = createAddActivity(
+      domain,
+      `https://${domain}/users/${author}`,
+      {
+        id: String(story._id),
+        type: "Story",
+        object: story.extra.mediaUrl,
+      },
+    );
+    deliverToFollowers(env, author, activity, domain);
     return c.json({
       id: String(story._id),
       author: story.attributedTo,
@@ -159,12 +187,13 @@ app.delete("/api/stories/:id", async (c) => {
     const env = getEnv(c);
     const db = createDB(env);
     const id = c.req.param("id");
-    const story = await db.deleteObject(id);
-
-    if (!story) {
+    const res = await db.updateObject(id, {
+      type: "Tombstone",
+      deleted_at: new Date(),
+    });
+    if (!res) {
       return c.json({ error: "Story not found" }, 404);
     }
-
     return c.json({ message: "Story deleted successfully" });
   } catch (error) {
     console.error("Error deleting story:", error);
