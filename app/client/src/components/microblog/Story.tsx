@@ -1,4 +1,4 @@
-import { createSignal, For } from "solid-js";
+import { createSignal, For, onCleanup } from "solid-js";
 import type { Story } from "./types.ts";
 import { createStory } from "./api.ts";
 import { UserAvatar } from "./UserAvatar.tsx";
@@ -16,6 +16,41 @@ export function StoryTray(props: {
     "#1DA1F2",
   );
   const [storyTextColor, setStoryTextColor] = createSignal("#FFFFFF");
+
+  const [textPos, setTextPos] = createSignal({ x: 20, y: 20 });
+  let dragStart: { x: number; y: number } | null = null;
+
+  const startDrag = (e: PointerEvent) => {
+    e.preventDefault();
+    dragStart = { x: e.clientX - textPos().x, y: e.clientY - textPos().y };
+    globalThis.addEventListener("pointermove", onDrag);
+    globalThis.addEventListener("pointerup", endDrag);
+  };
+
+  const onDrag = (e: PointerEvent) => {
+    if (dragStart) {
+      setTextPos({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+    }
+  };
+
+  const endDrag = () => {
+    dragStart = null;
+    globalThis.removeEventListener("pointermove", onDrag);
+    globalThis.removeEventListener("pointerup", endDrag);
+  };
+
+  onCleanup(() => {
+    globalThis.removeEventListener("pointermove", onDrag);
+    globalThis.removeEventListener("pointerup", endDrag);
+  });
+
+  const detectMediaType = (url: string): "image" | "video" | undefined => {
+    if (!url) return undefined;
+    const lower = url.toLowerCase();
+    if (lower.match(/\.(mp4|webm|ogg|mkv)(\?.*)?$/)) return "video";
+    if (lower.match(/\.(png|jpe?g|gif|webp)(\?.*)?$/)) return "image";
+    return undefined;
+  };
 
   const storyBackgroundColors = [
     "#1DA1F2",
@@ -39,10 +74,12 @@ export function StoryTray(props: {
     const content = storyContent().trim();
     if (!content) return;
 
+    const mediaType = detectMediaType(storyMediaUrl());
+
     const success = await createStory(
       content,
       storyMediaUrl() || undefined,
-      undefined,
+      mediaType,
       storyBackgroundColor(),
       storyTextColor(),
     );
@@ -176,14 +213,30 @@ export function StoryTray(props: {
                 class="aspect-[9/16] rounded-xl p-4 flex flex-col justify-center items-center text-center relative overflow-hidden"
                 style={`background: ${storyBackgroundColor()}; color: ${storyTextColor()}`}
               >
-                {storyMediaUrl() && (
+                {storyMediaUrl() &&
+                  detectMediaType(storyMediaUrl()) === "image" && (
                   <img
                     src={storyMediaUrl()}
                     alt=""
                     class="absolute inset-0 w-full h-full object-cover"
                   />
                 )}
-                <div class="relative z-10">
+                {storyMediaUrl() &&
+                  detectMediaType(storyMediaUrl()) === "video" && (
+                  <video
+                    src={storyMediaUrl()}
+                    class="absolute inset-0 w-full h-full object-cover"
+                    autoplay
+                    loop
+                    muted
+                    playsinline
+                  />
+                )}
+                <div
+                  class="absolute z-10 cursor-move touch-none"
+                  style={`top: ${textPos().y}px; left: ${textPos().x}px;`}
+                  onPointerDown={startDrag}
+                >
                   <div class="text-lg font-bold mb-2">
                     {storyContent() || "ここにテキストが表示されます"}
                   </div>
