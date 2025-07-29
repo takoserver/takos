@@ -24,6 +24,9 @@ import {
 } from "./microblog/api.ts";
 import type { MicroblogPost } from "./microblog/types.ts";
 import { addMessageHandler, removeMessageHandler } from "../utils/ws.ts";
+import { getDomain } from "../utils/config.ts";
+import StoryReel from "../../../takos_host/client/src/components/StoryReel.tsx";
+import StoryPlayer from "../../../takos_host/client/src/components/StoryPlayer.tsx";
 
 export function Microblog() {
   const [account] = useAtom(activeAccount);
@@ -95,6 +98,8 @@ export function Microblog() {
 
   let observer: IntersectionObserver | undefined;
   let wsCleanup: (() => void) | undefined;
+  const actorUrl = () =>
+    account() ? `https://${getDomain()}/ap/users/${account()!.userName}` : "";
 
   const setupObserver = () => {
     if (observer || !sentinel || targetPostId()) return;
@@ -373,6 +378,7 @@ export function Microblog() {
         }
       `}
       </style>
+      <StoryPlayer />
       <div class="min-h-screen text-white relative">
         <Show
           when={targetPostId() && selectedPost()}
@@ -445,6 +451,9 @@ export function Microblog() {
                 </div>
               </div>
               <div class="max-w-2xl mx-auto">
+                <Show when={account()}>
+                  <StoryReel actorUrl={actorUrl()} />
+                </Show>
                 <PostList
                   posts={filteredPosts()}
                   tab={tab()}
