@@ -27,6 +27,7 @@ import { addMessageHandler, removeMessageHandler } from "../utils/ws.ts";
 import { getDomain } from "../utils/config.ts";
 import StoryReel from "../../../takos_host/client/src/components/StoryReel.tsx";
 import StoryPlayer from "../../../takos_host/client/src/components/StoryPlayer.tsx";
+import StoryComposer from "../../../takos_host/client/src/components/StoryComposer.tsx";
 
 export function Microblog() {
   const [account] = useAtom(activeAccount);
@@ -452,7 +453,10 @@ export function Microblog() {
               </div>
               <div class="max-w-2xl mx-auto">
                 <Show when={account()}>
-                  <StoryReel actorUrl={actorUrl()} />
+                  <div class="flex items-center gap-3">
+                    <StoryComposer username={account()!.userName} />
+                    <StoryReel actorUrl={actorUrl()} />
+                  </div>
                 </Show>
                 <PostList
                   posts={filteredPosts()}

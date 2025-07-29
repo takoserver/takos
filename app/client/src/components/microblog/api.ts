@@ -462,3 +462,43 @@ export const fetchFollowing = async (username: string) => {
     return [];
   }
 };
+
+export const createStory = async (
+  username: string,
+  imageUrl: string,
+): Promise<boolean> => {
+  try {
+    const domain = getDomain();
+    const body = {
+      to: [`https://${domain}/users/${encodeURIComponent(username)}/followers`],
+      object: {
+        type: "Story",
+        storyType: "image",
+        published: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+        items: [
+          {
+            type: "StoryItem",
+            media: {
+              type: "Image",
+              url: imageUrl,
+              mediaType: "image/webp",
+            },
+          },
+        ],
+      },
+    };
+    const res = await apiFetch(
+      `/ap/users/${encodeURIComponent(username)}/outbox/story`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+    return res.ok;
+  } catch (error) {
+    console.error("Error creating story:", error);
+    return false;
+  }
+};
