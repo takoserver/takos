@@ -19,15 +19,27 @@ export interface MicroblogPost {
   domain?: string;
 }
 
+export interface StoryElement {
+  type: "Image" | "Video" | "Text";
+  mediaUrl?: string;
+  mediaType?: string;
+  text?: string;
+  color?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  start: number;
+  duration: number;
+}
+
 export interface Story {
   id: string;
   author: string;
-  content: string;
-  mediaUrl?: string;
-  mediaType?: "image" | "video";
+  elements: StoryElement[];
   createdAt: string;
   expiresAt: string;
-  views: number;
+  viewCount: number;
   isViewed?: boolean;
   backgroundColor?: string;
   textColor?: string;

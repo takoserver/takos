@@ -1,5 +1,5 @@
 import { createSignal, For } from "solid-js";
-import type { Story } from "./types.ts";
+import type { Story, StoryElement } from "./types.ts";
 import { createStory } from "./api.ts";
 import { UserAvatar } from "./UserAvatar.tsx";
 import { getDomain } from "../../utils/config.ts";
@@ -10,8 +10,15 @@ export function StoryTray(props: {
   handleViewStory: (story: Story, index: number) => void;
 }) {
   const [showStoryForm, setShowStoryForm] = createSignal(false);
+  const [elements, setElements] = createSignal<StoryElement[]>([]);
   const [storyContent, setStoryContent] = createSignal("");
   const [storyMediaUrl, setStoryMediaUrl] = createSignal("");
+  const [posX, setPosX] = createSignal(0);
+  const [posY, setPosY] = createSignal(0);
+  const [elemWidth, setElemWidth] = createSignal(1);
+  const [elemHeight, setElemHeight] = createSignal(1);
+  const [elemStart, setElemStart] = createSignal(0);
+  const [elemDuration, setElemDuration] = createSignal(5);
   const [storyBackgroundColor, setStoryBackgroundColor] = createSignal(
     "#1DA1F2",
   );
@@ -34,20 +41,58 @@ export function StoryTray(props: {
     "#000000",
   ];
 
+  const addTextElement = () => {
+    setElements([
+      ...elements(),
+      {
+        type: "Text",
+        text: storyContent(),
+        color: storyTextColor(),
+        mediaUrl: undefined,
+        mediaType: undefined,
+        x: posX(),
+        y: posY(),
+        width: elemWidth(),
+        height: elemHeight(),
+        start: elemStart(),
+        duration: elemDuration(),
+      },
+    ]);
+    setStoryContent("");
+  };
+
+  const addImageElement = () => {
+    if (!storyMediaUrl()) return;
+    setElements([
+      ...elements(),
+      {
+        type: "Image",
+        mediaUrl: storyMediaUrl(),
+        mediaType: "image/jpeg",
+        x: posX(),
+        y: posY(),
+        width: elemWidth(),
+        height: elemHeight(),
+        start: elemStart(),
+        duration: elemDuration(),
+      },
+    ]);
+    setStoryMediaUrl("");
+  };
+
   const handleCreateStory = async (e: Event) => {
     e.preventDefault();
-    const content = storyContent().trim();
-    if (!content) return;
+    const elems = elements();
+    if (elems.length === 0) return;
 
     const success = await createStory(
-      content,
-      storyMediaUrl() || undefined,
-      undefined,
+      elems,
       storyBackgroundColor(),
       storyTextColor(),
     );
 
     if (success) {
+      setElements([]);
       setStoryContent("");
       setStoryMediaUrl("");
       setShowStoryForm(false);
@@ -101,15 +146,18 @@ export function StoryTray(props: {
                   }`}
                 >
                   <div class="w-full h-full bg-black rounded-full flex items-center justify-center overflow-hidden">
-                    {story.mediaUrl
-                      ? (
-                        <img
-                          src={story.mediaUrl}
-                          alt=""
-                          class="w-full h-full object-cover rounded-full"
-                        />
-                      )
-                      : (
+                    {(() => {
+                      const img = story.elements.find((e) => e.mediaUrl);
+                      if (img && img.mediaUrl) {
+                        return (
+                          <img
+                            src={img.mediaUrl}
+                            alt=""
+                            class="w-full h-full object-cover rounded-full"
+                          />
+                        );
+                      }
+                      return (
                         <div class="w-full h-full rounded-full overflow-hidden">
                           <a
                             href={`#/user/${
@@ -128,7 +176,8 @@ export function StoryTray(props: {
                             />
                           </a>
                         </div>
-                      )}
+                      );
+                    })()}
                   </div>
                 </div>
                 <a
@@ -173,21 +222,38 @@ export function StoryTray(props: {
             <form onSubmit={handleCreateStory} class="space-y-4">
               {/* プレビュー */}
               <div
-                class="aspect-[9/16] rounded-xl p-4 flex flex-col justify-center items-center text-center relative overflow-hidden"
+                class="aspect-[9/16] rounded-xl p-4 relative overflow-hidden"
                 style={`background: ${storyBackgroundColor()}; color: ${storyTextColor()}`}
               >
-                {storyMediaUrl() && (
-                  <img
-                    src={storyMediaUrl()}
-                    alt=""
-                    class="absolute inset-0 w-full h-full object-cover"
-                  />
-                )}
-                <div class="relative z-10">
-                  <div class="text-lg font-bold mb-2">
-                    {storyContent() || "ここにテキストが表示されます"}
-                  </div>
-                </div>
+                <For each={elements()}>
+                  {(el) => (
+                    el.mediaUrl
+                      ? (
+                        <img
+                          src={el.mediaUrl}
+                          alt=""
+                          class="absolute object-cover"
+                          style={`left:${el.x * 100}% ; top:${
+                            el.y * 100
+                          }% ; width:${el.width * 100}% ; height:${
+                            el.height * 100
+                          }% ;`}
+                        />
+                      )
+                      : (
+                        <div
+                          class="absolute"
+                          style={`left:${el.x * 100}% ; top:${
+                            el.y * 100
+                          }% ; width:${el.width * 100}% ; height:${
+                            el.height * 100
+                          }% ; color:${el.color || storyTextColor()}`}
+                        >
+                          {el.text}
+                        </div>
+                      )
+                  )}
+                </For>
               </div>
 
               {/* テキスト入力 */}
@@ -250,32 +316,127 @@ export function StoryTray(props: {
                 </div>
               </div>
 
+              {/* 位置・時間設定 */}
+              <div class="grid grid-cols-2 gap-2">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="1"
+                  value={posX()}
+                  onInput={(e) => setPosX(+e.currentTarget.value)}
+                  class="bg-gray-800 rounded p-2"
+                  placeholder="x"
+                />
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="1"
+                  value={posY()}
+                  onInput={(e) => setPosY(+e.currentTarget.value)}
+                  class="bg-gray-800 rounded p-2"
+                  placeholder="y"
+                />
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="1"
+                  value={elemWidth()}
+                  onInput={(e) => setElemWidth(+e.currentTarget.value)}
+                  class="bg-gray-800 rounded p-2"
+                  placeholder="width"
+                />
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="1"
+                  value={elemHeight()}
+                  onInput={(e) => setElemHeight(+e.currentTarget.value)}
+                  class="bg-gray-800 rounded p-2"
+                  placeholder="height"
+                />
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={elemStart()}
+                  onInput={(e) => setElemStart(+e.currentTarget.value)}
+                  class="bg-gray-800 rounded p-2"
+                  placeholder="start"
+                />
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={elemDuration()}
+                  onInput={(e) => setElemDuration(+e.currentTarget.value)}
+                  class="bg-gray-800 rounded p-2"
+                  placeholder="duration"
+                />
+              </div>
+
+              {/* テキスト入力 */}
+              <textarea
+                value={storyContent()}
+                onInput={(e) => setStoryContent(e.currentTarget.value)}
+                placeholder="テキスト"
+                maxlength={200}
+                class="w-full bg-gray-800 rounded-lg p-3 text-white placeholder-gray-500 resize-none border border-gray-700 focus:border-blue-500 outline-none"
+                rows={2}
+              />
+              <button
+                type="button"
+                onClick={addTextElement}
+                class="px-3 py-1 bg-blue-600 rounded"
+              >
+                テキスト要素追加
+              </button>
+
               {/* メディアURL */}
               <input
                 type="url"
                 value={storyMediaUrl()}
                 onInput={(e) => setStoryMediaUrl(e.currentTarget.value)}
-                placeholder="画像URLを入力（オプション）"
+                placeholder="画像URL"
                 class="w-full bg-gray-800 rounded-lg p-3 text-white placeholder-gray-500 border border-gray-700 focus:border-blue-500 outline-none"
               />
+              <button
+                type="button"
+                onClick={addImageElement}
+                class="px-3 py-1 bg-blue-600 rounded"
+              >
+                画像要素追加
+              </button>
 
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-gray-500">
-                  {storyContent().length}/200
-                </span>
-                <button
-                  type="submit"
-                  class={`px-6 py-2 rounded-full font-bold transition-all duration-200 ${
-                    !storyContent().trim() || storyContent().length > 200
-                      ? "bg-blue-400/50 text-white/50 cursor-not-allowed"
-                      : "bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105"
-                  }`}
-                  disabled={!storyContent().trim() ||
-                    storyContent().length > 200}
-                >
-                  ストーリーを作成
-                </button>
-              </div>
+              <ul class="space-y-1">
+                <For each={elements()}>
+                  {(el, i) => (
+                    <li class="text-sm text-gray-400 flex justify-between">
+                      <span>{el.type}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setElements(
+                            elements().filter((_, idx) => idx !== i()),
+                          )}
+                        class="text-red-500"
+                      >
+                        削除
+                      </button>
+                    </li>
+                  )}
+                </For>
+              </ul>
+
+              <button
+                type="submit"
+                class="px-6 py-2 rounded-full font-bold bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                ストーリーを作成
+              </button>
             </form>
           </div>
         </div>
@@ -295,6 +456,39 @@ export function StoryViewer(props: {
   handleDeleteStory: (id: string) => void;
   formatDate: (dateString: string) => string;
 }) {
+  const [time, setTime] = createSignal(0);
+  let timer: number | undefined;
+
+  createEffect(() => {
+    if (props.showStoryViewer && props.selectedStory) {
+      setTime(0);
+      clearInterval(timer);
+      timer = setInterval(() => {
+        setTime((t) => t + 0.1);
+      }, 100) as unknown as number;
+    } else {
+      clearInterval(timer);
+    }
+  });
+
+  const totalDuration = () => {
+    const els = props.selectedStory?.elements ?? [];
+    return els.reduce((m, e) => Math.max(m, e.start + e.duration), 0);
+  };
+
+  const visibleElements = () => {
+    const t = time();
+    return props.selectedStory?.elements.filter((e) =>
+      t >= e.start && t < e.start + e.duration
+    ) ?? [];
+  };
+
+  createEffect(() => {
+    if (time() >= totalDuration()) {
+      props.nextStory();
+    }
+  });
+
   return (
     <>
       {props.showStoryViewer && props.selectedStory && (
@@ -320,37 +514,43 @@ export function StoryViewer(props: {
             </div>
 
             {/* ストーリーコンテンツ */}
-            <div class="w-full h-full relative">
-              {props.selectedStory!.mediaUrl && (
-                <img
-                  src={props.selectedStory!.mediaUrl}
-                  alt=""
-                  class="w-full h-full object-cover"
-                />
-              )}
-              <div
-                class="absolute inset-0 flex flex-col justify-end p-6"
-                style={!props.selectedStory!.mediaUrl
-                  ? `background-color: ${
-                    props.selectedStory!.backgroundColor
-                  };` +
-                    `color: ${props.selectedStory!.textColor};`
-                  : "background: linear-gradient(transparent, rgba(0,0,0,0.7))"}
-              >
-                <div class="text-white">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <span class="font-bold text-lg">
-                      {props.selectedStory!.author}
-                    </span>
-                    <span class="text-sm opacity-75">
-                      {props.formatDate(props.selectedStory!.createdAt)}
-                    </span>
-                  </div>
-                  <div class="text-lg leading-relaxed">
-                    {props.selectedStory!.content}
-                  </div>
-                </div>
-              </div>
+            <div
+              class="w-full h-full relative"
+              style={`background:${
+                props.selectedStory!.backgroundColor
+              }; color:${props.selectedStory!.textColor}`}
+            >
+              <For each={visibleElements()}>
+                {(el) => (
+                  el.mediaUrl
+                    ? (
+                      <img
+                        src={el.mediaUrl}
+                        alt=""
+                        class="absolute object-cover"
+                        style={`left:${el.x * 100}% ; top:${
+                          el.y * 100
+                        }% ; width:${el.width * 100}% ; height:${
+                          el.height * 100
+                        }% ;`}
+                      />
+                    )
+                    : (
+                      <div
+                        class="absolute flex items-center justify-center"
+                        style={`left:${el.x * 100}% ; top:${
+                          el.y * 100
+                        }% ; width:${el.width * 100}% ; height:${
+                          el.height * 100
+                        }% ; color:${
+                          el.color || props.selectedStory!.textColor
+                        }`}
+                      >
+                        {el.text}
+                      </div>
+                    )
+                )}
+              </For>
             </div>
 
             {/* ナビゲーションエリア */}
