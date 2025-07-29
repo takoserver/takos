@@ -1,6 +1,7 @@
 import { createSignal, For } from "solid-js";
 import type { Story, StoryElement } from "./types.ts";
 import { createStory } from "./api.ts";
+import { uploadFile } from "../e2ee/api.ts";
 import { UserAvatar } from "./UserAvatar.tsx";
 import { getDomain } from "../../utils/config.ts";
 
@@ -13,6 +14,11 @@ export function StoryTray(props: {
   const [elements, setElements] = createSignal<StoryElement[]>([]);
   const [storyContent, setStoryContent] = createSignal("");
   const [storyMediaUrl, setStoryMediaUrl] = createSignal("");
+  const [mediaFile, setMediaFile] = createSignal<File | null>(null);
+  const [mediaPreview, setMediaPreview] = createSignal<string>("");
+  const [editingMode, setEditingMode] = createSignal<"text" | "media" | null>(
+    null,
+  );
   const [posX, setPosX] = createSignal(0);
   const [posY, setPosY] = createSignal(0);
   const [elemWidth, setElemWidth] = createSignal(1);
@@ -23,6 +29,15 @@ export function StoryTray(props: {
     "#1DA1F2",
   );
   const [storyTextColor, setStoryTextColor] = createSignal("#FFFFFF");
+  let previewRef: HTMLDivElement | undefined;
+  let dragging = false;
+  let resizing = false;
+  let startX = 0;
+  let startY = 0;
+  let startPX = 0;
+  let startPY = 0;
+  let startW = 0;
+  let startH = 0;
 
   const storyBackgroundColors = [
     "#1DA1F2",
@@ -40,6 +55,56 @@ export function StoryTray(props: {
     "#607D8B",
     "#000000",
   ];
+
+  const handleDragStart = (e: PointerEvent) => {
+    if (!previewRef) return;
+    dragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startPX = posX();
+    startPY = posY();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handleDragMove = (e: PointerEvent) => {
+    if (!dragging || !previewRef) return;
+    const rect = previewRef.getBoundingClientRect();
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    setPosX(Math.min(1, Math.max(0, startPX + dx / rect.width)));
+    setPosY(Math.min(1, Math.max(0, startPY + dy / rect.height)));
+  };
+
+  const handleDragEnd = (e: PointerEvent) => {
+    dragging = false;
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+  };
+
+  const handleResizeStart = (e: PointerEvent) => {
+    if (!previewRef) return;
+    resizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startW = elemWidth();
+    startH = elemHeight();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    e.stopPropagation();
+  };
+
+  const handleResizeMove = (e: PointerEvent) => {
+    if (!resizing || !previewRef) return;
+    const rect = previewRef.getBoundingClientRect();
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    setElemWidth(Math.min(1, Math.max(0, startW + dx / rect.width)));
+    setElemHeight(Math.min(1, Math.max(0, startH + dy / rect.height)));
+  };
+
+  const handleResizeEnd = (e: PointerEvent) => {
+    resizing = false;
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    e.stopPropagation();
+  };
 
   const addTextElement = () => {
     setElements([
@@ -61,23 +126,52 @@ export function StoryTray(props: {
     setStoryContent("");
   };
 
-  const addImageElement = () => {
-    if (!storyMediaUrl()) return;
-    setElements([
-      ...elements(),
-      {
-        type: "Image",
-        mediaUrl: storyMediaUrl(),
-        mediaType: "image/jpeg",
-        x: posX(),
-        y: posY(),
-        width: elemWidth(),
-        height: elemHeight(),
-        start: elemStart(),
-        duration: elemDuration(),
-      },
-    ]);
-    setStoryMediaUrl("");
+  const addMediaElement = async () => {
+    if (mediaFile()) {
+      const file = mediaFile()!;
+      const buf = await file.arrayBuffer();
+      const url = await uploadFile({
+        content: buf,
+        mediaType: file.type,
+        name: file.name,
+      });
+      if (!url) {
+        alert("ファイルのアップロードに失敗しました");
+        return;
+      }
+      setElements([
+        ...elements(),
+        {
+          type: file.type.startsWith("video/") ? "Video" : "Image",
+          mediaUrl: url,
+          mediaType: file.type,
+          x: posX(),
+          y: posY(),
+          width: elemWidth(),
+          height: elemHeight(),
+          start: elemStart(),
+          duration: elemDuration(),
+        },
+      ]);
+      setMediaFile(null);
+      setMediaPreview("");
+    } else if (storyMediaUrl()) {
+      setElements([
+        ...elements(),
+        {
+          type: "Image",
+          mediaUrl: storyMediaUrl(),
+          mediaType: "image/jpeg",
+          x: posX(),
+          y: posY(),
+          width: elemWidth(),
+          height: elemHeight(),
+          start: elemStart(),
+          duration: elemDuration(),
+        },
+      ]);
+      setStoryMediaUrl("");
+    }
   };
 
   const handleCreateStory = async (e: Event) => {
@@ -222,6 +316,7 @@ export function StoryTray(props: {
             <form onSubmit={handleCreateStory} class="space-y-4">
               {/* プレビュー */}
               <div
+                ref={(el) => (previewRef = el)}
                 class="aspect-[9/16] rounded-xl p-4 relative overflow-hidden"
                 style={`background: ${storyBackgroundColor()}; color: ${storyTextColor()}`}
               >
@@ -254,12 +349,72 @@ export function StoryTray(props: {
                       )
                   )}
                 </For>
+                {editingMode() === "media" && mediaPreview() && (
+                  <div
+                    class="absolute"
+                    style={`left:${posX() * 100}% ; top:${
+                      posY() * 100
+                    }% ; width:${elemWidth() * 100}% ; height:${
+                      elemHeight() * 100
+                    }% ;`}
+                    onPointerDown={handleDragStart}
+                    onPointerMove={handleDragMove}
+                    onPointerUp={handleDragEnd}
+                  >
+                    {mediaFile() && mediaFile()!.type.startsWith("video/")
+                      ? (
+                        <video
+                          src={mediaPreview()}
+                          class="w-full h-full object-cover"
+                          muted
+                          loop
+                        />
+                      )
+                      : (
+                        <img
+                          src={mediaPreview()}
+                          alt=""
+                          class="w-full h-full object-cover"
+                        />
+                      )}
+                    <div
+                      class="absolute bottom-0 right-0 w-3 h-3 bg-white cursor-nwse-resize"
+                      onPointerDown={handleResizeStart}
+                      onPointerMove={handleResizeMove}
+                      onPointerUp={handleResizeEnd}
+                    />
+                  </div>
+                )}
+                {editingMode() === "text" && storyContent() && (
+                  <div
+                    class="absolute flex items-center justify-center"
+                    style={`left:${posX() * 100}% ; top:${
+                      posY() * 100
+                    }% ; width:${elemWidth() * 100}% ; height:${
+                      elemHeight() * 100
+                    }% ; color:${storyTextColor()}`}
+                    onPointerDown={handleDragStart}
+                    onPointerMove={handleDragMove}
+                    onPointerUp={handleDragEnd}
+                  >
+                    {storyContent()}
+                    <div
+                      class="absolute bottom-0 right-0 w-3 h-3 bg-white cursor-nwse-resize"
+                      onPointerDown={handleResizeStart}
+                      onPointerMove={handleResizeMove}
+                      onPointerUp={handleResizeEnd}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* テキスト入力 */}
               <textarea
                 value={storyContent()}
-                onInput={(e) => setStoryContent(e.currentTarget.value)}
+                onInput={(e) => {
+                  setStoryContent(e.currentTarget.value);
+                  setEditingMode("text");
+                }}
                 placeholder="ストーリーに何か書いてみましょう..."
                 maxlength={200}
                 class="w-full bg-gray-800 rounded-lg p-3 text-white placeholder-gray-500 resize-none border border-gray-700 focus:border-blue-500 outline-none"
@@ -381,7 +536,10 @@ export function StoryTray(props: {
               {/* テキスト入力 */}
               <textarea
                 value={storyContent()}
-                onInput={(e) => setStoryContent(e.currentTarget.value)}
+                onInput={(e) => {
+                  setStoryContent(e.currentTarget.value);
+                  setEditingMode("text");
+                }}
                 placeholder="テキスト"
                 maxlength={200}
                 class="w-full bg-gray-800 rounded-lg p-3 text-white placeholder-gray-500 resize-none border border-gray-700 focus:border-blue-500 outline-none"
@@ -399,16 +557,34 @@ export function StoryTray(props: {
               <input
                 type="url"
                 value={storyMediaUrl()}
-                onInput={(e) => setStoryMediaUrl(e.currentTarget.value)}
+                onInput={(e) => {
+                  setStoryMediaUrl(e.currentTarget.value);
+                  setEditingMode("media");
+                }}
                 placeholder="画像URL"
                 class="w-full bg-gray-800 rounded-lg p-3 text-white placeholder-gray-500 border border-gray-700 focus:border-blue-500 outline-none"
               />
+              <input
+                type="file"
+                accept="image/*,video/*"
+                onChange={(e) => {
+                  const f = (e.currentTarget as HTMLInputElement).files?.[0];
+                  if (!f) return;
+                  setMediaFile(f);
+                  const reader = new FileReader();
+                  reader.onload = () =>
+                    setMediaPreview(reader.result as string);
+                  reader.readAsDataURL(f);
+                  setEditingMode("media");
+                }}
+                class="w-full bg-gray-800 rounded-lg p-3 text-white border border-gray-700 focus:border-blue-500 outline-none"
+              />
               <button
                 type="button"
-                onClick={addImageElement}
+                onClick={addMediaElement}
                 class="px-3 py-1 bg-blue-600 rounded"
               >
-                画像要素追加
+                メディア要素追加
               </button>
 
               <ul class="space-y-1">
