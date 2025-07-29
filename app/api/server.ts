@@ -9,7 +9,7 @@ import accounts from "./routes/accounts.ts";
 import notifications from "./routes/notifications.ts";
 import activitypub from "./routes/activitypub.ts";
 import posts from "./routes/posts.ts";
-import stories from "./routes/stories.ts";
+import apStory from "./routes/ap_story.ts";
 import search from "./routes/search.ts";
 import users from "./routes/users.ts";
 import follow from "./routes/follow.ts";
@@ -57,7 +57,6 @@ export async function createTakosApp(env?: Record<string, string>) {
     follow,
     notifications,
     posts,
-    stories,
     config,
     fcm,
     setupUI,
@@ -75,7 +74,7 @@ export async function createTakosApp(env?: Record<string, string>) {
 
   // ActivityPub ルートは / のみにマウントする
 
-  const rootRoutes = [nodeinfo, activitypub, rootInbox];
+  const rootRoutes = [nodeinfo, activitypub, rootInbox, apStory];
   // e2ee ルートは /api のみで提供し、ActivityPub ルートと競合しないようにする
   for (const r of rootRoutes) {
     app.route("/", r);

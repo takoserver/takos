@@ -1,0 +1,28 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "as": "https://www.w3.org/ns/activitystreams#",
+    "ts": "https://takos.social/ns#",
+    "Story": "ts:Story",
+    "StoryItem": "ts:StoryItem",
+    "Overlay": "ts:Overlay",
+    "Reaction": "ts:Reaction",
+    "StoryView": "ts:StoryView",
+    "expiresAt": { "@id": "ts:expiresAt", "@type": "http://www.w3.org/2001/XMLSchema#dateTime" },
+    "items": { "@id": "ts:items", "@container": "@list" },
+    "overlays": { "@id": "ts:overlays", "@container": "@set" },
+    "duration": { "@id": "ts:duration", "@type": "http://www.w3.org/2001/XMLSchema#decimal" },
+    "link": { "@id": "ts:link", "@type": "@id" },
+    "x": { "@id": "ts:x", "@type": "http://www.w3.org/2001/XMLSchema#decimal" },
+    "y": { "@id": "ts:y", "@type": "http://www.w3.org/2001/XMLSchema#decimal" },
+    "w": { "@id": "ts:w", "@type": "http://www.w3.org/2001/XMLSchema#decimal" },
+    "h": { "@id": "ts:h", "@type": "http://www.w3.org/2001/XMLSchema#decimal" },
+    "style": "ts:style",
+    "fallback": "ts:fallback",
+    "storyType": "ts:storyType",
+    "archived": { "@id": "ts:archived", "@type": "http://www.w3.org/2001/XMLSchema#boolean" },
+    "highlightOf": { "@id": "ts:highlightOf", "@type": "@id" },
+    "viewCount": { "@id": "ts:viewCount", "@type": "http://www.w3.org/2001/XMLSchema#integer" },
+    "emoji": "ts:emoji"
+  }
+}
