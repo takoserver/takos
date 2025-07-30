@@ -7,7 +7,6 @@ import type {
   ImageItem,
   Story,
   StoryItem,
-  StoryPage,
   TextItem,
   VideoItem,
 } from "./types.ts";
@@ -17,23 +16,11 @@ export function StoryEditor(
 ) {
   const [account] = useAtom(activeAccount);
   const [aspectRatio, _setAspectRatio] = createSignal("9:16");
-  const [pages, setPages] = createSignal<StoryPage[]>([{
-    type: "story:Page",
-    items: [],
-  }]);
-  const [pageIndex, setPageIndex] = createSignal(0);
+  const [items, setItems] = createSignal<StoryItem[]>([]);
   const [selectedIndex, setSelectedIndex] = createSignal<number | null>(null);
 
-  const currentPage = () => pages()[pageIndex()];
-
   const updateItem = (idx: number, item: StoryItem) => {
-    setPages(
-      pages().map((p, i) =>
-        i === pageIndex()
-          ? { ...p, items: p.items.map((it, j) => j === idx ? item : it) }
-          : p
-      ),
-    );
+    setItems(items().map((it, j) => j === idx ? item : it));
   };
 
   const addTextItem = () => {
@@ -42,11 +29,7 @@ export function StoryEditor(
       text: "テキスト",
       bbox: { x: 0.1, y: 0.1, w: 0.3, h: 0.1, units: "fraction" },
     };
-    setPages(
-      pages().map((p, i) =>
-        i === pageIndex() ? { ...p, items: [...p.items, item] } : p
-      ),
-    );
+    setItems([...items(), item]);
   };
 
   const addImageItem = () => {
@@ -55,11 +38,7 @@ export function StoryEditor(
       media: { type: "Link", href: "" },
       bbox: { x: 0.2, y: 0.2, w: 0.6, h: 0.6, units: "fraction" },
     };
-    setPages(
-      pages().map((p, i) =>
-        i === pageIndex() ? { ...p, items: [...p.items, item] } : p
-      ),
-    );
+    setItems([...items(), item]);
   };
 
   const addVideoItem = () => {
@@ -71,33 +50,14 @@ export function StoryEditor(
       loop: true,
       muted: true,
     };
-    setPages(
-      pages().map((p, i) =>
-        i === pageIndex() ? { ...p, items: [...p.items, item] } : p
-      ),
-    );
+    setItems([...items(), item]);
   };
 
   const removeSelected = () => {
     const idx = selectedIndex();
     if (idx === null) return;
-    setPages(
-      pages().map((p, i) =>
-        i === pageIndex()
-          ? { ...p, items: p.items.filter((_, j) => j !== idx) }
-          : p
-      ),
-    );
+    setItems(items().filter((_, j) => j !== idx));
     setSelectedIndex(null);
-  };
-
-  const addPage = () =>
-    setPages([...pages(), { type: "story:Page", items: [] }]);
-  const removePage = () => {
-    if (pages().length <= 1) return;
-    const idx = pageIndex();
-    setPages(pages().filter((_, i) => i !== idx));
-    setPageIndex(Math.max(0, idx - 1));
   };
 
   const handleSubmit = async (e: Event) => {
@@ -111,7 +71,7 @@ export function StoryEditor(
       id: "",
       author: user.userName,
       aspectRatio: aspectRatio(),
-      pages: pages(),
+      items: items(),
       createdAt: new Date().toISOString(),
       views: 0,
     };
@@ -126,7 +86,7 @@ export function StoryEditor(
 
   const selectedItem = () => {
     const idx = selectedIndex();
-    return idx === null ? null : currentPage().items[idx];
+    return idx === null ? null : items()[idx];
   };
 
   const updateSelected = (item: StoryItem) => {
@@ -146,26 +106,8 @@ export function StoryEditor(
             ×
           </button>
         </div>
-        <div class="flex space-x-2">
-          <button
-            type="button"
-            onClick={() => setPageIndex(Math.max(0, pageIndex() - 1))}
-          >
-            前
-          </button>
-          <span>{pageIndex() + 1} / {pages().length}</span>
-          <button
-            type="button"
-            onClick={() =>
-              setPageIndex(Math.min(pages().length - 1, pageIndex() + 1))}
-          >
-            次
-          </button>
-          <button type="button" onClick={addPage}>ページ追加</button>
-          <button type="button" onClick={removePage}>ページ削除</button>
-        </div>
         <Stage
-          page={currentPage()}
+          items={items()}
           width={300}
           height={500}
           selectedIndex={selectedIndex()}

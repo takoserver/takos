@@ -1,14 +1,8 @@
 import { createSignal, For, onCleanup } from "solid-js";
-import type {
-  ImageItem,
-  StoryItem,
-  StoryPage,
-  TextItem,
-  VideoItem,
-} from "./types.ts";
+import type { ImageItem, StoryItem, TextItem, VideoItem } from "./types.ts";
 
 export function Stage(props: {
-  page: StoryPage;
+  items: StoryItem[];
   width: number;
   height: number;
   selectedIndex: number | null;
@@ -43,7 +37,7 @@ export function Stage(props: {
     const p = toPoint(e);
     const dx = p.x - d.startX;
     const dy = p.y - d.startY;
-    const item = props.page.items[d.idx];
+    const item = props.items[d.idx];
     if (d.mode === "move") {
       const nx = clamp(d.box.x + dx, 0, 1 - d.box.w);
       const ny = clamp(d.box.y + dy, 0, 1 - d.box.h);
@@ -82,7 +76,7 @@ export function Stage(props: {
     e.stopPropagation();
     props.onSelect(idx);
     const p = toPoint(e);
-    const it = props.page.items[idx];
+    const it = props.items[idx];
     setDrag({
       idx,
       mode,
@@ -154,7 +148,7 @@ export function Stage(props: {
       onPointerDown={() => props.onSelect(-1)}
     >
       <For
-        each={[...props.page.items].sort((a, b) =>
+        each={[...props.items].sort((a, b) =>
           (a.zIndex ?? 0) - (b.zIndex ?? 0)
         )}
       >

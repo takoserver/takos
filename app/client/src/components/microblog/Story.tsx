@@ -123,13 +123,11 @@ export function StoryViewer(props: {
   handleDeleteStory: (id: string) => void;
   formatDate: (dateString: string) => string;
 }) {
-  const [pageIndex, setPageIndex] = createSignal(0);
   const [time, setTime] = createSignal(0);
   let frame = 0;
 
   createEffect(() => {
     props.selectedStory;
-    setPageIndex(0);
     setTime(0);
   });
 
@@ -144,23 +142,12 @@ export function StoryViewer(props: {
   });
 
   createEffect(() => {
-    const page = currentPage();
-    if (!page) return;
     const max = Math.max(
       5,
-      ...page.items.map((it) => (it.visibleUntil ?? 5)),
+      ...(props.selectedStory?.items.map((it) => (it.visibleUntil ?? 5)) ?? []),
     );
-    if (time() > max) {
-      if (pageIndex() < (props.selectedStory?.pages.length ?? 1) - 1) {
-        setPageIndex(pageIndex() + 1);
-        setTime(0);
-      } else {
-        props.nextStory();
-      }
-    }
+    if (time() > max) props.nextStory();
   });
-
-  const currentPage = () => props.selectedStory?.pages[pageIndex()] ?? null;
 
   const renderItem = (item: ImageItem | VideoItem | TextItem) => {
     const t = time();
@@ -200,50 +187,10 @@ export function StoryViewer(props: {
       {props.showStoryViewer && props.selectedStory && (
         <div class="fixed inset-0 bg-black z-50 flex items-center justify-center">
           <div class="relative w-full max-w-sm h-full">
-            <div class="absolute top-4 left-4 right-4 z-20 flex space-x-1">
-              <For each={props.selectedStory.pages}>
-                {(_, i) => (
-                  <div class="flex-1 h-1 bg-gray-600 rounded">
-                    <div
-                      class={`h-full bg-white rounded transition-all duration-300 ${
-                        i() < pageIndex()
-                          ? "w-full"
-                          : i() === pageIndex()
-                          ? "w-full"
-                          : "w-0"
-                      }`}
-                    />
-                  </div>
-                )}
-              </For>
-            </div>
-
             <div class="w-full h-full relative bg-black">
-              <For each={currentPage()?.items || []}>
+              <For each={props.selectedStory.items}>
                 {(item) => renderItem(item)}
               </For>
-            </div>
-
-            <div class="absolute inset-0 flex">
-              <button
-                type="button"
-                onClick={() => {
-                  if (pageIndex() > 0) setPageIndex(pageIndex() - 1);
-                  else props.previousStory();
-                }}
-                class="flex-1 opacity-0 hover:opacity-10 bg-black transition-opacity"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (
-                    pageIndex() < (props.selectedStory?.pages.length ?? 1) - 1
-                  ) {
-                    setPageIndex(pageIndex() + 1);
-                  } else props.nextStory();
-                }}
-                class="flex-1 opacity-0 hover:opacity-10 bg-black transition-opacity"
-              />
             </div>
 
             <button

@@ -433,7 +433,7 @@ paths:
                   type: string
                 aspectRatio:
                   type: string
-                pages:
+                items:
                   type: array
                   items:
                     type: object
@@ -445,7 +445,7 @@ paths:
                   type: object
               required:
                 - author
-                - pages
+                - items
       responses:
         "201":
           description: 作成されたストーリー

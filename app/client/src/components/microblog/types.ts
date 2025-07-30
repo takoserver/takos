@@ -23,7 +23,7 @@ export interface Story {
   id: string;
   author: string;
   aspectRatio?: string;
-  pages: StoryPage[];
+  items: StoryItem[];
   expiresAt?: string;
   poster?: MediaLink;
   audioTrack?: { href: string; start?: number; gain?: number };
@@ -38,12 +38,7 @@ export interface MediaLink {
   mediaType?: string;
 }
 
-export interface StoryPage {
-  type: "story:Page";
-  background?: Record<string, unknown>;
-  safeArea?: { top: number; bottom: number; left: number; right: number };
-  items: StoryItem[];
-}
+// StoryPage 型は廃止
 
 export type StoryItem = ImageItem | VideoItem | TextItem;
 

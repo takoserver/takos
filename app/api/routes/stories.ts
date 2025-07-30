@@ -5,7 +5,9 @@ import authRequired from "../utils/auth.ts";
 import { createObjectId } from "../utils/activitypub.ts";
 import { getEnv } from "../../shared/config.ts";
 
-/** ストーリーオブジェクト型定義 */
+/** ストーリーオブジェクト型定義
+ *  pages フィールドを廃止し items 配列のみを保持する構造
+ */
 type Story = {
   _id: { toString(): string };
   attributedTo: string;
