@@ -1,9 +1,9 @@
-import type { ActivityPubObject, MicroblogPost, Story } from "./types.ts";
+import type { ActivityPubObject, MicroblogPost } from "./types.ts";
 import { apiFetch, getDomain } from "../../utils/config.ts";
 import { loadCacheEntry, saveCacheEntry } from "../e2ee/storage.ts";
 
 /**
- * ActivityPub Object（Note, Story, etc.）を取得
+ * ActivityPub Object（Note など）を取得
  */
 export const fetchActivityPubObjects = async (
   username: string,
@@ -283,72 +283,6 @@ export const _replyToPost = async (
   }
 };
 
-export const fetchStories = async (): Promise<Story[]> => {
-  try {
-    const response = await apiFetch("/api/stories");
-    if (!response.ok) {
-      throw new Error("Failed to fetch stories");
-    }
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching stories:", error);
-    return [];
-  }
-};
-
-export const createStory = async (
-  content: string,
-  mediaUrl?: string,
-  mediaType?: "image" | "video",
-  backgroundColor?: string,
-  textColor?: string,
-): Promise<boolean> => {
-  try {
-    const response = await apiFetch("/api/stories", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        author: "user",
-        content,
-        mediaUrl,
-        mediaType,
-        backgroundColor,
-        textColor,
-      }),
-    });
-    return response.ok;
-  } catch (error) {
-    console.error("Error creating story:", error);
-    return false;
-  }
-};
-
-export const viewStory = async (id: string): Promise<boolean> => {
-  try {
-    const response = await apiFetch(`/api/stories/${id}/view`, {
-      method: "POST",
-    });
-    return response.ok;
-  } catch (error) {
-    console.error("Error viewing story:", error);
-    return false;
-  }
-};
-
-export const deleteStory = async (id: string): Promise<boolean> => {
-  try {
-    const response = await apiFetch(`/api/stories/${id}`, {
-      method: "DELETE",
-    });
-    return response.ok;
-  } catch (error) {
-    console.error("Error deleting story:", error);
-    return false;
-  }
-};
-
 // ユーザー情報を取得
 export const fetchUserProfile = async (username: string) => {
   try {
@@ -526,5 +460,45 @@ export const fetchFollowing = async (username: string) => {
   } catch (error) {
     console.error("Error fetching following:", error);
     return [];
+  }
+};
+
+export const createStory = async (
+  username: string,
+  imageUrl: string,
+): Promise<boolean> => {
+  try {
+    const domain = getDomain();
+    const body = {
+      to: [`https://${domain}/users/${encodeURIComponent(username)}/followers`],
+      object: {
+        type: "Story",
+        storyType: "image",
+        published: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+        items: [
+          {
+            type: "StoryItem",
+            media: {
+              type: "Image",
+              url: imageUrl,
+              mediaType: "image/webp",
+            },
+          },
+        ],
+      },
+    };
+    const res = await apiFetch(
+      `/ap/users/${encodeURIComponent(username)}/outbox/story`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+    return res.ok;
+  } catch (error) {
+    console.error("Error creating story:", error);
+    return false;
   }
 };
