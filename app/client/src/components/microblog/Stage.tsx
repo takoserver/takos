@@ -128,7 +128,7 @@ export function Stage(props: {
 
   return (
     <div
-      ref={container}
+      ref={(el) => (container = el)}
       class="relative cursor-move"
       style={`width:${props.width}px;height:${props.height}px;background:#000;touch-action:none`}
       onPointerDown={(e) => startDrag(e, "move")}
