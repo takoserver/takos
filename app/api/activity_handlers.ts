@@ -75,21 +75,42 @@ export const activityHandlers: Record<string, ActivityHandler> = {
         string,
         string
       >;
-      const saved = await saveObject(
-        env,
-        activity.object as Record<string, unknown>,
-        actor,
-      );
+
+      const obj = activity.object as Record<string, unknown>;
+      const types = Array.isArray(obj.type) ? obj.type as string[] : [
+        obj.type as string,
+      ];
+
+      if (types.includes("x:Story")) {
+        const endTime = obj.endTime
+          ? new Date(obj.endTime as string)
+          : undefined;
+        if (endTime && endTime <= new Date()) return;
+        await createDB(env).saveObject({
+          type: "Story",
+          attributedTo: obj.attributedTo ?? actor,
+          content: obj.content,
+          endTime,
+          x_overlays: Array.isArray(obj["x:overlays"]) ? obj["x:overlays"] : [],
+          x_rev: obj["x:rev"] as number | undefined,
+          published: obj.published
+            ? new Date(obj.published as string)
+            : new Date(),
+          actor_id: actor,
+          extra: obj.extra ?? {},
+          aud: { to: [], cc: [] },
+        });
+        return;
+      }
+
+      const saved = await saveObject(env, obj, actor);
       const domain = getDomain(c as Context);
       const userInfo = await getUserInfo(
         (saved.actor_id as string) ?? actor,
         domain,
         env,
       );
-      const formatted = formatUserInfoForPost(
-        userInfo,
-        saved,
-      );
+      const formatted = formatUserInfoForPost(userInfo, saved);
       broadcast({
         type: "newPost",
         payload: { timeline: "latest", post: formatted },
@@ -131,5 +152,43 @@ export const activityHandlers: Record<string, ActivityHandler> = {
         console.error("Delivery failed:", err);
       },
     );
+  },
+
+  async Delete(
+    activity: Record<string, unknown>,
+    _username: string,
+    c: unknown,
+  ) {
+    const env = (c as { get: (k: string) => unknown }).get("env") as Record<
+      string,
+      string
+    >;
+    let objectId = "";
+    if (typeof activity.object === "string") {
+      objectId = activity.object;
+    } else if (
+      typeof activity.object === "object" &&
+      activity.object !== null &&
+      typeof (activity.object as Record<string, unknown>).id === "string"
+    ) {
+      objectId = (activity.object as Record<string, unknown>).id as string;
+    }
+    if (!objectId) return;
+    const db = createDB(env);
+    const stored = await db.getObject(objectId);
+    if (!stored) return;
+    const types = Array.isArray((stored as { type?: unknown }).type)
+      ? (stored as { type: string[] }).type
+      : [(stored as { type?: unknown }).type as string];
+    if (
+      !types.includes("x:Story") &&
+      (stored as { type?: string }).type !== "Story"
+    ) {
+      return;
+    }
+    await db.updateObject(objectId, {
+      type: "Tombstone",
+      deleted_at: new Date(),
+    });
   },
 };

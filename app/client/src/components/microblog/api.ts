@@ -289,7 +289,15 @@ export const fetchStories = async (): Promise<Story[]> => {
     if (!response.ok) {
       throw new Error("Failed to fetch stories");
     }
-    return await response.json();
+    const list = await response.json();
+    const now = Date.now();
+    return Array.isArray(list)
+      ? list.filter((s: { endTime?: string }) => {
+        if (!s.endTime) return true;
+        const end = new Date(s.endTime).getTime();
+        return isNaN(end) || end > now;
+      })
+      : [];
   } catch (error) {
     console.error("Error fetching stories:", error);
     return [];

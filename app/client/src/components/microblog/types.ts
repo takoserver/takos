@@ -26,7 +26,7 @@ export interface Story {
   mediaUrl?: string;
   mediaType?: "image" | "video";
   createdAt: string;
-  expiresAt: string;
+  endTime: string;
   views: number;
   isViewed?: boolean;
   backgroundColor?: string;
