@@ -7,7 +7,7 @@ export function Stage(props: {
   height: number;
   onChange: (item: StoryItem) => void;
 }) {
-  let svg!: SVGSVGElement;
+  let container!: HTMLDivElement;
   const [drag, setDrag] = createSignal<
     {
       mode: "move" | "resize" | "rotate";
@@ -19,7 +19,7 @@ export function Stage(props: {
   >(null);
 
   const toPoint = (e: PointerEvent) => {
-    const rect = svg.getBoundingClientRect();
+    const rect = container.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
     return { x, y };
@@ -59,7 +59,10 @@ export function Stage(props: {
     document.removeEventListener("pointerup", onUp);
   };
 
-  const startDrag = (e: PointerEvent, mode: "move" | "resize" | "rotate") => {
+  const startDrag = (
+    e: PointerEvent,
+    mode: "move" | "resize" | "rotate",
+  ) => {
     e.stopPropagation();
     if (!props.item) return;
     const p = toPoint(e);
@@ -80,98 +83,80 @@ export function Stage(props: {
   const renderItem = (item: StoryItem) => {
     if (item.type === "story:ImageItem") {
       const i = item as ImageItem;
-      return (
-        <image
-          href={i.media.href}
-          x="0"
-          y="0"
-          width="1"
-          height="1"
-          preserveAspectRatio="xMidYMid slice"
-        />
-      );
+      return <img src={i.media.href} class="w-full h-full object-cover" />;
     }
     if (item.type === "story:VideoItem") {
       const v = item as VideoItem;
       return (
-        <foreignObject x="0" y="0" width="1" height="1">
-          <video
-            src={v.media.href}
-            muted={v.muted}
-            loop={v.loop}
-            autoplay={v.autoplay}
-            style="width:100%;height:100%;object-fit:cover"
-          />
-        </foreignObject>
+        <video
+          src={v.media.href}
+          muted={v.muted}
+          loop={v.loop}
+          autoplay={v.autoplay}
+          class="w-full h-full object-cover"
+        />
       );
     }
     const t = item as TextItem;
     const style = t.style as Record<string, unknown> | undefined;
     return (
-      <foreignObject x="0" y="0" width="1" height="1">
-        <div
-          style={`width:100%;height:100%;color:${
-            style?.color || "#fff"
-          };font-size:${
-            (style?.fontSize ?? 0.06) * 100
-          }vmin;display:flex;align-items:center;justify-content:center;text-align:${
-            style?.align || "center"
-          }`}
-        >
-          {t.text}
-        </div>
-      </foreignObject>
+      <div
+        style={`width:100%;height:100%;color:${
+          style?.color || "#fff"
+        };font-size:${
+          (style?.fontSize ?? 0.06) * 100
+        }vmin;display:flex;align-items:center;justify-content:center;text-align:${
+          style?.align || "center"
+        }`}
+      >
+        {t.text}
+      </div>
     );
   };
 
   return (
-    <svg
-      ref={svg}
-      viewBox="0 0 1 1"
-      width={props.width}
-      height={props.height}
-      style="background:#000;touch-action:none"
+    <div
+      ref={container}
+      class="relative"
+      style={`width:${props.width}px;height:${props.height}px;background:#000;touch-action:none`}
       onPointerDown={(e) => startDrag(e, "move")}
     >
       <Show when={props.item}>
         {(item) => {
           const box = item().bbox;
           const rot = item().rotation ?? 0;
-          const trans = `translate(${box.x} ${box.y}) rotate(${rot} ${
-            box.w / 2
-          } ${box.h / 2}) scale(${box.w} ${box.h})`;
+          const style = `left:${box.x * 100}%;top:${box.y * 100}%;width:${
+            box.w * 100
+          }%;height:${box.h * 100}%;transform:rotate(${rot}deg);opacity:${
+            item().opacity ?? 1
+          }`;
           return (
-            <g transform={trans} opacity={item().opacity ?? 1}>
-              {renderItem(item())}
-              <g>
-                <rect
-                  x="0"
-                  y="0"
-                  width="1"
-                  height="1"
-                  fill="none"
-                  stroke="#4ade80"
-                  stroke-width="0.003"
-                />
-                <circle
-                  cx="1"
-                  cy="1"
-                  r="0.02"
-                  fill="#4ade80"
-                  onPointerDown={(e) => startDrag(e, "resize")}
-                />
-                <circle
-                  cx="0.5"
-                  cy="-0.05"
-                  r="0.02"
-                  fill="#4ade80"
-                  onPointerDown={(e) => startDrag(e, "rotate")}
-                />
-              </g>
-            </g>
+            <>
+              <div class="absolute" style={style}>{renderItem(item())}</div>
+              <div
+                class="absolute border border-green-400 box-border"
+                style={`left:${box.x * 100}%;top:${box.y * 100}%;width:${
+                  box.w * 100
+                }%;height:${box.h * 100}%;transform:rotate(${rot}deg)`}
+              />
+              <div
+                class="absolute w-3 h-3 bg-green-400"
+                style={`left:${(box.x + box.w) * 100 - 1.5}%;top:${
+                  (box.y + box.h) * 100 - 1.5
+                }%`}
+                onPointerDown={(e) => startDrag(e, "resize")}
+              />
+              <div
+                class="absolute w-3 h-3 bg-green-400"
+                style={`left:${box.x * 100 + box.w * 50 - 1.5}%;top:${
+                  box.y * 100 - 3
+                }%`}
+                onPointerDown={(e) => startDrag(e, "rotate")}
+              />
+            </>
           );
         }}
       </Show>
-    </svg>
+    </div>
   );
 }
