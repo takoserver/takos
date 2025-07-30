@@ -7,9 +7,11 @@ import {
   createCreateActivity,
   createDeleteActivity,
   createObjectId,
+  createViewActivity,
   deliverActivityPubObject,
   fetchActorInbox,
   getDomain,
+  isLocalActor,
 } from "../utils/activitypub.ts";
 import { getEnv } from "../../shared/config.ts";
 
@@ -196,14 +198,36 @@ app.post("/stories", async (c) => {
 app.post("/stories/:id/view", async (c) => {
   try {
     const env = getEnv(c);
+    const domain = getDomain(c);
     const db = createDB(env);
     const id = c.req.param("id");
+    const body = await c.req.json().catch(() => ({}));
+    const viewer = typeof body.username === "string"
+      ? body.username
+      : undefined;
     const story = await db.updateObject(id, { $inc: { "extra.views": 1 } }) as
       | Story
       | null;
 
     if (!story) {
       return c.json({ error: "Story not found" }, 404);
+    }
+
+    if (
+      viewer && typeof story.actor_id === "string" &&
+      !isLocalActor(story.actor_id, domain)
+    ) {
+      const inbox = await fetchActorInbox(story.actor_id, env);
+      if (inbox) {
+        const activity = createViewActivity(
+          domain,
+          `https://${domain}/users/${viewer}`,
+          `https://${domain}/objects/${story._id}`,
+        );
+        deliverActivityPubObject([inbox], activity, viewer, domain, env).catch(
+          (err) => console.error("Failed to deliver view activity:", err),
+        );
+      }
     }
 
     return c.json({

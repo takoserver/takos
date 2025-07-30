@@ -478,6 +478,10 @@ paths:
       responses:
         "200":
           description: 閲覧後のストーリー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Story"
   /api/stories/{id}:
     delete:
       summary: ストーリー削除

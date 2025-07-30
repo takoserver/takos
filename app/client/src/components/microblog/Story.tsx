@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from "solid-js";
+import { createEffect, createSignal, For, onCleanup, Show } from "solid-js";
 import type { Story } from "./types.ts";
 import { createStory } from "./api.ts";
 import { UserAvatar } from "./UserAvatar.tsx";
@@ -306,6 +306,49 @@ export function StoryViewer(props: {
   handleDeleteStory: (id: string) => void;
   formatDate: (dateString: string) => string;
 }) {
+  const [progress, setProgress] = createSignal(0);
+  let videoRef: HTMLVideoElement | undefined;
+
+  createEffect(() => {
+    if (!props.showStoryViewer || !props.selectedStory) return;
+    setProgress(0);
+    if (props.selectedStory.mediaType?.startsWith("video")) {
+      if (videoRef) {
+        videoRef.currentTime = 0;
+        videoRef.play().catch(() => {});
+        const timeHandler = () => {
+          if (videoRef && videoRef.duration) {
+            setProgress(videoRef.currentTime / videoRef.duration);
+          }
+        };
+        const endHandler = () => {
+          props.nextStory();
+        };
+        videoRef.addEventListener("timeupdate", timeHandler);
+        videoRef.addEventListener("ended", endHandler);
+        onCleanup(() => {
+          videoRef?.removeEventListener("timeupdate", timeHandler);
+          videoRef?.removeEventListener("ended", endHandler);
+        });
+      }
+    } else {
+      let raf = 0;
+      const start = performance.now();
+      const duration = 5000;
+      const tick = (now: number) => {
+        const ratio = (now - start) / duration;
+        setProgress(ratio);
+        if (ratio >= 1) {
+          props.nextStory();
+        } else {
+          raf = requestAnimationFrame(tick);
+        }
+      };
+      raf = requestAnimationFrame(tick);
+      onCleanup(() => cancelAnimationFrame(raf));
+    }
+  });
+
   return (
     <>
       {props.showStoryViewer && props.selectedStory && (
@@ -317,12 +360,13 @@ export function StoryViewer(props: {
                 {(_, index) => (
                   <div class="flex-1 h-1 bg-gray-600 rounded">
                     <div
-                      class={`h-full bg-white rounded transition-all duration-300 ${
+                      class="h-full bg-white rounded transition-all duration-300"
+                      style={`width: ${
                         index() < props.currentStoryIndex
-                          ? "w-full"
+                          ? "100%"
                           : index() === props.currentStoryIndex
-                          ? "w-full"
-                          : "w-0"
+                          ? `${Math.min(progress() * 100, 100)}%`
+                          : "0%"
                       }`}
                     />
                   </div>
@@ -332,13 +376,25 @@ export function StoryViewer(props: {
 
             {/* ストーリーコンテンツ */}
             <div class="w-full h-full relative">
-              {props.selectedStory!.mediaUrl && (
-                <img
-                  src={props.selectedStory!.mediaUrl}
-                  alt=""
-                  class="w-full h-full object-cover"
-                />
-              )}
+              {props.selectedStory!.mediaUrl &&
+                (props.selectedStory!.mediaType?.startsWith("video")
+                  ? (
+                    <video
+                      ref={(v) => (videoRef = v ?? undefined)}
+                      src={props.selectedStory!.mediaUrl}
+                      class="w-full h-full object-cover"
+                      playsInline
+                      muted
+                      autoplay
+                    />
+                  )
+                  : (
+                    <img
+                      src={props.selectedStory!.mediaUrl}
+                      alt=""
+                      class="w-full h-full object-cover"
+                    />
+                  ))}
               <div
                 class="absolute inset-0 flex flex-col justify-end p-6"
                 style={!props.selectedStory!.mediaUrl

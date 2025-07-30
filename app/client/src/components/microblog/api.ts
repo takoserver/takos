@@ -320,10 +320,15 @@ export const createStory = async (activity: unknown): Promise<boolean> => {
   }
 };
 
-export const viewStory = async (id: string): Promise<boolean> => {
+export const viewStory = async (
+  id: string,
+  username?: string,
+): Promise<boolean> => {
   try {
     const response = await apiFetch(`/api/stories/${id}/view`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: username ? JSON.stringify({ username }) : undefined,
     });
     return response.ok;
   } catch (error) {

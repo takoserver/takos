@@ -192,7 +192,8 @@ export function Microblog() {
   const [currentStoryIndex, setCurrentStoryIndex] = createSignal(0);
 
   const handleViewStory = async (story: Story, index: number) => {
-    await viewStory(story.id);
+    const user = account();
+    await viewStory(story.id, user ? user.userName : undefined);
     setSelectedStory(story);
     setCurrentStoryIndex(index);
     setShowStoryViewer(true);
