@@ -339,6 +339,9 @@ export const createStory = async (
       } as ImageItem);
       data.poster = { type: "Image", url: mediaUrl };
     }
+    const expires = new Date();
+    expires.setHours(expires.getHours() + 24);
+    data.expiresAt = expires.toISOString();
     const response = await apiFetch("/api/stories", {
       method: "POST",
       headers: {

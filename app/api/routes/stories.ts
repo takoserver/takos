@@ -64,6 +64,12 @@ app.post("/stories", async (c) => {
       return c.json({ error: "author と data は必須です" }, 400);
     }
 
+    if (!data.expiresAt) {
+      const expires = new Date();
+      expires.setHours(expires.getHours() + 24);
+      data.expiresAt = expires.toISOString();
+    }
+
     const env = getEnv(c);
     const domain = env["ACTIVITYPUB_DOMAIN"] ?? "";
     const db = createDB(env);
