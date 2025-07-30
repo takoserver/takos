@@ -6,7 +6,7 @@ import { createObjectId } from "../utils/activitypub.ts";
 import { getEnv } from "../../shared/config.ts";
 
 /** ストーリーオブジェクト型定義
- *  items 配列のみを保持する構造
+ *  単一 item を保持する構造
  */
 type Story = {
   _id: { toString(): string };

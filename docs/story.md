@@ -37,7 +37,7 @@
 ストーリー本体（`story:Story`）:
 
 - `aspectRatio`: 例 `"9:16"`（任意）
-- `items`: `story:Item[]`
+- `item`: `story:Item`
 - `expiresAt`: ISO8601（エフェメラル期限。省略可）
 - `poster`: プレビュー用静止画
 - `audioTrack`: （任意）BGM。`{ "href": "...", "start": 秒, "gain": -60〜+6 }`
@@ -136,94 +136,18 @@
     "url": "https://cdn.example/abc123/poster.jpg",
     "mediaType": "image/jpeg"
   },
-  "items": [
-      {
-        "type": "story:ImageItem",
-        "media": {
-          "type": "Link",
-          "href": "https://cdn.example/abc123/photo1.jpg",
-          "mediaType": "image/jpeg"
-        },
-        "bbox": {
-          "x": 0.05,
-          "y": 0.10,
-          "w": 0.6,
-          "h": 0.45,
-          "units": "fraction"
-        },
-        "rotation": -2.5,
-        "zIndex": 1,
-        "alt": "朝焼けの街並み"
-      },
-      {
-        "type": "story:TextItem",
-        "text": "おはよう！",
-        "style": {
-          "fontFamily": "Inter",
-          "fontWeight": 700,
-          "fontSize": 0.06,
-          "align": "left",
-          "color": "#FFFFFF",
-          "stroke": { "color": "#000000", "width": 0.004 }
-        },
-        "bbox": {
-          "x": 0.07,
-          "y": 0.58,
-          "w": 0.5,
-          "h": 0.12,
-          "units": "fraction"
-        },
-        "zIndex": 2,
-        "accessibilityLabel": "おはようという挨拶のテキスト"
-      },
-      {
-        "type": "story:VideoItem",
-        "media": {
-          "type": "Link",
-          "href": "https://cdn.example/abc123/clip.mp4",
-          "mediaType": "video/mp4"
-        },
-        "bbox": {
-          "x": 0.62,
-          "y": 0.15,
-          "w": 0.30,
-          "h": 0.30,
-          "units": "fraction"
-        },
-        "poster": {
-          "type": "Link",
-          "href": "https://cdn.example/abc123/clip.jpg",
-          "mediaType": "image/jpeg"
-        },
-        "autoplay": true,
-        "loop": true,
-        "muted": true,
-        "visibleFrom": 1.0,
-        "visibleUntil": 6.5,
-        "zIndex": 3
-      },
-      {
-        "type": "story:TextItem",
-        "text": "#sunrise @bob",
-        "mentions": [
-          { "type": "Hashtag", "name": "sunrise" },
-          { "type": "Mention", "href": "https://social.example/users/bob" }
-        ],
-        "bbox": {
-          "x": 0.05,
-          "y": 0.92,
-          "w": 0.9,
-          "h": 0.05,
-          "units": "fraction"
-        },
-        "style": { "fontSize": 0.035, "align": "left", "color": "#DDDDDD" },
-        "tapAction": {
-          "type": "link",
-          "href": "https://alice.example/links/more"
-        }
-      }
-    ]
-  ],
+  "item": {
+    "type": "story:ImageItem",
+    "media": {
+      "type": "Link",
+      "href": "https://cdn.example/abc123/photo1.jpg",
+      "mediaType": "image/jpeg"
+    },
+    "bbox": { "x": 0.05, "y": 0.10, "w": 0.6, "h": 0.45, "units": "fraction" },
+    "rotation": -2.5,
+    "zIndex": 1,
+    "alt": "朝焼けの街並み"
+  },
   "attachment": [
     {
       "type": "Note",
@@ -255,7 +179,7 @@
 
 1. 受信時、`story:` 未対応でも `poster` と `attachment`
    を使ってタイムラインで静的プレビュー表示。
-2. 対応クライアントは `items[]` を解釈し、時間経過でストーリーを表示。
+2. 対応クライアントは `item` を解釈し、時間経過でストーリーを表示。
 3. 投稿 UI は `ImageItem / VideoItem / TextItem` の編集（bbox, rotation,
    zIndex）を提供。
 4. サーバはメディアに `mediaType` と `Content-Length`

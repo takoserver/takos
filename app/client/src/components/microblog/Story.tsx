@@ -144,7 +144,7 @@ export function StoryViewer(props: {
   createEffect(() => {
     const max = Math.max(
       5,
-      ...(props.selectedStory?.items.map((it) => (it.visibleUntil ?? 5)) ?? []),
+      props.selectedStory?.item.visibleUntil ?? 5,
     );
     if (time() > max) props.nextStory();
   });
@@ -188,9 +188,7 @@ export function StoryViewer(props: {
         <div class="fixed inset-0 bg-black z-50 flex items-center justify-center">
           <div class="relative w-full max-w-sm h-full">
             <div class="w-full h-full relative bg-black">
-              <For each={props.selectedStory.items}>
-                {(item) => renderItem(item)}
-              </For>
+              {renderItem(props.selectedStory.item)}
             </div>
 
             <button

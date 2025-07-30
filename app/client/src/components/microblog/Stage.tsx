@@ -1,18 +1,15 @@
-import { createSignal, For, onCleanup } from "solid-js";
+import { createSignal, onCleanup, Show } from "solid-js";
 import type { ImageItem, StoryItem, TextItem, VideoItem } from "./types.ts";
 
 export function Stage(props: {
-  items: StoryItem[];
+  item: StoryItem | null;
   width: number;
   height: number;
-  selectedIndex: number | null;
-  onSelect: (i: number) => void;
-  updateItem: (i: number, item: StoryItem) => void;
+  onChange: (item: StoryItem) => void;
 }) {
   let svg!: SVGSVGElement;
   const [drag, setDrag] = createSignal<
     {
-      idx: number;
       mode: "move" | "resize" | "rotate";
       startX: number;
       startY: number;
@@ -33,32 +30,26 @@ export function Stage(props: {
 
   const onMove = (e: PointerEvent) => {
     const d = drag();
-    if (!d) return;
+    if (!d || !props.item) return;
     const p = toPoint(e);
     const dx = p.x - d.startX;
     const dy = p.y - d.startY;
-    const item = props.items[d.idx];
+    const item = props.item;
     if (d.mode === "move") {
       const nx = clamp(d.box.x + dx, 0, 1 - d.box.w);
       const ny = clamp(d.box.y + dy, 0, 1 - d.box.h);
-      props.updateItem(d.idx, {
-        ...item,
-        bbox: { ...item.bbox, x: nx, y: ny },
-      });
+      props.onChange({ ...item, bbox: { ...item.bbox, x: nx, y: ny } });
     } else if (d.mode === "resize") {
       const nw = clamp(d.box.w + dx, 0.05, 1 - d.box.x);
       const nh = clamp(d.box.h + dy, 0.05, 1 - d.box.y);
-      props.updateItem(d.idx, {
-        ...item,
-        bbox: { ...item.bbox, w: nw, h: nh },
-      });
+      props.onChange({ ...item, bbox: { ...item.bbox, w: nw, h: nh } });
     } else if (d.mode === "rotate") {
       const cx = d.box.x + d.box.w / 2;
       const cy = d.box.y + d.box.h / 2;
       const angle = Math.atan2(p.y - cy, p.x - cx);
       const startA = Math.atan2(d.startY - cy, d.startX - cx);
       const rot = (d.rot + (angle - startA) * (180 / Math.PI)) % 360;
-      props.updateItem(d.idx, { ...item, rotation: rot });
+      props.onChange({ ...item, rotation: rot });
     }
   };
 
@@ -68,17 +59,12 @@ export function Stage(props: {
     document.removeEventListener("pointerup", onUp);
   };
 
-  const startDrag = (
-    e: PointerEvent,
-    idx: number,
-    mode: "move" | "resize" | "rotate",
-  ) => {
+  const startDrag = (e: PointerEvent, mode: "move" | "resize" | "rotate") => {
     e.stopPropagation();
-    props.onSelect(idx);
+    if (!props.item) return;
     const p = toPoint(e);
-    const it = props.items[idx];
+    const it = props.item;
     setDrag({
-      idx,
       mode,
       startX: p.x,
       startY: p.y,
@@ -145,58 +131,47 @@ export function Stage(props: {
       width={props.width}
       height={props.height}
       style="background:#000;touch-action:none"
-      onPointerDown={() => props.onSelect(-1)}
+      onPointerDown={(e) => startDrag(e, "move")}
     >
-      <For
-        each={[...props.items].sort((a, b) =>
-          (a.zIndex ?? 0) - (b.zIndex ?? 0)
-        )}
-      >
-        {(item, i) => {
-          const idx = i();
-          const box = item.bbox;
-          const rot = item.rotation ?? 0;
+      <Show when={props.item}>
+        {(item) => {
+          const box = item().bbox;
+          const rot = item().rotation ?? 0;
           const trans = `translate(${box.x} ${box.y}) rotate(${rot} ${
             box.w / 2
           } ${box.h / 2}) scale(${box.w} ${box.h})`;
           return (
-            <g
-              transform={trans}
-              opacity={item.opacity ?? 1}
-              onPointerDown={(e) => startDrag(e, idx, "move")}
-            >
-              {renderItem(item)}
-              {props.selectedIndex === idx && (
-                <g>
-                  <rect
-                    x="0"
-                    y="0"
-                    width="1"
-                    height="1"
-                    fill="none"
-                    stroke="#4ade80"
-                    stroke-width="0.003"
-                  />
-                  <circle
-                    cx="1"
-                    cy="1"
-                    r="0.02"
-                    fill="#4ade80"
-                    onPointerDown={(e) => startDrag(e, idx, "resize")}
-                  />
-                  <circle
-                    cx="0.5"
-                    cy="-0.05"
-                    r="0.02"
-                    fill="#4ade80"
-                    onPointerDown={(e) => startDrag(e, idx, "rotate")}
-                  />
-                </g>
-              )}
+            <g transform={trans} opacity={item().opacity ?? 1}>
+              {renderItem(item())}
+              <g>
+                <rect
+                  x="0"
+                  y="0"
+                  width="1"
+                  height="1"
+                  fill="none"
+                  stroke="#4ade80"
+                  stroke-width="0.003"
+                />
+                <circle
+                  cx="1"
+                  cy="1"
+                  r="0.02"
+                  fill="#4ade80"
+                  onPointerDown={(e) => startDrag(e, "resize")}
+                />
+                <circle
+                  cx="0.5"
+                  cy="-0.05"
+                  r="0.02"
+                  fill="#4ade80"
+                  onPointerDown={(e) => startDrag(e, "rotate")}
+                />
+              </g>
             </g>
           );
         }}
-      </For>
+      </Show>
     </svg>
   );
 }

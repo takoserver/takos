@@ -16,33 +16,30 @@ export function StoryEditor(
 ) {
   const [account] = useAtom(activeAccount);
   const [aspectRatio, _setAspectRatio] = createSignal("9:16");
-  const [items, setItems] = createSignal<StoryItem[]>([]);
-  const [selectedIndex, setSelectedIndex] = createSignal<number | null>(null);
+  const [item, setItem] = createSignal<StoryItem | null>(null);
 
-  const updateItem = (idx: number, item: StoryItem) => {
-    setItems(items().map((it, j) => j === idx ? item : it));
-  };
+  const updateItem = (it: StoryItem) => setItem(it);
 
   const addTextItem = () => {
-    const item: TextItem = {
+    const it: TextItem = {
       type: "story:TextItem",
       text: "テキスト",
       bbox: { x: 0.1, y: 0.1, w: 0.3, h: 0.1, units: "fraction" },
     };
-    setItems([...items(), item]);
+    setItem(it);
   };
 
   const addImageItem = () => {
-    const item: ImageItem = {
+    const it: ImageItem = {
       type: "story:ImageItem",
       media: { type: "Link", href: "" },
       bbox: { x: 0.2, y: 0.2, w: 0.6, h: 0.6, units: "fraction" },
     };
-    setItems([...items(), item]);
+    setItem(it);
   };
 
   const addVideoItem = () => {
-    const item: VideoItem = {
+    const it: VideoItem = {
       type: "story:VideoItem",
       media: { type: "Link", href: "" },
       bbox: { x: 0.2, y: 0.2, w: 0.6, h: 0.6, units: "fraction" },
@@ -50,15 +47,10 @@ export function StoryEditor(
       loop: true,
       muted: true,
     };
-    setItems([...items(), item]);
+    setItem(it);
   };
 
-  const removeSelected = () => {
-    const idx = selectedIndex();
-    if (idx === null) return;
-    setItems(items().filter((_, j) => j !== idx));
-    setSelectedIndex(null);
-  };
+  const removeItem = () => setItem(null);
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
@@ -71,7 +63,7 @@ export function StoryEditor(
       id: "",
       author: user.userName,
       aspectRatio: aspectRatio(),
-      items: items(),
+      item: item()!,
       createdAt: new Date().toISOString(),
       views: 0,
     };
@@ -84,14 +76,10 @@ export function StoryEditor(
     }
   };
 
-  const selectedItem = () => {
-    const idx = selectedIndex();
-    return idx === null ? null : items()[idx];
-  };
+  const selectedItem = () => item();
 
-  const updateSelected = (item: StoryItem) => {
-    const idx = selectedIndex();
-    if (idx !== null) updateItem(idx, item);
+  const updateSelected = (it: StoryItem) => {
+    updateItem(it);
   };
 
   return (
@@ -107,12 +95,10 @@ export function StoryEditor(
           </button>
         </div>
         <Stage
-          items={items()}
+          item={item()}
           width={300}
           height={500}
-          selectedIndex={selectedIndex()}
-          onSelect={setSelectedIndex}
-          updateItem={updateItem}
+          onChange={updateItem}
         />
         <div class="flex space-x-2">
           <button
@@ -138,10 +124,10 @@ export function StoryEditor(
           </button>
           <button
             type="button"
-            onClick={removeSelected}
+            onClick={removeItem}
             class="px-2 py-1 bg-red-600 rounded"
           >
-            選択削除
+            削除
           </button>
         </div>
         <Show when={selectedItem()}>

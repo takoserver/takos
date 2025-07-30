@@ -433,10 +433,8 @@ paths:
                   type: string
                 aspectRatio:
                   type: string
-                items:
-                  type: array
-                  items:
-                    type: object
+                item:
+                  type: object
                 expiresAt:
                   type: string
                 poster:
@@ -445,7 +443,7 @@ paths:
                   type: object
               required:
                 - author
-                - items
+                - item
       responses:
         "201":
           description: 作成されたストーリー

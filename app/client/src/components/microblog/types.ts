@@ -23,7 +23,7 @@ export interface Story {
   id: string;
   author: string;
   aspectRatio?: string;
-  items: StoryItem[];
+  item: StoryItem;
   expiresAt?: string;
   poster?: MediaLink;
   audioTrack?: { href: string; start?: number; gain?: number };
