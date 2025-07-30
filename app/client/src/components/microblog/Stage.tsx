@@ -66,6 +66,7 @@ export function Stage(props: {
   ) => {
     e.stopPropagation();
     e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     if (!props.item) return;
     const p = toPoint(e);
     const it = props.item;
@@ -119,7 +120,7 @@ export function Stage(props: {
   return (
     <div
       ref={container}
-      class="relative"
+      class="relative cursor-move"
       style={`width:${props.width}px;height:${props.height}px;background:#000;touch-action:none`}
       onPointerDown={(e) => startDrag(e, "move")}
     >
@@ -144,6 +145,7 @@ export function Stage(props: {
                 style={`left:${box.x * 100}%;top:${box.y * 100}%;width:${
                   box.w * 100
                 }%;height:${box.h * 100}%;transform:rotate(${rot}deg)`}
+                onPointerDown={(e) => startDrag(e, "move")}
               />
               <button
                 type="button"
@@ -155,14 +157,14 @@ export function Stage(props: {
                 ×
               </button>
               <div
-                class="absolute w-4 h-4 bg-white border border-black rounded-full"
+                class="absolute w-4 h-4 bg-white border border-black rounded-full cursor-nwse-resize"
                 style={`left:${(box.x + box.w) * 100 - 2}%;top:${
                   (box.y + box.h) * 100 - 2
                 }%`}
                 onPointerDown={(e) => startDrag(e, "resize")}
               />
               <div
-                class="absolute w-4 h-4 bg-white border border-black rounded-full"
+                class="absolute w-4 h-4 bg-white border border-black rounded-full cursor-crosshair"
                 style={`left:${box.x * 100 + box.w * 50 - 2}%;top:${
                   box.y * 100 - 4
                 }%`}
