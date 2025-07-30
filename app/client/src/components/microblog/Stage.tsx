@@ -127,14 +127,15 @@ export function Stage(props: {
         {(item) => {
           const box = item().bbox;
           const rot = item().rotation ?? 0;
-          const style = `left:${box.x * 100}%;top:${box.y * 100}%;width:${
-            box.w * 100
-          }%;height:${box.h * 100}%;transform:rotate(${rot}deg);opacity:${
+          const trans = `translate(${box.x * 100}%, ${
+            box.y * 100
+          }%) rotate(${rot}deg) scale(${box.w}, ${box.h})`;
+          const boxStyle = `transform:${trans};transform-origin:0 0;opacity:${
             item().opacity ?? 1
           }`;
           return (
             <>
-              <div class="absolute overflow-hidden" style={style}>
+              <div class="absolute overflow-hidden" style={boxStyle}>
                 {renderItem(item())}
               </div>
               <div
