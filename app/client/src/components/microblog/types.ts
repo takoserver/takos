@@ -19,18 +19,16 @@ export interface MicroblogPost {
   domain?: string;
 }
 
+import type { StoryData } from "../../../shared/story.ts";
+
 export interface Story {
   id: string;
   author: string;
-  content: string;
-  mediaUrl?: string;
-  mediaType?: "image" | "video";
+  /** Story データ本体 */
+  data: StoryData;
   createdAt: string;
-  expiresAt: string;
   views: number;
   isViewed?: boolean;
-  backgroundColor?: string;
-  textColor?: string;
 }
 
 export interface Note {

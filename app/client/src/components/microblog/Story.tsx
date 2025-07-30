@@ -1,5 +1,6 @@
 import { createSignal, For } from "solid-js";
 import type { Story } from "./types.ts";
+import type { ImageItem } from "../../../shared/story.ts";
 import { createStory } from "./api.ts";
 import { UserAvatar } from "./UserAvatar.tsx";
 import { getDomain } from "../../utils/config.ts";
@@ -42,7 +43,6 @@ export function StoryTray(props: {
     const success = await createStory(
       content,
       storyMediaUrl() || undefined,
-      undefined,
       storyBackgroundColor(),
       storyTextColor(),
     );
@@ -101,34 +101,40 @@ export function StoryTray(props: {
                   }`}
                 >
                   <div class="w-full h-full bg-black rounded-full flex items-center justify-center overflow-hidden">
-                    {story.mediaUrl
-                      ? (
-                        <img
-                          src={story.mediaUrl}
-                          alt=""
-                          class="w-full h-full object-cover rounded-full"
-                        />
-                      )
-                      : (
-                        <div class="w-full h-full rounded-full overflow-hidden">
-                          <a
-                            href={`#/user/${
-                              encodeURIComponent(
-                                story.author.includes("@")
-                                  ? story.author
-                                  : `${story.author}@${getDomain()}`,
-                              )
-                            }`}
-                            class="block"
-                          >
-                            <UserAvatar
-                              username={story.author}
-                              size="w-full h-full"
-                              className="border-0"
-                            />
-                          </a>
-                        </div>
-                      )}
+                    {(() => {
+                      const img = story.data.pages[0]?.items.find((i) =>
+                        i.type === "story:ImageItem"
+                      ) as ImageItem | undefined;
+                      const url = story.data.poster?.url || img?.media?.href;
+                      return url
+                        ? (
+                          <img
+                            src={url}
+                            alt=""
+                            class="w-full h-full object-cover rounded-full"
+                          />
+                        )
+                        : (
+                          <div class="w-full h-full rounded-full overflow-hidden">
+                            <a
+                              href={`#/user/${
+                                encodeURIComponent(
+                                  story.author.includes("@")
+                                    ? story.author
+                                    : `${story.author}@${getDomain()}`,
+                                )
+                              }`}
+                              class="block"
+                            >
+                              <UserAvatar
+                                username={story.author}
+                                size="w-full h-full"
+                                className="border-0"
+                              />
+                            </a>
+                          </div>
+                        );
+                    })()}
                   </div>
                 </div>
                 <a
@@ -321,20 +327,30 @@ export function StoryViewer(props: {
 
             {/* ストーリーコンテンツ */}
             <div class="w-full h-full relative">
-              {props.selectedStory!.mediaUrl && (
-                <img
-                  src={props.selectedStory!.mediaUrl}
-                  alt=""
-                  class="w-full h-full object-cover"
-                />
-              )}
+              {(() => {
+                const img = props.selectedStory!.data.pages[0]?.items.find((
+                  i,
+                ) => i.type === "story:ImageItem") as ImageItem | undefined;
+                const url = props.selectedStory!.data.poster?.url ||
+                  img?.media?.href;
+                return url
+                  ? (
+                    <img
+                      src={url}
+                      alt=""
+                      class="w-full h-full object-cover"
+                    />
+                  )
+                  : null;
+              })()}
               <div
                 class="absolute inset-0 flex flex-col justify-end p-6"
-                style={!props.selectedStory!.mediaUrl
-                  ? `background-color: ${
-                    props.selectedStory!.backgroundColor
-                  };` +
-                    `color: ${props.selectedStory!.textColor};`
+                style={!props.selectedStory!.data.poster?.url && !(
+                    props.selectedStory!.data.pages[0]?.items.find((i) =>
+                      i.type === "story:ImageItem"
+                    )
+                  )
+                  ? "background-color: #000; color: #fff;"
                   : "background: linear-gradient(transparent, rgba(0,0,0,0.7))"}
               >
                 <div class="text-white">
@@ -347,7 +363,13 @@ export function StoryViewer(props: {
                     </span>
                   </div>
                   <div class="text-lg leading-relaxed">
-                    {props.selectedStory!.content}
+                    {(() => {
+                      const txt = props.selectedStory!.data.pages[0]?.items
+                        .find((i) => i.type === "story:TextItem") as {
+                          text: string;
+                        } | undefined;
+                      return txt?.text;
+                    })()}
                   </div>
                 </div>
               </div>
