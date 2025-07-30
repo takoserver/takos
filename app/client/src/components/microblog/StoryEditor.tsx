@@ -95,7 +95,7 @@ export function StoryEditor(
           </button>
         </div>
         <Stage
-          item={item()}
+          item={item}
           width={300}
           height={500}
           onChange={updateItem}

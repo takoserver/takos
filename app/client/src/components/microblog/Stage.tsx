@@ -1,8 +1,8 @@
-import { createSignal, onCleanup, Show } from "solid-js";
+import { type Accessor, createSignal, onCleanup, Show } from "solid-js";
 import type { ImageItem, StoryItem, TextItem, VideoItem } from "./types.ts";
 
 export function Stage(props: {
-  item: StoryItem | null;
+  item: Accessor<StoryItem | null>;
   width: number;
   height: number;
   onChange: (item: StoryItem) => void;
@@ -33,11 +33,12 @@ export function Stage(props: {
 
   const onMove = (e: PointerEvent) => {
     const d = drag();
-    if (!d || !props.item) return;
+    const current = props.item();
+    if (!d || !current) return;
     const p = toPoint(e);
     const dx = p.x - d.startX;
     const dy = p.y - d.startY;
-    const item = props.item;
+    const item = current;
     if (d.mode === "move") {
       const nx = clamp(d.box.x + dx, 0, 1 - d.box.w);
       const ny = clamp(d.box.y + dy, 0, 1 - d.box.h);
@@ -74,9 +75,9 @@ export function Stage(props: {
     e.preventDefault();
     const tgt = e.currentTarget as HTMLElement;
     tgt.setPointerCapture?.(e.pointerId);
-    if (!props.item) return;
+    const it = props.item();
+    if (!it) return;
     const p = toPoint(e);
-    const it = props.item;
     setDrag({
       mode,
       startX: p.x,
@@ -133,7 +134,7 @@ export function Stage(props: {
       style={`width:${props.width}px;height:${props.height}px;background:#000;touch-action:none`}
       onPointerDown={(e) => startDrag(e, "move")}
     >
-      <Show when={props.item}>
+      <Show when={props.item()}>
         {(item) => {
           const box = item().bbox;
           const rot = item().rotation ?? 0;
