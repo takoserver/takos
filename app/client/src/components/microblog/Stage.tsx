@@ -65,6 +65,7 @@ export function Stage(props: {
     mode: "move" | "resize" | "rotate",
   ) => {
     e.stopPropagation();
+    e.preventDefault();
     if (!props.item) return;
     const p = toPoint(e);
     const it = props.item;
@@ -108,7 +109,7 @@ export function Stage(props: {
           (style?.fontSize ?? 0.06) * 100
         }vmin;display:flex;align-items:center;justify-content:center;text-align:${
           style?.align || "center"
-        }`}
+        };overflow:hidden;word-break:break-word;`}
       >
         {t.text}
       </div>
@@ -133,7 +134,9 @@ export function Stage(props: {
           }`;
           return (
             <>
-              <div class="absolute" style={style}>{renderItem(item())}</div>
+              <div class="absolute overflow-hidden" style={style}>
+                {renderItem(item())}
+              </div>
               <div
                 class="absolute border border-white/50 border-dashed box-border"
                 style={`left:${box.x * 100}%;top:${box.y * 100}%;width:${
