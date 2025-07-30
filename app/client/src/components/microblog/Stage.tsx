@@ -128,29 +128,41 @@ export function Stage(props: {
         {(item) => {
           const box = item().bbox;
           const rot = item().rotation ?? 0;
-          const boxStyle = `left:${box.x * 100}%;top:${box.y * 100}%;width:${
-            box.w * 100
-          }%;height:${
-            box.h * 100
-          }%;transform:rotate(${rot}deg);transform-origin:center;opacity:${
-            item().opacity ?? 1
-          }`;
+          const boxStyle = {
+            left: `${box.x * 100}%`,
+            top: `${box.y * 100}%`,
+            width: `${box.w * 100}%`,
+            height: `${box.h * 100}%`,
+            transform: `rotate(${rot}deg)`,
+            "transform-origin": "center",
+            opacity: item().opacity ?? 1,
+          } as const;
           return (
             <>
-              <div class="absolute overflow-hidden" style={boxStyle}>
+              <div
+                class="absolute overflow-hidden pointer-events-none"
+                style={boxStyle}
+              >
                 {renderItem(item())}
               </div>
               <div
                 class="absolute border border-white/50 border-dashed box-border"
-                style={`left:${box.x * 100}%;top:${box.y * 100}%;width:${
-                  box.w * 100
-                }%;height:${box.h * 100}%;transform:rotate(${rot}deg)`}
+                style={{
+                  left: `${box.x * 100}%`,
+                  top: `${box.y * 100}%`,
+                  width: `${box.w * 100}%`,
+                  height: `${box.h * 100}%`,
+                  transform: `rotate(${rot}deg)`,
+                }}
                 onPointerDown={(e) => startDrag(e, "move")}
               />
               <button
                 type="button"
                 class="absolute w-5 h-5 text-white bg-black/50 flex items-center justify-center rounded-full"
-                style={`left:${box.x * 100 - 2.5}%;top:${box.y * 100 - 2.5}%`}
+                style={{
+                  left: `${box.x * 100 - 2.5}%`,
+                  top: `${box.y * 100 - 2.5}%`,
+                }}
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => props.onRemove?.()}
               >
@@ -158,16 +170,18 @@ export function Stage(props: {
               </button>
               <div
                 class="absolute w-4 h-4 bg-white border border-black rounded-full cursor-nwse-resize"
-                style={`left:${(box.x + box.w) * 100 - 2}%;top:${
-                  (box.y + box.h) * 100 - 2
-                }%`}
+                style={{
+                  left: `${(box.x + box.w) * 100 - 2}%`,
+                  top: `${(box.y + box.h) * 100 - 2}%`,
+                }}
                 onPointerDown={(e) => startDrag(e, "resize")}
               />
               <div
                 class="absolute w-4 h-4 bg-white border border-black rounded-full cursor-crosshair"
-                style={`left:${box.x * 100 + box.w * 50 - 2}%;top:${
-                  box.y * 100 - 4
-                }%`}
+                style={{
+                  left: `${box.x * 100 + box.w * 50 - 2}%`,
+                  top: `${box.y * 100 - 4}%`,
+                }}
                 onPointerDown={(e) => startDrag(e, "rotate")}
               />
             </>
