@@ -17,19 +17,15 @@ export function StoryEditor(
   const [account] = useAtom(activeAccount);
   const [aspectRatio, setAspectRatio] = createSignal("9:16");
   const [pages, setPages] = createSignal<StoryPage[]>([
-    { type: "story:Page", duration: 5, items: [] },
+    { type: "story:Page", items: [] },
   ]);
 
   const addPage = () => {
-    setPages([...pages(), { type: "story:Page", duration: 5, items: [] }]);
+    setPages([...pages(), { type: "story:Page", items: [] }]);
   };
 
   const removePage = (index: number) => {
     setPages(pages().filter((_, i) => i !== index));
-  };
-
-  const updatePageDuration = (index: number, duration: number) => {
-    setPages(pages().map((p, i) => i === index ? { ...p, duration } : p));
   };
 
   const addTextItem = (pageIndex: number) => {
@@ -217,20 +213,6 @@ export function StoryEditor(
                   削除
                 </button>
               </div>
-              <label class="block text-sm">
-                duration
-                <input
-                  type="number"
-                  step="0.1"
-                  value={page.duration ?? 5}
-                  onInput={(e) =>
-                    updatePageDuration(
-                      pageIdx(),
-                      Number(e.currentTarget.value),
-                    )}
-                  class="w-full bg-gray-800 p-1 rounded"
-                />
-              </label>
               <For each={page.items}>
                 {(item, idx) => (
                   <div>{renderItemInputs(item, pageIdx(), idx())}</div>

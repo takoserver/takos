@@ -40,7 +40,6 @@ export interface MediaLink {
 
 export interface StoryPage {
   type: "story:Page";
-  duration?: number;
   background?: Record<string, unknown>;
   safeArea?: { top: number; bottom: number; left: number; right: number };
   items: StoryItem[];
