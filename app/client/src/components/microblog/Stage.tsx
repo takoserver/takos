@@ -16,6 +16,8 @@ export function Stage(props: {
       startY: number;
       box: { x: number; y: number; w: number; h: number };
       rot: number;
+      id: number;
+      target: HTMLElement | null;
     } | null
   >(null);
 
@@ -55,6 +57,10 @@ export function Stage(props: {
   };
 
   const onUp = () => {
+    const d = drag();
+    if (d?.target) {
+      d.target.releasePointerCapture?.(d.id);
+    }
     setDrag(null);
     document.removeEventListener("pointermove", onMove);
     document.removeEventListener("pointerup", onUp);
@@ -66,7 +72,8 @@ export function Stage(props: {
   ) => {
     e.stopPropagation();
     e.preventDefault();
-    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    const tgt = e.currentTarget as HTMLElement;
+    tgt.setPointerCapture?.(e.pointerId);
     if (!props.item) return;
     const p = toPoint(e);
     const it = props.item;
@@ -76,6 +83,8 @@ export function Stage(props: {
       startY: p.y,
       box: { ...it.bbox },
       rot: it.rotation ?? 0,
+      id: e.pointerId,
+      target: tgt,
     });
     document.addEventListener("pointermove", onMove);
     document.addEventListener("pointerup", onUp);
