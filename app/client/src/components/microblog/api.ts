@@ -296,27 +296,15 @@ export const fetchStories = async (): Promise<Story[]> => {
   }
 };
 
-export const createStory = async (
-  content: string,
-  mediaUrl?: string,
-  mediaType?: "image" | "video",
-  backgroundColor?: string,
-  textColor?: string,
-): Promise<boolean> => {
+export const createStory = async (story: Story): Promise<boolean> => {
   try {
+    const { id: _id, ...payload } = story as unknown as Record<string, unknown>;
     const response = await apiFetch("/api/stories", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        author: "user",
-        content,
-        mediaUrl,
-        mediaType,
-        backgroundColor,
-        textColor,
-      }),
+      body: JSON.stringify(payload),
     });
     return response.ok;
   } catch (error) {
