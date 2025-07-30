@@ -95,10 +95,11 @@ export function StoryEditor(
           </button>
         </div>
         <Stage
-          item={item()}
+          item={item}
           width={300}
           height={500}
           onChange={updateItem}
+          onRemove={removeItem}
         />
         <div class="flex space-x-2">
           <button
