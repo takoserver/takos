@@ -525,23 +525,23 @@ export class MongoDBHost implements DB {
     let res = await HostNote.findOneAndDelete({
       _id: id,
       tenant_id: this.tenantId,
-    });
-    if (res) return true;
+    }).lean();
+    if (res) return res;
     res = await HostVideo.findOneAndDelete({
       _id: id,
       tenant_id: this.tenantId,
-    });
-    if (res) return true;
+    }).lean();
+    if (res) return res;
     res = await HostMessage.findOneAndDelete({
       _id: id,
       tenant_id: this.tenantId,
-    });
-    if (res) return true;
+    }).lean();
+    if (res) return res;
     res = await HostStory.findOneAndDelete({
       _id: id,
       tenant_id: this.tenantId,
-    });
-    return !!res;
+    }).lean();
+    return res ?? null;
   }
 
   async deleteManyObjects(filter: Record<string, unknown>) {

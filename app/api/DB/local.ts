@@ -428,14 +428,14 @@ export class MongoDBLocal implements DB {
   }
 
   async deleteObject(id: string) {
-    let res = await Note.findOneAndDelete({ _id: id });
-    if (res) return true;
-    res = await Video.findOneAndDelete({ _id: id });
-    if (res) return true;
-    res = await Message.findOneAndDelete({ _id: id });
-    if (res) return true;
-    res = await Story.findOneAndDelete({ _id: id });
-    return !!res;
+    let res = await Note.findOneAndDelete({ _id: id }).lean();
+    if (res) return res;
+    res = await Video.findOneAndDelete({ _id: id }).lean();
+    if (res) return res;
+    res = await Message.findOneAndDelete({ _id: id }).lean();
+    if (res) return res;
+    res = await Story.findOneAndDelete({ _id: id }).lean();
+    return res ?? null;
   }
 
   async deleteManyObjects(filter: Record<string, unknown>) {

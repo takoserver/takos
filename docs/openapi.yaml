@@ -420,6 +420,12 @@ paths:
       responses:
         "200":
           description: ストーリーの配列
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Story"
     post:
       summary: ストーリー作成
       requestBody:
@@ -456,6 +462,10 @@ paths:
       responses:
         "201":
           description: 作成されたストーリー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Story"
   /api/stories/{id}/view:
     post:
       summary: ストーリー閲覧
@@ -479,13 +489,28 @@ paths:
             type: string
       responses:
         "200":
-          description: 成功
+          description: 削除されたストーリー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Story"
   /api/stories/cleanup:
     delete:
       summary: 期限切れストーリー削除
       responses:
         "200":
-          description: 削除件数を含むメッセージ
+          description: 削除されたストーリー一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deletedCount:
+                    type: integer
+                  deleted:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Story"
   /api/search:
     get:
       summary: 検索
@@ -834,3 +859,43 @@ paths:
       responses:
         "200":
           description: Mastodon 互換のインスタンス情報
+
+components:
+  schemas:
+    Story:
+      type: object
+      properties:
+        id:
+          type: string
+        author:
+          type: string
+        content:
+          type: string
+        mediaUrl:
+          type: string
+        mediaType:
+          type: string
+        backgroundColor:
+          type: string
+        textColor:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        views:
+          type: integer
+        x:overlays:
+          type: array
+          items:
+            type: object
+        x:rev:
+          type: integer
+      required:
+        - id
+        - author
+        - content
+        - createdAt
+        - endTime

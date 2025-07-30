@@ -89,7 +89,7 @@ export interface DB {
     id: string,
     update: Record<string, unknown>,
   ): Promise<unknown | null>;
-  deleteObject(id: string): Promise<boolean>;
+  deleteObject(id: string): Promise<unknown | null>;
   deleteManyObjects(
     filter: Record<string, unknown>,
   ): Promise<{ deletedCount?: number }>;

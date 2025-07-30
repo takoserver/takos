@@ -230,13 +230,24 @@ app.delete("/stories/:id", async (c) => {
     const env = getEnv(c);
     const db = createDB(env);
     const id = c.req.param("id");
-    const story = await db.deleteObject(id);
+    const story = await db.deleteObject(id) as Story | null;
 
     if (!story) {
       return c.json({ error: "Story not found" }, 404);
     }
 
-    return c.json({ message: "Story deleted successfully" });
+    return c.json({
+      id: String((story as Story)._id),
+      author: story.attributedTo,
+      content: story.content,
+      mediaUrl: (story as Story).extra.mediaUrl,
+      mediaType: (story as Story).extra.mediaType,
+      backgroundColor: (story as Story).extra.backgroundColor,
+      textColor: (story as Story).extra.textColor,
+      createdAt: story.published,
+      endTime: story.endTime,
+      views: (story as Story).extra.views,
+    });
   } catch (error) {
     console.error("Error deleting story:", error);
     return c.json({ error: "Failed to delete story" }, 500);
@@ -254,6 +265,7 @@ app.delete("/stories/cleanup", async (c) => {
       type: "Story",
       endTime: { $lt: now },
     });
+    const deletedStories: Story[] = [];
     for (const s of expired) {
       const st = s as Story;
       const delAct = createDeleteActivity(
@@ -299,13 +311,23 @@ app.delete("/stories/cleanup", async (c) => {
         }
       }
       await db.deleteObject(String(st._id));
+      deletedStories.push(st);
     }
 
-    const result = { deletedCount: expired.length };
-
     return c.json({
-      message: "Cleanup completed",
-      deletedCount: result.deletedCount,
+      deletedCount: deletedStories.length,
+      deleted: deletedStories.map((story) => ({
+        id: String(story._id),
+        author: story.attributedTo,
+        content: story.content,
+        mediaUrl: story.extra.mediaUrl,
+        mediaType: story.extra.mediaType,
+        backgroundColor: story.extra.backgroundColor,
+        textColor: story.extra.textColor,
+        createdAt: story.published,
+        endTime: story.endTime,
+        views: story.extra.views,
+      })),
     });
   } catch (error) {
     console.error("Error cleaning up expired stories:", error);
