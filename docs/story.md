@@ -5,10 +5,8 @@
   固定ではなく、実装側でホスト可能。
 - 新規タイプ:
 
-  - `story:Story` … エフェメラル or 常設のストーリー全体（＝シーケンス /
-    ページ束）
-  - `story:Page` … 1 つの表示ページ（タップで次へ等）
-  - `story:Item` … ページ内に自由配置される要素の基底クラス
+  - `story:Story` … エフェメラルまたは常設のストーリー全体
+  - `story:Item` … ストーリー内に自由配置される要素の基底クラス
 
     - `story:ImageItem`
     - `story:VideoItem`
@@ -30,23 +28,16 @@
 - `opacity`: 0–1
 - `transform`: 省略可。必要なら CSS 互換の 2D/3D 行列文字列
 - `anchor`: `"center"|"topLeft"|...`（配置基準点）
-- `visibleFrom` / `visibleUntil`: ページ内での相対表示時間（秒）
+- `visibleFrom` / `visibleUntil`: アイテムの表示時間（秒）
 - `tapAction`:
   `{ "type": "link|reply|none", "href": "...", "target": "_blank|_self" }`
 - `contentWarning`: 文字列（CW がある場合はタップで展開）
 - `accessibilityLabel`: 代替説明（スクリーンリーダ用）
 
-- ページ（`story:Page`）:
-
-* `background`: `{ "type": "color|gradient|image|video", ... }`
-- `safeArea`: `{ "top":0–1, "bottom":0–1, "left":0–1, "right":0–1 }`（UI
-  で隠れやすい領域）
-- `items`: `story:Item[]`
-
 ストーリー本体（`story:Story`）:
 
 - `aspectRatio`: 例 `"9:16"`（任意）
-- `pages`: `story:Page[]`
+- `items`: `story:Item[]`
 - `expiresAt`: ISO8601（エフェメラル期限。省略可）
 - `poster`: プレビュー用静止画
 - `audioTrack`: （任意）BGM。`{ "href": "...", "start": 秒, "gain": -60〜+6 }`
@@ -110,7 +101,7 @@
     を付与）。
   - 未対応サーバはそれをタイムライン表示できる。対応サーバは `story:`
     語彙を解釈しリッチ表示。
-- プレビュー: `poster` と最初のページのサマリテキストを `summary` に複製。
+- プレビュー: `poster` と先頭アイテムのサマリテキストを `summary` に複製。
 
 ---
 
@@ -145,11 +136,7 @@
     "url": "https://cdn.example/abc123/poster.jpg",
     "mediaType": "image/jpeg"
   },
-  "pages": [{
-    "type": "story:Page",
-    "background": { "type": "color", "value": "#101018" },
-    "safeArea": { "top": 0.08, "bottom": 0.08, "left": 0.04, "right": 0.04 },
-    "items": [
+  "items": [
       {
         "type": "story:ImageItem",
         "media": {
@@ -236,7 +223,7 @@
         }
       }
     ]
-  }],
+  ],
   "attachment": [
     {
       "type": "Note",
@@ -258,8 +245,7 @@
 - **期限と削除**: `expiresAt` 経過 → 受信側は非表示。送信側は `as:Delete`
   を送ることが望ましい。
 - **返信 / リアクション**:
-  `as:Create{object:Note, inReplyTo: <story or page>}`、`EmojiReaction`
-  拡張など。
+  `as:Create{object:Note, inReplyTo: <story>}`、`EmojiReaction` 拡張など。
 - **ハイライト**（常設）: `story:Highlight`（任意）を `Collection`
   として定義し、`story:Story` を収蔵。
 
@@ -269,8 +255,7 @@
 
 1. 受信時、`story:` 未対応でも `poster` と `attachment`
    を使ってタイムラインで静的プレビュー表示。
-2. 対応クライアントは `pages[].items[]`
-   を解釈し、タップでページ進行・リンク遷移。
+2. 対応クライアントは `items[]` を解釈し、時間経過でストーリーを表示。
 3. 投稿 UI は `ImageItem / VideoItem / TextItem` の編集（bbox, rotation,
    zIndex）を提供。
 4. サーバはメディアに `mediaType` と `Content-Length`
