@@ -99,6 +99,7 @@ export function StoryEditor(
           width={300}
           height={500}
           onChange={updateItem}
+          onRemove={removeItem}
         />
         <div class="flex space-x-2">
           <button
