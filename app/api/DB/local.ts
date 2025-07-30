@@ -99,8 +99,8 @@ export class MongoDBLocal implements DB {
         _id: data._id,
         attributedTo: String(data.attributedTo),
         actor_id: String(data.actor_id),
-        content: String(data.content ?? ""),
-        extra: data.extra ?? {},
+        story: data.story ?? {},
+        views: Number(data.views ?? 0),
         published: data.published ?? new Date(),
         aud: data.aud ?? { to: [], cc: [] },
       });

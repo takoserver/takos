@@ -4,21 +4,15 @@ import { createDB } from "../DB/mod.ts";
 import authRequired from "../utils/auth.ts";
 import { createObjectId } from "../utils/activitypub.ts";
 import { getEnv } from "../../shared/config.ts";
+import type { StoryData } from "../../shared/story.ts";
 
 /** ストーリーオブジェクト型定義 */
 type Story = {
   _id: { toString(): string };
   attributedTo: string;
-  content: string;
   published: string | Date;
-  extra: {
-    mediaUrl?: string;
-    mediaType?: string;
-    backgroundColor?: string;
-    textColor?: string;
-    expiresAt?: string | Date;
-    views?: number;
-  };
+  story: StoryData;
+  views?: number;
 };
 
 const app = new Hono();
@@ -40,7 +34,7 @@ app.get("/stories", async (c) => {
     const db = createDB(env);
     const stories = await db.findObjects({
       type: "Story",
-      "extra.expiresAt": { $gt: new Date() },
+      "story.expiresAt": { $gt: new Date() },
     }, { published: -1 });
 
     const formatted = stories.map((s) => {
@@ -48,14 +42,9 @@ app.get("/stories", async (c) => {
       return {
         id: String(story._id),
         author: story.attributedTo,
-        content: story.content,
-        mediaUrl: story.extra.mediaUrl,
-        mediaType: story.extra.mediaType,
-        backgroundColor: story.extra.backgroundColor,
-        textColor: story.extra.textColor,
+        data: story.story,
         createdAt: story.published,
-        expiresAt: story.extra.expiresAt,
-        views: story.extra.views,
+        views: story.views ?? 0,
       };
     });
     return c.json(formatted);
@@ -69,50 +58,31 @@ app.get("/stories", async (c) => {
 app.post("/stories", async (c) => {
   try {
     const body = await c.req.json();
-    const { author, content, mediaUrl, mediaType, backgroundColor, textColor } =
-      body;
+    const { author, data } = body as { author?: string; data?: StoryData };
 
-    if (!author || !content) {
-      return c.json({ error: "Author and content are required" }, 400);
+    if (!author || !data) {
+      return c.json({ error: "author と data は必須です" }, 400);
     }
-
-    // 24時間後に期限切れ
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24);
 
     const env = getEnv(c);
     const domain = env["ACTIVITYPUB_DOMAIN"] ?? "";
     const db = createDB(env);
-    const story = await db.saveObject(
-      {
-        _id: createObjectId(domain),
-        type: "Story",
-        attributedTo: author,
-        content,
-        published: new Date(),
-        extra: {
-          mediaUrl,
-          mediaType,
-          backgroundColor: backgroundColor || "#1DA1F2",
-          textColor: textColor || "#FFFFFF",
-          expiresAt,
-          views: 0,
-        },
-        actor_id: `https://${domain}/users/${author}`,
-        aud: { to: ["https://www.w3.org/ns/activitystreams#Public"], cc: [] },
-      },
-    ) as Story;
+    const story = await db.saveObject({
+      _id: createObjectId(domain),
+      type: "Story",
+      attributedTo: author,
+      published: new Date(),
+      story: data,
+      views: 0,
+      actor_id: `https://${domain}/users/${author}`,
+      aud: { to: ["https://www.w3.org/ns/activitystreams#Public"], cc: [] },
+    }) as Story;
     return c.json({
       id: String(story._id),
       author: story.attributedTo,
-      content: story.content,
-      mediaUrl: story.extra.mediaUrl,
-      mediaType: story.extra.mediaType,
-      backgroundColor: story.extra.backgroundColor,
-      textColor: story.extra.textColor,
+      data: story.story,
       createdAt: story.published,
-      expiresAt: story.extra.expiresAt,
-      views: story.extra.views,
+      views: story.views ?? 0,
     }, 201);
   } catch (error) {
     console.error("Error creating story:", error);
@@ -126,7 +96,7 @@ app.post("/stories/:id/view", async (c) => {
     const env = getEnv(c);
     const db = createDB(env);
     const id = c.req.param("id");
-    const story = await db.updateObject(id, { $inc: { "extra.views": 1 } }) as
+    const story = await db.updateObject(id, { $inc: { views: 1 } }) as
       | Story
       | null;
 
@@ -137,14 +107,9 @@ app.post("/stories/:id/view", async (c) => {
     return c.json({
       id: String(story._id),
       author: story.attributedTo,
-      content: story.content,
-      mediaUrl: story.extra.mediaUrl,
-      mediaType: story.extra.mediaType,
-      backgroundColor: story.extra.backgroundColor,
-      textColor: story.extra.textColor,
+      data: story.story,
       createdAt: story.published,
-      expiresAt: story.extra.expiresAt,
-      views: story.extra.views,
+      views: story.views ?? 0,
     });
   } catch (error) {
     console.error("Error viewing story:", error);
@@ -178,7 +143,7 @@ app.delete("/stories/cleanup", async (c) => {
     const db = createDB(env);
     const result = await db.deleteManyObjects({
       type: "Story",
-      "extra.expiresAt": { $lt: new Date() },
+      "story.expiresAt": { $lt: new Date() },
     });
 
     return c.json({

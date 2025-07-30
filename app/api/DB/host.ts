@@ -417,8 +417,7 @@ export class MongoDBHost implements DB {
   async saveStory(
     domain: string,
     author: string,
-    content: string,
-    extra: Record<string, unknown>,
+    story: Record<string, unknown>,
     aud: { to: string[]; cc: string[] },
   ) {
     const id = createObjectId(domain);
@@ -427,8 +426,8 @@ export class MongoDBHost implements DB {
       _id: id,
       attributedTo: author,
       actor_id: actor,
-      content,
-      extra,
+      story,
+      views: 0,
       tenant_id: this.tenantId,
       published: new Date(),
       aud,

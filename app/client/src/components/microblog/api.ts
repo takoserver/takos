@@ -1,4 +1,5 @@
 import type { ActivityPubObject, MicroblogPost, Story } from "./types.ts";
+import type { ImageItem, StoryData } from "../../../shared/story.ts";
 import { apiFetch, getDomain } from "../../utils/config.ts";
 import { loadCacheEntry, saveCacheEntry } from "../e2ee/storage.ts";
 
@@ -289,7 +290,16 @@ export const fetchStories = async (): Promise<Story[]> => {
     if (!response.ok) {
       throw new Error("Failed to fetch stories");
     }
-    return await response.json();
+    const data = await response.json();
+    return Array.isArray(data)
+      ? data.map((d) => ({
+        id: d.id,
+        author: d.author,
+        data: d.data as StoryData,
+        createdAt: d.createdAt,
+        views: d.views ?? 0,
+      }))
+      : [];
   } catch (error) {
     console.error("Error fetching stories:", error);
     return [];
@@ -299,11 +309,36 @@ export const fetchStories = async (): Promise<Story[]> => {
 export const createStory = async (
   content: string,
   mediaUrl?: string,
-  mediaType?: "image" | "video",
   backgroundColor?: string,
   textColor?: string,
 ): Promise<boolean> => {
   try {
+    const data: StoryData = {
+      aspectRatio: "9:16",
+      pages: [
+        {
+          type: "story:Page",
+          duration: 5,
+          background: { type: "color", value: backgroundColor ?? "#1DA1F2" },
+          items: [
+            {
+              type: "story:TextItem",
+              text: content,
+              style: { color: textColor ?? "#FFFFFF" },
+              bbox: { x: 0.1, y: 0.4, w: 0.8, h: 0.2, units: "fraction" },
+            },
+          ],
+        },
+      ],
+    };
+    if (mediaUrl) {
+      data.pages[0].items.unshift({
+        type: "story:ImageItem",
+        media: { type: "Link", href: mediaUrl },
+        bbox: { x: 0, y: 0, w: 1, h: 1, units: "fraction" },
+      } as ImageItem);
+      data.poster = { type: "Image", url: mediaUrl };
+    }
     const response = await apiFetch("/api/stories", {
       method: "POST",
       headers: {
@@ -311,11 +346,7 @@ export const createStory = async (
       },
       body: JSON.stringify({
         author: "user",
-        content,
-        mediaUrl,
-        mediaType,
-        backgroundColor,
-        textColor,
+        data,
       }),
     });
     return response.ok;
