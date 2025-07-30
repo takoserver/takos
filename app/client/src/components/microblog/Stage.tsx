@@ -1,6 +1,16 @@
 import { type Accessor, createSignal, onCleanup, Show } from "solid-js";
 import type { ImageItem, StoryItem, TextItem, VideoItem } from "./types.ts";
 
+interface DragInfo {
+  mode: "move" | "resize" | "rotate";
+  startX: number;
+  startY: number;
+  box: { x: number; y: number; w: number; h: number };
+  rot: number;
+  pointerId: number;
+  target: HTMLElement;
+}
+
 export function Stage(props: {
   item: Accessor<StoryItem | null>;
   width: number;
@@ -9,89 +19,74 @@ export function Stage(props: {
   onRemove?: () => void;
 }) {
   let container!: HTMLDivElement;
-  const [drag, setDrag] = createSignal<
-    {
-      mode: "move" | "resize" | "rotate";
-      startX: number;
-      startY: number;
-      box: { x: number; y: number; w: number; h: number };
-      rot: number;
-      id: number;
-      target: HTMLElement | null;
-    } | null
-  >(null);
+  const [drag, setDrag] = createSignal<DragInfo | null>(null);
 
   const toPoint = (e: PointerEvent) => {
     const rect = container.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    return { x, y };
+    return {
+      x: (e.clientX - rect.left) / rect.width,
+      y: (e.clientY - rect.top) / rect.height,
+    };
   };
 
   const clamp = (v: number, min = 0, max = 1) =>
     Math.min(max, Math.max(min, v));
 
   const onMove = (e: PointerEvent) => {
-    const d = drag();
+    const info = drag();
     const current = props.item();
-    if (!d || !current) return;
+    if (!info || !current) return;
     const p = toPoint(e);
-    const dx = p.x - d.startX;
-    const dy = p.y - d.startY;
-    const item = current;
-    if (d.mode === "move") {
-      const nx = clamp(d.box.x + dx, 0, 1 - d.box.w);
-      const ny = clamp(d.box.y + dy, 0, 1 - d.box.h);
-      props.onChange({ ...item, bbox: { ...item.bbox, x: nx, y: ny } });
-    } else if (d.mode === "resize") {
-      const nw = clamp(d.box.w + dx, 0.05, 1 - d.box.x);
-      const nh = clamp(d.box.h + dy, 0.05, 1 - d.box.y);
-      props.onChange({ ...item, bbox: { ...item.bbox, w: nw, h: nh } });
-    } else if (d.mode === "rotate") {
-      const cx = d.box.x + d.box.w / 2;
-      const cy = d.box.y + d.box.h / 2;
+    const dx = p.x - info.startX;
+    const dy = p.y - info.startY;
+    if (info.mode === "move") {
+      const nx = clamp(info.box.x + dx, 0, 1 - info.box.w);
+      const ny = clamp(info.box.y + dy, 0, 1 - info.box.h);
+      props.onChange({ ...current, bbox: { ...current.bbox, x: nx, y: ny } });
+    } else if (info.mode === "resize") {
+      const nw = clamp(info.box.w + dx, 0.05, 1 - info.box.x);
+      const nh = clamp(info.box.h + dy, 0.05, 1 - info.box.y);
+      props.onChange({ ...current, bbox: { ...current.bbox, w: nw, h: nh } });
+    } else if (info.mode === "rotate") {
+      const cx = info.box.x + info.box.w / 2;
+      const cy = info.box.y + info.box.h / 2;
       const angle = Math.atan2(p.y - cy, p.x - cx);
-      const startA = Math.atan2(d.startY - cy, d.startX - cx);
-      const rot = (d.rot + (angle - startA) * (180 / Math.PI)) % 360;
-      props.onChange({ ...item, rotation: rot });
+      const startA = Math.atan2(info.startY - cy, info.startX - cx);
+      const rot = (info.rot + (angle - startA) * (180 / Math.PI)) % 360;
+      props.onChange({ ...current, rotation: rot });
     }
   };
 
-  const onUp = () => {
-    const d = drag();
-    if (d?.target) {
-      d.target.releasePointerCapture?.(d.id);
-    }
+  const endDrag = () => {
+    const info = drag();
+    if (info) info.target.releasePointerCapture(info.pointerId);
     setDrag(null);
     document.removeEventListener("pointermove", onMove);
-    document.removeEventListener("pointerup", onUp);
+    document.removeEventListener("pointerup", endDrag);
   };
 
-  const startDrag = (
-    e: PointerEvent,
-    mode: "move" | "resize" | "rotate",
-  ) => {
-    e.stopPropagation();
+  const startDrag = (e: PointerEvent, mode: DragInfo["mode"]) => {
     e.preventDefault();
-    const tgt = e.currentTarget as HTMLElement;
-    tgt.setPointerCapture?.(e.pointerId);
+    e.stopPropagation();
     const it = props.item();
     if (!it) return;
     const p = toPoint(e);
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
     setDrag({
       mode,
       startX: p.x,
       startY: p.y,
       box: { ...it.bbox },
       rot: it.rotation ?? 0,
-      id: e.pointerId,
-      target: tgt,
+      pointerId: e.pointerId,
+      target,
     });
     document.addEventListener("pointermove", onMove);
-    document.addEventListener("pointerup", onUp);
+    document.addEventListener("pointerup", endDrag);
   };
 
-  onCleanup(onUp);
+  onCleanup(endDrag);
 
   const renderItem = (item: StoryItem) => {
     if (item.type === "story:ImageItem") {
@@ -130,40 +125,32 @@ export function Stage(props: {
   return (
     <div
       ref={(el) => (container = el)}
-      class="relative cursor-move"
+      class="relative"
       style={`width:${props.width}px;height:${props.height}px;background:#000;touch-action:none`}
-      onPointerDown={(e) => startDrag(e, "move")}
     >
       <Show when={props.item()}>
-        {(item) => {
-          const box = item().bbox;
-          const rot = item().rotation ?? 0;
-          const boxStyle = {
+        {(it) => {
+          const box = it().bbox;
+          const rot = it().rotation ?? 0;
+          const style = {
             left: `${box.x * 100}%`,
             top: `${box.y * 100}%`,
             width: `${box.w * 100}%`,
             height: `${box.h * 100}%`,
             transform: `rotate(${rot}deg)`,
             "transform-origin": "center",
-            opacity: item().opacity ?? 1,
           } as const;
           return (
             <>
               <div
                 class="absolute overflow-hidden pointer-events-none"
-                style={boxStyle}
+                style={style}
               >
-                {renderItem(item())}
+                {renderItem(it())}
               </div>
               <div
                 class="absolute border border-white/50 border-dashed box-border"
-                style={{
-                  left: `${box.x * 100}%`,
-                  top: `${box.y * 100}%`,
-                  width: `${box.w * 100}%`,
-                  height: `${box.h * 100}%`,
-                  transform: `rotate(${rot}deg)`,
-                }}
+                style={style}
                 onPointerDown={(e) => startDrag(e, "move")}
               />
               <button
