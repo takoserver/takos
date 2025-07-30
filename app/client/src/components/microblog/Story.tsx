@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For } from "solid-js";
+import { createEffect, createSignal, For, onCleanup } from "solid-js";
 import type { ImageItem, Story, TextItem, VideoItem } from "./types.ts";
 import { UserAvatar } from "./UserAvatar.tsx";
 import { getDomain } from "../../utils/config.ts";
@@ -124,15 +124,48 @@ export function StoryViewer(props: {
   formatDate: (dateString: string) => string;
 }) {
   const [pageIndex, setPageIndex] = createSignal(0);
+  const [time, setTime] = createSignal(0);
+  let frame = 0;
 
   createEffect(() => {
     props.selectedStory;
     setPageIndex(0);
+    setTime(0);
+  });
+
+  createEffect(() => {
+    cancelAnimationFrame(frame);
+    const loop = (_ts: number) => {
+      setTime((t) => t + 0.016);
+      frame = requestAnimationFrame(loop);
+    };
+    if (props.showStoryViewer) frame = requestAnimationFrame(loop);
+    onCleanup(() => cancelAnimationFrame(frame));
+  });
+
+  createEffect(() => {
+    const page = currentPage();
+    if (!page) return;
+    const max = Math.max(
+      5,
+      ...page.items.map((it) => (it.visibleUntil ?? 5)),
+    );
+    if (time() > max) {
+      if (pageIndex() < (props.selectedStory?.pages.length ?? 1) - 1) {
+        setPageIndex(pageIndex() + 1);
+        setTime(0);
+      } else {
+        props.nextStory();
+      }
+    }
   });
 
   const currentPage = () => props.selectedStory?.pages[pageIndex()] ?? null;
 
   const renderItem = (item: ImageItem | VideoItem | TextItem) => {
+    const t = time();
+    if (item.visibleFrom !== undefined && t < item.visibleFrom) return null;
+    if (item.visibleUntil !== undefined && t > item.visibleUntil) return null;
     const style = `left:${item.bbox.x * 100}%;top:${item.bbox.y * 100}%;width:${
       item.bbox.w * 100
     }%;height:${item.bbox.h * 100}%;`;

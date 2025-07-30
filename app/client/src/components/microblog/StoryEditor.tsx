@@ -1,5 +1,8 @@
-import { createSignal, For } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { useAtom } from "solid-jotai";
+import { activeAccount } from "../../states/account.ts";
+import { createStory } from "./api.ts";
+import { Stage } from "./Stage.tsx";
 import type {
   ImageItem,
   Story,
@@ -8,90 +11,93 @@ import type {
   TextItem,
   VideoItem,
 } from "./types.ts";
-import { createStory } from "./api.ts";
-import { activeAccount } from "../../states/account.ts";
 
 export function StoryEditor(
   props: { onClose: () => void; onCreated: () => void },
 ) {
   const [account] = useAtom(activeAccount);
-  const [aspectRatio, setAspectRatio] = createSignal("9:16");
-  const [pages, setPages] = createSignal<StoryPage[]>([
-    { type: "story:Page", items: [] },
-  ]);
+  const [aspectRatio, _setAspectRatio] = createSignal("9:16");
+  const [pages, setPages] = createSignal<StoryPage[]>([{
+    type: "story:Page",
+    items: [],
+  }]);
+  const [pageIndex, setPageIndex] = createSignal(0);
+  const [selectedIndex, setSelectedIndex] = createSignal<number | null>(null);
 
-  const addPage = () => {
-    setPages([...pages(), { type: "story:Page", items: [] }]);
-  };
+  const currentPage = () => pages()[pageIndex()];
 
-  const removePage = (index: number) => {
-    setPages(pages().filter((_, i) => i !== index));
-  };
-
-  const addTextItem = (pageIndex: number) => {
-    const item: TextItem = {
-      type: "story:TextItem",
-      text: "",
-      bbox: { x: 0.1, y: 0.1, w: 0.8, h: 0.2, units: "fraction" },
-    };
+  const updateItem = (idx: number, item: StoryItem) => {
     setPages(
       pages().map((p, i) =>
-        i === pageIndex ? { ...p, items: [...p.items, item] } : p
+        i === pageIndex()
+          ? { ...p, items: p.items.map((it, j) => j === idx ? item : it) }
+          : p
       ),
     );
   };
 
-  const addImageItem = (pageIndex: number) => {
+  const addTextItem = () => {
+    const item: TextItem = {
+      type: "story:TextItem",
+      text: "テキスト",
+      bbox: { x: 0.1, y: 0.1, w: 0.3, h: 0.1, units: "fraction" },
+    };
+    setPages(
+      pages().map((p, i) =>
+        i === pageIndex() ? { ...p, items: [...p.items, item] } : p
+      ),
+    );
+  };
+
+  const addImageItem = () => {
     const item: ImageItem = {
       type: "story:ImageItem",
       media: { type: "Link", href: "" },
-      bbox: { x: 0, y: 0, w: 1, h: 1, units: "fraction" },
+      bbox: { x: 0.2, y: 0.2, w: 0.6, h: 0.6, units: "fraction" },
     };
     setPages(
       pages().map((p, i) =>
-        i === pageIndex ? { ...p, items: [...p.items, item] } : p
+        i === pageIndex() ? { ...p, items: [...p.items, item] } : p
       ),
     );
   };
 
-  const addVideoItem = (pageIndex: number) => {
+  const addVideoItem = () => {
     const item: VideoItem = {
       type: "story:VideoItem",
       media: { type: "Link", href: "" },
-      bbox: { x: 0, y: 0, w: 1, h: 1, units: "fraction" },
+      bbox: { x: 0.2, y: 0.2, w: 0.6, h: 0.6, units: "fraction" },
       autoplay: true,
       loop: true,
       muted: true,
     };
     setPages(
       pages().map((p, i) =>
-        i === pageIndex ? { ...p, items: [...p.items, item] } : p
+        i === pageIndex() ? { ...p, items: [...p.items, item] } : p
       ),
     );
   };
 
-  const updateItem = (
-    pageIndex: number,
-    itemIndex: number,
-    item: StoryItem,
-  ) => {
+  const removeSelected = () => {
+    const idx = selectedIndex();
+    if (idx === null) return;
     setPages(
       pages().map((p, i) =>
-        i === pageIndex
-          ? { ...p, items: p.items.map((it, j) => j === itemIndex ? item : it) }
+        i === pageIndex()
+          ? { ...p, items: p.items.filter((_, j) => j !== idx) }
           : p
       ),
     );
+    setSelectedIndex(null);
   };
 
-  const removeItem = (pageIndex: number, itemIndex: number) => {
-    setPages(
-      pages().map((p, i) =>
-        i === pageIndex
-          ? { ...p, items: p.items.filter((_, j) => j !== itemIndex) }
-          : p
-      ),
-    );
+  const addPage = () =>
+    setPages([...pages(), { type: "story:Page", items: [] }]);
+  const removePage = () => {
+    if (pages().length <= 1) return;
+    const idx = pageIndex();
+    setPages(pages().filter((_, i) => i !== idx));
+    setPageIndex(Math.max(0, idx - 1));
   };
 
   const handleSubmit = async (e: Event) => {
@@ -118,71 +124,20 @@ export function StoryEditor(
     }
   };
 
-  const renderItemInputs = (item: StoryItem, pageIdx: number, idx: number) => {
-    if (item.type === "story:TextItem") {
-      const i = item as TextItem;
-      return (
-        <div class="space-y-2 border p-2 rounded-md">
-          <input
-            type="text"
-            class="w-full bg-gray-800 p-2 rounded"
-            placeholder="テキスト"
-            value={i.text}
-            onInput={(e) =>
-              updateItem(pageIdx, idx, { ...i, text: e.currentTarget.value })}
-          />
-          <input
-            type="number"
-            class="w-16 bg-gray-800 p-1 rounded"
-            step="0.01"
-            value={i.bbox.x}
-            onInput={(e) =>
-              updateItem(pageIdx, idx, {
-                ...i,
-                bbox: { ...i.bbox, x: Number(e.currentTarget.value) },
-              })}
-          />
-          <button
-            type="button"
-            class="ml-2 text-red-400"
-            onClick={() => removeItem(pageIdx, idx)}
-          >
-            削除
-          </button>
-        </div>
-      );
-    }
-    if (item.type === "story:ImageItem" || item.type === "story:VideoItem") {
-      const i = item as ImageItem | VideoItem;
-      return (
-        <div class="space-y-2 border p-2 rounded-md">
-          <input
-            type="url"
-            class="w-full bg-gray-800 p-2 rounded"
-            placeholder="URL"
-            value={i.media.href}
-            onInput={(e) =>
-              updateItem(pageIdx, idx, {
-                ...i,
-                media: { ...i.media, href: e.currentTarget.value },
-              })}
-          />
-          <button
-            type="button"
-            class="ml-2 text-red-400"
-            onClick={() => removeItem(pageIdx, idx)}
-          >
-            削除
-          </button>
-        </div>
-      );
-    }
+  const selectedItem = () => {
+    const idx = selectedIndex();
+    return idx === null ? null : currentPage().items[idx];
+  };
+
+  const updateSelected = (item: StoryItem) => {
+    const idx = selectedIndex();
+    if (idx !== null) updateItem(idx, item);
   };
 
   return (
-    <div class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
+    <div class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
       <form
-        class="bg-gray-900 p-4 rounded w-full max-w-lg space-y-4 overflow-y-auto max-h-screen"
+        class="bg-gray-900 p-4 rounded w-full max-w-xl space-y-4"
         onSubmit={handleSubmit}
       >
         <div class="flex justify-between items-center">
@@ -191,66 +146,181 @@ export function StoryEditor(
             ×
           </button>
         </div>
-        <label class="block text-sm mb-2">
-          アスペクト比
-          <input
-            type="text"
-            value={aspectRatio()}
-            onInput={(e) => setAspectRatio(e.currentTarget.value)}
-            class="w-full bg-gray-800 p-2 rounded"
-          />
-        </label>
-        <For each={pages()}>
-          {(page, pageIdx) => (
-            <div class="border border-gray-700 p-2 rounded space-y-2">
-              <div class="flex items-center justify-between">
-                <span>ページ {pageIdx() + 1}</span>
-                <button
-                  type="button"
-                  class="text-red-400"
-                  onClick={() => removePage(pageIdx())}
-                >
-                  削除
-                </button>
-              </div>
-              <For each={page.items}>
-                {(item, idx) => (
-                  <div>{renderItemInputs(item, pageIdx(), idx())}</div>
+        <div class="flex space-x-2">
+          <button
+            type="button"
+            onClick={() => setPageIndex(Math.max(0, pageIndex() - 1))}
+          >
+            前
+          </button>
+          <span>{pageIndex() + 1} / {pages().length}</span>
+          <button
+            type="button"
+            onClick={() =>
+              setPageIndex(Math.min(pages().length - 1, pageIndex() + 1))}
+          >
+            次
+          </button>
+          <button type="button" onClick={addPage}>ページ追加</button>
+          <button type="button" onClick={removePage}>ページ削除</button>
+        </div>
+        <Stage
+          page={currentPage()}
+          width={300}
+          height={500}
+          selectedIndex={selectedIndex()}
+          onSelect={setSelectedIndex}
+          updateItem={updateItem}
+        />
+        <div class="flex space-x-2">
+          <button
+            type="button"
+            onClick={addTextItem}
+            class="px-2 py-1 bg-blue-600 rounded"
+          >
+            テキスト
+          </button>
+          <button
+            type="button"
+            onClick={addImageItem}
+            class="px-2 py-1 bg-blue-600 rounded"
+          >
+            画像
+          </button>
+          <button
+            type="button"
+            onClick={addVideoItem}
+            class="px-2 py-1 bg-blue-600 rounded"
+          >
+            動画
+          </button>
+          <button
+            type="button"
+            onClick={removeSelected}
+            class="px-2 py-1 bg-red-600 rounded"
+          >
+            選択削除
+          </button>
+        </div>
+        <Show when={selectedItem()}>
+          {(item) => (
+            <div class="space-y-2 border p-2 rounded">
+              <label class="block text-sm">
+                x
+                <input
+                  type="number"
+                  step="0.01"
+                  value={item().bbox.x}
+                  onInput={(e) =>
+                    updateSelected({
+                      ...item(),
+                      bbox: {
+                        ...item().bbox,
+                        x: Number(e.currentTarget.value),
+                      },
+                    })}
+                  class="w-20 bg-gray-800"
+                />
+              </label>
+              <label class="block text-sm">
+                y
+                <input
+                  type="number"
+                  step="0.01"
+                  value={item().bbox.y}
+                  onInput={(e) =>
+                    updateSelected({
+                      ...item(),
+                      bbox: {
+                        ...item().bbox,
+                        y: Number(e.currentTarget.value),
+                      },
+                    })}
+                  class="w-20 bg-gray-800"
+                />
+              </label>
+              <label class="block text-sm">
+                w
+                <input
+                  type="number"
+                  step="0.01"
+                  value={item().bbox.w}
+                  onInput={(e) =>
+                    updateSelected({
+                      ...item(),
+                      bbox: {
+                        ...item().bbox,
+                        w: Number(e.currentTarget.value),
+                      },
+                    })}
+                  class="w-20 bg-gray-800"
+                />
+              </label>
+              <label class="block text-sm">
+                h
+                <input
+                  type="number"
+                  step="0.01"
+                  value={item().bbox.h}
+                  onInput={(e) =>
+                    updateSelected({
+                      ...item(),
+                      bbox: {
+                        ...item().bbox,
+                        h: Number(e.currentTarget.value),
+                      },
+                    })}
+                  class="w-20 bg-gray-800"
+                />
+              </label>
+              <label class="block text-sm">
+                rotation
+                <input
+                  type="number"
+                  step="1"
+                  value={item().rotation ?? 0}
+                  onInput={(e) =>
+                    updateSelected({
+                      ...item(),
+                      rotation: Number(e.currentTarget.value),
+                    })}
+                  class="w-20 bg-gray-800"
+                />
+              </label>
+              <Show when={item().type === "story:TextItem"}>
+                {(v) => (
+                  <input
+                    type="text"
+                    value={(v() as TextItem).text}
+                    onInput={(e) =>
+                      updateSelected({
+                        ...(v() as TextItem),
+                        text: e.currentTarget.value,
+                      })}
+                    class="w-full bg-gray-800"
+                  />
                 )}
-              </For>
-              <div class="flex space-x-2">
-                <button
-                  type="button"
-                  onClick={() => addTextItem(pageIdx())}
-                  class="px-2 py-1 bg-blue-600 rounded"
-                >
-                  テキスト追加
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addImageItem(pageIdx())}
-                  class="px-2 py-1 bg-blue-600 rounded"
-                >
-                  画像追加
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addVideoItem(pageIdx())}
-                  class="px-2 py-1 bg-blue-600 rounded"
-                >
-                  動画追加
-                </button>
-              </div>
+              </Show>
+              <Show when={item().type !== "story:TextItem"}>
+                {(v) => (
+                  <input
+                    type="url"
+                    value={(v() as ImageItem | VideoItem).media.href}
+                    onInput={(e) =>
+                      updateSelected({
+                        ...(v() as ImageItem),
+                        media: {
+                          ...(v() as ImageItem).media,
+                          href: e.currentTarget.value,
+                        },
+                      })}
+                    class="w-full bg-gray-800"
+                  />
+                )}
+              </Show>
             </div>
           )}
-        </For>
-        <button
-          type="button"
-          onClick={addPage}
-          class="px-3 py-1 bg-gray-700 rounded"
-        >
-          ページ追加
-        </button>
+        </Show>
         <div class="text-right">
           <button type="submit" class="px-4 py-2 bg-blue-500 rounded">
             作成
