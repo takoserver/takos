@@ -441,6 +441,15 @@ paths:
                   type: string
                 textColor:
                   type: string
+                endTime:
+                  type: string
+                  format: date-time
+                x:overlays:
+                  type: array
+                  items:
+                    type: object
+                x:rev:
+                  type: integer
               required:
                 - author
                 - content
