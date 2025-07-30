@@ -1,8 +1,11 @@
-import { createSignal, For } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import type { Story } from "./types.ts";
 import { createStory } from "./api.ts";
 import { UserAvatar } from "./UserAvatar.tsx";
 import { getDomain } from "../../utils/config.ts";
+import StoryEditor from "../story-editor/StoryEditor.tsx";
+import { toActivityStreams } from "../story-editor/toActivityStreams.ts";
+import type { StoryCanvasState } from "../story-editor/state.ts";
 
 export function StoryTray(props: {
   stories: Story[];
@@ -16,6 +19,7 @@ export function StoryTray(props: {
     "#1DA1F2",
   );
   const [storyTextColor, setStoryTextColor] = createSignal("#FFFFFF");
+  const [showEditor, setShowEditor] = createSignal(false);
 
   const storyBackgroundColors = [
     "#1DA1F2",
@@ -34,23 +38,23 @@ export function StoryTray(props: {
     "#000000",
   ];
 
-  const handleCreateStory = async (e: Event) => {
+  const handleCreateStory = (e: Event) => {
     e.preventDefault();
-    const content = storyContent().trim();
-    if (!content) return;
+    setShowEditor(true);
+    setShowStoryForm(false);
+  };
 
-    const success = await createStory(
-      content,
-      storyMediaUrl() || undefined,
-      undefined,
-      storyBackgroundColor(),
-      storyTextColor(),
-    );
-
+  const handleEditorSubmit = async (
+    state: StoryCanvasState,
+    blobUrl: string,
+  ) => {
+    const activity = toActivityStreams(state, blobUrl);
+    const success = await createStory(activity);
     if (success) {
       setStoryContent("");
       setStoryMediaUrl("");
       setShowStoryForm(false);
+      setShowEditor(false);
       props.refetchStories();
     } else {
       alert("ストーリーの作成に失敗しました");
@@ -280,6 +284,13 @@ export function StoryTray(props: {
           </div>
         </div>
       )}
+      <Show when={showEditor()}>
+        <StoryEditor
+          mediaUrl={storyMediaUrl()}
+          onCancel={() => setShowEditor(false)}
+          onSubmit={handleEditorSubmit}
+        />
+      </Show>
     </>
   );
 }

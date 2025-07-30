@@ -92,6 +92,7 @@ app.post("/stories", async (c) => {
     endTime.setHours(endTime.getHours() + 24);
 
     const env = getEnv(c);
+    const domain = getDomain(c);
     const db = createDB(env);
     const story = await db.saveObject(
       {
