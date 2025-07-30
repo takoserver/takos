@@ -1,14 +1,17 @@
-import { createSignal, For } from "solid-js";
-import type { Story } from "./types.ts";
+import { createEffect, createSignal, For } from "solid-js";
+import { useAtom } from "solid-jotai";
+import type { ImageItem, Story, TextItem, VideoItem } from "./types.ts";
 import { createStory } from "./api.ts";
 import { UserAvatar } from "./UserAvatar.tsx";
 import { getDomain } from "../../utils/config.ts";
+import { activeAccount } from "../../states/account.ts";
 
 export function StoryTray(props: {
   stories: Story[];
   refetchStories: () => void;
   handleViewStory: (story: Story, index: number) => void;
 }) {
+  const [account] = useAtom(activeAccount);
   const [showStoryForm, setShowStoryForm] = createSignal(false);
   const [storyContent, setStoryContent] = createSignal("");
   const [storyMediaUrl, setStoryMediaUrl] = createSignal("");
@@ -39,13 +42,42 @@ export function StoryTray(props: {
     const content = storyContent().trim();
     if (!content) return;
 
-    const success = await createStory(
-      content,
-      storyMediaUrl() || undefined,
-      undefined,
-      storyBackgroundColor(),
-      storyTextColor(),
-    );
+    const user = account();
+    if (!user) {
+      alert("アカウントが選択されていません");
+      return;
+    }
+
+    const items: (ImageItem | TextItem)[] = [];
+    if (storyMediaUrl()) {
+      items.push({
+        type: "story:ImageItem",
+        media: { type: "Link", href: storyMediaUrl() },
+        bbox: { x: 0, y: 0, w: 1, h: 1, units: "fraction" },
+      });
+    }
+    items.push({
+      type: "story:TextItem",
+      text: content,
+      style: { color: storyTextColor() },
+      bbox: { x: 0.1, y: 0.8, w: 0.8, h: 0.2, units: "fraction" },
+    });
+
+    const story: Story = {
+      id: "",
+      author: user.userName,
+      aspectRatio: "9:16",
+      pages: [{
+        type: "story:Page",
+        duration: 5,
+        background: { type: "color", value: storyBackgroundColor() },
+        items,
+      }],
+      createdAt: new Date().toISOString(),
+      views: 0,
+    };
+
+    const success = await createStory(story);
 
     if (success) {
       setStoryContent("");
@@ -101,10 +133,10 @@ export function StoryTray(props: {
                   }`}
                 >
                   <div class="w-full h-full bg-black rounded-full flex items-center justify-center overflow-hidden">
-                    {story.mediaUrl
+                    {story.poster?.href
                       ? (
                         <img
-                          src={story.mediaUrl}
+                          src={story.poster.href}
                           alt=""
                           class="w-full h-full object-cover rounded-full"
                         />
@@ -295,21 +327,59 @@ export function StoryViewer(props: {
   handleDeleteStory: (id: string) => void;
   formatDate: (dateString: string) => string;
 }) {
+  const [pageIndex, setPageIndex] = createSignal(0);
+
+  createEffect(() => {
+    props.selectedStory;
+    setPageIndex(0);
+  });
+
+  const currentPage = () => props.selectedStory?.pages[pageIndex()] ?? null;
+
+  const renderItem = (item: ImageItem | VideoItem | TextItem) => {
+    const style = `left:${item.bbox.x * 100}%;top:${item.bbox.y * 100}%;width:${
+      item.bbox.w * 100
+    }%;height:${item.bbox.h * 100}%;`;
+    switch (item.type) {
+      case "story:ImageItem":
+        return (
+          <img
+            src={item.media.href}
+            style={style}
+            class="absolute object-cover"
+            alt={item.alt || item.accessibilityLabel || ""}
+          />
+        );
+      case "story:VideoItem":
+        return (
+          <video
+            src={item.media.href}
+            style={style}
+            class="absolute object-cover"
+            muted
+            autoplay
+            loop
+          />
+        );
+      case "story:TextItem":
+        return <div style={style} class="absolute" innerText={item.text} />;
+    }
+  };
+
   return (
     <>
       {props.showStoryViewer && props.selectedStory && (
         <div class="fixed inset-0 bg-black z-50 flex items-center justify-center">
           <div class="relative w-full max-w-sm h-full">
-            {/* 進行状況バー */}
             <div class="absolute top-4 left-4 right-4 z-20 flex space-x-1">
-              <For each={props.stories}>
-                {(_, index) => (
+              <For each={props.selectedStory.pages}>
+                {(_, i) => (
                   <div class="flex-1 h-1 bg-gray-600 rounded">
                     <div
                       class={`h-full bg-white rounded transition-all duration-300 ${
-                        index() < props.currentStoryIndex
+                        i() < pageIndex()
                           ? "w-full"
-                          : index() === props.currentStoryIndex
+                          : i() === pageIndex()
                           ? "w-full"
                           : "w-0"
                       }`}
@@ -319,55 +389,34 @@ export function StoryViewer(props: {
               </For>
             </div>
 
-            {/* ストーリーコンテンツ */}
-            <div class="w-full h-full relative">
-              {props.selectedStory!.mediaUrl && (
-                <img
-                  src={props.selectedStory!.mediaUrl}
-                  alt=""
-                  class="w-full h-full object-cover"
-                />
-              )}
-              <div
-                class="absolute inset-0 flex flex-col justify-end p-6"
-                style={!props.selectedStory!.mediaUrl
-                  ? `background-color: ${
-                    props.selectedStory!.backgroundColor
-                  };` +
-                    `color: ${props.selectedStory!.textColor};`
-                  : "background: linear-gradient(transparent, rgba(0,0,0,0.7))"}
-              >
-                <div class="text-white">
-                  <div class="flex items-center space-x-2 mb-2">
-                    <span class="font-bold text-lg">
-                      {props.selectedStory!.author}
-                    </span>
-                    <span class="text-sm opacity-75">
-                      {props.formatDate(props.selectedStory!.createdAt)}
-                    </span>
-                  </div>
-                  <div class="text-lg leading-relaxed">
-                    {props.selectedStory!.content}
-                  </div>
-                </div>
-              </div>
+            <div class="w-full h-full relative bg-black">
+              <For each={currentPage()?.items || []}>
+                {(item) => renderItem(item)}
+              </For>
             </div>
 
-            {/* ナビゲーションエリア */}
             <div class="absolute inset-0 flex">
               <button
                 type="button"
-                onClick={props.previousStory}
+                onClick={() => {
+                  if (pageIndex() > 0) setPageIndex(pageIndex() - 1);
+                  else props.previousStory();
+                }}
                 class="flex-1 opacity-0 hover:opacity-10 bg-black transition-opacity"
               />
               <button
                 type="button"
-                onClick={props.nextStory}
+                onClick={() => {
+                  if (
+                    pageIndex() < (props.selectedStory?.pages.length ?? 1) - 1
+                  ) {
+                    setPageIndex(pageIndex() + 1);
+                  } else props.nextStory();
+                }}
                 class="flex-1 opacity-0 hover:opacity-10 bg-black transition-opacity"
               />
             </div>
 
-            {/* 閉じるボタン */}
             <button
               type="button"
               onClick={props.closeStoryViewer}
@@ -382,11 +431,10 @@ export function StoryViewer(props: {
               </svg>
             </button>
 
-            {/* 削除ボタン（自分のストーリーの場合） */}
-            {props.selectedStory!.author === "user" && (
+            {props.selectedStory.author === "user" && (
               <button
                 type="button"
-                onClick={() => props.handleDeleteStory(props.selectedStory!.id)}
+                onClick={() => props.handleDeleteStory(props.selectedStory.id)}
                 class="absolute bottom-4 right-4 z-20 text-white p-2 rounded-full bg-red-500/50 hover:bg-red-500/70 transition-colors"
               >
                 <svg

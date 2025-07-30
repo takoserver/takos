@@ -431,19 +431,21 @@ paths:
               properties:
                 author:
                   type: string
-                content:
+                aspectRatio:
                   type: string
-                mediaUrl:
+                pages:
+                  type: array
+                  items:
+                    type: object
+                expiresAt:
                   type: string
-                mediaType:
-                  type: string
-                backgroundColor:
-                  type: string
-                textColor:
-                  type: string
+                poster:
+                  type: object
+                audioTrack:
+                  type: object
               required:
                 - author
-                - content
+                - pages
       responses:
         "201":
           description: 作成されたストーリー

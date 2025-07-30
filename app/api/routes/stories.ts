@@ -9,13 +9,9 @@ import { getEnv } from "../../shared/config.ts";
 type Story = {
   _id: { toString(): string };
   attributedTo: string;
-  content: string;
   published: string | Date;
   extra: {
-    mediaUrl?: string;
-    mediaType?: string;
-    backgroundColor?: string;
-    textColor?: string;
+    story: unknown;
     expiresAt?: string | Date;
     views?: number;
   };
@@ -48,14 +44,10 @@ app.get("/stories", async (c) => {
       return {
         id: String(story._id),
         author: story.attributedTo,
-        content: story.content,
-        mediaUrl: story.extra.mediaUrl,
-        mediaType: story.extra.mediaType,
-        backgroundColor: story.extra.backgroundColor,
-        textColor: story.extra.textColor,
         createdAt: story.published,
         expiresAt: story.extra.expiresAt,
         views: story.extra.views,
+        ...(story.extra.story as Record<string, unknown>),
       };
     });
     return c.json(formatted);
@@ -68,15 +60,18 @@ app.get("/stories", async (c) => {
 // ストーリー作成
 app.post("/stories", async (c) => {
   try {
-    const body = await c.req.json();
-    const { author, content, mediaUrl, mediaType, backgroundColor, textColor } =
-      body;
+    const storyData = await c.req.json();
+    const { author, id: _discard, ...storyBody } = storyData as {
+      author?: string;
+      id?: string;
+      // deno-lint-ignore no-explicit-any
+      [key: string]: any;
+    };
 
-    if (!author || !content) {
-      return c.json({ error: "Author and content are required" }, 400);
+    if (!author) {
+      return c.json({ error: "Author is required" }, 400);
     }
 
-    // 24時間後に期限切れ
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
@@ -88,13 +83,9 @@ app.post("/stories", async (c) => {
         _id: createObjectId(domain),
         type: "Story",
         attributedTo: author,
-        content,
         published: new Date(),
         extra: {
-          mediaUrl,
-          mediaType,
-          backgroundColor: backgroundColor || "#1DA1F2",
-          textColor: textColor || "#FFFFFF",
+          story: storyBody,
           expiresAt,
           views: 0,
         },
@@ -105,14 +96,10 @@ app.post("/stories", async (c) => {
     return c.json({
       id: String(story._id),
       author: story.attributedTo,
-      content: story.content,
-      mediaUrl: story.extra.mediaUrl,
-      mediaType: story.extra.mediaType,
-      backgroundColor: story.extra.backgroundColor,
-      textColor: story.extra.textColor,
       createdAt: story.published,
       expiresAt: story.extra.expiresAt,
       views: story.extra.views,
+      ...(storyBody as Record<string, unknown>),
     }, 201);
   } catch (error) {
     console.error("Error creating story:", error);
@@ -137,14 +124,10 @@ app.post("/stories/:id/view", async (c) => {
     return c.json({
       id: String(story._id),
       author: story.attributedTo,
-      content: story.content,
-      mediaUrl: story.extra.mediaUrl,
-      mediaType: story.extra.mediaType,
-      backgroundColor: story.extra.backgroundColor,
-      textColor: story.extra.textColor,
       createdAt: story.published,
       expiresAt: story.extra.expiresAt,
       views: story.extra.views,
+      ...(story.extra.story as Record<string, unknown>),
     });
   } catch (error) {
     console.error("Error viewing story:", error);

@@ -22,15 +22,69 @@ export interface MicroblogPost {
 export interface Story {
   id: string;
   author: string;
-  content: string;
-  mediaUrl?: string;
-  mediaType?: "image" | "video";
+  aspectRatio?: string;
+  pages: StoryPage[];
+  expiresAt?: string;
+  poster?: MediaLink;
+  audioTrack?: { href: string; start?: number; gain?: number };
   createdAt: string;
-  expiresAt: string;
   views: number;
   isViewed?: boolean;
-  backgroundColor?: string;
-  textColor?: string;
+}
+
+export interface MediaLink {
+  type: string;
+  href: string;
+  mediaType?: string;
+}
+
+export interface StoryPage {
+  type: "story:Page";
+  duration?: number;
+  background?: Record<string, unknown>;
+  safeArea?: { top: number; bottom: number; left: number; right: number };
+  items: StoryItem[];
+}
+
+export type StoryItem = ImageItem | VideoItem | TextItem;
+
+export interface BaseItem {
+  bbox: { x: number; y: number; w: number; h: number; units: string };
+  rotation?: number;
+  zIndex?: number;
+  opacity?: number;
+  anchor?: string;
+  visibleFrom?: number;
+  visibleUntil?: number;
+  tapAction?: { type: string; href?: string; target?: string };
+  contentWarning?: string;
+  accessibilityLabel?: string;
+}
+
+export interface ImageItem extends BaseItem {
+  type: "story:ImageItem";
+  media: MediaLink;
+  crop?: Record<string, unknown>;
+  filters?: { name: string; value: number }[];
+  alt?: string;
+}
+
+export interface VideoItem extends BaseItem {
+  type: "story:VideoItem";
+  media: MediaLink;
+  autoplay?: boolean;
+  loop?: boolean;
+  muted?: boolean;
+  trim?: { start: number; end: number };
+  poster?: MediaLink;
+}
+
+export interface TextItem extends BaseItem {
+  type: "story:TextItem";
+  text: string;
+  style?: Record<string, unknown>;
+  rtl?: boolean;
+  mentions?: Record<string, unknown>[];
 }
 
 export interface Note {
