@@ -289,34 +289,29 @@ export const fetchStories = async (): Promise<Story[]> => {
     if (!response.ok) {
       throw new Error("Failed to fetch stories");
     }
-    return await response.json();
+    const list = await response.json();
+    const now = Date.now();
+    return Array.isArray(list)
+      ? list.filter((s: { endTime?: string }) => {
+        if (!s.endTime) return true;
+        const end = new Date(s.endTime).getTime();
+        return isNaN(end) || end > now;
+      })
+      : [];
   } catch (error) {
     console.error("Error fetching stories:", error);
     return [];
   }
 };
 
-export const createStory = async (
-  content: string,
-  mediaUrl?: string,
-  mediaType?: "image" | "video",
-  backgroundColor?: string,
-  textColor?: string,
-): Promise<boolean> => {
+export const createStory = async (activity: unknown): Promise<boolean> => {
   try {
     const response = await apiFetch("/api/stories", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        author: "user",
-        content,
-        mediaUrl,
-        mediaType,
-        backgroundColor,
-        textColor,
-      }),
+      body: JSON.stringify(activity),
     });
     return response.ok;
   } catch (error) {
@@ -325,10 +320,15 @@ export const createStory = async (
   }
 };
 
-export const viewStory = async (id: string): Promise<boolean> => {
+export const viewStory = async (
+  id: string,
+  username?: string,
+): Promise<boolean> => {
   try {
     const response = await apiFetch(`/api/stories/${id}/view`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: username ? JSON.stringify({ username }) : undefined,
     });
     return response.ok;
   } catch (error) {

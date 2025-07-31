@@ -38,6 +38,8 @@
     "solid-jotai": "npm:solid-jotai@^0.3.1",
     "solid-js": "npm:solid-js@^1.9.6",
     "solid-qr-code": "npm:solid-qr-code@^0.1.11",
+    "solid-konva": "npm:solid-konva@^0.1.6",
+    "konva": "npm:konva@^9",
     "tailwindcss": "npm:tailwindcss@^4.1.7",
     "tlds": "npm:tlds@^1.259.0",
     "vite": "npm:vite@^5.4.19",

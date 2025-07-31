@@ -104,13 +104,19 @@ export class MongoDBLocal implements DB {
       await doc.save();
       return doc.toObject();
     }
-    if (data.type === "Story") {
+    if (
+      data.type === "Story" ||
+      (Array.isArray(data.type) && data.type.includes("x:Story"))
+    ) {
       const doc = new Story({
         _id: data._id,
         attributedTo: String(data.attributedTo),
         actor_id: String(data.actor_id),
         content: String(data.content ?? ""),
         extra: data.extra ?? {},
+        endTime: data.endTime ? new Date(data.endTime) : undefined,
+        x_overlays: Array.isArray(data.x_overlays) ? data.x_overlays : [],
+        x_rev: data.x_rev,
         published: data.published ?? new Date(),
         aud: data.aud ?? { to: [], cc: [] },
       });
@@ -422,14 +428,14 @@ export class MongoDBLocal implements DB {
   }
 
   async deleteObject(id: string) {
-    let res = await Note.findOneAndDelete({ _id: id });
-    if (res) return true;
-    res = await Video.findOneAndDelete({ _id: id });
-    if (res) return true;
-    res = await Message.findOneAndDelete({ _id: id });
-    if (res) return true;
-    res = await Story.findOneAndDelete({ _id: id });
-    return !!res;
+    let res = await Note.findOneAndDelete({ _id: id }).lean();
+    if (res) return res;
+    res = await Video.findOneAndDelete({ _id: id }).lean();
+    if (res) return res;
+    res = await Message.findOneAndDelete({ _id: id }).lean();
+    if (res) return res;
+    res = await Story.findOneAndDelete({ _id: id }).lean();
+    return res ?? null;
   }
 
   async deleteManyObjects(filter: Record<string, unknown>) {

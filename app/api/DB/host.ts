@@ -119,8 +119,17 @@ export class MongoDBHost implements DB {
       await doc.save();
       return doc.toObject();
     }
-    if (data.type === "Story") {
-      const doc = new HostStory({ ...data, tenant_id: this.tenantId });
+    if (
+      data.type === "Story" ||
+      (Array.isArray(data.type) && data.type.includes("x:Story"))
+    ) {
+      const doc = new HostStory({
+        ...data,
+        endTime: data.endTime ? new Date(data.endTime) : undefined,
+        x_overlays: Array.isArray(data.x_overlays) ? data.x_overlays : [],
+        x_rev: data.x_rev,
+        tenant_id: this.tenantId,
+      });
       await doc.save();
       return doc.toObject();
     }
@@ -516,23 +525,23 @@ export class MongoDBHost implements DB {
     let res = await HostNote.findOneAndDelete({
       _id: id,
       tenant_id: this.tenantId,
-    });
-    if (res) return true;
+    }).lean();
+    if (res) return res;
     res = await HostVideo.findOneAndDelete({
       _id: id,
       tenant_id: this.tenantId,
-    });
-    if (res) return true;
+    }).lean();
+    if (res) return res;
     res = await HostMessage.findOneAndDelete({
       _id: id,
       tenant_id: this.tenantId,
-    });
-    if (res) return true;
+    }).lean();
+    if (res) return res;
     res = await HostStory.findOneAndDelete({
       _id: id,
       tenant_id: this.tenantId,
-    });
-    return !!res;
+    }).lean();
+    return res ?? null;
   }
 
   async deleteManyObjects(filter: Record<string, unknown>) {
