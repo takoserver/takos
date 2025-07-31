@@ -12,6 +12,9 @@ export interface Overlay {
 export default function StoryEditor(props: {
   mediaUrl?: string;
   onExport: (dataUrl: string, overlays: Overlay[]) => void;
+  expose?: (
+    fn: () => Promise<{ url: string; overlays: Overlay[] }>,
+  ) => void;
 }) {
   const [overlays, setOverlays] = createSignal<Overlay[]>([]);
   const [isVideo, setIsVideo] = createSignal(false);
@@ -22,6 +25,7 @@ export default function StoryEditor(props: {
 
   onMount(() => {
     if (props.mediaUrl) loadMedia(props.mediaUrl);
+    if (props.expose) props.expose(exportMedia);
   });
 
   async function loadMedia(url: string) {
@@ -75,8 +79,8 @@ export default function StoryEditor(props: {
     drawImage();
   }
 
-  async function exportMedia() {
-    if (!canvasRef) return;
+  async function exportMedia(): Promise<{ url: string; overlays: Overlay[] }> {
+    if (!canvasRef) return { url: "", overlays: [] };
     if (isVideo()) {
       if (!ffmpeg.isLoaded()) {
         await ffmpeg.load();
@@ -105,9 +109,11 @@ export default function StoryEditor(props: {
       const blob = new Blob([data.buffer], { type: "video/mp4" });
       const url = URL.createObjectURL(blob);
       props.onExport(url, overlays());
+      return { url, overlays: overlays() };
     } else {
       const url = canvasRef.toDataURL("image/png");
       props.onExport(url, overlays());
+      return { url, overlays: overlays() };
     }
   }
 

@@ -112,8 +112,17 @@ app.get("/stories", async (c) => {
 app.post("/stories", async (c) => {
   try {
     const body = await c.req.json();
-    const { author, content, mediaUrl, mediaType, backgroundColor, textColor } =
-      body;
+    const {
+      author,
+      content,
+      mediaUrl,
+      mediaType,
+      backgroundColor,
+      textColor,
+    } = body;
+    const overlays = Array.isArray(body["x:overlays"])
+      ? body["x:overlays"]
+      : [];
 
     if (!author || !content) {
       return c.json({ error: "Author and content are required" }, 400);
@@ -134,7 +143,7 @@ app.post("/stories", async (c) => {
           "x:Story",
         ],
         "x:story": true,
-        "x:overlays": [],
+        "x:overlays": overlays,
         "x:rev": 0,
         endTime,
         attributedTo: author,
