@@ -1,5 +1,5 @@
 import { createSignal, For, onMount } from "solid-js";
-import { createFFmpeg, fetchFile } from "@ffmpeg/ffmpeg";
+import { createFFmpeg, fetchFile } from "npm:@ffmpeg/ffmpeg@0.12.15";
 
 export interface Overlay {
   id: string;
