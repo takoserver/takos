@@ -1,8 +1,12 @@
 import { createSignal, onMount, Show } from "solid-js";
 import type { StoryCanvasState } from "./state.ts";
 import { createInitialState } from "./state.ts";
-import { Image as KonvaImage, Layer, Stage } from "npm:solid-konva";
-import Konva from "npm:konva";
+import {
+  Image as KonvaImage,
+  Layer,
+  Stage,
+} from "https://esm.sh/solid-konva@0.0.10";
+import type Konva from "https://esm.sh/konva@9";
 
 interface Props {
   mediaUrl: string;
