@@ -22,6 +22,13 @@ export default function StoryEditor(props: {
   const [overlays, setOverlays] = createSignal<Overlay[]>([]);
   const [draggingId, setDraggingId] = createSignal<string | null>(null);
   const [startPos, setStartPos] = createSignal<[number, number] | null>(null);
+  const [dragMode, setDragMode] = createSignal<
+    "move" | "resize" | "rotate" | null
+  >(null);
+  const [startBBox, setStartBBox] = createSignal<
+    [number, number, number, number] | null
+  >(null);
+  const [startRotation, setStartRotation] = createSignal(0);
   const [basePos, setBasePos] = createSignal<[number, number]>([0, 0]);
   const [isVideo, setIsVideo] = createSignal(false);
   let canvasRef: HTMLCanvasElement | undefined;
@@ -72,20 +79,33 @@ export default function StoryEditor(props: {
     }
   }
 
-  function pointerDown(id: string, e: PointerEvent) {
+  function pointerDown(
+    id: string,
+    e: PointerEvent,
+    mode: "move" | "resize" = "move",
+  ) {
     setDraggingId(id);
+    setDragMode(e.ctrlKey ? "rotate" : mode);
     setStartPos([e.clientX, e.clientY]);
+    const ov = overlays().find((v) => v.id === id);
+    if (ov) {
+      setStartBBox([...ov.bbox]);
+      setStartRotation(ov.rotation || 0);
+    }
+    e.stopPropagation();
   }
 
   function basePointerDown(e: PointerEvent) {
     setDraggingId("base");
     setStartPos([e.clientX, e.clientY]);
+    setDragMode("move");
   }
 
   function pointerMove(e: PointerEvent) {
     const id = draggingId();
     const start = startPos();
-    if (!id || !start || !containerRef) return;
+    const mode = dragMode();
+    if (!id || !start || !containerRef || !mode) return;
     const dx = e.clientX - start[0];
     const dy = e.clientY - start[1];
     setStartPos([e.clientX, e.clientY]);
@@ -98,15 +118,30 @@ export default function StoryEditor(props: {
       setOverlays((prev) =>
         prev.map((ov) => {
           if (ov.id !== id) return ov;
-          const nx = Math.min(
-            Math.max(ov.bbox[0] + dx / rect.width, 0),
-            1 - ov.bbox[2],
-          );
-          const ny = Math.min(
-            Math.max(ov.bbox[1] + dy / rect.height, 0),
-            1 - ov.bbox[3],
-          );
-          return { ...ov, bbox: [nx, ny, ov.bbox[2], ov.bbox[3]] };
+          const sb = startBBox() || ov.bbox;
+          if (mode === "resize") {
+            const nw = Math.min(
+              Math.max(sb[2] + dx / rect.width, 0.05),
+              1 - sb[0],
+            );
+            const nh = Math.min(
+              Math.max(sb[3] + dy / rect.height, 0.05),
+              1 - sb[1],
+            );
+            return { ...ov, bbox: [sb[0], sb[1], nw, nh] };
+          } else if (mode === "rotate") {
+            return { ...ov, rotation: startRotation() + dx * 0.3 };
+          } else {
+            const nx = Math.min(
+              Math.max(ov.bbox[0] + dx / rect.width, 0),
+              1 - ov.bbox[2],
+            );
+            const ny = Math.min(
+              Math.max(ov.bbox[1] + dy / rect.height, 0),
+              1 - ov.bbox[3],
+            );
+            return { ...ov, bbox: [nx, ny, ov.bbox[2], ov.bbox[3]] };
+          }
         })
       );
     }
@@ -116,6 +151,8 @@ export default function StoryEditor(props: {
   function pointerUp() {
     setDraggingId(null);
     setStartPos(null);
+    setDragMode(null);
+    setStartBBox(null);
   }
 
   function drawImage() {
@@ -138,7 +175,17 @@ export default function StoryEditor(props: {
       const x = ov.bbox[0] * canvasRef.width;
       const y = ov.bbox[1] * canvasRef.height;
       const text = ov.text || ov.kind;
-      ctx.fillText(text, x, y + 24);
+      ctx.save();
+      const cx = x + ov.bbox[2] * canvasRef.width / 2;
+      const cy = y + ov.bbox[3] * canvasRef.height / 2;
+      ctx.translate(cx, cy);
+      ctx.rotate(((ov.rotation || 0) * Math.PI) / 180);
+      ctx.fillText(
+        text,
+        -ov.bbox[2] * canvasRef.width / 2,
+        ov.bbox[3] * canvasRef.height / 2,
+      );
+      ctx.restore();
     });
   }
 
@@ -155,6 +202,7 @@ export default function StoryEditor(props: {
         text: opts?.text,
         src: opts?.src,
         bbox: [0.4, 0.4, 0.2, 0.1],
+        rotation: 0,
       },
     ]);
     drawImage();
@@ -177,9 +225,10 @@ export default function StoryEditor(props: {
         .filter((ov) => ov.kind === "text")
         .map((ov) => {
           const text = ov.text || "";
+          const rot = ((ov.rotation || 0) * Math.PI) / 180;
           return `drawtext=text='${text}':x=${Math.round(ov.bbox[0] * 720)}:y=${
             Math.round(ov.bbox[1] * 1280)
-          }:fontsize=24:fontcolor=white`;
+          }:fontsize=24:fontcolor=white:rotate=${rot}`;
         })
         .join(",");
       const filters = ["scale=720:1280", base];
@@ -224,6 +273,7 @@ export default function StoryEditor(props: {
                 top: `${ov.bbox[1] * 100}%`,
                 width: `${ov.bbox[2] * 100}%`,
                 height: `${ov.bbox[3] * 100}%`,
+                transform: `rotate(${ov.rotation || 0}deg)`,
               }}
               onPointerDown={(e) => pointerDown(ov.id, e)}
               contentEditable
@@ -237,6 +287,10 @@ export default function StoryEditor(props: {
                 )}
             >
               {ov.text || ov.kind}
+              <div
+                class="absolute bottom-0 right-0 w-3 h-3 bg-white cursor-se-resize"
+                onPointerDown={(e) => pointerDown(ov.id, e, "resize")}
+              />
             </div>
           )}
         </For>
