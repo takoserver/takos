@@ -59,7 +59,11 @@ export class MongoDBLocal implements DB {
     if (!data._id && this.env["ACTIVITYPUB_DOMAIN"]) {
       data._id = createObjectId(this.env["ACTIVITYPUB_DOMAIN"]);
     }
-    if (data.type === "Note") {
+    let type = data.type as string | string[] | undefined;
+    if (Array.isArray(type) && type.includes("x:Story")) {
+      type = "Story";
+    }
+    if (type === "Note") {
       const doc = new Note({
         _id: data._id,
         attributedTo: String(data.attributedTo),
@@ -74,7 +78,7 @@ export class MongoDBLocal implements DB {
       await doc.save();
       return doc.toObject();
     }
-    if (data.type === "Video") {
+    if (type === "Video") {
       const doc = new Video({
         _id: data._id,
         attributedTo: String(data.attributedTo),
@@ -89,7 +93,7 @@ export class MongoDBLocal implements DB {
       await doc.save();
       return doc.toObject();
     }
-    if (data.type === "Message") {
+    if (type === "Message") {
       const doc = new Message({
         _id: data._id,
         attributedTo: String(data.attributedTo),
@@ -104,8 +108,9 @@ export class MongoDBLocal implements DB {
       await doc.save();
       return doc.toObject();
     }
-    if (data.type === "Story") {
+    if (type === "Story") {
       const doc = new Story({
+        ...data,
         _id: data._id,
         attributedTo: String(data.attributedTo),
         actor_id: String(data.actor_id),

@@ -44,6 +44,7 @@
     "vite-plugin-solid": "npm:vite-plugin-solid@^2.11.6",
     "vite-plugin-pwa": "npm:vite-plugin-pwa@^1.0.1",
     "zod": "npm:zod@^3.24.4",
+    "@ffmpeg/ffmpeg": "npm:@ffmpeg/ffmpeg@^0.12.15",
     "bcrypt": "https://deno.land/x/bcrypt@v0.4.1/mod.ts"
   },
   "nodeModulesDir": "auto"

@@ -53,7 +53,11 @@ export class MongoDBHost implements DB {
     sort?: Record<string, SortOrder>,
     limit?: number,
   ) {
-    const type = filter.type as string | undefined;
+    const typeCond = filter.type as
+      | string
+      | string[]
+      | { $in: string[] }
+      | undefined;
     const baseFilter = { ...filter };
     delete (baseFilter as Record<string, unknown>).type;
     const conds: Record<string, unknown>[] = [
@@ -72,10 +76,18 @@ export class MongoDBHost implements DB {
       conds.length > 1
         ? await M.find({ $or: conds }).limit(limit ?? 20).sort(sort)
         : await M.find(conds[0]).limit(limit ?? 20).sort(sort);
-    if (type === "Note") return await exec(HostNote);
-    if (type === "Video") return await exec(HostVideo);
-    if (type === "Message") return await exec(HostMessage);
-    if (type === "Story") return await exec(HostStory);
+    const match = (t: string) => {
+      if (Array.isArray(typeCond)) return typeCond.includes(t);
+      if (typeof typeCond === "string") return typeCond === t;
+      if (typeCond && typeof typeCond === "object" && "$in" in typeCond) {
+        return (typeCond as { $in: string[] }).$in.includes(t);
+      }
+      return false;
+    };
+    if (match("Note")) return await exec(HostNote);
+    if (match("Video")) return await exec(HostVideo);
+    if (match("Message")) return await exec(HostMessage);
+    if (match("Story") || match("x:Story")) return await exec(HostStory);
     const notes = await exec(HostNote);
     const videos = await exec(HostVideo);
     const messages = await exec(HostMessage);
@@ -104,22 +116,26 @@ export class MongoDBHost implements DB {
         data.actor_id = data.attributedTo;
       }
     }
-    if (data.type === "Note") {
+    let type = data.type as string | string[] | undefined;
+    if (Array.isArray(type) && type.includes("x:Story")) {
+      type = "Story";
+    }
+    if (type === "Note") {
       const doc = new HostNote({ ...data, tenant_id: this.tenantId });
       await doc.save();
       return doc.toObject();
     }
-    if (data.type === "Video") {
+    if (type === "Video") {
       const doc = new HostVideo({ ...data, tenant_id: this.tenantId });
       await doc.save();
       return doc.toObject();
     }
-    if (data.type === "Message") {
+    if (type === "Message") {
       const doc = new HostMessage({ ...data, tenant_id: this.tenantId });
       await doc.save();
       return doc.toObject();
     }
-    if (data.type === "Story") {
+    if (type === "Story") {
       const doc = new HostStory({ ...data, tenant_id: this.tenantId });
       await doc.save();
       return doc.toObject();
