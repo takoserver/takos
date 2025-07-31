@@ -22,6 +22,7 @@ export default function StoryEditor(props: {
   const [overlays, setOverlays] = createSignal<Overlay[]>([]);
   const [draggingId, setDraggingId] = createSignal<string | null>(null);
   const [startPos, setStartPos] = createSignal<[number, number] | null>(null);
+  const [basePos, setBasePos] = createSignal<[number, number]>([0, 0]);
   const [isVideo, setIsVideo] = createSignal(false);
   let canvasRef: HTMLCanvasElement | undefined;
   let containerRef: HTMLDivElement | undefined;
@@ -76,6 +77,11 @@ export default function StoryEditor(props: {
     setStartPos([e.clientX, e.clientY]);
   }
 
+  function basePointerDown(e: PointerEvent) {
+    setDraggingId("base");
+    setStartPos([e.clientX, e.clientY]);
+  }
+
   function pointerMove(e: PointerEvent) {
     const id = draggingId();
     const start = startPos();
@@ -83,21 +89,28 @@ export default function StoryEditor(props: {
     const dx = e.clientX - start[0];
     const dy = e.clientY - start[1];
     setStartPos([e.clientX, e.clientY]);
-    setOverlays((prev) =>
-      prev.map((ov) => {
-        if (ov.id !== id) return ov;
-        const rect = containerRef.getBoundingClientRect();
-        const nx = Math.min(
-          Math.max(ov.bbox[0] + dx / rect.width, 0),
-          1 - ov.bbox[2],
-        );
-        const ny = Math.min(
-          Math.max(ov.bbox[1] + dy / rect.height, 0),
-          1 - ov.bbox[3],
-        );
-        return { ...ov, bbox: [nx, ny, ov.bbox[2], ov.bbox[3]] };
-      })
-    );
+    const rect = containerRef.getBoundingClientRect();
+    if (id === "base") {
+      const nx = Math.min(Math.max(basePos()[0] + dx / rect.width, 0), 1);
+      const ny = Math.min(Math.max(basePos()[1] + dy / rect.height, 0), 1);
+      setBasePos([nx, ny]);
+    } else {
+      setOverlays((prev) =>
+        prev.map((ov) => {
+          if (ov.id !== id) return ov;
+          const nx = Math.min(
+            Math.max(ov.bbox[0] + dx / rect.width, 0),
+            1 - ov.bbox[2],
+          );
+          const ny = Math.min(
+            Math.max(ov.bbox[1] + dy / rect.height, 0),
+            1 - ov.bbox[3],
+          );
+          return { ...ov, bbox: [nx, ny, ov.bbox[2], ov.bbox[3]] };
+        })
+      );
+    }
+    drawImage();
   }
 
   function pointerUp() {
@@ -111,7 +124,14 @@ export default function StoryEditor(props: {
     canvasRef.width = 720;
     canvasRef.height = 1280;
     ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-    ctx.drawImage(img, 0, 0, canvasRef.width, canvasRef.height);
+    const [bx, by] = basePos();
+    ctx.drawImage(
+      img,
+      bx * canvasRef.width,
+      by * canvasRef.height,
+      canvasRef.width,
+      canvasRef.height,
+    );
     ctx.fillStyle = "white";
     ctx.font = "24px sans-serif";
     overlays().forEach((ov) => {
@@ -149,15 +169,22 @@ export default function StoryEditor(props: {
       if (videoData) {
         await ffmpeg.writeFile("in.mp4", videoData);
       }
-      const filter = overlays()
+      const [bx, by] = basePos();
+      const base = `pad=720:1280:${Math.round(bx * 720)}:${
+        Math.round(by * 1280)
+      }`;
+      const textFilter = overlays()
+        .filter((ov) => ov.kind === "text")
         .map((ov) => {
-          const text = ov.text || ov.kind;
-          return `drawtext=text='${text}':x=main_w*${ov.bbox[0]}:y=main_h*${
-            ov.bbox[1]
+          const text = ov.text || "";
+          return `drawtext=text='${text}':x=${Math.round(ov.bbox[0] * 720)}:y=${
+            Math.round(ov.bbox[1] * 1280)
           }:fontsize=24:fontcolor=white`;
         })
         .join(",");
-      const vf = filter ? `scale=720:1280,${filter}` : "scale=720:1280";
+      const filters = ["scale=720:1280", base];
+      if (textFilter) filters.push(textFilter);
+      const vf = filters.join(",");
       await ffmpeg.exec([
         "-i",
         "in.mp4",
@@ -173,6 +200,7 @@ export default function StoryEditor(props: {
       props.onExport(url, overlays());
       return { url, overlays: overlays() };
     } else {
+      drawImage();
       const url = canvasRef.toDataURL("image/png");
       props.onExport(url, overlays());
       return { url, overlays: overlays() };
@@ -182,7 +210,11 @@ export default function StoryEditor(props: {
   return (
     <div class="space-y-2">
       <div ref={containerRef!} class="relative w-full">
-        <canvas ref={canvasRef!} class="border rounded w-full" />
+        <canvas
+          ref={canvasRef!}
+          class="border rounded w-full"
+          onPointerDown={basePointerDown}
+        />
         <For each={overlays()}>
           {(ov) => (
             <div
