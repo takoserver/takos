@@ -1,11 +1,13 @@
-import { createSignal, For, onMount } from "solid-js";
+import { createSignal, For, onCleanup, onMount } from "solid-js";
 import { FFmpeg } from "https://esm.sh/@ffmpeg/ffmpeg@0.12.15?target=deno";
 import { fetchFile } from "https://esm.sh/@ffmpeg/util@0.12.2?target=deno";
 
 export interface Overlay {
   id: string;
-  kind: "mention" | "question";
+  kind: "mention" | "question" | "text" | "image";
   ref?: string;
+  text?: string;
+  src?: string;
   bbox: [number, number, number, number];
   rotation?: number;
 }
@@ -18,8 +20,11 @@ export default function StoryEditor(props: {
   ) => void;
 }) {
   const [overlays, setOverlays] = createSignal<Overlay[]>([]);
+  const [draggingId, setDraggingId] = createSignal<string | null>(null);
+  const [startPos, setStartPos] = createSignal<[number, number] | null>(null);
   const [isVideo, setIsVideo] = createSignal(false);
   let canvasRef: HTMLCanvasElement | undefined;
+  let containerRef: HTMLDivElement | undefined;
   const img = new Image();
   const ffmpeg = new FFmpeg();
   let videoData: Uint8Array | undefined;
@@ -27,6 +32,14 @@ export default function StoryEditor(props: {
   onMount(() => {
     if (props.mediaUrl) loadMedia(props.mediaUrl);
     if (props.expose) props.expose(exportMedia);
+    const move = (e: PointerEvent) => pointerMove(e);
+    const up = () => pointerUp();
+    globalThis.addEventListener("pointermove", move);
+    globalThis.addEventListener("pointerup", up);
+    onCleanup(() => {
+      globalThis.removeEventListener("pointermove", move);
+      globalThis.removeEventListener("pointerup", up);
+    });
   });
 
   async function loadMedia(url: string) {
@@ -58,6 +71,40 @@ export default function StoryEditor(props: {
     }
   }
 
+  function pointerDown(id: string, e: PointerEvent) {
+    setDraggingId(id);
+    setStartPos([e.clientX, e.clientY]);
+  }
+
+  function pointerMove(e: PointerEvent) {
+    const id = draggingId();
+    const start = startPos();
+    if (!id || !start || !containerRef) return;
+    const dx = e.clientX - start[0];
+    const dy = e.clientY - start[1];
+    setStartPos([e.clientX, e.clientY]);
+    setOverlays((prev) =>
+      prev.map((ov) => {
+        if (ov.id !== id) return ov;
+        const rect = containerRef.getBoundingClientRect();
+        const nx = Math.min(
+          Math.max(ov.bbox[0] + dx / rect.width, 0),
+          1 - ov.bbox[2],
+        );
+        const ny = Math.min(
+          Math.max(ov.bbox[1] + dy / rect.height, 0),
+          1 - ov.bbox[3],
+        );
+        return { ...ov, bbox: [nx, ny, ov.bbox[2], ov.bbox[3]] };
+      })
+    );
+  }
+
+  function pointerUp() {
+    setDraggingId(null);
+    setStartPos(null);
+  }
+
   function drawImage() {
     if (!canvasRef) return;
     const ctx = canvasRef.getContext("2d")!;
@@ -70,13 +117,26 @@ export default function StoryEditor(props: {
     overlays().forEach((ov) => {
       const x = ov.bbox[0] * canvasRef.width;
       const y = ov.bbox[1] * canvasRef.height;
-      ctx.fillText(ov.kind, x, y + 24);
+      const text = ov.text || ov.kind;
+      ctx.fillText(text, x, y + 24);
     });
   }
 
-  function addOverlay(kind: "mention" | "question") {
+  function addOverlay(
+    kind: Overlay["kind"],
+    opts?: { text?: string; src?: string },
+  ) {
     const id = crypto.randomUUID();
-    setOverlays([...overlays(), { id, kind, bbox: [0.4, 0.4, 0.2, 0.1] }]);
+    setOverlays([
+      ...overlays(),
+      {
+        id,
+        kind,
+        text: opts?.text,
+        src: opts?.src,
+        bbox: [0.4, 0.4, 0.2, 0.1],
+      },
+    ]);
     drawImage();
   }
 
@@ -90,11 +150,12 @@ export default function StoryEditor(props: {
         await ffmpeg.writeFile("in.mp4", videoData);
       }
       const filter = overlays()
-        .map((ov) =>
-          `drawtext=text='${ov.kind}':x=main_w*${ov.bbox[0]}:y=main_h*${
+        .map((ov) => {
+          const text = ov.text || ov.kind;
+          return `drawtext=text='${text}':x=main_w*${ov.bbox[0]}:y=main_h*${
             ov.bbox[1]
-          }:fontsize=24:fontcolor=white`
-        )
+          }:fontsize=24:fontcolor=white`;
+        })
         .join(",");
       const vf = filter ? `scale=720:1280,${filter}` : "scale=720:1280";
       await ffmpeg.exec([
@@ -120,7 +181,34 @@ export default function StoryEditor(props: {
 
   return (
     <div class="space-y-2">
-      <canvas ref={canvasRef!} class="border rounded w-full" />
+      <div ref={containerRef!} class="relative w-full">
+        <canvas ref={canvasRef!} class="border rounded w-full" />
+        <For each={overlays()}>
+          {(ov) => (
+            <div
+              class="absolute border border-dashed text-white px-1 cursor-move select-none"
+              style={{
+                left: `${ov.bbox[0] * 100}%`,
+                top: `${ov.bbox[1] * 100}%`,
+                width: `${ov.bbox[2] * 100}%`,
+                height: `${ov.bbox[3] * 100}%`,
+              }}
+              onPointerDown={(e) => pointerDown(ov.id, e)}
+              contentEditable
+              onBlur={(e) =>
+                setOverlays((prev) =>
+                  prev.map((v) =>
+                    v.id === ov.id
+                      ? { ...v, text: e.currentTarget.textContent || v.text }
+                      : v
+                  )
+                )}
+            >
+              {ov.text || ov.kind}
+            </div>
+          )}
+        </For>
+      </div>
       <div class="space-x-2">
         <button
           type="button"
@@ -138,15 +226,19 @@ export default function StoryEditor(props: {
         </button>
         <button
           type="button"
+          class="px-2 py-1 bg-purple-700"
+          onClick={() => addOverlay("text", { text: "テキスト" })}
+        >
+          テキスト
+        </button>
+        <button
+          type="button"
           class="px-2 py-1 bg-gray-700"
           onClick={exportMedia}
         >
           Export
         </button>
       </div>
-      <For each={overlays()}>
-        {(ov) => <div class="text-sm text-white">{ov.kind} {ov.id}</div>}
-      </For>
     </div>
   );
 }
