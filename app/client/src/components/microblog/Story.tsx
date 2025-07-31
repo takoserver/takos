@@ -216,6 +216,7 @@ export function StoryTray(props: {
               {storyMediaUrl() && (
                 <StoryEditor
                   mediaUrl={storyMediaUrl()}
+                  mediaFile={mediaFile() || undefined}
                   onExport={() => {}}
                   expose={(fn) => {
                     exportFunc = fn;

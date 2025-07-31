@@ -1,4 +1,4 @@
-import { createSignal, For, onCleanup, onMount } from "solid-js";
+import { createEffect, createSignal, For, onCleanup, onMount } from "solid-js";
 import { FFmpeg } from "https://esm.sh/@ffmpeg/ffmpeg@0.12.15?target=deno";
 import { fetchFile } from "https://esm.sh/@ffmpeg/util@0.12.2?target=deno";
 
@@ -14,6 +14,7 @@ export interface Overlay {
 
 export default function StoryEditor(props: {
   mediaUrl?: string;
+  mediaFile?: File;
   onExport: (dataUrl: string, overlays: Overlay[]) => void;
   expose?: (
     fn: () => Promise<{ url: string; overlays: Overlay[] }>,
@@ -30,6 +31,10 @@ export default function StoryEditor(props: {
   >(null);
   const [startRotation, setStartRotation] = createSignal(0);
   const [basePos, setBasePos] = createSignal<[number, number]>([0, 0]);
+  const [baseSize, setBaseSize] = createSignal<[number, number]>([1, 1]);
+  const [startBaseSize, setStartBaseSize] = createSignal<
+    [number, number] | null
+  >(null);
   const [isVideo, setIsVideo] = createSignal(false);
   let canvasRef: HTMLCanvasElement | undefined;
   let containerRef: HTMLDivElement | undefined;
@@ -38,7 +43,6 @@ export default function StoryEditor(props: {
   let videoData: Uint8Array | undefined;
 
   onMount(() => {
-    if (props.mediaUrl) loadMedia(props.mediaUrl);
     if (props.expose) props.expose(exportMedia);
     const move = (e: PointerEvent) => pointerMove(e);
     const up = () => pointerUp();
@@ -50,13 +54,30 @@ export default function StoryEditor(props: {
     });
   });
 
-  async function loadMedia(url: string) {
-    if (url.match(/\.mp4$/)) {
+  createEffect(() => {
+    if (props.mediaFile) {
+      loadMedia(props.mediaFile);
+    } else if (props.mediaUrl) {
+      loadMedia(props.mediaUrl);
+    }
+  });
+
+  async function loadMedia(source: string | File) {
+    const url = typeof source === "string" ? source : source.name;
+    if (
+      url.match(/\.mp4$/) ||
+      (typeof source !== "string" && source.type.startsWith("video"))
+    ) {
       setIsVideo(true);
       if (!ffmpeg.loaded) {
         await ffmpeg.load();
       }
-      const data = await fetchFile(url);
+      let data: Uint8Array;
+      if (typeof source === "string") {
+        data = await fetchFile(source);
+      } else {
+        data = new Uint8Array(await source.arrayBuffer());
+      }
       videoData = data;
       await ffmpeg.writeFile("in.mp4", data);
       await ffmpeg.exec([
@@ -74,7 +95,11 @@ export default function StoryEditor(props: {
       img.onload = drawImage;
     } else {
       setIsVideo(false);
-      img.src = url;
+      if (typeof source === "string") {
+        img.src = source;
+      } else {
+        img.src = URL.createObjectURL(source);
+      }
       img.onload = drawImage;
     }
   }
@@ -98,7 +123,12 @@ export default function StoryEditor(props: {
   function basePointerDown(e: PointerEvent) {
     setDraggingId("base");
     setStartPos([e.clientX, e.clientY]);
-    setDragMode("move");
+    setStartBaseSize([...baseSize()]);
+    const mode = (e.currentTarget as HTMLElement).dataset.mode as
+      | "move"
+      | "resize"
+      | undefined;
+    setDragMode(mode || "move");
   }
 
   function pointerMove(e: PointerEvent) {
@@ -111,9 +141,16 @@ export default function StoryEditor(props: {
     setStartPos([e.clientX, e.clientY]);
     const rect = containerRef.getBoundingClientRect();
     if (id === "base") {
-      const nx = Math.min(Math.max(basePos()[0] + dx / rect.width, 0), 1);
-      const ny = Math.min(Math.max(basePos()[1] + dy / rect.height, 0), 1);
-      setBasePos([nx, ny]);
+      if (mode === "resize") {
+        const sb = startBaseSize() || baseSize();
+        const nw = Math.max(sb[0] + dx / rect.width, 0.2);
+        const nh = Math.max(sb[1] + dy / rect.height, 0.2);
+        setBaseSize([nw, nh]);
+      } else {
+        const nx = Math.min(Math.max(basePos()[0] + dx / rect.width, 0), 1);
+        const ny = Math.min(Math.max(basePos()[1] + dy / rect.height, 0), 1);
+        setBasePos([nx, ny]);
+      }
     } else {
       setOverlays((prev) =>
         prev.map((ov) => {
@@ -153,6 +190,7 @@ export default function StoryEditor(props: {
     setStartPos(null);
     setDragMode(null);
     setStartBBox(null);
+    setStartBaseSize(null);
   }
 
   function drawImage() {
@@ -162,29 +200,46 @@ export default function StoryEditor(props: {
     canvasRef.height = 1280;
     ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
     const [bx, by] = basePos();
+    const [bw, bh] = baseSize();
     ctx.drawImage(
       img,
       bx * canvasRef.width,
       by * canvasRef.height,
-      canvasRef.width,
-      canvasRef.height,
+      canvasRef.width * bw,
+      canvasRef.height * bh,
     );
     ctx.fillStyle = "white";
     ctx.font = "24px sans-serif";
     overlays().forEach((ov) => {
       const x = ov.bbox[0] * canvasRef.width;
       const y = ov.bbox[1] * canvasRef.height;
-      const text = ov.text || ov.kind;
       ctx.save();
       const cx = x + ov.bbox[2] * canvasRef.width / 2;
       const cy = y + ov.bbox[3] * canvasRef.height / 2;
       ctx.translate(cx, cy);
       ctx.rotate(((ov.rotation || 0) * Math.PI) / 180);
-      ctx.fillText(
-        text,
-        -ov.bbox[2] * canvasRef.width / 2,
-        ov.bbox[3] * canvasRef.height / 2,
-      );
+      if (ov.kind === "image" && ov.src) {
+        const imgEl = new Image();
+        imgEl.src = ov.src;
+        if (imgEl.complete) {
+          ctx.drawImage(
+            imgEl,
+            -ov.bbox[2] * canvasRef.width / 2,
+            -ov.bbox[3] * canvasRef.height / 2,
+            ov.bbox[2] * canvasRef.width,
+            ov.bbox[3] * canvasRef.height,
+          );
+        } else {
+          imgEl.onload = () => drawImage();
+        }
+      } else {
+        const text = ov.text || ov.kind;
+        ctx.fillText(
+          text,
+          -ov.bbox[2] * canvasRef.width / 2,
+          ov.bbox[3] * canvasRef.height / 2,
+        );
+      }
       ctx.restore();
     });
   }
@@ -194,6 +249,11 @@ export default function StoryEditor(props: {
     opts?: { text?: string; src?: string },
   ) {
     const id = crypto.randomUUID();
+    if (kind === "image" && opts?.src) {
+      const imgEl = new Image();
+      imgEl.src = opts.src;
+      imgEl.onload = drawImage;
+    }
     setOverlays([
       ...overlays(),
       {
@@ -264,6 +324,11 @@ export default function StoryEditor(props: {
           class="border rounded w-full"
           onPointerDown={basePointerDown}
         />
+        <div
+          class="absolute bottom-0 right-0 w-3 h-3 bg-white cursor-se-resize"
+          data-mode="resize"
+          onPointerDown={basePointerDown}
+        />
         <For each={overlays()}>
           {(ov) => (
             <div
@@ -316,6 +381,29 @@ export default function StoryEditor(props: {
           onClick={() => addOverlay("text", { text: "テキスト" })}
         >
           テキスト
+        </button>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          id="ovFile"
+          class="hidden"
+          onChange={(e) => {
+            const files = (e.currentTarget as HTMLInputElement).files;
+            if (!files) return;
+            for (const file of files) {
+              const url = URL.createObjectURL(file);
+              addOverlay("image", { src: url });
+            }
+            (e.currentTarget as HTMLInputElement).value = "";
+          }}
+        />
+        <button
+          type="button"
+          class="px-2 py-1 bg-yellow-700"
+          onClick={() => document.getElementById("ovFile")!.click()}
+        >
+          画像追加
         </button>
         <button
           type="button"
