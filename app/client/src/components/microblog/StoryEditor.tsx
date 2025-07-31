@@ -1,5 +1,6 @@
 import { createSignal, For, onMount } from "solid-js";
-import { createFFmpeg, fetchFile } from "npm:@ffmpeg/ffmpeg@0.12.15";
+import { FFmpeg } from "npm:@ffmpeg/ffmpeg@0.12.15";
+import { fetchFile } from "npm:@ffmpeg/util@0.12.5";
 
 export interface Overlay {
   id: string;
@@ -20,7 +21,7 @@ export default function StoryEditor(props: {
   const [isVideo, setIsVideo] = createSignal(false);
   let canvasRef: HTMLCanvasElement | undefined;
   const img = new Image();
-  const ffmpeg = createFFmpeg({ log: false });
+  const ffmpeg = new FFmpeg();
   let videoData: Uint8Array | undefined;
 
   onMount(() => {
@@ -31,13 +32,13 @@ export default function StoryEditor(props: {
   async function loadMedia(url: string) {
     if (url.match(/\.mp4$/)) {
       setIsVideo(true);
-      if (!ffmpeg.isLoaded()) {
+      if (!ffmpeg.loaded) {
         await ffmpeg.load();
       }
       const data = await fetchFile(url);
       videoData = data;
-      ffmpeg.FS("writeFile", "in.mp4", data);
-      await ffmpeg.run(
+      await ffmpeg.writeFile("in.mp4", data);
+      await ffmpeg.exec([
         "-i",
         "in.mp4",
         "-frames:v",
@@ -45,8 +46,8 @@ export default function StoryEditor(props: {
         "-vf",
         "scale=720:1280",
         "thumb.png",
-      );
-      const imgData = ffmpeg.FS("readFile", "thumb.png");
+      ]);
+      const imgData = await ffmpeg.readFile("thumb.png");
       const blob = new Blob([imgData.buffer], { type: "image/png" });
       img.src = URL.createObjectURL(blob);
       img.onload = drawImage;
@@ -82,11 +83,11 @@ export default function StoryEditor(props: {
   async function exportMedia(): Promise<{ url: string; overlays: Overlay[] }> {
     if (!canvasRef) return { url: "", overlays: [] };
     if (isVideo()) {
-      if (!ffmpeg.isLoaded()) {
+      if (!ffmpeg.loaded) {
         await ffmpeg.load();
       }
       if (videoData) {
-        ffmpeg.FS("writeFile", "in.mp4", videoData);
+        await ffmpeg.writeFile("in.mp4", videoData);
       }
       const filter = overlays()
         .map((ov) =>
@@ -96,7 +97,7 @@ export default function StoryEditor(props: {
         )
         .join(",");
       const vf = filter ? `scale=720:1280,${filter}` : "scale=720:1280";
-      await ffmpeg.run(
+      await ffmpeg.exec([
         "-i",
         "in.mp4",
         "-vf",
@@ -104,8 +105,8 @@ export default function StoryEditor(props: {
         "-pix_fmt",
         "yuv420p",
         "out.mp4",
-      );
-      const data = ffmpeg.FS("readFile", "out.mp4");
+      ]);
+      const data = await ffmpeg.readFile("out.mp4");
       const blob = new Blob([data.buffer], { type: "video/mp4" });
       const url = URL.createObjectURL(blob);
       props.onExport(url, overlays());
