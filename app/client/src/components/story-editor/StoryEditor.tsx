@@ -14,13 +14,14 @@ export default function StoryEditor(props: Props) {
   const [state, _setState] = createSignal<StoryCanvasState>(
     createInitialState(props.mediaUrl, 1080, 1920),
   );
-  let imageObj: HTMLImageElement;
+  const [imageObj, setImageObj] = createSignal<HTMLImageElement | null>(null);
 
   onMount(() => {
     const img = new globalThis.Image();
+    img.crossOrigin = "anonymous";
     img.src = props.mediaUrl;
     img.onload = () => {
-      imageObj = img;
+      setImageObj(img);
     };
   });
 
@@ -46,8 +47,8 @@ export default function StoryEditor(props: Props) {
             }}
           >
             <Layer>
-              <Show when={imageObj}>
-                <KonvaImage image={imageObj} width={360} height={640} />
+              <Show when={imageObj()}>
+                <KonvaImage image={imageObj()!} width={360} height={640} />
               </Show>
             </Layer>
           </Stage>
