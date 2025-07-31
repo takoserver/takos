@@ -441,6 +441,13 @@ paths:
                   type: string
                 textColor:
                   type: string
+                endTime:
+                  type: string
+                  format: date-time
+                x:overlays:
+                  type: array
+                  items:
+                    type: object
               required:
                 - author
                 - content
@@ -474,6 +481,10 @@ paths:
   /api/stories/cleanup:
     delete:
       summary: 期限切れストーリー削除
+      description: |
+        `endTime` を過ぎたストーリーを検出し `Delete` アクティビティを
+        フォロワーへ配送します。対象オブジェクトは DB 上で `Tombstone`
+        に置き換えられます。
       responses:
         "200":
           description: 削除件数を含むメッセージ

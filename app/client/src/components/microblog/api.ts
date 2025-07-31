@@ -302,6 +302,7 @@ export const createStory = async (
   mediaType?: "image" | "video",
   backgroundColor?: string,
   textColor?: string,
+  overlays?: unknown[],
 ): Promise<boolean> => {
   try {
     const response = await apiFetch("/api/stories", {
@@ -316,6 +317,7 @@ export const createStory = async (
         mediaType,
         backgroundColor,
         textColor,
+        "x:overlays": overlays ?? [],
       }),
     });
     return response.ok;

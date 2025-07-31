@@ -1,6 +1,8 @@
 import { createSignal, For } from "solid-js";
 import type { Story } from "./types.ts";
 import { createStory } from "./api.ts";
+import StoryEditor, { type Overlay } from "./StoryEditor.tsx";
+import { uploadFile } from "../e2ee/api.ts";
 import { UserAvatar } from "./UserAvatar.tsx";
 import { getDomain } from "../../utils/config.ts";
 
@@ -16,6 +18,10 @@ export function StoryTray(props: {
     "#1DA1F2",
   );
   const [storyTextColor, setStoryTextColor] = createSignal("#FFFFFF");
+  const [mediaFile, setMediaFile] = createSignal<File | null>(null);
+  let exportFunc:
+    | (() => Promise<{ url: string; overlays: Overlay[] }>)
+    | null = null;
 
   const storyBackgroundColors = [
     "#1DA1F2",
@@ -34,22 +40,52 @@ export function StoryTray(props: {
     "#000000",
   ];
 
+  function handleFileChange(e: Event) {
+    const file = (e.currentTarget as HTMLInputElement).files?.[0] || null;
+    if (!file) return;
+    setMediaFile(file);
+    setStoryMediaUrl(URL.createObjectURL(file));
+  }
+
   const handleCreateStory = async (e: Event) => {
     e.preventDefault();
     const content = storyContent().trim();
-    if (!content) return;
+    if (!content && !mediaFile()) return;
+
+    let uploadedUrl = storyMediaUrl() || undefined;
+    let overlays: Overlay[] = [];
+    let mtype: "image" | "video" | undefined;
+    if (exportFunc) {
+      const result = await exportFunc();
+      if (result.url) {
+        const resp = await fetch(result.url);
+        const blob = await resp.blob();
+        const buf = await blob.arrayBuffer();
+        const url = await uploadFile({
+          content: buf,
+          mediaType: blob.type,
+          name: mediaFile()?.name,
+        });
+        if (url) uploadedUrl = url;
+        overlays = result.overlays;
+        mtype = blob.type.startsWith("video/") ? "video" : "image";
+      }
+    }
 
     const success = await createStory(
       content,
-      storyMediaUrl() || undefined,
-      undefined,
+      uploadedUrl,
+      mtype,
       storyBackgroundColor(),
       storyTextColor(),
+      overlays,
     );
 
     if (success) {
       setStoryContent("");
       setStoryMediaUrl("");
+      setMediaFile(null);
+      exportFunc = null;
       setShowStoryForm(false);
       props.refetchStories();
     } else {
@@ -171,24 +207,22 @@ export function StoryTray(props: {
             </div>
 
             <form onSubmit={handleCreateStory} class="space-y-4">
-              {/* プレビュー */}
-              <div
-                class="aspect-[9/16] rounded-xl p-4 flex flex-col justify-center items-center text-center relative overflow-hidden"
-                style={`background: ${storyBackgroundColor()}; color: ${storyTextColor()}`}
-              >
-                {storyMediaUrl() && (
-                  <img
-                    src={storyMediaUrl()}
-                    alt=""
-                    class="absolute inset-0 w-full h-full object-cover"
-                  />
-                )}
-                <div class="relative z-10">
-                  <div class="text-lg font-bold mb-2">
-                    {storyContent() || "ここにテキストが表示されます"}
-                  </div>
-                </div>
-              </div>
+              <input
+                type="file"
+                accept="image/*,video/*"
+                onChange={handleFileChange}
+                class="w-full text-sm text-gray-300"
+              />
+              {storyMediaUrl() && (
+                <StoryEditor
+                  mediaUrl={storyMediaUrl()}
+                  mediaFile={mediaFile() || undefined}
+                  onExport={() => {}}
+                  expose={(fn) => {
+                    exportFunc = fn;
+                  }}
+                />
+              )}
 
               {/* テキスト入力 */}
               <textarea
@@ -249,15 +283,6 @@ export function StoryTray(props: {
                   />
                 </div>
               </div>
-
-              {/* メディアURL */}
-              <input
-                type="url"
-                value={storyMediaUrl()}
-                onInput={(e) => setStoryMediaUrl(e.currentTarget.value)}
-                placeholder="画像URLを入力（オプション）"
-                class="w-full bg-gray-800 rounded-lg p-3 text-white placeholder-gray-500 border border-gray-700 focus:border-blue-500 outline-none"
-              />
 
               <div class="flex items-center justify-between">
                 <span class="text-sm text-gray-500">
