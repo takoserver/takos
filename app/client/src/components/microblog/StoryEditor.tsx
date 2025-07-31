@@ -1,6 +1,6 @@
 import { createSignal, For, onMount } from "solid-js";
-import { FFmpeg } from "npm:@ffmpeg/ffmpeg@0.12.15";
-import { fetchFile } from "npm:@ffmpeg/util@0.12.5";
+import { FFmpeg } from "https://esm.sh/@ffmpeg/ffmpeg@0.12.15?target=deno";
+import { fetchFile } from "https://esm.sh/@ffmpeg/util@0.12.2?target=deno";
 
 export interface Overlay {
   id: string;
