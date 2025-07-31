@@ -1,11 +1,10 @@
 import { StoryCanvasState } from "./state.ts";
-import { v4 as uuidv4 } from "npm:uuid";
 
 export function toActivityStreams(
   state: StoryCanvasState,
   blobUrl: string,
 ): Record<string, unknown> {
-  const objectId = uuidv4();
+  const objectId = crypto.randomUUID();
   const overlays = state.semanticOverlays.map((o) => ({
     id: o.id,
     kind: o.kind,
