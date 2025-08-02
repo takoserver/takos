@@ -2,7 +2,8 @@ import { Component, createResource, createSignal, For } from "solid-js";
 import { addRelay, deleteRelay, fetchRelays, Relay } from "./relaysApi.ts";
 
 const RelaySettings: Component = () => {
-  const [relays, { mutate }] = createResource(fetchRelays);
+  const [includeRoot, setIncludeRoot] = createSignal(false);
+  const [relays, { mutate }] = createResource(() => includeRoot(), fetchRelays);
   const [url, setUrl] = createSignal("");
 
   const onAdd = async () => {
@@ -41,6 +42,14 @@ const RelaySettings: Component = () => {
           追加
         </button>
       </div>
+      <label class="flex items-center space-x-1 text-sm">
+        <input
+          type="checkbox"
+          checked={includeRoot()}
+          onChange={(e) => setIncludeRoot(e.currentTarget.checked)}
+        />
+        <span>自ドメインを含める</span>
+      </label>
       <ul class="space-y-1">
         <For each={relays()}>
           {(relay: Relay) => (
