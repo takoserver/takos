@@ -180,12 +180,13 @@ WebSocket では Base64 文字列を、HTTP POST では multipart/form-data の
 ほかのインスタンスと連携するためのリレーサーバーを管理します。
 
 - `GET /api/relays` – 登録済みリレー一覧を取得
+  - `?include_root=1` を付与するとルートドメインのリレーも含めます
 - `POST /api/relays` – `{ "inboxUrl": "https://relay.example/inbox" }`
   を送信して追加
 - `DELETE /api/relays/:id` – リレーを削除
 
 各インスタンスのリストは `relays` コレクションに基づきます。 takos host
-のデフォルトリレーは自動登録されますが、一覧には表示されません。
+のデフォルトリレーは自動登録されますが、通常は一覧に表示されません。
 
 ## アカウント管理 API
 

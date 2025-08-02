@@ -18,9 +18,11 @@ app.use("/relays/*", authRequired);
 app.get("/relays", async (c) => {
   const env = getEnv(c);
   const rootDomain = env["ROOT_DOMAIN"] ?? "";
+  const includeRoot = c.req.query("include_root") === "1" ||
+    c.req.query("include_root") === "true";
   const db = createDB(env);
   const hosts = await db.listRelays();
-  const targets = hosts.filter((h) => h !== rootDomain);
+  const targets = includeRoot ? hosts : hosts.filter((h) => h !== rootDomain);
   const dbService = createDB(env);
   const relays = await dbService.findRelaysByHosts(targets);
   return jsonResponse(c, { relays });

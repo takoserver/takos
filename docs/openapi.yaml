@@ -503,6 +503,12 @@ paths:
   /api/relays:
     get:
       summary: リレー一覧
+      parameters:
+        - name: include_root
+          in: query
+          schema:
+            type: boolean
+          description: ルートドメインのリレーを含めるか
       responses:
         "200":
           description: リレーの配列

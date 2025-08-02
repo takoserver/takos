@@ -5,9 +5,10 @@ export interface Relay {
   inboxUrl: string;
 }
 
-export const fetchRelays = async (): Promise<Relay[]> => {
+export const fetchRelays = async (includeRoot = false): Promise<Relay[]> => {
   try {
-    const res = await apiFetch("/api/relays");
+    const q = includeRoot ? "?include_root=1" : "";
+    const res = await apiFetch(`/api/relays${q}`);
     if (!res.ok) throw new Error("Failed to fetch relays");
     const data = await res.json();
     return Array.isArray(data.relays) ? data.relays : [];
