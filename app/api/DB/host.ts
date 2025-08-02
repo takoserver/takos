@@ -20,6 +20,9 @@ import Tenant from "../models/takos/tenant.ts";
 import Instance from "../../takos_host/models/instance.ts";
 import OAuthClient from "../../takos_host/models/oauth_client.ts";
 import HostDomain from "../../takos_host/models/domain.ts";
+import Note from "../models/takos/note.ts";
+import Video from "../models/takos/video.ts";
+import Message from "../models/takos/message.ts";
 import mongoose from "mongoose";
 import type { DB, ListOpts } from "../../shared/db.ts";
 import type { AccountDoc, RelayDoc, SessionDoc } from "../../shared/types.ts";
@@ -56,30 +59,101 @@ export class MongoDBHost implements DB {
     const type = filter.type as string | undefined;
     const baseFilter = { ...filter };
     delete (baseFilter as Record<string, unknown>).type;
-    const conds: Record<string, unknown>[] = [
-      { ...baseFilter, tenant_id: this.tenantId },
-    ];
-    if (await this.useLocalObjects()) {
-      conds.push({ ...baseFilter, tenant_id: this.rootDomain });
-    }
-    const exec = async (
-      M:
-        | typeof HostNote
-        | typeof HostVideo
-        | typeof HostMessage,
+    const includeLocal = await this.useLocalObjects();
+    // ルートドメインをリレー登録している場合は takos 本体の投稿も取得する
+
+    const sortKey = sort ? Object.keys(sort)[0] : "created_at";
+    const sortOrder = sort ? (sort[sortKey] as number) : -1;
+    const sortFn = (
+      a: Record<string, unknown>,
+      b: Record<string, unknown>,
     ) => {
-      const query = conds.length > 1
-        ? M.find({ $or: conds })
-        : M.find(conds[0]);
-      return await query.limit(limit ?? 20).sort(sort).lean();
+      const av = new Date(a[sortKey] as string | Date | number).getTime();
+      const bv = new Date(b[sortKey] as string | Date | number).getTime();
+      return sortOrder === -1 ? bv - av : av - bv;
     };
-    if (type === "Note") return await exec(HostNote);
-    if (type === "Video") return await exec(HostVideo);
-    if (type === "Message") return await exec(HostMessage);
-    const notes = await exec(HostNote);
-    const videos = await exec(HostVideo);
-    const messages = await exec(HostMessage);
-    return [...notes, ...videos, ...messages];
+    const merge = (
+      ...lists: Record<string, unknown>[][]
+    ): Record<string, unknown>[] => {
+      const combined: Record<string, unknown>[] = [];
+      for (const l of lists) combined.push(...l);
+      return combined.sort(sortFn).slice(0, limit ?? 20);
+    };
+
+    const hostCond = { ...baseFilter, tenant_id: this.tenantId };
+
+    if (type === "Note") {
+      const hostNotes = await HostNote.find(hostCond)
+        .sort(sort)
+        .limit(limit ?? 20)
+        .lean();
+      if (!includeLocal) return hostNotes;
+      const localNotes = await Note.find(baseFilter)
+        .sort(sort)
+        .limit(limit ?? 20)
+        .lean();
+      return merge(hostNotes, localNotes);
+    }
+    if (type === "Video") {
+      const hostVideos = await HostVideo.find(hostCond)
+        .sort(sort)
+        .limit(limit ?? 20)
+        .lean();
+      if (!includeLocal) return hostVideos;
+      const localVideos = await Video.find(baseFilter)
+        .sort(sort)
+        .limit(limit ?? 20)
+        .lean();
+      return merge(hostVideos, localVideos);
+    }
+    if (type === "Message") {
+      const hostMessages = await HostMessage.find(hostCond)
+        .sort(sort)
+        .limit(limit ?? 20)
+        .lean();
+      if (!includeLocal) return hostMessages;
+      const localMessages = await Message.find(baseFilter)
+        .sort(sort)
+        .limit(limit ?? 20)
+        .lean();
+      return merge(hostMessages, localMessages);
+    }
+
+    const hostNotes = await HostNote.find(hostCond)
+      .sort(sort)
+      .limit(limit ?? 20)
+      .lean();
+    const hostVideos = await HostVideo.find(hostCond)
+      .sort(sort)
+      .limit(limit ?? 20)
+      .lean();
+    const hostMessages = await HostMessage.find(hostCond)
+      .sort(sort)
+      .limit(limit ?? 20)
+      .lean();
+    if (!includeLocal) {
+      return merge(hostNotes, hostVideos, hostMessages);
+    }
+    const localNotes = await Note.find(baseFilter)
+      .sort(sort)
+      .limit(limit ?? 20)
+      .lean();
+    const localVideos = await Video.find(baseFilter)
+      .sort(sort)
+      .limit(limit ?? 20)
+      .lean();
+    const localMessages = await Message.find(baseFilter)
+      .sort(sort)
+      .limit(limit ?? 20)
+      .lean();
+    return merge(
+      hostNotes,
+      hostVideos,
+      hostMessages,
+      localNotes,
+      localVideos,
+      localMessages,
+    );
   }
 
   async getObject(id: string) {
@@ -176,7 +250,9 @@ export class MongoDBHost implements DB {
   }
 
   async listAccounts(): Promise<AccountDoc[]> {
-    return await HostAccount.find({}).lean<AccountDoc[]>();
+    return await HostAccount.find({ tenant_id: this.tenantId }).lean<
+      AccountDoc[]
+    >();
   }
 
   async createAccount(data: Record<string, unknown>): Promise<AccountDoc> {
@@ -189,76 +265,106 @@ export class MongoDBHost implements DB {
   }
 
   async findAccountById(id: string): Promise<AccountDoc | null> {
-    return await HostAccount.findOne({ _id: id }).lean<AccountDoc | null>();
+    return await HostAccount.findOne({
+      _id: id,
+      tenant_id: this.tenantId,
+    }).lean<AccountDoc | null>();
   }
 
   async findAccountByUserName(
     username: string,
   ): Promise<AccountDoc | null> {
-    return await HostAccount.findOne({ userName: username }).lean<
-      AccountDoc | null
-    >();
+    return await HostAccount.findOne({
+      userName: username,
+      tenant_id: this.tenantId,
+    }).lean<AccountDoc | null>();
   }
 
   async updateAccountById(
     id: string,
     update: Record<string, unknown>,
   ): Promise<AccountDoc | null> {
-    return await HostAccount.findOneAndUpdate({ _id: id }, update, {
-      new: true,
-    })
-      .lean<AccountDoc | null>();
+    return await HostAccount.findOneAndUpdate(
+      {
+        _id: id,
+        tenant_id: this.tenantId,
+      },
+      update,
+      { new: true },
+    ).lean<AccountDoc | null>();
   }
 
   async deleteAccountById(id: string) {
-    const res = await HostAccount.findOneAndDelete({ _id: id });
+    const res = await HostAccount.findOneAndDelete({
+      _id: id,
+      tenant_id: this.tenantId,
+    });
     return !!res;
   }
 
   async addFollower(id: string, follower: string) {
-    const acc = await HostAccount.findOneAndUpdate({ _id: id }, {
+    const acc = await HostAccount.findOneAndUpdate({
+      _id: id,
+      tenant_id: this.tenantId,
+    }, {
       $addToSet: { followers: follower },
     }, { new: true });
     return acc?.followers ?? [];
   }
 
   async removeFollower(id: string, follower: string) {
-    const acc = await HostAccount.findOneAndUpdate({ _id: id }, {
+    const acc = await HostAccount.findOneAndUpdate({
+      _id: id,
+      tenant_id: this.tenantId,
+    }, {
       $pull: { followers: follower },
     }, { new: true });
     return acc?.followers ?? [];
   }
 
   async addFollowing(id: string, target: string) {
-    const acc = await HostAccount.findOneAndUpdate({ _id: id }, {
+    const acc = await HostAccount.findOneAndUpdate({
+      _id: id,
+      tenant_id: this.tenantId,
+    }, {
       $addToSet: { following: target },
     }, { new: true });
     return acc?.following ?? [];
   }
 
   async removeFollowing(id: string, target: string) {
-    const acc = await HostAccount.findOneAndUpdate({ _id: id }, {
+    const acc = await HostAccount.findOneAndUpdate({
+      _id: id,
+      tenant_id: this.tenantId,
+    }, {
       $pull: { following: target },
     }, { new: true });
     return acc?.following ?? [];
   }
 
   async listDms(id: string) {
-    const acc = await HostAccount.findOne({ _id: id }).lean<
-      { dms?: string[] } | null
-    >();
+    const acc = await HostAccount.findOne({
+      _id: id,
+      tenant_id: this.tenantId,
+    }).lean<{ dms?: string[] } | null>();
     return acc?.dms ?? [];
   }
 
   async addDm(id: string, target: string) {
-    const acc = await HostAccount.findOneAndUpdate({ _id: id }, {
+    const acc = await HostAccount.findOneAndUpdate({
+      _id: id,
+      tenant_id: this.tenantId,
+    }, {
       $addToSet: { dms: target },
     }, { new: true });
     return acc?.dms ?? [];
   }
 
   async removeDm(id: string, target: string) {
-    const acc = await HostAccount.findOneAndUpdate({ _id: id }, {
+    const acc = await HostAccount.findOneAndUpdate({
+      _id: id,
+      tenant_id: this.tenantId,
+    }, {
       $pull: { dms: target },
     }, { new: true });
     return acc?.dms ?? [];
@@ -602,17 +708,28 @@ export class MongoDBHost implements DB {
   }
 
   async findEncryptedKeyPair(userName: string) {
-    return await HostEncryptedKeyPair.findOne({ userName }).lean();
+    return await HostEncryptedKeyPair.findOne({
+      userName,
+      tenant_id: this.tenantId,
+    }).lean();
   }
 
   async upsertEncryptedKeyPair(userName: string, content: string) {
-    await HostEncryptedKeyPair.findOneAndUpdate({ userName }, { content }, {
-      upsert: true,
-    });
+    await HostEncryptedKeyPair.findOneAndUpdate(
+      {
+        userName,
+        tenant_id: this.tenantId,
+      },
+      { content },
+      { upsert: true },
+    );
   }
 
   async deleteEncryptedKeyPair(userName: string) {
-    await HostEncryptedKeyPair.deleteOne({ userName });
+    await HostEncryptedKeyPair.deleteOne({
+      userName,
+      tenant_id: this.tenantId,
+    });
   }
 
   async listKeyPackages(userName: string) {
