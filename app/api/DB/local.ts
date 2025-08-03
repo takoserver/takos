@@ -130,8 +130,11 @@ export class MongoDBLocal implements DB {
     } catch {
       // actor is not URL
     }
-    const account = await Account.findOne({ userName: name })
-      .lean<{ following?: string[] } | null>();
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    const account = await Account.findOne({
+      userName: name,
+      tenant_id: tenantId,
+    }).lean<{ following?: string[] } | null>();
     const ids = account?.following ?? [];
     if (actor) ids.push(actor);
     // タイムラインには Note のみを表示する
@@ -156,7 +159,8 @@ export class MongoDBLocal implements DB {
   }
 
   async listAccounts(): Promise<AccountDoc[]> {
-    return await Account.find({}).lean<AccountDoc[]>();
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    return await Account.find({ tenant_id: tenantId }).lean<AccountDoc[]>();
   }
 
   async createAccount(data: Record<string, unknown>): Promise<AccountDoc> {
@@ -173,74 +177,116 @@ export class MongoDBLocal implements DB {
   }
 
   async findAccountById(id: string): Promise<AccountDoc | null> {
-    return await Account.findOne({ _id: id }).lean<AccountDoc | null>();
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    return await Account.findOne({ _id: id, tenant_id: tenantId }).lean<
+      AccountDoc | null
+    >();
   }
 
   async findAccountByUserName(
     username: string,
   ): Promise<AccountDoc | null> {
-    return await Account.findOne({ userName: username }).lean<
-      AccountDoc | null
-    >();
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    return await Account.findOne({
+      userName: username,
+      tenant_id: tenantId,
+    }).lean<AccountDoc | null>();
   }
 
   async updateAccountById(
     id: string,
     update: Record<string, unknown>,
   ): Promise<AccountDoc | null> {
-    return await Account.findOneAndUpdate({ _id: id }, update, { new: true })
-      .lean<AccountDoc | null>();
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    return await Account.findOneAndUpdate(
+      {
+        _id: id,
+        tenant_id: tenantId,
+      },
+      update,
+      { new: true },
+    ).lean<AccountDoc | null>();
   }
 
   async deleteAccountById(id: string) {
-    const res = await Account.findOneAndDelete({ _id: id });
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    const res = await Account.findOneAndDelete({
+      _id: id,
+      tenant_id: tenantId,
+    });
     return !!res;
   }
 
   async addFollower(id: string, follower: string) {
-    const acc = await Account.findOneAndUpdate({ _id: id }, {
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    const acc = await Account.findOneAndUpdate({
+      _id: id,
+      tenant_id: tenantId,
+    }, {
       $addToSet: { followers: follower },
     }, { new: true });
     return acc?.followers ?? [];
   }
 
   async removeFollower(id: string, follower: string) {
-    const acc = await Account.findOneAndUpdate({ _id: id }, {
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    const acc = await Account.findOneAndUpdate({
+      _id: id,
+      tenant_id: tenantId,
+    }, {
       $pull: { followers: follower },
     }, { new: true });
     return acc?.followers ?? [];
   }
 
   async addFollowing(id: string, target: string) {
-    const acc = await Account.findOneAndUpdate({ _id: id }, {
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    const acc = await Account.findOneAndUpdate({
+      _id: id,
+      tenant_id: tenantId,
+    }, {
       $addToSet: { following: target },
     }, { new: true });
     return acc?.following ?? [];
   }
 
   async removeFollowing(id: string, target: string) {
-    const acc = await Account.findOneAndUpdate({ _id: id }, {
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    const acc = await Account.findOneAndUpdate({
+      _id: id,
+      tenant_id: tenantId,
+    }, {
       $pull: { following: target },
     }, { new: true });
     return acc?.following ?? [];
   }
 
   async listDms(id: string) {
-    const acc = await Account.findOne({ _id: id }).lean<
-      { dms?: string[] } | null
-    >();
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    const acc = await Account.findOne({
+      _id: id,
+      tenant_id: tenantId,
+    }).lean<{ dms?: string[] } | null>();
     return acc?.dms ?? [];
   }
 
   async addDm(id: string, target: string) {
-    const acc = await Account.findOneAndUpdate({ _id: id }, {
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    const acc = await Account.findOneAndUpdate({
+      _id: id,
+      tenant_id: tenantId,
+    }, {
       $addToSet: { dms: target },
     }, { new: true });
     return acc?.dms ?? [];
   }
 
   async removeDm(id: string, target: string) {
-    const acc = await Account.findOneAndUpdate({ _id: id }, {
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    const acc = await Account.findOneAndUpdate({
+      _id: id,
+      tenant_id: tenantId,
+    }, {
       $pull: { dms: target },
     }, { new: true });
     return acc?.dms ?? [];
@@ -466,13 +512,21 @@ export class MongoDBLocal implements DB {
   }
 
   async addFollowerByName(username: string, follower: string) {
-    await Account.updateOne({ userName: username }, {
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    await Account.updateOne({
+      userName: username,
+      tenant_id: tenantId,
+    }, {
       $addToSet: { followers: follower },
     });
   }
 
   async removeFollowerByName(username: string, follower: string) {
-    await Account.updateOne({ userName: username }, {
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    await Account.updateOne({
+      userName: username,
+      tenant_id: tenantId,
+    }, {
       $pull: { followers: follower },
     });
   }
@@ -481,7 +535,9 @@ export class MongoDBLocal implements DB {
     query: RegExp,
     limit = 20,
   ): Promise<AccountDoc[]> {
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
     return await Account.find({
+      tenant_id: tenantId,
       $or: [{ userName: query }, { displayName: query }],
     })
       .limit(limit)
@@ -492,19 +548,26 @@ export class MongoDBLocal implements DB {
     username: string,
     update: Record<string, unknown>,
   ) {
-    await Account.updateOne({ userName: username }, update);
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    await Account.updateOne({
+      userName: username,
+      tenant_id: tenantId,
+    }, update);
   }
 
   async findAccountsByUserNames(
     usernames: string[],
   ): Promise<AccountDoc[]> {
-    return await Account.find({ userName: { $in: usernames } }).lean<
-      AccountDoc[]
-    >();
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    return await Account.find({
+      userName: { $in: usernames },
+      tenant_id: tenantId,
+    }).lean<AccountDoc[]>();
   }
 
   async countAccounts() {
-    return await Account.countDocuments({});
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    return await Account.countDocuments({ tenant_id: tenantId });
   }
 
   async createEncryptedMessage(data: {
