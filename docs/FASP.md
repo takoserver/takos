@@ -108,8 +108,10 @@
 
 ### 4.3 管理UI
 
-- `/admin/fasps` 画面で登録済みFASPの一覧と公開鍵指紋を表示。
-- 指紋を確認して「承認」を押すと capability 選択が有効になる。
+- `/admin/fasps` 画面で FASP 基本設定（有効化・Base URL・提供 capability
+  のバージョン）を編集できる。
+- 登録済みFASPの一覧と公開鍵指紋を表示し、指紋を確認して「承認」を押すと
+  capability 選択が有効になる。
 - 各 capability には ON/OFF スイッチがあり、切り替え操作に応じて `POST` または
   `DELETE /capabilities/<identifier>/<version>/activation` を送信する。
 

@@ -29,6 +29,7 @@ import placeholder from "./routes/placeholder.ts";
 import trends from "./routes/trends.ts";
 import fasp from "./routes/fasp_registration.ts";
 import faspDiscovery from "./routes/fasp_discovery.ts";
+import faspConfig from "./routes/fasp_config.ts";
 import { fetchOgpData } from "./services/ogp.ts";
 import { serveStatic } from "hono/deno";
 import type { Context } from "hono";
@@ -87,6 +88,7 @@ export async function createTakosApp(env?: Record<string, string>) {
   }
   app.route("/fasp", fasp);
   app.route("/fasp", faspDiscovery);
+  app.route("/fasp", faspConfig);
 
   app.get("/api/ogp", async (c) => {
     const url = c.req.query("url");

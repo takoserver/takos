@@ -778,6 +778,34 @@ paths:
       responses:
         "200":
           description: Mastodon 互換のインスタンス情報
+  /fasp/config:
+    get:
+      summary: FASP 設定取得
+      responses:
+        "200":
+          description: 設定取得
+    put:
+      summary: FASP 設定更新
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                baseUrl:
+                  type: string
+                capabilities:
+                  type: object
+                  additionalProperties:
+                    type: string
+      responses:
+        "204":
+          description: 更新完了
+        "400":
+          description: リクエストエラー
   /fasp/registration:
     post:
       summary: FASP 登録情報受信
