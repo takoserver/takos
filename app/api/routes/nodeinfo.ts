@@ -27,9 +27,6 @@ app.get("/.well-known/nodeinfo", (c) => {
   });
 });
 
-// Mastodon 互換のエイリアス。誤って node-info を参照した場合でも NodeInfo を返す
-app.get("/.well-known/node-info", (c) => c.redirect("/.well-known/nodeinfo"));
-
 app.get("/nodeinfo/2.0", async (c) => {
   const env = getEnv(c);
   const { users, posts, version } = await getNodeStats(env);
@@ -56,9 +53,6 @@ app.get("/nodeinfo/2.0", async (c) => {
     metadata,
   });
 });
-
-// /node-info/2.0 へアクセスされた際は /nodeinfo/2.0 へリダイレクトする
-app.get("/node-info/2.0", (c) => c.redirect("/nodeinfo/2.0"));
 
 app.get("/api/v1/instance", async (c) => {
   const env = getEnv(c);
