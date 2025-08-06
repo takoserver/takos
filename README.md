@@ -34,10 +34,10 @@ MongoDB にはセッション自動削除用の TTL インデックスが必要�
 特に `ACTIVITYPUB_DOMAIN` は Mastodon など外部からアクセスされる公開ドメインを
 設定してください。未設定の場合はリクエストされたホスト名が利用されます。 以前の
 `TENANT_ID` 変数は廃止され、ドメイン名そのものがテナント ID として扱われます。
-リレーサーバーの設定は UI から追加・削除でき、データベースに保存されます。
-登録したリレーとは `Follow` を送っておくことで投稿が inbox に届きます。
-`getEnv(c)` で取得した環境変数を `fetchJson` や `deliverActivityPubObject`
-へ渡すことで マルチテナント環境でも正しいドメインが利用されます。
+FASP の設定はデータベースで管理され、管理UI `/admin/fasps` から登録や capability
+切替を行います。`getEnv(c)` で取得した環境変数を `fetchJson` や
+`deliverActivityPubObject` へ渡すことでマルチテナント環境でも正しいドメインが
+利用されます。
 
 ### 初期設定
 
@@ -130,7 +130,7 @@ ActivityPub 形式の一覧が必要な場合は、`/ap/users/:username/follower
 できます。外部との連携には ActivityPub の `/users/:username/outbox` を利用して
 ください。
 
-- `GET /api/posts` – 公開タイムラインを取得（登録済みリレーからの投稿も含む）
+- `GET /api/posts` – 公開タイムラインを取得
 - `GET /api/posts?timeline=following&actor=URI` –
   フォロー中アクターの投稿のみ取得
 - `POST /api/posts` – 投稿を作成 (`{ "author": "user", "content": "hello" }`)
@@ -175,17 +175,17 @@ ActivityPub の `Video` オブジェクトを利用して動画を投稿でき�
 WebSocket では Base64 文字列を、HTTP POST では multipart/form-data の
 `thumbnail` パートに画像ファイルを送信してください。
 
-## リレー API
+## FASP連携とService Actor配信
 
-ほかのインスタンスと連携するためのリレーサーバーを管理します。
+takos host は Fediverse Auxiliary Service Provider (FASP) と連携するための API
+を `/fasp` に提供し、登録・プロバイダ情報取得・capability 切替および Discovery
+機能
+（`data_sharing`、`trends`、`account_search`）を利用できます。設定はデータベースで
+管理され、管理UI `/admin/fasps` から操作します。
 
-- `GET /api/relays` – 登録済みリレー一覧を取得
-- `POST /api/relays` – `{ "inboxUrl": "https://relay.example/inbox" }`
-  を送信して追加
-- `DELETE /api/relays/:id` – リレーを削除
-
-各インスタンスのリストは `relays` コレクションに基づきます。 takos host
-のデフォルトリレーは自動登録されますが、一覧には表示されません。
+また ActivityPub の Service Actor を `/actor` で公開し、外部サービスはこの Actor
+を フォローすることで投稿やアナウンスを受信できます。詳細は
+[docs/FASP.md](docs/FASP.md) を参照してください。
 
 ## アカウント管理 API
 

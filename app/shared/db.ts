@@ -1,7 +1,14 @@
 import mongoose from "mongoose";
 import type { SortOrder } from "mongoose";
 import type { Db } from "mongodb";
-import type { AccountDoc, RelayDoc, SessionDoc } from "./types.ts";
+import type {
+  AccountDoc,
+  FaspBackfillRequestDoc,
+  FaspConfigDoc,
+  FaspEventSubscriptionDoc,
+  FaspRegistrationDoc,
+  SessionDoc,
+} from "./types.ts";
 
 /** タイムライン取得用オプション */
 export interface ListOpts {
@@ -104,9 +111,6 @@ export interface DB {
   deleteManyObjects(
     filter: Record<string, unknown>,
   ): Promise<{ deletedCount?: number }>;
-  listRelays(): Promise<string[]>;
-  addRelay(relay: string, inboxUrl?: string): Promise<void>;
-  removeRelay(relay: string): Promise<void>;
   addFollowerByName(username: string, follower: string): Promise<void>;
   removeFollowerByName(username: string, follower: string): Promise<void>;
   searchAccounts(query: RegExp, limit?: number): Promise<AccountDoc[]>;
@@ -171,14 +175,62 @@ export interface DB {
     privateKey: string,
     publicKey: string,
   ): Promise<void>;
+  findServiceActorKey(domain: string): Promise<
+    {
+      domain: string;
+      privateKey: string;
+      publicKey: string;
+    } | null
+  >;
+  saveServiceActorKey(
+    domain: string,
+    privateKey: string,
+    publicKey: string,
+  ): Promise<void>;
+  /** FASP設定取得 */
+  findFaspConfig(): Promise<FaspConfigDoc | null>;
+  /** FASP設定保存 */
+  saveFaspConfig(config: FaspConfigDoc): Promise<void>;
+  /** FASP設定削除 */
+  deleteFaspConfig(): Promise<void>;
+  /** FASP 登録情報作成 */
+  createFaspRegistration(
+    reg: FaspRegistrationDoc,
+  ): Promise<FaspRegistrationDoc>;
+  /** 登録済みFASP一覧取得 */
+  listFaspRegistrations(): Promise<FaspRegistrationDoc[]>;
+  /** FASP 登録の承認 */
+  approveFaspRegistration(id: string): Promise<void>;
+  /** server_id で登録情報検索 */
+  findFaspRegistrationByServerId(
+    serverId: string,
+  ): Promise<FaspRegistrationDoc | null>;
+  /** capability 選択を保存 */
+  updateFaspCapability(
+    serverId: string,
+    capability: { id: string; version: string },
+    enabled: boolean,
+  ): Promise<void>;
+  /** イベント購読作成 */
+  createFaspEventSubscription(
+    sub: FaspEventSubscriptionDoc,
+  ): Promise<FaspEventSubscriptionDoc>;
+  /** イベント購読削除 */
+  deleteFaspEventSubscription(id: string): Promise<void>;
+  /** バックフィル要求作成 */
+  createFaspBackfillRequest(
+    req: FaspBackfillRequestDoc,
+  ): Promise<FaspBackfillRequestDoc>;
+  /** バックフィル要求検索 */
+  findFaspBackfillRequestById(
+    id: string,
+  ): Promise<FaspBackfillRequestDoc | null>;
+  /** FASP 登録情報取得 */
+  findFaspRegistration(): Promise<FaspRegistrationDoc | null>;
   registerFcmToken(token: string, userName: string): Promise<void>;
   unregisterFcmToken(token: string): Promise<void>;
   listFcmTokens(): Promise<{ token: string }[]>;
   ensureTenant(id: string, domain: string): Promise<void>;
-  findRelaysByHosts(hosts: string[]): Promise<RelayDoc[]>;
-  findRelayByHost(host: string): Promise<RelayDoc | null>;
-  createRelay(data: { host: string; inboxUrl: string }): Promise<RelayDoc>;
-  deleteRelayById(id: string): Promise<RelayDoc | null>;
   /** インスタンス一覧取得 */
   listInstances(owner: string): Promise<{ host: string }[]>;
   /** インスタンス数取得 */

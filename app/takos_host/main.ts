@@ -205,6 +205,13 @@ if (!isDev && rootDomain) {
   root.use(async (c, next) => {
     const host = getRealHost(c);
     if (host === rootDomain) {
+      if (
+        c.req.path === "/nodeinfo/2.0" ||
+        c.req.path === "/.well-known/nodeinfo"
+      ) {
+        await next();
+        return;
+      }
       await serveStatic({ root: "./client/dist" })(c, next);
     } else {
       await next();

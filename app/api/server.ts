@@ -16,8 +16,8 @@ import dms from "./routes/dms.ts";
 import groups from "./routes/groups.ts";
 import rootInbox from "./routes/root_inbox.ts";
 import nodeinfo from "./routes/nodeinfo.ts";
+import serviceActor from "./routes/service_actor.ts";
 import e2ee from "./routes/e2ee.ts";
-import relays from "./routes/relays.ts";
 import videos, {
   initVideoModule,
   initVideoWebSocket,
@@ -28,6 +28,9 @@ import config from "./routes/config.ts";
 import fcm from "./routes/fcm.ts";
 import placeholder from "./routes/placeholder.ts";
 import trends from "./routes/trends.ts";
+import fasp from "./routes/fasp_registration.ts";
+import faspDiscovery from "./routes/fasp_discovery.ts";
+import faspConfig from "./routes/fasp_config.ts";
 import { fetchOgpData } from "./services/ogp.ts";
 import { serveStatic } from "hono/deno";
 import type { Context } from "hono";
@@ -71,7 +74,6 @@ export async function createTakosApp(env?: Record<string, string>) {
     groups,
     files,
     search,
-    relays,
     users,
     e2ee,
   ];
@@ -81,11 +83,14 @@ export async function createTakosApp(env?: Record<string, string>) {
 
   // ActivityPub ルートは / のみにマウントする
 
-  const rootRoutes = [nodeinfo, activitypub, rootInbox];
+  const rootRoutes = [nodeinfo, activitypub, rootInbox, serviceActor];
   // e2ee ルートは /api のみで提供し、ActivityPub ルートと競合しないようにする
   for (const r of rootRoutes) {
     app.route("/", r);
   }
+  app.route("/fasp", fasp);
+  app.route("/fasp", faspDiscovery);
+  app.route("/fasp", faspConfig);
 
   app.get("/api/ogp", async (c) => {
     const url = c.req.query("url");
