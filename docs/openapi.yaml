@@ -740,6 +740,12 @@ paths:
                 links:
                   - rel: "http://nodeinfo.diaspora.software/ns/schema/2.0"
                     href: "https://example.com/nodeinfo/2.0"
+  /.well-known/node-info:
+    get:
+      summary: NodeInfo リンク取得エイリアス
+      responses:
+        "302":
+          description: /.well-known/nodeinfo へリダイレクト
   /nodeinfo/2.0:
     get:
       summary: NodeInfo 2.0
@@ -766,6 +772,12 @@ paths:
                   localPosts: 1
                 metadata:
                   faspBaseUrl: "https://example.com/fasp"
+  /node-info/2.0:
+    get:
+      summary: NodeInfo 2.0 エイリアス
+      responses:
+        "302":
+          description: /nodeinfo/2.0 へリダイレクト
   /.well-known/x-nodeinfo2:
     get:
       summary: NodeInfo2 互換リダイレクト
