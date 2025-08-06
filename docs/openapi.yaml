@@ -500,23 +500,6 @@ paths:
       responses:
         "200":
           description: ユーザー情報の配列
-  /api/relays:
-    get:
-      summary: リレー一覧
-      responses:
-        "200":
-          description: リレーの配列
-    post:
-      summary: リレー追加
-      responses:
-        "201":
-          description: 追加されたリレー
-  /api/relays/{id}:
-    delete:
-      summary: リレー削除
-      responses:
-        "200":
-          description: 成功
   /api/ogp:
     get:
       summary: OGP情報取得
@@ -751,12 +734,38 @@ paths:
       responses:
         "200":
           description: NodeInfo へのリンクを含む JSON
+          content:
+            application/json:
+              example:
+                links:
+                  - rel: "http://nodeinfo.diaspora.software/ns/schema/2.0"
+                    href: "https://example.com/nodeinfo/2.0"
   /nodeinfo/2.0:
     get:
       summary: NodeInfo 2.0
       responses:
         "200":
           description: サーバー情報を返します
+          content:
+            application/json:
+              example:
+                version: "2.0"
+                software:
+                  name: "takos"
+                  version: "1.0.0"
+                protocols: ["activitypub"]
+                services:
+                  inbound: []
+                  outbound: []
+                openRegistrations: false
+                usage:
+                  users:
+                    total: 1
+                    activeMonth: 1
+                    activeHalfyear: 1
+                  localPosts: 1
+                metadata:
+                  faspBaseUrl: "https://example.com/fasp"
   /.well-known/x-nodeinfo2:
     get:
       summary: NodeInfo2 互換リダイレクト
@@ -769,3 +778,148 @@ paths:
       responses:
         "200":
           description: Mastodon 互換のインスタンス情報
+  /fasp/registration:
+    post:
+      summary: FASP 登録情報受信
+      description: FASP から送られる登録データを保存します。
+      responses:
+        "201":
+          description: 登録完了
+        "401":
+          description: 署名または Content-Digest が不正
+  /fasp/provider_info:
+    get:
+      summary: FASP 情報取得
+      description: 提供可能な capability などの情報を返します。
+      responses:
+        "200":
+          description: FASP 情報
+        "404":
+          description: 未設定
+  /fasp/capabilities/{id}/{ver}/activation:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: ver
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: capability 有効化通知
+      responses:
+        "204":
+          description: 受理
+        "401":
+          description: 署名エラー
+    delete:
+      summary: capability 無効化通知
+      responses:
+        "204":
+          description: 受理
+        "401":
+          description: 署名エラー
+  /fasp/data_sharing/v0/event_subscriptions:
+    post:
+      summary: データ共有イベント購読
+      description: FASP からイベント購読を受け付けます。
+      responses:
+        "201":
+          description: 作成
+        "401":
+          description: 署名または Content-Digest が不正
+        "422":
+          description: リクエストエラー
+  /fasp/data_sharing/v0/event_subscriptions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: イベント購読解除
+      responses:
+        "204":
+          description: 解除完了
+        "401":
+          description: 署名エラー
+  /fasp/data_sharing/v0/backfill_requests:
+    post:
+      summary: バックフィル要求
+      responses:
+        "201":
+          description: 作成
+        "401":
+          description: 署名または Content-Digest が不正
+        "422":
+          description: リクエストエラー
+  /fasp/data_sharing/v0/backfill_requests/{id}/continuation:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: バックフィル継続要求
+      responses:
+        "204":
+          description: 受理
+        "401":
+          description: 署名エラー
+        "404":
+          description: 未登録
+  /fasp/data_sharing/v0/announcements:
+    post:
+      summary: データ共有アナウンス受信
+      responses:
+        "204":
+          description: 受理
+        "401":
+          description: 署名エラー
+        "422":
+          description: リクエストエラー
+  /fasp/trends/v0/content:
+    get:
+      summary: FASP トレンドコンテンツ取得
+      parameters:
+        - name: withinLastHours
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: maxCount
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: トレンドデータ
+        "404":
+          description: 未設定
+  /fasp/account_search/v0/search:
+    get:
+      summary: FASP アカウント検索
+      parameters:
+        - name: term
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 検索結果
+        "404":
+          description: 未設定
+        "422":
+          description: パラメータ不足

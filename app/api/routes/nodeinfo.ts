@@ -30,6 +30,13 @@ app.get("/.well-known/nodeinfo", (c) => {
 app.get("/nodeinfo/2.0", async (c) => {
   const env = getEnv(c);
   const { users, posts, version } = await getNodeStats(env);
+  const db = createDB(env);
+  const config = await db.findFaspConfig();
+  const metadata: Record<string, unknown> = {};
+  if (config?.base_url) {
+    // FASP ベースURLは docs/FASP.md 2章の取り決めに従い公開する
+    metadata.faspBaseUrl = config.base_url;
+  }
   return c.json({
     version: "2.0",
     software: {
@@ -43,7 +50,7 @@ app.get("/nodeinfo/2.0", async (c) => {
       users: { total: users, activeMonth: users, activeHalfyear: users },
       localPosts: posts,
     },
-    metadata: {},
+    metadata,
   });
 });
 

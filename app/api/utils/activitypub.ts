@@ -2,6 +2,7 @@ import { createDB } from "../DB/mod.ts";
 import { getEnv } from "../../shared/config.ts";
 import { pemToArrayBuffer } from "../../shared/crypto.ts";
 import { getSystemKey } from "../services/system_actor.ts";
+import { getServiceActorKey } from "../services/service_actor.ts";
 import type { Context } from "hono";
 import { b64ToBuf, bufToB64 } from "../../shared/buffer.ts";
 
@@ -96,9 +97,12 @@ async function signAndSend(
   body: string,
   account: { userName: string; privateKey: string },
   domain: string,
+  actorPath?: string,
 ): Promise<Response> {
   const res = await signAndPost(inboxUrl, body, {
-    id: `https://${domain}/users/${account.userName}`,
+    id: actorPath
+      ? `https://${domain}${actorPath}`
+      : `https://${domain}/users/${account.userName}`,
     privateKey: account.privateKey,
   });
   const responseBody = await res.text();
@@ -119,10 +123,17 @@ export async function sendActivityPubObject(
   env: Record<string, string> = {},
 ): Promise<Response> {
   const body = JSON.stringify(object);
-  let key: { userName: string; privateKey: string };
+  let key: { userName: string; privateKey: string; actorPath?: string };
   if (actor === "system") {
     const sys = await getSystemKey(createDB(env), domain);
     key = { userName: "system", privateKey: sys.privateKey };
+  } else if (actor === "service") {
+    const svc = await getServiceActorKey(createDB(env), domain);
+    key = {
+      userName: "service",
+      privateKey: svc.privateKey,
+      actorPath: "/actor",
+    };
   } else {
     const db = createDB(env);
     const account = await db.findAccountByUserName(actor);
@@ -133,7 +144,7 @@ export async function sendActivityPubObject(
   }
 
   try {
-    return await signAndSend(inboxUrl, body, key, domain);
+    return await signAndSend(inboxUrl, body, key, domain, key.actorPath);
   } catch (err) {
     console.error(`Failed to send ActivityPub object to ${inboxUrl}:`, err);
     throw err;
@@ -147,12 +158,7 @@ export async function deliverActivityPubObject(
   domain: string,
   env: Record<string, string> = {},
 ): Promise<void> {
-  const db = createDB(env);
-  const relayHosts = await db.listRelays();
-  const relayTargets = relayHosts.map((h: string) => `https://${h}/inbox`);
-  const allTargets = [...targets, ...relayTargets];
-
-  const deliveryPromises = allTargets.map(async (addr) => {
+  const deliveryPromises = targets.map(async (addr) => {
     let iri = addr;
     // acct:username@domain または username@domain 形式を解決
     if (!iri.startsWith("http")) {
