@@ -1,0 +1,8 @@
+{
+  "tasks": {
+    "dev": "deno task --cwd ../../takos_host/ dev --env C:\\Users\\shout\\Desktop\\temp\\takos\\app\\dev\\host2\\.hostsEnv"
+  },
+  "imports": {
+    "zod": "npm:zod@^4.0.14"
+  }
+}
