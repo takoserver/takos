@@ -787,6 +787,24 @@ paths:
           description: 登録完了
         "401":
           description: 署名または Content-Digest が不正
+  /fasp/registrations:
+    get:
+      summary: 登録済みFASP一覧
+      responses:
+        "200":
+          description: 一覧取得
+  /fasp/registrations/{id}/approve:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: FASP 登録承認
+      responses:
+        "204":
+          description: 承認完了
   /fasp/provider_info:
     get:
       summary: FASP 情報取得

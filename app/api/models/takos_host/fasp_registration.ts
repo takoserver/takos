@@ -12,6 +12,7 @@ const faspRegistrationSchema = new mongoose.Schema({
   public_key: { type: String },
   private_key: { type: String },
   our_public_key: { type: String },
+  approved: { type: Boolean, default: false },
   capabilities: [{ id: String, version: String }],
   tenant_id: { type: String, index: true },
 });

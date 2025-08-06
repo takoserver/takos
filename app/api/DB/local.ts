@@ -756,6 +756,22 @@ export class MongoDBLocal implements DB {
     return doc.toObject();
   }
 
+  /** 登録済みFASP一覧取得 */
+  async listFaspRegistrations(): Promise<FaspRegistrationDoc[]> {
+    const docs = await HostFaspRegistration.find({
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    }).lean<FaspRegistrationDoc[]>();
+    return docs;
+  }
+
+  /** FASP 登録の承認 */
+  async approveFaspRegistration(id: string) {
+    await HostFaspRegistration.updateOne({
+      fasp_id: id,
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    }, { $set: { approved: true } });
+  }
+
   /** server_id で登録情報検索 */
   async findFaspRegistrationByServerId(serverId: string) {
     return await HostFaspRegistration.findOne({

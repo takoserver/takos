@@ -186,6 +186,10 @@ export interface DB {
   createFaspRegistration(
     reg: FaspRegistrationDoc,
   ): Promise<FaspRegistrationDoc>;
+  /** 登録済みFASP一覧取得 */
+  listFaspRegistrations(): Promise<FaspRegistrationDoc[]>;
+  /** FASP 登録の承認 */
+  approveFaspRegistration(id: string): Promise<void>;
   /** server_id で登録情報検索 */
   findFaspRegistrationByServerId(
     serverId: string,

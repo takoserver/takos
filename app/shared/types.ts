@@ -40,6 +40,7 @@ export interface FaspRegistrationDoc {
   public_key: string;
   private_key: string;
   our_public_key: string;
+  approved: boolean;
   capabilities: { id: string; version: string }[];
 }
 

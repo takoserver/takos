@@ -23,6 +23,23 @@ const registrationSchema = z.object({
   publicKey: z.string(),
 });
 
+// 管理者用：登録済みFASP一覧
+app.get("/registrations", async (c) => {
+  const env = getEnv(c);
+  const db = createDB(env);
+  const regs = await db.listFaspRegistrations();
+  return c.json({ registrations: regs });
+});
+
+// 管理者用：登録承認
+app.post("/registrations/:id/approve", async (c) => {
+  const env = getEnv(c);
+  const db = createDB(env);
+  const id = c.req.param("id");
+  await db.approveFaspRegistration(id);
+  return c.body(null, 204);
+});
+
 // FASP -> takos: 登録情報送信
 app.post("/registration", async (c) => {
   const env = getEnv(c);
@@ -74,6 +91,7 @@ app.post("/registration", async (c) => {
     public_key: parsed.data.publicKey,
     private_key: priv,
     our_public_key: pub,
+    approved: false,
     capabilities: [],
   });
   const completion = `https://${

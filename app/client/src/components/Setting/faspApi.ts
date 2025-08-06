@@ -14,7 +14,7 @@ export interface ProviderInfo {
 
 export async function fetchRegistrations(): Promise<FaspRegistrationDoc[]> {
   try {
-    const res = await apiFetch("/api/fasp/registrations");
+    const res = await apiFetch("/fasp/registrations");
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data.registrations) ? data.registrations : [];
@@ -26,7 +26,7 @@ export async function fetchRegistrations(): Promise<FaspRegistrationDoc[]> {
 
 export async function approveRegistration(id: string): Promise<boolean> {
   try {
-    const res = await apiFetch(`/api/fasp/registrations/${id}/approve`, {
+    const res = await apiFetch(`/fasp/registrations/${id}/approve`, {
       method: "POST",
     });
     return res.ok;
