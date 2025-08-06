@@ -17,6 +17,7 @@
     **account\_search** 対応。
   - takos host の **Service
     Actor**（ActivityStreamsの`Service`/`Application`）を公開し、**フォロー/Accept/配信**を行う。
+  - 詳細仕様は `docs/fasp/general/v0.1/` および `docs/fasp/discovery/` を参照。
 
 ---
 
@@ -104,6 +105,15 @@
 - takos → FASP：`GET /provider_info` で capabilities を取得し、管理UIでON/OFF。
 - ON時：takos →
   FASP：`POST /capabilities/<identifier>/<version>/activation`。OFF時：`DELETE`。
+
+### 4.3 管理UI
+
+- `/admin/fasps` 画面で FASP 基本設定（有効化・Base URL・提供 capability
+  のバージョン）を編集できる。
+- 登録済みFASPの一覧と公開鍵指紋を表示し、指紋を確認して「承認」を押すと
+  capability 選択が有効になる。
+- 各 capability には ON/OFF スイッチがあり、切り替え操作に応じて `POST` または
+  `DELETE /capabilities/<identifier>/<version>/activation` を送信する。
 
 ---
 
@@ -246,16 +256,24 @@
 
 ### 7.1 設定（例）
 
-```yaml
-fasp:
-  enabled: true
-  base_url: https://{takos-host}/fasp
-  # nodeinfo metadata.faspBaseUrl に反映
-  capabilities:
-    data_sharing: "0.1"
-    trends: "0.1"
-    account_search: "0.1"
+FASP 設定は MongoDB の `fasp_configs`
+コレクションに保存され、管理UIで更新できる。
 
+```json
+{
+  "enabled": true,
+  "base_url": "https://{takos-host}/fasp",
+  "capabilities": {
+    "data_sharing": "0.1",
+    "trends": "0.1",
+    "account_search": "0.1"
+  }
+}
+```
+
+Service Actor 配信設定の例:
+
+```yaml
 service_actor:
   enabled: true
   actor_url: https://{takos-host}/actor
@@ -270,11 +288,12 @@ service_actor:
 ### 7.2 takos サーバAPI（FASPから呼ばれる）
 
 - `POST /registration`
-- `GET /admin/fasps`（UI）
+- `GET /provider_info`
 - `POST /data_sharing/v0/event_subscriptions`
 - `DELETE /data_sharing/v0/event_subscriptions/{id}`
 - `POST /data_sharing/v0/backfill_requests`
 - `POST /data_sharing/v0/backfill_requests/{id}/continuation`
+- `POST /data_sharing/v0/announcements`
 
 （認証：RFC9421、`Content-Digest` 必須）
 
@@ -285,6 +304,9 @@ service_actor:
 - `POST /data_sharing/v0/announcements`
 - `GET /trends/v0/content|hashtags|links`
 - `GET /account_search/v0/search`
+
+各エンドポイントの詳細仕様は `docs/fasp/general/v0.1/` および
+`docs/fasp/discovery/` 配下のドキュメントを参照。
 
 ### 7.4 Nodeinfo 例
 
@@ -348,6 +370,12 @@ FASP の Service Actor 配信へ移行するため、takos host
 - `hostrelays` など takos host 専用のコレクションは参照されなくなる。
 - 必要な情報があればバックアップして Service Actor
   側へ移行した後、コレクションを削除する。不要であればそのまま破棄してよい。
+
+### Service Actor 利用手順
+
+- 外部サービスは `https://{takos-host}/actor`
+  をフォローすることで投稿やアナウンスを受信できる。
+- 配信仕様は本書第6章の Service Actor 仕様に従う。
 
 ### ドキュメントの更新
 

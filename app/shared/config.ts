@@ -1,6 +1,8 @@
 import { load } from "@std/dotenv";
 import { z } from "zod";
 import type { Context, Hono } from "hono";
+import type { DB } from "./db.ts";
+import type { FaspConfigDoc } from "./types.ts";
 
 const cachedEnv = new Map<string | undefined, Record<string, string>>();
 const envMap = new WeakMap<Hono, Record<string, string>>();
@@ -53,4 +55,12 @@ export function getEnv(target: Hono | Context): Record<string, string> {
     ) as Record<string, string> ?? {};
   }
   return envMap.get(target as Hono) ?? {};
+}
+
+/** DB から FASP 設定を取得する。
+ * docs/FASP.md 7.1 の構造を参照し、環境変数ではなく DB に保存された設定を用いる。
+ * capabilities の形式は FASP General provider_info に準拠する。
+ */
+export async function loadFaspConfig(db: DB): Promise<FaspConfigDoc | null> {
+  return await db.findFaspConfig();
 }

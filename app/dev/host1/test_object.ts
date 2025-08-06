@@ -1,7 +1,7 @@
-import { loadConfig } from "../shared/config.ts";
-import { connectDatabase } from "../shared/db.ts";
-import { createDB } from "../api/DB/mod.ts";
-import { createObjectId } from "../api/utils/activitypub.ts";
+import { loadConfig } from "../../shared/config.ts";
+import { connectDatabase } from "../../shared/db.ts";
+import { createDB } from "../../api/DB/mod.ts";
+import { createObjectId } from "../../api/utils/activitypub.ts";
 
 // Takos Host 用のテストオブジェクトを複数追加するスクリプト
 // app/takos_host/.env を読み込み、ホスト用 MongoDB に接続します

@@ -11,18 +11,29 @@ import KeyPackage from "../models/takos/key_package.ts";
 import Notification from "../models/takos/notification.ts";
 import PublicMessage from "../models/takos/public_message.ts";
 import SystemKey from "../models/takos/system_key.ts";
-import Relay from "../models/takos/relay.ts";
+import ServiceActorKey from "../models/takos/service_actor_key.ts";
 import RemoteActor from "../models/takos/remote_actor.ts";
 import Session from "../models/takos/session.ts";
 import FcmToken from "../models/takos/fcm_token.ts";
 import HostFcmToken from "../models/takos_host/fcm_token.ts";
+import HostFaspConfig from "../models/takos_host/fasp_config.ts";
+import HostFaspRegistration from "../models/takos_host/fasp_registration.ts";
+import HostFaspEventSubscription from "../models/takos_host/fasp_event_subscription.ts";
+import HostFaspBackfillRequest from "../models/takos_host/fasp_backfill_request.ts";
 import Instance from "../../takos_host/models/instance.ts";
 import OAuthClient from "../../takos_host/models/oauth_client.ts";
 import HostDomain from "../../takos_host/models/domain.ts";
 import Tenant from "../models/takos/tenant.ts";
 import mongoose from "mongoose";
 import type { DB, ListOpts } from "../../shared/db.ts";
-import type { AccountDoc, RelayDoc, SessionDoc } from "../../shared/types.ts";
+import type {
+  AccountDoc,
+  FaspBackfillRequestDoc,
+  FaspConfigDoc,
+  FaspEventSubscriptionDoc,
+  FaspRegistrationDoc,
+  SessionDoc,
+} from "../../shared/types.ts";
 import type { SortOrder } from "mongoose";
 import type { Db } from "mongodb";
 import { connectDatabase } from "../../shared/db.ts";
@@ -470,25 +481,6 @@ export class MongoDBLocal implements DB {
     }
     return { deletedCount: 0 };
   }
-
-  async listRelays() {
-    const docs = await Relay.find({}).lean<{ host: string }[]>();
-    return docs.map((d) => d.host);
-  }
-
-  async addRelay(relay: string, inboxUrl?: string) {
-    const url = inboxUrl ?? `https://${relay}/inbox`;
-    await Relay.updateOne(
-      { host: relay },
-      { $set: { inboxUrl: url }, $setOnInsert: { since: new Date() } },
-      { upsert: true },
-    );
-  }
-
-  async removeRelay(relay: string) {
-    await Relay.deleteOne({ host: relay });
-  }
-
   async addFollowerByName(username: string, follower: string) {
     await Account.updateOne({ userName: username }, {
       $addToSet: { followers: follower },
@@ -699,43 +691,6 @@ export class MongoDBLocal implements DB {
     return !!res;
   }
 
-  async findRelaysByHosts(hosts: string[]): Promise<RelayDoc[]> {
-    const docs = await Relay.find({ host: { $in: hosts } }).lean<
-      { _id: mongoose.Types.ObjectId; host: string; inboxUrl: string }[]
-    >();
-    return docs.map((d) => ({
-      _id: String(d._id),
-      host: d.host,
-      inboxUrl: d.inboxUrl,
-    }));
-  }
-
-  async findRelayByHost(host: string): Promise<RelayDoc | null> {
-    const doc = await Relay.findOne({ host }).lean<
-      { _id: mongoose.Types.ObjectId; host: string; inboxUrl: string } | null
-    >();
-    return doc
-      ? { _id: String(doc._id), host: doc.host, inboxUrl: doc.inboxUrl }
-      : null;
-  }
-
-  async createRelay(
-    data: { host: string; inboxUrl: string },
-  ): Promise<RelayDoc> {
-    const doc = new Relay({ host: data.host, inboxUrl: data.inboxUrl });
-    await doc.save();
-    return { _id: String(doc._id), host: doc.host, inboxUrl: doc.inboxUrl };
-  }
-
-  async deleteRelayById(id: string): Promise<RelayDoc | null> {
-    const doc = await Relay.findByIdAndDelete(id).lean<
-      { _id: mongoose.Types.ObjectId; host: string; inboxUrl: string } | null
-    >();
-    return doc
-      ? { _id: String(doc._id), host: doc.host, inboxUrl: doc.inboxUrl }
-      : null;
-  }
-
   async findRemoteActorByUrl(url: string) {
     return await RemoteActor.findOne({ actorUrl: url }).lean();
   }
@@ -776,6 +731,130 @@ export class MongoDBLocal implements DB {
     publicKey: string,
   ) {
     await SystemKey.create({ domain, privateKey, publicKey });
+  }
+
+  async findServiceActorKey(domain: string) {
+    return await ServiceActorKey.findOne({ domain }).lean<
+      { domain: string; privateKey: string; publicKey: string } | null
+    >();
+  }
+
+  async saveServiceActorKey(
+    domain: string,
+    privateKey: string,
+    publicKey: string,
+  ) {
+    await ServiceActorKey.create({ domain, privateKey, publicKey });
+  }
+
+  /** FASP設定取得 */
+  async findFaspConfig(): Promise<FaspConfigDoc | null> {
+    return await HostFaspConfig.findOne({
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    }).lean<FaspConfigDoc | null>();
+  }
+
+  /** FASP設定保存 */
+  async saveFaspConfig(config: FaspConfigDoc) {
+    await HostFaspConfig.updateOne(
+      { tenant_id: this.env["ACTIVITYPUB_DOMAIN"] },
+      { $set: config },
+      { upsert: true },
+    );
+  }
+
+  /** FASP設定削除 */
+  async deleteFaspConfig() {
+    await HostFaspConfig.deleteOne({
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    });
+  }
+
+  /** FASP 登録情報作成 */
+  async createFaspRegistration(reg: FaspRegistrationDoc) {
+    const doc = new HostFaspRegistration({
+      ...reg,
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    });
+    await doc.save();
+    return doc.toObject();
+  }
+
+  /** 登録済みFASP一覧取得 */
+  async listFaspRegistrations(): Promise<FaspRegistrationDoc[]> {
+    const docs = await HostFaspRegistration.find({
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    }).lean<FaspRegistrationDoc[]>();
+    return docs;
+  }
+
+  /** FASP 登録の承認 */
+  async approveFaspRegistration(id: string) {
+    await HostFaspRegistration.updateOne({
+      fasp_id: id,
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    }, { $set: { approved: true } });
+  }
+
+  /** server_id で登録情報検索 */
+  async findFaspRegistrationByServerId(serverId: string) {
+    return await HostFaspRegistration.findOne({
+      server_id: serverId,
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    }).lean<FaspRegistrationDoc | null>();
+  }
+
+  /** capability 選択の更新 */
+  async updateFaspCapability(
+    serverId: string,
+    capability: { id: string; version: string },
+    enabled: boolean,
+  ) {
+    const update = enabled
+      ? { $addToSet: { capabilities: capability } }
+      : { $pull: { capabilities: capability } };
+    await HostFaspRegistration.updateOne({
+      server_id: serverId,
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    }, update);
+  }
+
+  async createFaspEventSubscription(sub: FaspEventSubscriptionDoc) {
+    const doc = new HostFaspEventSubscription({
+      ...sub,
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    });
+    await doc.save();
+    return doc.toObject();
+  }
+
+  async deleteFaspEventSubscription(id: string) {
+    await HostFaspEventSubscription.deleteOne({
+      _id: id,
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    });
+  }
+
+  async createFaspBackfillRequest(req: FaspBackfillRequestDoc) {
+    const doc = new HostFaspBackfillRequest({
+      ...req,
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    });
+    await doc.save();
+    return doc.toObject();
+  }
+
+  async findFaspBackfillRequestById(id: string) {
+    return await HostFaspBackfillRequest.findOne({
+      _id: id,
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    }).lean<FaspBackfillRequestDoc | null>();
+  }
+
+  async findFaspRegistration() {
+    return await HostFaspRegistration.findOne({
+      tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
+    }).lean<FaspRegistrationDoc | null>();
   }
 
   async registerFcmToken(token: string, userName: string) {
