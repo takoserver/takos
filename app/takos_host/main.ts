@@ -179,12 +179,6 @@ if (isDev) {
         if (res.status !== 404) {
           return res;
         }
-        if (
-          c.req.path === "/nodeinfo/2.0" ||
-          c.req.path === "/.well-known/nodeinfo"
-        ) {
-          return c.text("not found", 404);
-        }
         return await proxyRoot(c, next);
       }
       await next();
@@ -215,7 +209,8 @@ if (!isDev && rootDomain) {
         c.req.path === "/nodeinfo/2.0" ||
         c.req.path === "/.well-known/nodeinfo"
       ) {
-        return c.text("not found", 404);
+        await next();
+        return;
       }
       await serveStatic({ root: "./client/dist" })(c, next);
     } else {

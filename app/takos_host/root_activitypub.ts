@@ -17,12 +17,16 @@ import {
   parseActivityRequest,
   storeCreateActivity,
 } from "../api/utils/inbox.ts";
+import nodeinfo from "../api/routes/nodeinfo.ts";
 export function createRootActivityPubApp(env: Record<string, string>) {
   const app = new Hono();
   app.use("/*", async (c, next) => {
     (c as unknown as { set: (k: string, v: unknown) => void }).set("env", env);
     await next();
   });
+
+  // NodeInfo ルートをマウントしてサーバーメタデータを公開する
+  app.route("/", nodeinfo);
 
   app.get("/.well-known/webfinger", (c) => {
     const resource = c.req.query("resource");
