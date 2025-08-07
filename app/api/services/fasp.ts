@@ -278,8 +278,22 @@ export async function sendAnnouncement(
 }
 
 export async function registerProvider(baseUrl: string, domain: string) {
-  const infoRes = await fetch(new URL("/provider_info", baseUrl));
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    return null;
+  }
+  if (!url.pathname || url.pathname === "/") {
+    url.pathname = "/fasp";
+  } else if (!url.pathname.endsWith("/fasp")) {
+    url.pathname = url.pathname.replace(/\/?$/, "/fasp");
+  }
+  const root = url.toString().replace(/\/$/, "");
+  const infoRes = await fetch(`${root}/provider_info`);
   if (!infoRes.ok) return null;
+  const type = infoRes.headers.get("content-type") ?? "";
+  if (!type.includes("application/json")) return null;
   const info = await infoRes.json() as { name?: string };
   const keyPair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
     "sign",
@@ -300,7 +314,7 @@ export async function registerProvider(baseUrl: string, domain: string) {
     serverId,
     publicKey,
   };
-  const regRes = await fetch(new URL("/registration", baseUrl), {
+  const regRes = await fetch(`${root}/registration`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(registrationBody),
@@ -309,8 +323,8 @@ export async function registerProvider(baseUrl: string, domain: string) {
   const data = await regRes.json() as { faspId: string; publicKey: string };
   const fasp = await Fasp.create({
     _id: data.faspId,
-    name: info.name ?? baseUrl,
-    baseUrl,
+    name: info.name ?? root,
+    baseUrl: root,
     serverId,
     faspPublicKey: data.publicKey,
     publicKey,
