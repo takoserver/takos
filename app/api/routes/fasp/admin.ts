@@ -15,6 +15,41 @@ app.get("/admin/fasps", async (c) => {
   return c.json({ fasps });
 });
 
+app.post("/admin/fasps", async (c) => {
+  const body = await c.req.json();
+  const { name, baseUrl, serverId, publicKey } = body;
+  const keyPair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
+    "sign",
+    "verify",
+  ]) as CryptoKeyPair;
+  const pub = new Uint8Array(
+    await crypto.subtle.exportKey("raw", keyPair.publicKey),
+  );
+  const priv = new Uint8Array(
+    await crypto.subtle.exportKey("pkcs8", keyPair.privateKey),
+  );
+  const myPublic = encodeBase64(pub);
+  const myPrivate = encodeBase64(priv);
+  const id = crypto.randomUUID();
+  const fasp = await Fasp.create({
+    _id: id,
+    name,
+    baseUrl,
+    serverId,
+    faspPublicKey: publicKey,
+    publicKey: myPublic,
+    privateKey: myPrivate,
+    accepted: false,
+  });
+  fasp.communications.push({
+    direction: "in",
+    endpoint: c.req.path,
+    payload: body,
+  });
+  await fasp.save();
+  return c.json({ id, publicKey: myPublic }, 201);
+});
+
 app.post("/admin/fasps/:id/accept", async (c) => {
   const id = c.req.param("id");
   const fasp = await Fasp.findById(id);

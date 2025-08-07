@@ -288,9 +288,14 @@ fasp:
 - `POST /fasp/data_sharing/v0/backfill_requests`
 - `POST /fasp/data_sharing/v0/backfill_requests/{id}/continuation`
 - `POST /fasp/data_sharing/v0/announcements`
+- `POST /admin/fasps`
 - `GET /admin/fasps`
 - `POST /admin/fasps/:id/accept`
 - `DELETE /admin/fasps/:id`
+
+`POST /admin/fasps` は手動で FASP を登録するための管理用エンドポイントです。
+`name`, `baseUrl`, `serverId`, `publicKey` を受け取り、登録された FASP の ID と
+takos 側の公開鍵を返します。
 
 FASPの公開鍵は登録要求に含まれる値をサーバー側で保持します。
 
