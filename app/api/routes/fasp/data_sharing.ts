@@ -6,7 +6,7 @@ import {
 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import { createDB } from "../../DB/mod.ts";
 import Fasp from "../../models/takos/fasp.ts";
-import { getEnv } from "../../shared/config.ts";
+import { getEnv } from "../../../shared/config.ts";
 import { getDomain } from "../../utils/activitypub.ts";
 import { sendAnnouncement } from "../../services/fasp.ts";
 import signResponse from "./utils.ts";
