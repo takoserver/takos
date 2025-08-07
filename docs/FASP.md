@@ -283,10 +283,10 @@ fasp:
 ### 7.2 takos API（FASP登録・管理用）
 
 - `POST /fasp/registration`（FASP登録要求受理）
-- `GET /admin/fasps`（管理UI）
-- `POST /admin/fasps`（FASP サーバー追加）
-- `POST /admin/fasps/{id}/accept`（登録の受理）
-- `DELETE /admin/fasps/{id}`（登録の削除）
+- `GET /api/admin/fasps`（管理UI）
+- `POST /api/admin/fasps`（FASP サーバー追加）
+- `POST /api/admin/fasps/{id}/accept`（登録の受理）
+- `DELETE /api/admin/fasps/{id}`（登録の削除）
 - `POST /fasp/data_sharing/v0/event_subscriptions`
 - `DELETE /fasp/data_sharing/v0/event_subscriptions/{id}`
 - `POST /fasp/data_sharing/v0/backfill_requests`

@@ -81,6 +81,7 @@ export async function createTakosApp(env?: Record<string, string>) {
     relays,
     users,
     e2ee,
+    faspAdmin,
   ];
   for (const r of apiRoutes) {
     app.route("/api", r);
@@ -95,7 +96,6 @@ export async function createTakosApp(env?: Record<string, string>) {
     faspDataSharing,
     faspAccountSearch,
     faspTrends,
-    faspAdmin,
     faspAnnouncements,
   ];
   for (const r of rootRoutes) {
