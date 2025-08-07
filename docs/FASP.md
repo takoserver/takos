@@ -284,7 +284,6 @@ fasp:
 
 - `POST /fasp/registration`（FASP登録要求受理）
 - `GET /admin/fasps`（管理UI）
-- `POST /admin/fasps`（FASP登録情報の追加）
 - `POST /admin/fasps/{id}/accept`（登録の受理）
 - `DELETE /admin/fasps/{id}`（登録の削除）
 - `POST /fasp/data_sharing/v0/event_subscriptions`
@@ -292,6 +291,8 @@ fasp:
 - `POST /fasp/data_sharing/v0/backfill_requests`
 - `POST /fasp/data_sharing/v0/backfill_requests/{id}/continuation`
 - `POST /fasp/data_sharing/v0/announcements`
+
+FASPの公開鍵は登録要求に含まれる値をサーバー側で保持します。管理UIで公開鍵を手動入力する必要はありません。
 
 （認証：RFC9421、`Content-Digest` 必須）
 

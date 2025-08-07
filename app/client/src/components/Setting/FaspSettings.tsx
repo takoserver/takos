@@ -25,10 +25,6 @@ async function fetchFasps(): Promise<FaspItem[]> {
 const FaspSettings: Component = () => {
   const [fasps, { refetch }] = createResource(fetchFasps);
   const [loadingInfo, setLoadingInfo] = createSignal(false);
-  const [name, setName] = createSignal("");
-  const [baseUrl, setBaseUrl] = createSignal("");
-  const [serverId, setServerId] = createSignal("");
-  const [publicKey, setPublicKey] = createSignal("");
 
   const refreshInfo = async () => {
     setLoadingInfo(true);
@@ -63,24 +59,6 @@ const FaspSettings: Component = () => {
     refetch();
   };
 
-  const registerFasp = async () => {
-    await apiFetch("/admin/fasps", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        name: name(),
-        baseUrl: baseUrl(),
-        serverId: serverId(),
-        publicKey: publicKey(),
-      }),
-    });
-    setName("");
-    setBaseUrl("");
-    setServerId("");
-    setPublicKey("");
-    refetch();
-  };
-
   return (
     <div class="space-y-4">
       <div class="flex items-center space-x-2">
@@ -93,42 +71,6 @@ const FaspSettings: Component = () => {
         >
           {loadingInfo() ? "更新中..." : "プロバイダー情報取得"}
         </button>
-      </div>
-      <div class="border rounded p-3 space-y-2">
-        <h4 class="font-medium">FASP 接続</h4>
-        <div class="space-y-1">
-          <input
-            class="w-full border p-1 rounded"
-            placeholder="名前"
-            value={name()}
-            onInput={(e) => setName(e.currentTarget.value)}
-          />
-          <input
-            class="w-full border p-1 rounded"
-            placeholder="Base URL"
-            value={baseUrl()}
-            onInput={(e) => setBaseUrl(e.currentTarget.value)}
-          />
-          <input
-            class="w-full border p-1 rounded"
-            placeholder="Server ID"
-            value={serverId()}
-            onInput={(e) => setServerId(e.currentTarget.value)}
-          />
-          <input
-            class="w-full border p-1 rounded"
-            placeholder="公開鍵(Base64)"
-            value={publicKey()}
-            onInput={(e) => setPublicKey(e.currentTarget.value)}
-          />
-          <button
-            type="button"
-            class="px-2 py-1 bg-blue-500 text-white rounded"
-            onClick={registerFasp}
-          >
-            登録
-          </button>
-        </div>
       </div>
       <For each={fasps()}>
         {(f) => (

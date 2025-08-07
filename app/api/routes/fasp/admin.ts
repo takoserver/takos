@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import { encodeBase64 as b64encode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import authRequired from "../../utils/auth.ts";
 import Fasp from "../../models/takos/fasp.ts";
 import { activateCapability, getProviderInfo } from "../../services/fasp.ts";
@@ -18,42 +17,6 @@ app.use("/admin/*", authRequired);
 app.get("/admin/fasps", async (c) => {
   const fasps = await Fasp.find().lean();
   return c.json({ fasps });
-});
-
-app.post("/admin/fasps", async (c) => {
-  const body = await c.req.json();
-  const { name, baseUrl, serverId, publicKey } = body;
-  if (!name || !baseUrl || !serverId || !publicKey) {
-    return c.json({ error: "invalid body" }, 400);
-  }
-  const keyPair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
-    "sign",
-    "verify",
-  ]) as CryptoKeyPair;
-  const pub = new Uint8Array(
-    await crypto.subtle.exportKey("raw", keyPair.publicKey),
-  );
-  const priv = new Uint8Array(
-    await crypto.subtle.exportKey("pkcs8", keyPair.privateKey),
-  );
-  const faspId = crypto.randomUUID();
-  const fasp = await Fasp.create({
-    _id: faspId,
-    name,
-    baseUrl,
-    serverId,
-    faspPublicKey: publicKey,
-    publicKey: b64encode(pub),
-    privateKey: b64encode(priv),
-    accepted: false,
-  });
-  fasp.communications.push({
-    direction: "in",
-    endpoint: c.req.path,
-    payload: { name, baseUrl, serverId, publicKey },
-  });
-  await fasp.save();
-  return c.json({ ok: true, id: faspId }, 201);
 });
 
 app.get("/admin/fasps/provider_info", async (c) => {
