@@ -120,7 +120,7 @@ app.post("/fasp/registration", async (c) => {
   const env = getEnv(c);
   const domain = env["ROOT_DOMAIN"] ?? "";
   const registrationCompletionUri = domain
-    ? `https://${domain}/admin/fasps`
+    ? `https://${domain}/fasp/registrations`
     : "";
 
   const body = {

@@ -105,13 +105,13 @@
 
    takosは FASP登録要求を保存し、自身の公開鍵と
    `faspId`、`registrationCompletionUri` を返す。
-3. 管理者は takos 管理UIで**指紋（FASP公開鍵のSHA-256
-   Base64）**を確認し、受理/拒否を決定。
+3. 管理者は**指紋（FASP公開鍵のSHA-256 Base64）**を確認し、受理/拒否を決定。
 4. 受理後、能力（capability）選択へ。
 
 ### 4.2 Capability 選択
 
-- takos → FASP：`GET /provider_info` で capabilities を取得し、管理UIでON/OFF。
+- takos → FASP：`GET /provider_info` で capabilities
+  を取得し、必要なものをON/OFF。
 - ON時：takos →
   FASP：`POST /capabilities/<identifier>/<version>/activation`。OFF時：`DELETE`。
 - FASP → takos：capability 有効化通知
@@ -280,20 +280,16 @@ fasp:
         account_search: "0.1"
 ```
 
-### 7.2 takos API（FASP登録・管理用）
+### 7.2 takos API（FASP登録用）
 
 - `POST /fasp/registration`（FASP登録要求受理）
-- `GET /api/admin/fasps`（管理UI）
-- `POST /api/admin/fasps`（FASP サーバー追加）
-- `POST /api/admin/fasps/{id}/accept`（登録の受理）
-- `DELETE /api/admin/fasps/{id}`（登録の削除）
 - `POST /fasp/data_sharing/v0/event_subscriptions`
 - `DELETE /fasp/data_sharing/v0/event_subscriptions/{id}`
 - `POST /fasp/data_sharing/v0/backfill_requests`
 - `POST /fasp/data_sharing/v0/backfill_requests/{id}/continuation`
 - `POST /fasp/data_sharing/v0/announcements`
 
-FASPの公開鍵は登録要求に含まれる値をサーバー側で保持します。管理UIで公開鍵を手動入力する必要はありません。
+FASPの公開鍵は登録要求に含まれる値をサーバー側で保持します。
 
 （認証：RFC9421、`Content-Digest` 必須）
 
