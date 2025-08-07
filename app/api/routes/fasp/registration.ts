@@ -5,7 +5,7 @@ import {
   encodeBase64 as b64encode,
 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import Fasp from "../../models/takos/fasp.ts";
-import { getEnv } from "../../shared/config.ts";
+import { getEnv } from "../../../shared/config.ts";
 
 const schema = z.object({
   name: z.string(),
@@ -83,10 +83,11 @@ app.post("/fasp/registration", async (c) => {
     return c.json({ error: "Invalid Signature" }, 401);
   }
 
+  // Ed25519 鍵ペアを生成 (CryptoKeyPair として扱う)
   const keyPair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
     "sign",
     "verify",
-  ]);
+  ]) as CryptoKeyPair;
   const publicExport = new Uint8Array(
     await crypto.subtle.exportKey("raw", keyPair.publicKey),
   );
