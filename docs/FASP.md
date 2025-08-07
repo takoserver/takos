@@ -284,6 +284,7 @@ fasp:
 
 - `POST /fasp/registration`（FASP登録要求受理）
 - `GET /admin/fasps`（管理UI）
+- `POST /admin/fasps`（FASP サーバー追加）
 - `POST /admin/fasps/{id}/accept`（登録の受理）
 - `DELETE /admin/fasps/{id}`（登録の削除）
 - `POST /fasp/data_sharing/v0/event_subscriptions`

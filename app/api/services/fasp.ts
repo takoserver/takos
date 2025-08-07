@@ -254,3 +254,51 @@ export async function sendAnnouncement(
   );
   return res.ok;
 }
+
+export async function registerProvider(baseUrl: string, domain: string) {
+  const infoRes = await fetch(new URL("/provider_info", baseUrl));
+  if (!infoRes.ok) return null;
+  const info = await infoRes.json() as { name?: string };
+  const keyPair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
+    "sign",
+    "verify",
+  ]) as CryptoKeyPair;
+  const publicBytes = new Uint8Array(
+    await crypto.subtle.exportKey("raw", keyPair.publicKey),
+  );
+  const privateBytes = new Uint8Array(
+    await crypto.subtle.exportKey("pkcs8", keyPair.privateKey),
+  );
+  const publicKey = b64encode(publicBytes);
+  const privateKey = b64encode(privateBytes);
+  const serverId = crypto.randomUUID();
+  const registrationBody = {
+    name: domain,
+    baseUrl: `https://${domain}/fasp`,
+    serverId,
+    publicKey,
+  };
+  const regRes = await fetch(new URL("/registration", baseUrl), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(registrationBody),
+  });
+  if (!regRes.ok) return null;
+  const data = await regRes.json() as { faspId: string; publicKey: string };
+  const fasp = await Fasp.create({
+    _id: data.faspId,
+    name: info.name ?? baseUrl,
+    baseUrl,
+    serverId,
+    faspPublicKey: data.publicKey,
+    publicKey,
+    privateKey,
+    accepted: true,
+  });
+  fasp.communications.push(
+    { direction: "out", endpoint: "/registration", payload: registrationBody },
+    { direction: "in", endpoint: "/registration", payload: data },
+  );
+  await fasp.save();
+  return fasp;
+}

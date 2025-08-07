@@ -1,7 +1,12 @@
 import { Hono } from "hono";
 import authRequired from "../../utils/auth.ts";
 import Fasp from "../../models/takos/fasp.ts";
-import { activateCapability, getProviderInfo } from "../../services/fasp.ts";
+import {
+  activateCapability,
+  getProviderInfo,
+  registerProvider,
+} from "../../services/fasp.ts";
+import { getDomain } from "../../utils/activitypub.ts";
 
 async function publicKeyFingerprint(pubKey: string): Promise<string> {
   const data = new TextEncoder().encode(pubKey);
@@ -13,6 +18,15 @@ async function publicKeyFingerprint(pubKey: string): Promise<string> {
 
 const app = new Hono();
 app.use("/admin/*", authRequired);
+
+app.post("/admin/fasps", async (c) => {
+  const { baseUrl } = await c.req.json() as { baseUrl?: string };
+  if (!baseUrl) return c.json({ error: "baseUrl required" }, 400);
+  const domain = getDomain(c);
+  const fasp = await registerProvider(baseUrl, domain);
+  if (!fasp) return c.json({ error: "registration failed" }, 400);
+  return c.json({ ok: true, id: fasp._id });
+});
 
 app.get("/admin/fasps", async (c) => {
   const fasps = await Fasp.find().lean();

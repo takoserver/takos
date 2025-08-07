@@ -25,6 +25,8 @@ async function fetchFasps(): Promise<FaspItem[]> {
 const FaspSettings: Component = () => {
   const [fasps, { refetch }] = createResource(fetchFasps);
   const [loadingInfo, setLoadingInfo] = createSignal(false);
+  const [newUrl, setNewUrl] = createSignal("");
+  const [adding, setAdding] = createSignal(false);
 
   const refreshInfo = async () => {
     setLoadingInfo(true);
@@ -59,6 +61,22 @@ const FaspSettings: Component = () => {
     refetch();
   };
 
+  const addServer = async () => {
+    if (!newUrl()) return;
+    setAdding(true);
+    try {
+      await apiFetch("/admin/fasps", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ baseUrl: newUrl() }),
+      });
+      setNewUrl("");
+      refetch();
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
     <div class="space-y-4">
       <div class="flex items-center space-x-2">
@@ -70,6 +88,23 @@ const FaspSettings: Component = () => {
           disabled={loadingInfo()}
         >
           {loadingInfo() ? "更新中..." : "プロバイダー情報取得"}
+        </button>
+      </div>
+      <div class="flex space-x-2">
+        <input
+          type="text"
+          class="flex-1 border px-2 py-1 rounded"
+          placeholder="https://fasp.example.com/fasp"
+          value={newUrl()}
+          onInput={(e) => setNewUrl(e.currentTarget.value)}
+        />
+        <button
+          type="button"
+          class="px-2 py-1 bg-blue-500 text-white rounded disabled:opacity-50"
+          onClick={addServer}
+          disabled={adding()}
+        >
+          {adding() ? "追加中..." : "サーバー追加"}
         </button>
       </div>
       <For each={fasps()}>
