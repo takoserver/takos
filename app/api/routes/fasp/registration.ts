@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import {
-  decode as b64decode,
-  encode as b64encode,
+  decodeBase64 as b64decode,
+  encodeBase64 as b64encode,
 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import Fasp from "../../models/takos/fasp.ts";
 import { getEnv } from "../../shared/config.ts";
