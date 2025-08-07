@@ -17,7 +17,30 @@ app.get("/fasp", async (c) => {
 
 app.post("/fasp", async (c) => {
   const body = await c.req.json();
-  const { name, baseUrl, serverId, publicKey } = body;
+  let { baseUrl } = body as { baseUrl: string };
+  try {
+    const u = new URL(baseUrl);
+    if (!u.pathname.endsWith("/fasp")) {
+      u.pathname = u.pathname.replace(/\/$/, "") + "/fasp";
+    }
+    baseUrl = u.toString().replace(/\/$/, "");
+  } catch {
+    return c.json({ error: "invalid baseUrl" }, 400);
+  }
+  const domain = new URL(baseUrl).hostname;
+  let serverId: string;
+  let faspPublicKey: string;
+  try {
+    const res = await fetch(new URL("/provider_info", baseUrl));
+    const info = await res.json();
+    serverId = info.serverId ?? info.server_id ?? "";
+    faspPublicKey = info.publicKey ?? info.public_key ?? "";
+  } catch {
+    return c.json({ error: "failed to fetch provider info" }, 400);
+  }
+  if (!serverId || !faspPublicKey) {
+    return c.json({ error: "provider info missing" }, 400);
+  }
   const keyPair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
     "sign",
     "verify",
@@ -33,10 +56,10 @@ app.post("/fasp", async (c) => {
   const id = crypto.randomUUID();
   const fasp = await Fasp.create({
     _id: id,
-    name,
+    name: domain,
     baseUrl,
     serverId,
-    faspPublicKey: publicKey,
+    faspPublicKey,
     publicKey: myPublic,
     privateKey: myPrivate,
     accepted: false,
@@ -44,7 +67,7 @@ app.post("/fasp", async (c) => {
   fasp.communications.push({
     direction: "in",
     endpoint: c.req.path,
-    payload: body,
+    payload: { baseUrl },
   });
   await fasp.save();
   return c.json({ id, publicKey: myPublic }, 201);

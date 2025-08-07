@@ -10,10 +10,7 @@ interface Fasp {
 
 const FaspSettings = () => {
   const [fasps, setFasps] = createSignal<Fasp[]>([]);
-  const [name, setName] = createSignal("");
   const [baseUrl, setBaseUrl] = createSignal("");
-  const [serverId, setServerId] = createSignal("");
-  const [publicKey, setPublicKey] = createSignal("");
 
   const load = async () => {
     try {
@@ -48,17 +45,9 @@ const FaspSettings = () => {
       await apiFetch("/api/fasp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name(),
-          baseUrl: baseUrl(),
-          serverId: serverId(),
-          publicKey: publicKey(),
-        }),
+        body: JSON.stringify({ baseUrl: baseUrl() }),
       });
-      setName("");
       setBaseUrl("");
-      setServerId("");
-      setPublicKey("");
       await load();
     } catch (err) {
       console.error("add failed", err);
@@ -73,27 +62,9 @@ const FaspSettings = () => {
       <div class="space-y-1">
         <input
           class="w-full border p-1"
-          placeholder="名前"
-          value={name()}
-          onInput={(e) => setName(e.currentTarget.value)}
-        />
-        <input
-          class="w-full border p-1"
           placeholder="Base URL"
           value={baseUrl()}
           onInput={(e) => setBaseUrl(e.currentTarget.value)}
-        />
-        <input
-          class="w-full border p-1"
-          placeholder="Server ID"
-          value={serverId()}
-          onInput={(e) => setServerId(e.currentTarget.value)}
-        />
-        <textarea
-          class="w-full border p-1"
-          placeholder="公開鍵"
-          value={publicKey()}
-          onInput={(e) => setPublicKey(e.currentTarget.value)}
         />
         <button
           type="button"

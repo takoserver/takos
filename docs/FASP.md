@@ -294,10 +294,9 @@ fasp:
 - `DELETE /api/fasp/:id`
 
 `POST /api/fasp` は手動で FASP を登録するための設定用エンドポイントです。
-`name`, `baseUrl`, `serverId`, `publicKey` を受け取り、登録された FASP の ID と
-takos 側の公開鍵を返します。
-
-FASPの公開鍵は登録要求に含まれる値をサーバー側で保持します。
+`baseUrl` のみを受け取り、ドメイン名を名前として保存します。サーバーは
+`/provider_info` を取得して `serverId` と FASP 公開鍵を自動的に保持し、
+登録された FASP の ID と takos 側の公開鍵を返します。
 
 （認証：RFC9421、`Content-Digest` 必須）
 
