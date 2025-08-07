@@ -3,7 +3,7 @@ import type { Context } from "hono";
 import {
   decode as b64decode,
   encode as b64encode,
-} from "@std/encoding/base64.ts";
+} from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import Fasp from "../../models/takos/fasp.ts";
 
 const app = new Hono();
