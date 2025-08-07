@@ -165,7 +165,6 @@ const root = new Hono();
 root.route("/auth", authApp);
 root.route("/oauth", oauthApp);
 root.route("/user", consumerApp);
-root.route("/", serviceActorApp);
 if (termsText) {
   root.get("/terms", () =>
     new Response(termsText, {
@@ -181,7 +180,11 @@ if (isDev) {
     root.use(async (c, next) => {
       const host = getRealHost(c);
       if (host === rootDomain) {
-        const res = await rootActivityPubApp.fetch(c.req.raw);
+        let res = await rootActivityPubApp.fetch(c.req.raw);
+        if (res.status !== 404) {
+          return res;
+        }
+        res = await serviceActorApp.fetch(c.req.raw);
         if (res.status !== 404) {
           return res;
         }
@@ -220,8 +223,17 @@ if (!isDev && rootDomain) {
 
 root.all("/*", async (c) => {
   const host = getRealHost(c);
-  if (rootDomain && host === rootDomain && rootActivityPubApp) {
-    return rootActivityPubApp.fetch(c.req.raw);
+  if (rootDomain && host === rootDomain) {
+    if (rootActivityPubApp) {
+      const res = await rootActivityPubApp.fetch(c.req.raw);
+      if (res.status !== 404) {
+        return res;
+      }
+    }
+    const res = await serviceActorApp.fetch(c.req.raw);
+    if (res.status !== 404) {
+      return res;
+    }
   }
   console.log("rootDomain", rootDomain, "host", host);
   const app = await getAppForHost(host);
