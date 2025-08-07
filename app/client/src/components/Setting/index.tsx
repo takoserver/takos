@@ -5,6 +5,7 @@ import {
 } from "../../states/settings.ts";
 import { encryptionKeyState, loginState } from "../../states/session.ts";
 import RelaySettings from "./RelaySettings.tsx";
+import FaspSettings from "./FaspSettings.tsx";
 import { apiFetch } from "../../utils/config.ts";
 import { accounts as accountsAtom } from "../../states/account.ts";
 import { deleteMLSDatabase } from "../e2ee/storage.ts";
@@ -63,6 +64,7 @@ export function Setting(props: SettingProps) {
         </select>
       </div>
       <RelaySettings />
+      <FaspSettings />
       <div class="flex justify-end space-x-2">
         <button
           type="button"
