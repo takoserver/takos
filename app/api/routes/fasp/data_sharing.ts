@@ -5,6 +5,7 @@ import {
   encodeBase64 as b64encode,
 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import Fasp from "../../models/takos/fasp.ts";
+import signResponse from "./utils.ts";
 
 const app = new Hono();
 
@@ -70,7 +71,12 @@ app.post("/fasp/data_sharing/v0/event_subscriptions", async (c) => {
   if (error) return error;
   const body = JSON.parse(new TextDecoder().decode(raw));
   if (!body.category || !body.subscriptionType) {
-    return c.json({ error: "Invalid body" }, 422);
+    return signResponse(
+      { error: "Invalid body" },
+      422,
+      fasp._id,
+      fasp.privateKey,
+    );
   }
   const id = crypto.randomUUID();
   fasp.eventSubscriptions.push({
@@ -84,7 +90,7 @@ app.post("/fasp/data_sharing/v0/event_subscriptions", async (c) => {
     payload: body,
   });
   await fasp.save();
-  return c.json({ subscription: { id } }, 201);
+  return signResponse({ subscription: { id } }, 201, fasp._id, fasp.privateKey);
 });
 
 app.post("/fasp/data_sharing/v0/backfill_requests", async (c) => {
@@ -93,7 +99,12 @@ app.post("/fasp/data_sharing/v0/backfill_requests", async (c) => {
   if (error) return error;
   const body = JSON.parse(new TextDecoder().decode(raw));
   if (!body.category || typeof body.maxCount !== "number") {
-    return c.json({ error: "Invalid body" }, 422);
+    return signResponse(
+      { error: "Invalid body" },
+      422,
+      fasp._id,
+      fasp.privateKey,
+    );
   }
   const id = crypto.randomUUID();
   fasp.backfillRequests.push({
@@ -108,7 +119,12 @@ app.post("/fasp/data_sharing/v0/backfill_requests", async (c) => {
     payload: body,
   });
   await fasp.save();
-  return c.json({ backfillRequest: { id } }, 201);
+  return signResponse(
+    { backfillRequest: { id } },
+    201,
+    fasp._id,
+    fasp.privateKey,
+  );
 });
 
 app.delete("/fasp/data_sharing/v0/event_subscriptions/:id", async (c) => {
@@ -126,7 +142,7 @@ app.delete("/fasp/data_sharing/v0/event_subscriptions/:id", async (c) => {
     payload: null,
   });
   await fasp.save();
-  return c.body(null, 204);
+  return signResponse(null, 204, fasp._id, fasp.privateKey);
 });
 
 app.post(
@@ -139,7 +155,12 @@ app.post(
     const req = (fasp.backfillRequests as { id: string; status: string }[])
       .find((r) => r.id === id);
     if (!req) {
-      return c.json({ error: "Unknown backfill request" }, 404);
+      return signResponse(
+        { error: "Unknown backfill request" },
+        404,
+        fasp._id,
+        fasp.privateKey,
+      );
     }
     req.status = "pending";
     fasp.communications.push({
@@ -148,7 +169,7 @@ app.post(
       payload: null,
     });
     await fasp.save();
-    return c.body(null, 204);
+    return signResponse(null, 204, fasp._id, fasp.privateKey);
   },
 );
 

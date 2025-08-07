@@ -5,6 +5,7 @@ import {
   encodeBase64 as b64encode,
 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import Fasp from "../../models/takos/fasp.ts";
+import signResponse from "./utils.ts";
 
 const app = new Hono();
 
@@ -89,7 +90,7 @@ async function handleActivation(c: Context, enabled: boolean) {
   });
   await fasp.save();
 
-  return c.body(null, 204);
+  return signResponse(null, 204, fasp._id, fasp.privateKey);
 }
 
 app.post(

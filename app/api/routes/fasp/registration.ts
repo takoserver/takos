@@ -6,6 +6,7 @@ import {
 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import Fasp from "../../models/takos/fasp.ts";
 import { getEnv } from "../../../shared/config.ts";
+import signResponse from "./utils.ts";
 
 const schema = z.object({
   name: z.string(),
@@ -122,11 +123,12 @@ app.post("/fasp/registration", async (c) => {
     ? `https://${domain}/admin/fasps`
     : "";
 
-  return c.json({
+  const body = {
     faspId,
     publicKey: myPublic,
     registrationCompletionUri,
-  }, 201);
+  };
+  return signResponse(body, 201, faspId, myPrivate);
 });
 
 export default app;
