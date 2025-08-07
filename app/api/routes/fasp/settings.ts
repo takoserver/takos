@@ -7,15 +7,15 @@ import Fasp from "../../models/takos/fasp.ts";
 import authRequired from "../../utils/auth.ts";
 
 const app = new Hono();
-app.use("/admin/fasps", authRequired);
-app.use("/admin/fasps/*", authRequired);
+app.use("/fasp", authRequired);
+app.use("/fasp/*", authRequired);
 
-app.get("/admin/fasps", async (c) => {
+app.get("/fasp", async (c) => {
   const fasps = await Fasp.find().lean();
   return c.json({ fasps });
 });
 
-app.post("/admin/fasps", async (c) => {
+app.post("/fasp", async (c) => {
   const body = await c.req.json();
   const { name, baseUrl, serverId, publicKey } = body;
   const keyPair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
@@ -50,7 +50,7 @@ app.post("/admin/fasps", async (c) => {
   return c.json({ id, publicKey: myPublic }, 201);
 });
 
-app.post("/admin/fasps/:id/accept", async (c) => {
+app.post("/fasp/:id/accept", async (c) => {
   const id = c.req.param("id");
   const fasp = await Fasp.findById(id);
   if (!fasp) return c.json({ error: "not found" }, 404);
@@ -62,7 +62,7 @@ app.post("/admin/fasps/:id/accept", async (c) => {
   return c.json({ fingerprint });
 });
 
-app.delete("/admin/fasps/:id", async (c) => {
+app.delete("/fasp/:id", async (c) => {
   const id = c.req.param("id");
   await Fasp.findByIdAndDelete(id);
   return c.json({ ok: true });

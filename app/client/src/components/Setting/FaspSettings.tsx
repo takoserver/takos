@@ -17,7 +17,7 @@ const FaspSettings = () => {
 
   const load = async () => {
     try {
-      const res = await apiFetch("/admin/fasps");
+      const res = await apiFetch("/api/fasp");
       const data = (await res.json()) as { fasps: Fasp[] };
       setFasps(data.fasps);
     } catch (err) {
@@ -27,7 +27,7 @@ const FaspSettings = () => {
 
   const accept = async (id: string) => {
     try {
-      await apiFetch(`/admin/fasps/${id}/accept`, { method: "POST" });
+      await apiFetch(`/api/fasp/${id}/accept`, { method: "POST" });
       await load();
     } catch (err) {
       console.error("accept failed", err);
@@ -36,7 +36,7 @@ const FaspSettings = () => {
 
   const remove = async (id: string) => {
     try {
-      await apiFetch(`/admin/fasps/${id}`, { method: "DELETE" });
+      await apiFetch(`/api/fasp/${id}`, { method: "DELETE" });
       await load();
     } catch (err) {
       console.error("delete failed", err);
@@ -45,7 +45,7 @@ const FaspSettings = () => {
 
   const add = async () => {
     try {
-      await apiFetch("/admin/fasps", {
+      await apiFetch("/api/fasp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
