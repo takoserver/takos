@@ -4,11 +4,16 @@ import {
   decodeBase64 as b64decode,
   encodeBase64 as b64encode,
 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
+import { createDB } from "../../DB/mod.ts";
 import Fasp from "../../models/takos/fasp.ts";
+import { getEnv } from "../../shared/config.ts";
+import { getDomain } from "../../utils/activitypub.ts";
+import { sendAnnouncement } from "../../services/fasp.ts";
 import signResponse from "./utils.ts";
 
 const app = new Hono();
 
+// 署名と Content-Digest を検証する
 async function verify(c: Context, rawBody: Uint8Array) {
   const digestHeader = c.req.header("content-digest") ?? "";
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", rawBody));
@@ -65,6 +70,77 @@ async function verify(c: Context, rawBody: Uint8Array) {
   return { fasp };
 }
 
+// 保留中のバックフィル要求を処理してアナウンスを送信する
+async function processBackfillRequests(
+  env: Record<string, string>,
+  domain: string,
+) {
+  const fasp = await Fasp.findOne({ accepted: true }) as unknown as
+    | {
+      _id: string;
+      backfillRequests: {
+        id: string;
+        category: string;
+        maxCount: number;
+        status: string;
+      }[];
+    }
+    | null;
+  if (!fasp) return;
+  const db = createDB(env);
+  for (const req of fasp.backfillRequests) {
+    if (req.status !== "pending") continue;
+    let objectUris: string[] = [];
+    let moreObjectsAvailable = false;
+    if (req.category === "content") {
+      const notes = await db.getPublicNotes(req.maxCount + 1) as Array<{
+        _id: string;
+        aud?: { to?: string[]; cc?: string[] };
+        extra?: { discoverable?: boolean };
+      }>;
+      const filtered = notes.filter((n) => {
+        const isPublic = [
+          ...(n.aud?.to ?? []),
+          ...(n.aud?.cc ?? []),
+        ].includes("https://www.w3.org/ns/activitystreams#Public");
+        const discoverable = Boolean(n.extra?.discoverable);
+        return isPublic && discoverable;
+      });
+      moreObjectsAvailable = filtered.length > req.maxCount;
+      objectUris = filtered.slice(0, req.maxCount).map((n) =>
+        `https://${domain}/objects/${n._id}`
+      );
+    } else if (req.category === "account") {
+      const accounts = await db.listAccounts() as Array<{
+        userName: string;
+        extra?: { discoverable?: boolean; visibility?: string };
+      }>;
+      const filtered = accounts.filter((a) => {
+        const vis = a.extra?.visibility ?? "public";
+        const discoverable = Boolean(a.extra?.discoverable);
+        return vis === "public" && discoverable;
+      });
+      moreObjectsAvailable = filtered.length > req.maxCount;
+      objectUris = filtered.slice(0, req.maxCount).map((a) =>
+        `https://${domain}/users/${a.userName}`
+      );
+    }
+    if (objectUris.length > 0) {
+      await sendAnnouncement(
+        { backfillRequest: { id: req.id } },
+        req.category as "content" | "account",
+        undefined,
+        objectUris,
+        moreObjectsAvailable,
+      );
+    }
+    await Fasp.updateOne(
+      { _id: fasp._id, "backfillRequests.id": req.id },
+      { $set: { "backfillRequests.$.status": "completed" } },
+    );
+  }
+}
+
 app.post("/fasp/data_sharing/v0/event_subscriptions", async (c) => {
   const raw = new Uint8Array(await c.req.arrayBuffer());
   const { fasp, error } = await verify(c, raw);
@@ -119,6 +195,7 @@ app.post("/fasp/data_sharing/v0/backfill_requests", async (c) => {
     payload: body,
   });
   await fasp.save();
+  await processBackfillRequests(getEnv(c), getDomain(c));
   return signResponse(
     { backfillRequest: { id } },
     201,
@@ -169,6 +246,7 @@ app.post(
       payload: null,
     });
     await fasp.save();
+    await processBackfillRequests(getEnv(c), getDomain(c));
     return signResponse(null, 204, fasp._id, fasp.privateKey);
   },
 );
