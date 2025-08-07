@@ -11,6 +11,7 @@ import oauthApp from "./oauth.ts";
 import { serveStatic } from "hono/deno";
 import type { Context } from "hono";
 import { createRootActivityPubApp } from "./root_activitypub.ts";
+import { createServiceActorApp } from "./service_actor.ts";
 import { logger } from "hono/logger";
 import { takosEnv } from "./takos_env.ts";
 import { dirname, fromFileUrl, join } from "@std/path";
@@ -73,6 +74,10 @@ const consumerApp = createConsumerApp(
 );
 const authApp = createAuthApp({ rootDomain, termsRequired: !!termsText });
 const isDev = Deno.env.get("DEV") === "1";
+const serviceActorApp = createServiceActorApp({
+  ...takosEnv,
+  ACTIVITYPUB_DOMAIN: rootDomain,
+});
 
 /**
  * ホスト名部分のみを取り出すユーティリティ
@@ -160,6 +165,7 @@ const root = new Hono();
 root.route("/auth", authApp);
 root.route("/oauth", oauthApp);
 root.route("/user", consumerApp);
+root.route("/", serviceActorApp);
 if (termsText) {
   root.get("/terms", () =>
     new Response(termsText, {

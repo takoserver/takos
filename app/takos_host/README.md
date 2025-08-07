@@ -17,9 +17,8 @@ takos を運用できるようにすることが目的です。
    個別のプロセスを起動・停止するわけではなく、takos と同等の API を共通
    ロジックとして取り込むことで、多数のサーバーが動作しているかのように振る舞う
    だけの構成です。
-3. 各インスタンスはデフォルトで takos.jp
-   のリレーに参加しており、内部的にはリレーに近い仕組みを inbox
-   を介さずに実装します。リレー先は `ROOT_DOMAIN` で指定したドメインになります。
+3. 各インスタンスは takos host の Service Actor をフォローし、
+   公開投稿の通知を受け取ります。
 4. ユーザーは発行されたドメインへアクセスし、OAuth
    認証でログインします。パスワードを設定した場合は `/login`
    からログインできます。
@@ -114,24 +113,3 @@ OAuth ボタンを表示します。
    で待ち受けるには `SERVER_CERT_FILE` と `SERVER_KEY_FILE`
    を指定します。開発モードでは `--unsafely-ignore-certificate-errors`
    を付けて起動することで自己署名証明書などの SSL エラーを無視します。
-
-## CLI 管理ツール
-
-`scripts/host_cli.ts` を使用して takos host を CLI から操作できます。 MongoDB
-へ直接接続してインスタンスを作成・削除するほか、リレーサーバー
-の登録や削除も行えます。`--user` を省略すると管理ユーザー `system`
-として実行されます。
-
-### 使用例
-
-```bash
-deno task host list --user alice
-
-deno task host create --host myapp --password pw --user alice
-
-deno task host relay-list
-
-deno task host relay-add --inbox-url https://relay.example/inbox
-
-deno task host relay-delete --relay-id RELAY_ID
-```

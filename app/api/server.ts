@@ -28,6 +28,13 @@ import config from "./routes/config.ts";
 import fcm from "./routes/fcm.ts";
 import placeholder from "./routes/placeholder.ts";
 import trends from "./routes/trends.ts";
+import faspRegistration from "./routes/fasp/registration.ts";
+import faspCapabilities from "./routes/fasp/capabilities.ts";
+import faspDataSharing from "./routes/fasp/data_sharing.ts";
+import faspAccountSearch from "./routes/fasp/account_search.ts";
+import faspTrends from "./routes/fasp/trends.ts";
+import faspAdmin from "./routes/fasp/admin.ts";
+import faspAnnouncements from "./routes/fasp/announcements.ts";
 import { fetchOgpData } from "./services/ogp.ts";
 import { serveStatic } from "hono/deno";
 import type { Context } from "hono";
@@ -79,10 +86,18 @@ export async function createTakosApp(env?: Record<string, string>) {
     app.route("/api", r);
   }
 
-  // ActivityPub ルートは / のみにマウントする
-
-  const rootRoutes = [nodeinfo, activitypub, rootInbox];
-  // e2ee ルートは /api のみで提供し、ActivityPub ルートと競合しないようにする
+  const rootRoutes = [
+    nodeinfo,
+    activitypub,
+    rootInbox,
+    faspRegistration,
+    faspCapabilities,
+    faspDataSharing,
+    faspAccountSearch,
+    faspTrends,
+    faspAdmin,
+    faspAnnouncements,
+  ];
   for (const r of rootRoutes) {
     app.route("/", r);
   }

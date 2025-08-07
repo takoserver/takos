@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { createDB } from "../DB/mod.ts";
 import { getDomain } from "../utils/activitypub.ts";
 import { getEnv } from "../../shared/config.ts";
+import Fasp from "../models/takos/fasp.ts";
 // NodeInfo は外部から参照されるため認証は不要
 
 const app = new Hono();
@@ -30,6 +31,12 @@ app.get("/.well-known/nodeinfo", (c) => {
 app.get("/nodeinfo/2.0", async (c) => {
   const env = getEnv(c);
   const { users, posts, version } = await getNodeStats(env);
+  const metadata: Record<string, unknown> = {};
+  const fasp = await Fasp.findOne({ accepted: true }).lean();
+  if (fasp) {
+    const domain = getDomain(c);
+    metadata.faspBaseUrl = `https://${domain}/fasp`;
+  }
   return c.json({
     version: "2.0",
     software: {
@@ -43,7 +50,7 @@ app.get("/nodeinfo/2.0", async (c) => {
       users: { total: users, activeMonth: users, activeHalfyear: users },
       localPosts: posts,
     },
-    metadata: {},
+    metadata,
   });
 });
 

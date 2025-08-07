@@ -4,7 +4,8 @@
 
 - **目的**
 
-  - takos に Fediscovery（FASP）クライアント機能を接続し、検索・発見（Discovery）機能を強化。
+  - takos に
+    Fediscovery（FASP）クライアント機能を接続し、検索・発見（Discovery）機能を強化。
   - takos host に **Service Actor**
     を実装し、従来のリレーサーバー代替として「フォロー可能な配信ハブ」を提供。
   - takos host が従来提供していたリレーサーバー機能を廃止し、Service Actor
@@ -12,8 +13,11 @@
 
 - **スコープ**
 
-  - **takos**: FASP **クライアント機能**（プロバイダ情報取得・capability管理・Discovery API呼び出し）の実装。
-  - **takos host**: **Service Actor**（ActivityStreamsの`Service`/`Application`）のみを公開し、**フォロー/Accept/配信**を行う。
+  - **takos**: FASP
+    **クライアント機能**（プロバイダ情報取得・capability管理・Discovery
+    API呼び出し）の実装。
+  - **takos host**: **Service
+    Actor**（ActivityStreamsの`Service`/`Application`）のみを公開し、**フォロー/Accept/配信**を行う。
   - FASP **Discovery**のうち **data\_sharing** / **trends** /
     **account\_search** 対応。
   - 詳細仕様は `docs/fasp/general/v0.1/` および `docs/fasp/discovery/` を参照。
@@ -37,7 +41,9 @@
 - **構成要素**
 
   - **takos Core**：既存アプリケーション。
-  - **takos FASP Client**：FASP クライアント機能（プロバイダ情報取得・capability管理・Discovery API呼び出し）。
+  - **takos FASP Client**：FASP
+    クライアント機能（プロバイダ情報取得・capability管理・Discovery
+    API呼び出し）。
   - **takos host Service Actor**：`https://{takos-host}/actor`
     に公開。inbox/outbox、公開鍵、フォロー受付、配信制御のみ。
   - **FASP（Discovery Provider）**：外部サービス。
@@ -45,13 +51,15 @@
 - **役割分担**
 
   - **takos**: FASP プロバイダとの通信、Discovery API の利用、検索結果の表示。
-  - **takos host**: Service Actor としての配信ハブ機能のみ提供。FASP との直接通信は行わない。
+  - **takos host**: Service Actor としての配信ハブ機能のみ提供。FASP
+    との直接通信は行わない。
 
 - **ベースURLの取り決め**
 
   - takos は `.well-known/nodeinfo` の `metadata.faspBaseUrl` に takos
     側FASPクライアントAPIのベースURLを掲載。例：`"faspBaseUrl": "https://{takos-instance}/fasp"`。
-  - takos host は Service Actor のエンドポイント `https://{takos-host}/actor` のみ提供。
+  - takos host は Service Actor のエンドポイント `https://{takos-host}/actor`
+    のみ提供。
 
 ---
 
@@ -106,6 +114,8 @@
 - takos → FASP：`GET /provider_info` で capabilities を取得し、管理UIでON/OFF。
 - ON時：takos →
   FASP：`POST /capabilities/<identifier>/<version>/activation`。OFF時：`DELETE`。
+- FASP → takos：capability 有効化通知
+  `POST /fasp/capabilities/<id>/<version>/activation`、無効化は `DELETE`。
 
 ---
 
@@ -156,6 +166,14 @@
 - 署名は RFC 9421（必要に応じ
   cavage-12）で、**FASPは「サーバ/インスタンスActor」として署名**（`/actor`に公開鍵）。
 
+takos 側では以下のエンドポイントを実装し、受信した情報を `Fasp` モデルの
+`eventSubscriptions`・`backfillRequests` に保存する。すべての通信は
+`communications` に履歴として記録される。
+
+- `POST /fasp/data_sharing/v0/event_subscriptions`
+- `POST /fasp/data_sharing/v0/backfill_requests`
+- `DELETE /fasp/data_sharing/v0/event_subscriptions/{id}`
+
 ### 5.2 `trends v0.1`（takos クライアント機能）
 
 - **takos → FASP API 呼び出し**
@@ -165,7 +183,11 @@
 - **応答処理**
 
   - `content`: `[{uri, rank}]`（`rank`は1..100、降順）の処理。
-  - ハッシュタグ/リンクは正規化はFASP側裁量、takos側は自サーバ内の既存ロジックと同等に処理。
+- ハッシュタグ/リンクは正規化はFASP側裁量、takos側は自サーバ内の既存ロジックと同等に処理。
+
+takos は `/fasp/trends/*` を通じて FASP の API
+をプロキシし、結果をクライアントへ返す。 呼び出しはサービス層
+`app/api/services/fasp.ts` で署名され、通信履歴が保存される。
 
 ### 5.3 `account_search v0.1`（takos クライアント機能）
 
@@ -174,6 +196,9 @@
 - **応答処理**
   - 200で **Actor URI配列**を受信。`Link: rel="next"` によるページング対応。
   - takosは返却URIをキャッシュし、必要に応じフォロー/プロフィール取得を行う。
+
+クライアントは `/fasp/account_search` から FASP への検索を行い、結果はそのまま
+返却される。呼び出し履歴は `communications` に記録される。
 
 ---
 
@@ -251,7 +276,7 @@ fasp:
       base_url: "https://fasp.example.com"
       capabilities:
         data_sharing: "0.1"
-        trends: "0.1" 
+        trends: "0.1"
         account_search: "0.1"
 ```
 
@@ -259,10 +284,13 @@ fasp:
 
 - `POST /fasp/registration`（FASP登録要求受理）
 - `GET /admin/fasps`（管理UI）
+- `POST /admin/fasps/{id}/accept`（登録の受理）
+- `DELETE /admin/fasps/{id}`（登録の削除）
 - `POST /fasp/data_sharing/v0/event_subscriptions`
 - `DELETE /fasp/data_sharing/v0/event_subscriptions/{id}`
 - `POST /fasp/data_sharing/v0/backfill_requests`
 - `POST /fasp/data_sharing/v0/backfill_requests/{id}/continuation`
+- `POST /fasp/data_sharing/v0/announcements`
 
 （認証：RFC9421、`Content-Digest` 必須）
 
@@ -331,13 +359,16 @@ service_actor:
 ## 10. 実装メモ（最小プロトタイプ）
 
 ### takos host (Service Actor のみ)
+
 - Service Actor 公開（`/actor`）とinbox/outboxの実装。
 - Follow受付・Accept配信の最小フロー。
 
 ### takos (クライアント機能のみ)
+
 - Nodeinfoに `faspBaseUrl` を追加。
 - FASP Registration とCapability有効化の往復。
-- `data_sharing`の event\_subscriptions/backfill 受理・`announcements`送信の最小フロー。
+- `data_sharing`の event\_subscriptions/backfill
+  受理・`announcements`送信の最小フロー。
 - `trends`/`account_search` のクライアント呼び出しとUI表示。
 
 ---
@@ -349,8 +380,7 @@ FASP の Service Actor 配信へ移行するため、takos host
 
 ### API / CLI の更新
 
-- `scripts/host_cli.ts` から `relay-*` コマンドを削除し、takos host
-  でのリレーサーバー運用を停止する。
+- `scripts/host_cli.ts` を削除し、takos host でのリレーサーバー運用を停止する。
 - takos host 専用のリレー関連 API
   やデータモデル（例：`app/api/models/takos_host/relay.ts`）を削除する。
 
@@ -364,6 +394,11 @@ FASP の Service Actor 配信へ移行するため、takos host
 
 - takos host がリレーサーバーとして振る舞う旨を記載しているドキュメントや README
   を更新し、誤解を避ける。
+
+## 12. FASP データ管理とマイグレーション
+
+FASP 登録情報と capability 状態は DB の `Fasp` モデルに保存する。
+初期データ作成と環境変数からの移行手順は `docs/fasp/setup.md` を参照。
 
 ---
 
