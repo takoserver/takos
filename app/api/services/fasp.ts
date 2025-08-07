@@ -75,6 +75,13 @@ async function signedFetch(
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+  const resBody = new Uint8Array(await res.clone().arrayBuffer());
+  const resDigest = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", resBody),
+  );
+  const resDigestB64 = b64encode(resDigest);
+  const digestHeaderRes = res.headers.get("content-digest") ?? "";
+  const digestVerified = digestHeaderRes === `sha-256=:${resDigestB64}:`;
   const sigInputHeader = res.headers.get("signature-input") ?? "";
   const sigHeader = res.headers.get("signature") ?? "";
   let verified = false;
@@ -84,9 +91,19 @@ async function signedFetch(
   const sigMatch = sigHeader.match(/^sig1=:([^:]+):/);
   if (inputMatch && sigMatch) {
     const [, paramStr2, created2, keyId] = inputMatch;
-    const base = new TextEncoder().encode(
-      `"@status": ${res.status}\n"@signature-params": (${paramStr2});created=${created2};keyid="${keyId}"`,
+    const components = paramStr2.split(" ");
+    const lines2: string[] = [];
+    for (const comp of components) {
+      if (comp === '"@status"') {
+        lines2.push(`"@status": ${res.status}`);
+      } else if (comp === '"content-digest"') {
+        lines2.push(`"content-digest": ${digestHeaderRes}`);
+      }
+    }
+    lines2.push(
+      `"@signature-params": (${paramStr2});created=${created2};keyid="${keyId}"`,
     );
+    const base = new TextEncoder().encode(lines2.join("\n"));
     const publicKeyBytes = b64decode(fasp.faspPublicKey);
     const verifyKey = await crypto.subtle.importKey(
       "raw",
@@ -106,11 +123,16 @@ async function signedFetch(
   fasp.communications.push({
     direction: "out",
     endpoint: url.pathname,
-    payload: { request: body ?? null, status: res.status, verified },
+    payload: {
+      request: body ?? null,
+      status: res.status,
+      signatureVerified: verified,
+      digestVerified,
+    },
   });
   await fasp.save();
-  if (!verified) {
-    throw new Error("応答署名の検証に失敗しました");
+  if (!verified || !digestVerified) {
+    throw new Error("応答検証に失敗しました");
   }
   return res;
 }

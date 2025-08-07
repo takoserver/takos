@@ -18,9 +18,7 @@ async function verify(c: Context, rawBody: Uint8Array) {
   const digestHeader = c.req.header("content-digest") ?? "";
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", rawBody));
   const digestB64 = b64encode(digest);
-  if (digestHeader !== `sha-256=:${digestB64}:`) {
-    return { error: c.json({ error: "Invalid Content-Digest" }, 401) };
-  }
+  const digestOk = digestHeader === `sha-256=:${digestB64}:`;
   const sigInput = c.req.header("signature-input") ?? "";
   const signature = c.req.header("signature") ?? "";
   const sigInputMatch = sigInput.match(
@@ -35,6 +33,8 @@ async function verify(c: Context, rawBody: Uint8Array) {
   );
   const created = Number(sigInputMatch[2]);
   const keyId = sigInputMatch[3];
+  const now = Math.floor(Date.now() / 1000);
+  const timeOk = Math.abs(now - created) <= 300;
   const lines: string[] = [];
   for (const comp of components) {
     if (comp === "@method") {
@@ -63,8 +63,25 @@ async function verify(c: Context, rawBody: Uint8Array) {
     false,
     ["verify"],
   );
-  const ok = await crypto.subtle.verify("Ed25519", key, signatureBytes, base);
-  if (!ok) {
+  const sigOk = await crypto.subtle.verify(
+    "Ed25519",
+    key,
+    signatureBytes,
+    base,
+  );
+  fasp.communications.push({
+    direction: "in",
+    endpoint: c.req.path,
+    payload: { digestOk, timeOk, signatureOk: sigOk },
+  });
+  await fasp.save();
+  if (!digestOk) {
+    return { error: c.json({ error: "Invalid Content-Digest" }, 401) };
+  }
+  if (!timeOk) {
+    return { error: c.json({ error: "Invalid Signature" }, 401) };
+  }
+  if (!sigOk) {
     return { error: c.json({ error: "Invalid Signature" }, 401) };
   }
   return { fasp };
