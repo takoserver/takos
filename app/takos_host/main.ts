@@ -176,7 +176,6 @@ if (isDev) {
   root.use("/auth/*", proxy("/auth"));
   root.use("/user/*", proxy("/user"));
   if (rootDomain && rootActivityPubApp) {
-    const proxyRoot = proxy("");
     root.use(async (c, next) => {
       const host = getRealHost(c);
       if (host === rootDomain) {
@@ -188,7 +187,6 @@ if (isDev) {
         if (res.status !== 404) {
           return res;
         }
-        return await proxyRoot(c, next);
       }
       await next();
     });
@@ -208,17 +206,6 @@ if (isDev) {
       rewriteRequestPath: (path) => path.replace(/^\/user/, ""),
     }),
   );
-}
-
-if (!isDev && rootDomain) {
-  root.use(async (c, next) => {
-    const host = getRealHost(c);
-    if (host === rootDomain) {
-      await serveStatic({ root: "./client/dist" })(c, next);
-    } else {
-      await next();
-    }
-  });
 }
 
 root.all("/*", async (c) => {
