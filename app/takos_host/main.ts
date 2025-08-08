@@ -221,8 +221,14 @@ root.all("/*", async (c) => {
     if (res.status !== 404) {
       return res;
     }
+    if (!isDev && notFoundHtml) {
+      return new Response(notFoundHtml, {
+        status: 404,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    }
+    return c.text("not found", 404);
   }
-  console.log("rootDomain", rootDomain, "host", host);
   const app = await getAppForHost(host);
   if (!app) {
     if (!isDev && notFoundHtml) {
