@@ -83,6 +83,13 @@ export async function createTakosApp(env?: Record<string, string>) {
     users,
     e2ee,
     faspSettings,
+    faspRegistration,
+    faspCapabilities,
+    faspDataSharing,
+    faspAccountSearch,
+    faspTrends,
+    faspAnnouncements,
+    faspProviderInfo,
   ];
   for (const r of apiRoutes) {
     app.route("/api", r);
@@ -92,13 +99,6 @@ export async function createTakosApp(env?: Record<string, string>) {
     nodeinfo,
     activitypub,
     rootInbox,
-    faspRegistration,
-    faspCapabilities,
-    faspDataSharing,
-    faspAccountSearch,
-    faspTrends,
-    faspAnnouncements,
-    faspProviderInfo,
   ];
   for (const r of rootRoutes) {
     app.route("/", r);

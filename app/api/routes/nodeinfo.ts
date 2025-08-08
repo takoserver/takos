@@ -32,7 +32,7 @@ app.get("/nodeinfo/2.0", async (c) => {
   const { users, posts, version } = await getNodeStats(env);
   const metadata: Record<string, unknown> = {};
   const domain = getDomain(c);
-  metadata.faspBaseUrl = `https://${domain}/fasp`;
+  metadata.faspBaseUrl = `https://${domain}/api/fasp`;
   return c.json({
     version: "2.0",
     software: {
