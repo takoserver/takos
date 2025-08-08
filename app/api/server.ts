@@ -34,6 +34,7 @@ import faspDataSharing from "./routes/fasp/data_sharing.ts";
 import faspAccountSearch from "./routes/fasp/account_search.ts";
 import faspTrends from "./routes/fasp/trends.ts";
 import faspAnnouncements from "./routes/fasp/announcements.ts";
+import faspProviderInfo from "./routes/fasp/provider_info.ts";
 import faspSettings from "./routes/fasp/settings.ts";
 import { fetchOgpData } from "./services/ogp.ts";
 import { serveStatic } from "hono/deno";
@@ -97,6 +98,7 @@ export async function createTakosApp(env?: Record<string, string>) {
     faspAccountSearch,
     faspTrends,
     faspAnnouncements,
+    faspProviderInfo,
   ];
   for (const r of rootRoutes) {
     app.route("/", r);
