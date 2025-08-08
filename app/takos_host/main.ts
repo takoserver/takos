@@ -173,6 +173,9 @@ if (termsText) {
 }
 
 if (isDev) {
+  root.use("/@vite/*", proxy(""));
+  root.use("/src/*", proxy(""));
+  root.use("/manifest.json", proxy(""));
   root.use("/auth/*", proxy("/auth"));
   root.use("/user/*", proxy("/user"));
   if (rootDomain && rootActivityPubApp) {
