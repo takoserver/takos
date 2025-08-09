@@ -233,7 +233,7 @@ root.all("/*", async (c) => {
         "/oauth",
         "/.well-known",
       ];
-      if (!redirectTargets.some((p) => path.startsWith(p)) && path !== "/") {
+      if (!redirectTargets.some((p) => path.startsWith(p))) {
         return c.redirect(`/user${path}`);
       }
     }
@@ -256,7 +256,7 @@ root.all("/*", async (c) => {
         "/oauth",
         "/.well-known",
       ];
-      if (!redirectTargets.some((p) => path.startsWith(p)) && path !== "/") {
+      if (!redirectTargets.some((p) => path.startsWith(p))) {
         return c.redirect(`/user${path}`);
       }
     }
@@ -281,7 +281,7 @@ root.all("/*", async (c) => {
       "/oauth",
       "/.well-known",
     ];
-    if (!redirectTargets.some((p) => path.startsWith(p)) && path !== "/") {
+    if (!redirectTargets.some((p) => path.startsWith(p))) {
       return c.redirect(`/user${path}`);
     }
   }
