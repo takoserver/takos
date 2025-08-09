@@ -11,6 +11,7 @@ import oauthApp from "./oauth.ts";
 import { serveStatic } from "hono/deno";
 import type { Context } from "hono";
 import { createRootActivityPubApp } from "./root_activitypub.ts";
+import { createServiceActorApp } from "./service_actor.ts";
 import { logger } from "hono/logger";
 import { takosEnv } from "./takos_env.ts";
 import { dirname, fromFileUrl, join } from "@std/path";
@@ -73,6 +74,10 @@ const consumerApp = createConsumerApp(
 );
 const authApp = createAuthApp({ rootDomain, termsRequired: !!termsText });
 const isDev = Deno.env.get("DEV") === "1";
+const serviceActorApp = createServiceActorApp({
+  ...takosEnv,
+  ACTIVITYPUB_DOMAIN: rootDomain,
+});
 
 /**
  * ホスト名部分のみを取り出すユーティリティ
@@ -168,18 +173,23 @@ if (termsText) {
 }
 
 if (isDev) {
+  root.use("/@vite/*", proxy(""));
+  root.use("/src/*", proxy(""));
+  root.use("/manifest.json", proxy(""));
   root.use("/auth/*", proxy("/auth"));
   root.use("/user/*", proxy("/user"));
   if (rootDomain && rootActivityPubApp) {
-    const proxyRoot = proxy("");
     root.use(async (c, next) => {
       const host = getRealHost(c);
       if (host === rootDomain) {
-        const res = await rootActivityPubApp.fetch(c.req.raw);
+        let res = await rootActivityPubApp.fetch(c.req.raw);
         if (res.status !== 404) {
           return res;
         }
-        return await proxyRoot(c, next);
+        res = await serviceActorApp.fetch(c.req.raw);
+        if (res.status !== 404) {
+          return res;
+        }
       }
       await next();
     });
@@ -201,26 +211,33 @@ if (isDev) {
   );
 }
 
-if (!isDev && rootDomain) {
-  root.use(async (c, next) => {
-    const host = getRealHost(c);
-    if (host === rootDomain) {
-      await serveStatic({ root: "./client/dist" })(c, next);
-    } else {
-      await next();
-    }
-  });
-}
-
 root.all("/*", async (c) => {
   const host = getRealHost(c);
-  if (rootDomain && host === rootDomain && rootActivityPubApp) {
-    return rootActivityPubApp.fetch(c.req.raw);
-  }
-  console.log("rootDomain", rootDomain, "host", host);
-  const app = await getAppForHost(host);
-  if (!app) {
-    if (!isDev && notFoundHtml) {
+  if (rootDomain && host === rootDomain) {
+    if (rootActivityPubApp) {
+      const res = await rootActivityPubApp.fetch(c.req.raw);
+      if (res.status !== 404) {
+        return res;
+      }
+    }
+    const res = await serviceActorApp.fetch(c.req.raw);
+    if (res.status !== 404) {
+      return res;
+    }
+    if (c.req.method === "GET" || c.req.method === "HEAD") {
+      const path = c.req.path;
+      const redirectTargets = [
+        "/api",
+        "/fasp",
+        "/auth",
+        "/oauth",
+        "/.well-known",
+      ];
+      if (!redirectTargets.some((p) => path.startsWith(p))) {
+        return c.redirect(`/user${path}`);
+      }
+    }
+    if (notFoundHtml) {
       return new Response(notFoundHtml, {
         status: 404,
         headers: { "content-type": "text/html; charset=utf-8" },
@@ -228,7 +245,47 @@ root.all("/*", async (c) => {
     }
     return c.text("not found", 404);
   }
-  return app.fetch(c.req.raw);
+  const app = await getAppForHost(host);
+  if (!app) {
+    if (c.req.method === "GET" || c.req.method === "HEAD") {
+      const path = c.req.path;
+      const redirectTargets = [
+        "/api",
+        "/fasp",
+        "/auth",
+        "/oauth",
+        "/.well-known",
+      ];
+      if (!redirectTargets.some((p) => path.startsWith(p))) {
+        return c.redirect(`/user${path}`);
+      }
+    }
+    if (notFoundHtml) {
+      return new Response(notFoundHtml, {
+        status: 404,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    }
+    return c.text("not found", 404);
+  }
+  const res = await app.fetch(c.req.raw);
+  if (
+    res.status === 404 &&
+    (c.req.method === "GET" || c.req.method === "HEAD")
+  ) {
+    const path = c.req.path;
+    const redirectTargets = [
+      "/api",
+      "/fasp",
+      "/auth",
+      "/oauth",
+      "/.well-known",
+    ];
+    if (!redirectTargets.some((p) => path.startsWith(p))) {
+      return c.redirect(`/user${path}`);
+    }
+  }
+  return res;
 });
 
 root.use(logger());

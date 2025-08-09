@@ -28,6 +28,8 @@ import {
 import { addNotification } from "../services/notification.ts";
 import { rateLimit } from "../utils/rate_limit.ts";
 import { broadcast, sendToUser } from "./ws.ts";
+import Fasp from "../models/takos/fasp.ts";
+import { sendAnnouncement } from "../services/fasp.ts";
 
 interface PostDoc {
   _id?: string;
@@ -36,6 +38,51 @@ interface PostDoc {
   content?: string;
   published?: string | Date;
   extra?: Record<string, unknown>;
+  aud?: { to?: string[]; cc?: string[] };
+}
+
+async function notifyFaspContent(
+  env: Record<string, string>,
+  objectUri: string,
+  eventType: "new" | "update" | "delete",
+) {
+  const db = createDB(env);
+  const obj = await db.getObject(objectUri) as PostDoc | null;
+  if (!obj) return;
+  const isPublic = [
+    ...(obj.aud?.to ?? []),
+    ...(obj.aud?.cc ?? []),
+  ].includes("https://www.w3.org/ns/activitystreams#Public");
+  const discoverable = Boolean(
+    (obj.extra as { discoverable?: boolean } | undefined)?.discoverable,
+  );
+  if (!isPublic || !discoverable) return;
+
+  const fasp = await Fasp.findOne({ accepted: true }) as unknown as
+    | {
+      eventSubscriptions: {
+        id: string;
+        category: string;
+        subscriptionType: string;
+      }[];
+    }
+    | null;
+  if (!fasp) return;
+  const subs = (fasp.eventSubscriptions as {
+    id: string;
+    category: string;
+    subscriptionType: string;
+  }[]).filter((s) =>
+    s.category === "content" && s.subscriptionType === "lifecycle"
+  );
+  for (const sub of subs) {
+    await sendAnnouncement(
+      { subscription: { id: sub.id } },
+      "content",
+      eventType,
+      [objectUri],
+    );
+  }
 }
 
 const app = new Hono();
@@ -242,7 +289,7 @@ app.post(
         payload: { timeline: "following", post: formatted },
       });
     }
-
+    await notifyFaspContent(env, String(noteObject.id), "new");
     return c.json(formatted, 201);
   },
 );
@@ -301,7 +348,8 @@ app.put(
       domain,
       env,
     );
-
+    const objectUrl = `https://${domain}/objects/${id}`;
+    await notifyFaspContent(env, objectUrl, "update");
     return c.json(
       formatUserInfoForPost(
         userInfo,
@@ -469,11 +517,14 @@ app.post(
 );
 
 app.delete("/posts/:id", async (c) => {
+  const domain = getDomain(c);
   const env = getEnv(c);
   const db = createDB(env);
   const id = c.req.param("id");
   const deleted = await db.deleteNote(id);
   if (!deleted) return c.json({ error: "Not found" }, 404);
+  const objectUrl = `https://${domain}/objects/${id}`;
+  await notifyFaspContent(env, objectUrl, "delete");
   return c.json({ success: true });
 });
 

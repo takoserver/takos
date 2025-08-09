@@ -11,8 +11,8 @@ import HostVideo from "../models/takos_host/video.ts";
 import HostMessage from "../models/takos_host/message.ts";
 import HostAttachment from "../models/takos_host/attachment.ts";
 import SystemKey from "../models/takos/system_key.ts";
-import HostRelay from "../models/takos_host/relay.ts";
 import HostRemoteActor from "../models/takos_host/remote_actor.ts";
+import HostServiceActor from "../models/takos_host/service_actor.ts";
 import HostSession from "../models/takos_host/session.ts";
 import HostFcmToken from "../models/takos_host/fcm_token.ts";
 import FcmToken from "../models/takos/fcm_token.ts";
@@ -22,7 +22,7 @@ import OAuthClient from "../../takos_host/models/oauth_client.ts";
 import HostDomain from "../../takos_host/models/domain.ts";
 import mongoose from "mongoose";
 import type { DB, ListOpts } from "../../shared/db.ts";
-import type { AccountDoc, RelayDoc, SessionDoc } from "../../shared/types.ts";
+import type { AccountDoc, SessionDoc } from "../../shared/types.ts";
 import type { SortOrder } from "mongoose";
 import type { Db } from "mongodb";
 import { connectDatabase } from "../../shared/db.ts";
@@ -39,15 +39,6 @@ export class MongoDBHost implements DB {
     return this.env["ROOT_DOMAIN"] ?? "";
   }
 
-  private async useLocalObjects() {
-    if (!this.rootDomain) return false;
-    const count = await HostRelay.countDocuments({
-      tenant_id: this.tenantId,
-      host: this.rootDomain,
-    });
-    return count > 0;
-  }
-
   private async searchObjects(
     filter: Record<string, unknown>,
     sort?: Record<string, SortOrder>,
@@ -59,9 +50,6 @@ export class MongoDBHost implements DB {
     const conds: Record<string, unknown>[] = [
       { ...baseFilter, tenant_id: this.tenantId },
     ];
-    if (await this.useLocalObjects()) {
-      conds.push({ ...baseFilter, tenant_id: this.rootDomain });
-    }
     const exec = async (
       M:
         | typeof HostNote
@@ -566,24 +554,16 @@ export class MongoDBHost implements DB {
     return { deletedCount: 0 };
   }
 
-  async listRelays() {
-    const docs = await HostRelay.find({ tenant_id: this.tenantId }).lean<
-      { host: string }[]
-    >();
-    return docs.map((d) => d.host);
+  listRelays() {
+    return Promise.resolve<string[]>([]);
   }
 
-  async addRelay(relay: string, inboxUrl?: string) {
-    const url = inboxUrl ?? `https://${relay}/inbox`;
-    await HostRelay.updateOne(
-      { tenant_id: this.tenantId, host: relay },
-      { $set: { inboxUrl: url }, $setOnInsert: { since: new Date() } },
-      { upsert: true },
-    );
+  addRelay(_relay: string, _inboxUrl?: string) {
+    return Promise.resolve();
   }
 
-  async removeRelay(relay: string) {
-    await HostRelay.deleteOne({ tenant_id: this.tenantId, host: relay });
+  removeRelay(_relay: string) {
+    return Promise.resolve();
   }
 
   async addFollowerByName(username: string, follower: string) {
@@ -811,41 +791,47 @@ export class MongoDBHost implements DB {
     return !!res;
   }
 
-  async findRelaysByHosts(hosts: string[]): Promise<RelayDoc[]> {
-    const docs = await HostRelay.find({ host: { $in: hosts } }).lean<
-      { _id: mongoose.Types.ObjectId; host: string; inboxUrl: string }[]
-    >();
-    return docs.map((d) => ({
-      _id: String(d._id),
-      host: d.host,
-      inboxUrl: d.inboxUrl,
-    }));
+  findRelaysByHosts(_hosts: string[]) {
+    return Promise.resolve([]);
   }
 
-  async findRelayByHost(host: string): Promise<RelayDoc | null> {
-    const doc = await HostRelay.findOne({ host }).lean<
-      { _id: mongoose.Types.ObjectId; host: string; inboxUrl: string } | null
-    >();
-    return doc
-      ? { _id: String(doc._id), host: doc.host, inboxUrl: doc.inboxUrl }
-      : null;
+  findRelayByHost(_host: string) {
+    return Promise.resolve(null);
   }
 
-  async createRelay(
-    data: { host: string; inboxUrl: string },
-  ): Promise<RelayDoc> {
-    const doc = new HostRelay({ host: data.host, inboxUrl: data.inboxUrl });
-    await doc.save();
-    return { _id: String(doc._id), host: doc.host, inboxUrl: doc.inboxUrl };
+  createRelay(data: { host: string; inboxUrl: string }) {
+    return Promise.resolve({
+      _id: "",
+      host: data.host,
+      inboxUrl: data.inboxUrl,
+    });
   }
 
-  async deleteRelayById(id: string): Promise<RelayDoc | null> {
-    const doc = await HostRelay.findByIdAndDelete(id).lean<
-      { _id: mongoose.Types.ObjectId; host: string; inboxUrl: string } | null
+  deleteRelayById(_id: string) {
+    return Promise.resolve(null);
+  }
+
+  async getServiceActorConfig() {
+    let doc = await HostServiceActor.findOne({}).lean<
+      {
+        enabled: boolean;
+        actorUrl: string;
+        type: string;
+        deliverBatchSize: number;
+        deliverMinIntervalMs: number;
+        allowInstances: string[];
+        denyInstances: string[];
+        followers: string[];
+      } | null
     >();
-    return doc
-      ? { _id: String(doc._id), host: doc.host, inboxUrl: doc.inboxUrl }
-      : null;
+    if (!doc) {
+      const actorUrl = this.rootDomain
+        ? `https://${this.rootDomain}/actor`
+        : "";
+      const created = await HostServiceActor.create({ actorUrl });
+      doc = created.toObject();
+    }
+    return doc;
   }
 
   async findRemoteActorByUrl(url: string) {

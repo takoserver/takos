@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { jsonResponse } from "../utils/activitypub.ts";
+import { getDomain, jsonResponse } from "../utils/activitypub.ts";
 import authRequired from "../utils/auth.ts";
 import { createDB } from "../DB/mod.ts";
 import { getEnv } from "../../shared/config.ts";
@@ -8,6 +8,8 @@ import type { AccountDoc } from "../../shared/types.ts";
 import { b64ToBuf } from "../../shared/buffer.ts";
 import { isUrl } from "../../shared/url.ts";
 import { saveFile } from "../services/file.ts";
+import Fasp from "../models/takos/fasp.ts";
+import { sendAnnouncement } from "../services/fasp.ts";
 
 function formatAccount(doc: AccountDoc) {
   return {
@@ -51,6 +53,49 @@ async function resolveAvatar(
   return name.charAt(0).toUpperCase().substring(0, 2);
 }
 
+async function notifyFaspAccount(
+  env: Record<string, string>,
+  domain: string,
+  username: string,
+  eventType: "new" | "update" | "delete",
+) {
+  const db = createDB(env);
+  const acc = await db.findAccountByUserName(username) as unknown as
+    | { extra?: { discoverable?: boolean; visibility?: string } }
+    | null;
+  if (!acc) return;
+  const isPublic = (acc.extra?.visibility ?? "public") === "public";
+  const discoverable = Boolean(acc.extra?.discoverable);
+  if (!isPublic || !discoverable) return;
+
+  const fasp = await Fasp.findOne({ accepted: true }) as unknown as
+    | {
+      eventSubscriptions: {
+        id: string;
+        category: string;
+        subscriptionType: string;
+      }[];
+    }
+    | null;
+  if (!fasp) return;
+  const subs = (fasp.eventSubscriptions as {
+    id: string;
+    category: string;
+    subscriptionType: string;
+  }[]).filter((s) =>
+    s.category === "account" && s.subscriptionType === "lifecycle"
+  );
+  const uri = `https://${domain}/users/${username}`;
+  for (const sub of subs) {
+    await sendAnnouncement(
+      { subscription: { id: sub.id } },
+      "account",
+      eventType,
+      [uri],
+    );
+  }
+}
+
 const app = new Hono();
 app.use("/accounts/*", authRequired);
 
@@ -63,6 +108,7 @@ app.get("/accounts", async (c) => {
 });
 
 app.post("/accounts", async (c) => {
+  const domain = getDomain(c);
   const env = getEnv(c);
   const { username, displayName, icon, privateKey, publicKey } = await c.req
     .json();
@@ -102,6 +148,7 @@ app.post("/accounts", async (c) => {
     following: [],
     dms: [],
   });
+  await notifyFaspAccount(env, domain, username.trim(), "new");
   return jsonResponse(c, formatAccount(account));
 });
 
@@ -118,6 +165,7 @@ app.get("/accounts/:id", async (c) => {
 });
 
 app.put("/accounts/:id", async (c) => {
+  const domain = getDomain(c);
   const env = getEnv(c);
   const db = createDB(env);
   const id = c.req.param("id");
@@ -149,15 +197,20 @@ app.put("/accounts/:id", async (c) => {
 
   const account = await db.updateAccountById(id, data);
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
+  await notifyFaspAccount(env, domain, account.userName, "update");
   return jsonResponse(c, formatAccount(account));
 });
 
 app.delete("/accounts/:id", async (c) => {
+  const domain = getDomain(c);
   const env = getEnv(c);
   const db = createDB(env);
   const id = c.req.param("id");
+  const acc = await db.findAccountById(id);
+  if (!acc) return jsonResponse(c, { error: "Account not found" }, 404);
   const deleted = await db.deleteAccountById(id);
   if (!deleted) return jsonResponse(c, { error: "Account not found" }, 404);
+  await notifyFaspAccount(env, domain, acc.userName, "delete");
   return jsonResponse(c, { success: true });
 });
 

@@ -30,6 +30,9 @@ app.get("/.well-known/nodeinfo", (c) => {
 app.get("/nodeinfo/2.0", async (c) => {
   const env = getEnv(c);
   const { users, posts, version } = await getNodeStats(env);
+  const metadata: Record<string, unknown> = {};
+  const domain = getDomain(c);
+  metadata.faspBaseUrl = `https://${domain}/api/fasp`;
   return c.json({
     version: "2.0",
     software: {
@@ -43,7 +46,7 @@ app.get("/nodeinfo/2.0", async (c) => {
       users: { total: users, activeMonth: users, activeHalfyear: users },
       localPosts: posts,
     },
-    metadata: {},
+    metadata,
   });
 });
 
