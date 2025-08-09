@@ -233,9 +233,8 @@ root.all("/*", async (c) => {
         "/oauth",
         "/.well-known",
       ];
-      if (!redirectTargets.some((p) => path.startsWith(p))) {
-        const redirectPath = path === "/" ? "/" : path;
-        return c.redirect(`/user${redirectPath}`);
+      if (!redirectTargets.some((p) => path.startsWith(p)) && path !== "/") {
+        return c.redirect(`/user${path}`);
       }
     }
     if (notFoundHtml) {
@@ -257,9 +256,8 @@ root.all("/*", async (c) => {
         "/oauth",
         "/.well-known",
       ];
-      if (!redirectTargets.some((p) => path.startsWith(p))) {
-        const redirectPath = path === "/" ? "/" : path;
-        return c.redirect(`/user${redirectPath}`);
+      if (!redirectTargets.some((p) => path.startsWith(p)) && path !== "/") {
+        return c.redirect(`/user${path}`);
       }
     }
     if (notFoundHtml) {
@@ -283,9 +281,8 @@ root.all("/*", async (c) => {
       "/oauth",
       "/.well-known",
     ];
-    if (!redirectTargets.some((p) => path.startsWith(p))) {
-      const redirectPath = path === "/" ? "/" : path;
-      return c.redirect(`/user${redirectPath}`);
+    if (!redirectTargets.some((p) => path.startsWith(p)) && path !== "/") {
+      return c.redirect(`/user${path}`);
     }
   }
   return res;
