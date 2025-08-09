@@ -315,7 +315,22 @@ export const fetchGroupList = async (
     const res = await apiFetch(`/api/accounts/${id}/groups`);
     if (!res.ok) throw new Error("failed");
     const data = await res.json();
-    return Array.isArray(data.groups) ? data.groups : [];
+    if (data.type === "OrderedCollection" && Array.isArray(data.orderedItems)) {
+      // ActivityStreams の Group を内部形式に変換
+      return data.orderedItems.map((g: unknown) => {
+        const item = g as Record<string, unknown>;
+        return {
+          id: typeof item.id === "string" ? item.id : "",
+          name: typeof item.name === "string" ? item.name : "",
+          members: Array.isArray(item.members)
+            ? (item.members as unknown[]).filter((m: unknown) =>
+              typeof m === "string"
+            )
+            : [],
+        };
+      });
+    }
+    return [];
   } catch (err) {
     console.error("Error fetching group list:", err);
     return [];
@@ -327,10 +342,15 @@ export const addGroup = async (
   group: ChatGroup,
 ): Promise<boolean> => {
   try {
+    const asGroup = {
+      "@context": "https://www.w3.org/ns/activitystreams",
+      type: "Group",
+      ...group,
+    };
     const res = await apiFetch(`/api/accounts/${id}/groups`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(group),
+      headers: { "Content-Type": "application/activity+json" },
+      body: JSON.stringify(asGroup),
     });
     return res.ok;
   } catch (err) {

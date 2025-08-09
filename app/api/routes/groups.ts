@@ -14,14 +14,34 @@ app.get("/accounts/:id/groups", async (c) => {
   const account = await db.findAccountById(id);
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
   const groups = await db.listGroups(id);
-  return jsonResponse(c, { groups });
+  // ActivityStreams 形式でグループ一覧を返す
+  const items = groups.map((g) => ({
+    "@context": "https://www.w3.org/ns/activitystreams",
+    type: "Group",
+    id: g.id,
+    name: g.name,
+    members: g.members,
+  }));
+  return jsonResponse(
+    c,
+    {
+      "@context": "https://www.w3.org/ns/activitystreams",
+      type: "OrderedCollection",
+      totalItems: items.length,
+      orderedItems: items,
+    },
+    200,
+    "application/activity+json",
+  );
 });
 
 app.post("/accounts/:id/groups", async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json();
+  // ActivityStreams Group オブジェクトの検証
   if (
     typeof body !== "object" ||
+    body.type !== "Group" ||
     typeof body.name !== "string" ||
     !Array.isArray(body.members)
   ) {
@@ -35,21 +55,55 @@ app.post("/accounts/:id/groups", async (c) => {
   const db = createDB(getEnv(c));
   const account = await db.findAccountById(id);
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
-  const groups = await db.addGroup(id, group);
-  return jsonResponse(c, { groups });
+  await db.addGroup(id, group);
+  return jsonResponse(
+    c,
+    {
+      "@context": "https://www.w3.org/ns/activitystreams",
+      type: "Group",
+      ...group,
+    },
+    201,
+    "application/activity+json",
+  );
 });
 
 app.delete("/accounts/:id/groups", async (c) => {
   const id = c.req.param("id");
-  const { id: groupId } = await c.req.json();
-  if (typeof groupId !== "string") {
+  const body = await c.req.json();
+  let groupId: string | undefined;
+  if (body && typeof body === "object") {
+    if (body.type === "Delete" && typeof body.object === "string") {
+      groupId = body.object;
+    } else if (typeof body.id === "string") {
+      groupId = body.id;
+    }
+  }
+  if (!groupId) {
     return jsonResponse(c, { error: "invalid group id" }, 400);
   }
   const db = createDB(getEnv(c));
   const account = await db.findAccountById(id);
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
   const groups = await db.removeGroup(id, groupId);
-  return jsonResponse(c, { groups });
+  const items = groups.map((g) => ({
+    "@context": "https://www.w3.org/ns/activitystreams",
+    type: "Group",
+    id: g.id,
+    name: g.name,
+    members: g.members,
+  }));
+  return jsonResponse(
+    c,
+    {
+      "@context": "https://www.w3.org/ns/activitystreams",
+      type: "OrderedCollection",
+      totalItems: items.length,
+      orderedItems: items,
+    },
+    200,
+    "application/activity+json",
+  );
 });
 
 export default app;
