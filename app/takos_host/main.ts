@@ -224,7 +224,7 @@ root.all("/*", async (c) => {
     if (res.status !== 404) {
       return res;
     }
-    if (!isDev && notFoundHtml) {
+    if (notFoundHtml) {
       return new Response(notFoundHtml, {
         status: 404,
         headers: { "content-type": "text/html; charset=utf-8" },
@@ -234,7 +234,7 @@ root.all("/*", async (c) => {
   }
   const app = await getAppForHost(host);
   if (!app) {
-    if (!isDev && notFoundHtml) {
+    if (notFoundHtml) {
       return new Response(notFoundHtml, {
         status: 404,
         headers: { "content-type": "text/html; charset=utf-8" },
