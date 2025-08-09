@@ -214,6 +214,9 @@ if (isDev) {
 root.all("/*", async (c) => {
   const host = getRealHost(c);
   if (rootDomain && host === rootDomain) {
+    if (c.req.path === "/" || c.req.path === "") {
+      return c.redirect("/user");
+    }
     if (rootActivityPubApp) {
       const res = await rootActivityPubApp.fetch(c.req.raw);
       if (res.status !== 404) {
