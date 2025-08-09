@@ -224,6 +224,20 @@ root.all("/*", async (c) => {
     if (res.status !== 404) {
       return res;
     }
+    if (c.req.method === "GET" || c.req.method === "HEAD") {
+      const path = c.req.path;
+      const redirectTargets = [
+        "/api",
+        "/fasp",
+        "/auth",
+        "/oauth",
+        "/.well-known",
+      ];
+      if (!redirectTargets.some((p) => path.startsWith(p))) {
+        const redirectPath = path === "/" ? "/" : path;
+        return c.redirect(`/user${redirectPath}`);
+      }
+    }
     if (notFoundHtml) {
       return new Response(notFoundHtml, {
         status: 404,
@@ -234,6 +248,20 @@ root.all("/*", async (c) => {
   }
   const app = await getAppForHost(host);
   if (!app) {
+    if (c.req.method === "GET" || c.req.method === "HEAD") {
+      const path = c.req.path;
+      const redirectTargets = [
+        "/api",
+        "/fasp",
+        "/auth",
+        "/oauth",
+        "/.well-known",
+      ];
+      if (!redirectTargets.some((p) => path.startsWith(p))) {
+        const redirectPath = path === "/" ? "/" : path;
+        return c.redirect(`/user${redirectPath}`);
+      }
+    }
     if (notFoundHtml) {
       return new Response(notFoundHtml, {
         status: 404,
@@ -242,7 +270,25 @@ root.all("/*", async (c) => {
     }
     return c.text("not found", 404);
   }
-  return app.fetch(c.req.raw);
+  const res = await app.fetch(c.req.raw);
+  if (
+    res.status === 404 &&
+    (c.req.method === "GET" || c.req.method === "HEAD")
+  ) {
+    const path = c.req.path;
+    const redirectTargets = [
+      "/api",
+      "/fasp",
+      "/auth",
+      "/oauth",
+      "/.well-known",
+    ];
+    if (!redirectTargets.some((p) => path.startsWith(p))) {
+      const redirectPath = path === "/" ? "/" : path;
+      return c.redirect(`/user${redirectPath}`);
+    }
+  }
+  return res;
 });
 
 root.use(logger());
