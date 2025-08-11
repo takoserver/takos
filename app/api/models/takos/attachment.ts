@@ -1,7 +1,11 @@
 import mongoose from "mongoose";
+import tenantScope from "../plugins/tenant_scope.ts";
 
 const attachmentSchema = new mongoose.Schema({
-  _id: { type: String },
+  _id: {
+    type: String,
+    default: () => new mongoose.Types.ObjectId().toString(),
+  },
   attributedTo: { type: String, required: true },
   actor_id: { type: String, required: true, index: true },
   extra: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -9,6 +13,8 @@ const attachmentSchema = new mongoose.Schema({
   updated_at: { type: Date, default: Date.now },
   deleted_at: { type: Date },
 });
+
+attachmentSchema.plugin(tenantScope, { envKey: "ACTIVITYPUB_DOMAIN" });
 
 const Attachment = mongoose.models.Attachment ??
   mongoose.model("Attachment", attachmentSchema, "attachments");

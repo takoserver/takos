@@ -14,7 +14,6 @@ import SystemKey from "../models/takos/system_key.ts";
 import RemoteActor from "../models/takos/remote_actor.ts";
 import Session from "../models/takos/session.ts";
 import FcmToken from "../models/takos/fcm_token.ts";
-import HostFcmToken from "../models/takos_host/fcm_token.ts";
 import Instance from "../../takos_host/models/instance.ts";
 import OAuthClient from "../../takos_host/models/oauth_client.ts";
 import HostDomain from "../../takos_host/models/domain.ts";
@@ -26,18 +25,27 @@ import type { SortOrder } from "mongoose";
 import type { Db } from "mongodb";
 import { connectDatabase } from "../../shared/db.ts";
 
-/** takos 用 MongoDB 実装 */
-export class MongoDBLocal implements DB {
-  constructor(private env: Record<string, string>) {}
+/** 共通 MongoDB 実装 */
+export class MongoDB implements DB {
+  constructor(
+    private env: Record<string, string>,
+    private tenantId?: string,
+  ) {
+    if (tenantId) Deno.env.set("ACTIVITYPUB_DOMAIN", tenantId);
+  }
+
+  private withTenant(filter: Record<string, unknown>) {
+    return this.tenantId ? { ...filter, tenant_id: this.tenantId } : filter;
+  }
 
   async getObject(id: string) {
-    let doc = await Note.findOne({ _id: id }).lean();
+    let doc = await Note.findOne(this.withTenant({ _id: id })).lean();
     if (doc) return doc;
-    doc = await Video.findOne({ _id: id }).lean();
+    doc = await Video.findOne(this.withTenant({ _id: id })).lean();
     if (doc) return doc;
-    doc = await Message.findOne({ _id: id }).lean();
+    doc = await Message.findOne(this.withTenant({ _id: id })).lean();
     if (doc) return doc;
-    doc = await Attachment.findOne({ _id: id }).lean();
+    doc = await Attachment.findOne(this.withTenant({ _id: id })).lean();
     if (doc) return doc;
     return null;
   }
@@ -59,57 +67,65 @@ export class MongoDBLocal implements DB {
       data._id = createObjectId(this.env["ACTIVITYPUB_DOMAIN"]);
     }
     if (data.type === "Note") {
-      const doc = new Note({
-        _id: data._id,
-        attributedTo: String(data.attributedTo),
-        actor_id: String(data.actor_id),
-        content: String(data.content ?? ""),
-        extra: data.extra ?? {},
-        published: data.published ?? new Date(),
-        aud: data.aud ?? { to: [], cc: [] },
-      });
+      const doc = new Note(
+        this.withTenant({
+          _id: data._id,
+          attributedTo: String(data.attributedTo),
+          actor_id: String(data.actor_id),
+          content: String(data.content ?? ""),
+          extra: data.extra ?? {},
+          published: data.published ?? new Date(),
+          aud: data.aud ?? { to: [], cc: [] },
+        }),
+      );
       (doc as unknown as { $locals?: { env?: Record<string, string> } })
         .$locals = { env: this.env };
       await doc.save();
       return doc.toObject();
     }
     if (data.type === "Video") {
-      const doc = new Video({
-        _id: data._id,
-        attributedTo: String(data.attributedTo),
-        actor_id: String(data.actor_id),
-        content: String(data.content ?? ""),
-        extra: data.extra ?? {},
-        published: data.published ?? new Date(),
-        aud: data.aud ?? { to: [], cc: [] },
-      });
+      const doc = new Video(
+        this.withTenant({
+          _id: data._id,
+          attributedTo: String(data.attributedTo),
+          actor_id: String(data.actor_id),
+          content: String(data.content ?? ""),
+          extra: data.extra ?? {},
+          published: data.published ?? new Date(),
+          aud: data.aud ?? { to: [], cc: [] },
+        }),
+      );
       (doc as unknown as { $locals?: { env?: Record<string, string> } })
         .$locals = { env: this.env };
       await doc.save();
       return doc.toObject();
     }
     if (data.type === "Message") {
-      const doc = new Message({
-        _id: data._id,
-        attributedTo: String(data.attributedTo),
-        actor_id: String(data.actor_id),
-        content: String(data.content ?? ""),
-        extra: data.extra ?? {},
-        published: data.published ?? new Date(),
-        aud: data.aud ?? { to: [], cc: [] },
-      });
+      const doc = new Message(
+        this.withTenant({
+          _id: data._id,
+          attributedTo: String(data.attributedTo),
+          actor_id: String(data.actor_id),
+          content: String(data.content ?? ""),
+          extra: data.extra ?? {},
+          published: data.published ?? new Date(),
+          aud: data.aud ?? { to: [], cc: [] },
+        }),
+      );
       (doc as unknown as { $locals?: { env?: Record<string, string> } })
         .$locals = { env: this.env };
       await doc.save();
       return doc.toObject();
     }
     if (data.type === "Attachment") {
-      const doc = new Attachment({
-        _id: data._id,
-        attributedTo: String(data.attributedTo),
-        actor_id: String(data.actor_id),
-        extra: data.extra ?? {},
-      });
+      const doc = new Attachment(
+        this.withTenant({
+          _id: data._id,
+          attributedTo: String(data.attributedTo),
+          actor_id: String(data.actor_id),
+          extra: data.extra ?? {},
+        }),
+      );
       await doc.save();
       return doc.toObject();
     }
@@ -129,14 +145,14 @@ export class MongoDBLocal implements DB {
     } catch {
       // actor is not URL
     }
-    const account = await Account.findOne({ userName: name })
+    const account = await Account.findOne(this.withTenant({ userName: name }))
       .lean<{ following?: string[] } | null>();
     const ids = account?.following ?? [];
     if (actor) ids.push(actor);
     // タイムラインには Note のみを表示する
     const filter: Record<string, unknown> = { actor_id: { $in: ids } };
     if (opts.before) filter.created_at = { $lt: opts.before };
-    return await Note.find(filter)
+    return await Note.find(this.withTenant(filter))
       .sort({ created_at: -1 })
       .limit(opts.limit ?? 40)
       .lean();
@@ -144,25 +160,22 @@ export class MongoDBLocal implements DB {
 
   async follow(_: string, target: string) {
     await FollowEdge.updateOne(
-      { actor_id: target },
+      this.withTenant({ actor_id: target }),
       { $setOnInsert: { since: new Date() } },
       { upsert: true },
     );
   }
 
   async unfollow(_: string, target: string) {
-    await FollowEdge.deleteOne({ actor_id: target });
+    await FollowEdge.deleteOne(this.withTenant({ actor_id: target }));
   }
 
   async listAccounts(): Promise<AccountDoc[]> {
-    return await Account.find({}).lean<AccountDoc[]>();
+    return await Account.find(this.withTenant({})).lean<AccountDoc[]>();
   }
 
   async createAccount(data: Record<string, unknown>): Promise<AccountDoc> {
-    const doc = new Account({
-      ...data,
-      tenant_id: this.env["ACTIVITYPUB_DOMAIN"] ?? "",
-    });
+    const doc = new Account(this.withTenant({ ...data }));
     (doc as unknown as { $locals?: { env?: Record<string, string> } }).$locals =
       {
         env: this.env,
@@ -172,60 +185,72 @@ export class MongoDBLocal implements DB {
   }
 
   async findAccountById(id: string): Promise<AccountDoc | null> {
-    return await Account.findOne({ _id: id }).lean<AccountDoc | null>();
+    return await Account.findOne(this.withTenant({ _id: id })).lean<
+      AccountDoc | null
+    >();
   }
 
   async findAccountByUserName(
     username: string,
   ): Promise<AccountDoc | null> {
-    return await Account.findOne({ userName: username }).lean<
-      AccountDoc | null
-    >();
+    return await Account.findOne(this.withTenant({ userName: username }))
+      .lean<AccountDoc | null>();
   }
 
   async updateAccountById(
     id: string,
     update: Record<string, unknown>,
   ): Promise<AccountDoc | null> {
-    return await Account.findOneAndUpdate({ _id: id }, update, { new: true })
-      .lean<AccountDoc | null>();
+    return await Account.findOneAndUpdate(
+      this.withTenant({ _id: id }),
+      update,
+      { new: true },
+    ).lean<AccountDoc | null>();
   }
 
   async deleteAccountById(id: string) {
-    const res = await Account.findOneAndDelete({ _id: id });
+    const res = await Account.findOneAndDelete(this.withTenant({ _id: id }));
     return !!res;
   }
 
   async addFollower(id: string, follower: string) {
-    const acc = await Account.findOneAndUpdate({ _id: id }, {
-      $addToSet: { followers: follower },
-    }, { new: true });
+    const acc = await Account.findOneAndUpdate(
+      this.withTenant({ _id: id }),
+      { $addToSet: { followers: follower } },
+      { new: true },
+    );
     return acc?.followers ?? [];
   }
 
   async removeFollower(id: string, follower: string) {
-    const acc = await Account.findOneAndUpdate({ _id: id }, {
-      $pull: { followers: follower },
-    }, { new: true });
+    const acc = await Account.findOneAndUpdate(
+      this.withTenant({ _id: id }),
+      { $pull: { followers: follower } },
+      { new: true },
+    );
     return acc?.followers ?? [];
   }
 
   async addFollowing(id: string, target: string) {
-    const acc = await Account.findOneAndUpdate({ _id: id }, {
-      $addToSet: { following: target },
-    }, { new: true });
+    const acc = await Account.findOneAndUpdate(
+      this.withTenant({ _id: id }),
+      { $addToSet: { following: target } },
+      { new: true },
+    );
     return acc?.following ?? [];
   }
 
   async removeFollowing(id: string, target: string) {
-    const acc = await Account.findOneAndUpdate({ _id: id }, {
-      $pull: { following: target },
-    }, { new: true });
+    const acc = await Account.findOneAndUpdate(
+      this.withTenant({ _id: id }),
+      { $pull: { following: target } },
+      { new: true },
+    );
     return acc?.following ?? [];
   }
 
   async listGroups(id: string) {
-    const acc = await Account.findOne({ _id: id }).lean<
+    const acc = await Account.findOne(this.withTenant({ _id: id })).lean<
       { groups?: GroupInfo[] } | null
     >();
     return acc?.groups ?? [];
@@ -235,21 +260,27 @@ export class MongoDBLocal implements DB {
     id: string,
     group: GroupInfo,
   ) {
-    const acc = await Account.findOneAndUpdate({ _id: id }, {
-      $push: { groups: group },
-    }, { new: true });
+    const acc = await Account.findOneAndUpdate(
+      this.withTenant({ _id: id }),
+      { $push: { groups: group } },
+      { new: true },
+    );
     return acc?.groups ?? [];
   }
 
   async removeGroup(id: string, groupId: string) {
-    const acc = await Account.findOneAndUpdate({ _id: id }, {
-      $pull: { groups: { id: groupId } },
-    }, { new: true });
+    const acc = await Account.findOneAndUpdate(
+      this.withTenant({ _id: id }),
+      { $pull: { groups: { id: groupId } } },
+      { new: true },
+    );
     return acc?.groups ?? [];
   }
 
   async findGroup(groupId: string) {
-    const acc = await Account.findOne({ "groups.id": groupId }).lean<
+    const acc = await Account.findOne(
+      this.withTenant({ "groups.id": groupId }),
+    ).lean<
       | {
         _id: unknown;
         groups: GroupInfo[];
@@ -265,9 +296,10 @@ export class MongoDBLocal implements DB {
     owner: string,
     group: GroupInfo,
   ) {
-    await Account.updateOne({ _id: owner, "groups.id": group.id }, {
-      $set: { "groups.$": group },
-    });
+    await Account.updateOne(
+      this.withTenant({ _id: owner, "groups.id": group.id }),
+      { $set: { "groups.$": group } },
+    );
   }
 
   async saveNote(
@@ -300,12 +332,15 @@ export class MongoDBLocal implements DB {
   }
 
   async updateNote(id: string, update: Record<string, unknown>) {
-    return await Note.findOneAndUpdate({ _id: id }, update, { new: true })
-      .lean();
+    return await Note.findOneAndUpdate(
+      this.withTenant({ _id: id }),
+      update,
+      { new: true },
+    ).lean();
   }
 
   async deleteNote(id: string) {
-    const res = await Note.findOneAndDelete({ _id: id });
+    const res = await Note.findOneAndDelete(this.withTenant({ _id: id }));
     return !!res;
   }
 
@@ -313,13 +348,17 @@ export class MongoDBLocal implements DB {
     filter: Record<string, unknown>,
     sort?: Record<string, SortOrder>,
   ) {
-    return await Note.find({ ...filter }).sort(sort ?? {}).lean();
+    return await Note.find(this.withTenant({ ...filter }))
+      .sort(sort ?? {})
+      .lean();
   }
 
   async getPublicNotes(limit: number, before?: Date) {
-    const query = Note.find({
-      "aud.to": "https://www.w3.org/ns/activitystreams#Public",
-    });
+    const query = Note.find(
+      this.withTenant({
+        "aud.to": "https://www.w3.org/ns/activitystreams#Public",
+      }),
+    );
     if (before) query.where("created_at").lt(before.getTime());
     return await query.sort({ created_at: -1 }).limit(limit).lean();
   }
@@ -354,12 +393,15 @@ export class MongoDBLocal implements DB {
   }
 
   async updateVideo(id: string, update: Record<string, unknown>) {
-    return await Video.findOneAndUpdate({ _id: id }, update, { new: true })
-      .lean();
+    return await Video.findOneAndUpdate(
+      this.withTenant({ _id: id }),
+      update,
+      { new: true },
+    ).lean();
   }
 
   async deleteVideo(id: string) {
-    const res = await Video.findOneAndDelete({ _id: id });
+    const res = await Video.findOneAndDelete(this.withTenant({ _id: id }));
     return !!res;
   }
 
@@ -367,7 +409,9 @@ export class MongoDBLocal implements DB {
     filter: Record<string, unknown>,
     sort?: Record<string, SortOrder>,
   ) {
-    return await Video.find({ ...filter }).sort(sort ?? {}).lean();
+    return await Video.find(this.withTenant({ ...filter }))
+      .sort(sort ?? {})
+      .lean();
   }
 
   async saveMessage(
@@ -397,12 +441,15 @@ export class MongoDBLocal implements DB {
   }
 
   async updateMessage(id: string, update: Record<string, unknown>) {
-    return await Message.findOneAndUpdate({ _id: id }, update, { new: true })
-      .lean();
+    return await Message.findOneAndUpdate(
+      this.withTenant({ _id: id }),
+      update,
+      { new: true },
+    ).lean();
   }
 
   async deleteMessage(id: string) {
-    const res = await Message.findOneAndDelete({ _id: id });
+    const res = await Message.findOneAndDelete(this.withTenant({ _id: id }));
     return !!res;
   }
 
@@ -410,7 +457,9 @@ export class MongoDBLocal implements DB {
     filter: Record<string, unknown>,
     sort?: Record<string, SortOrder>,
   ) {
-    return await Message.find({ ...filter }).sort(sort ?? {}).lean();
+    return await Message.find(this.withTenant({ ...filter }))
+      .sort(sort ?? {})
+      .lean();
   }
 
   async findObjects(
@@ -421,52 +470,67 @@ export class MongoDBLocal implements DB {
     const result: unknown[] = [];
     // type が指定されている場合は対象のモデルのみ検索する
     if (!type || type === "Note") {
-      const notes = await Note.find({ ...rest }).sort(sort ?? {}).lean();
+      const notes = await Note.find(this.withTenant({ ...rest }))
+        .sort(sort ?? {})
+        .lean();
       result.push(...notes.map((n) => ({ ...n, type: "Note" })));
     }
     if (!type || type === "Video") {
-      const videos = await Video.find({ ...rest }).sort(sort ?? {}).lean();
+      const videos = await Video.find(this.withTenant({ ...rest }))
+        .sort(sort ?? {})
+        .lean();
       result.push(...videos.map((v) => ({ ...v, type: "Video" })));
     }
     if (!type || type === "Message") {
-      const messages = await Message.find({ ...rest }).sort(sort ?? {}).lean();
+      const messages = await Message.find(this.withTenant({ ...rest }))
+        .sort(sort ?? {})
+        .lean();
       result.push(...messages.map((m) => ({ ...m, type: "Message" })));
     }
     return result;
   }
 
   async updateObject(id: string, update: Record<string, unknown>) {
-    let doc = await Note.findOneAndUpdate({ _id: id }, update, { new: true })
-      .lean();
+    let doc = await Note.findOneAndUpdate(
+      this.withTenant({ _id: id }),
+      update,
+      { new: true },
+    ).lean();
     if (doc) return doc;
-    doc = await Video.findOneAndUpdate({ _id: id }, update, { new: true })
-      .lean();
+    doc = await Video.findOneAndUpdate(
+      this.withTenant({ _id: id }),
+      update,
+      { new: true },
+    ).lean();
     if (doc) return doc;
-    doc = await Message.findOneAndUpdate({ _id: id }, update, { new: true })
-      .lean();
+    doc = await Message.findOneAndUpdate(
+      this.withTenant({ _id: id }),
+      update,
+      { new: true },
+    ).lean();
     if (doc) return doc;
     return null;
   }
 
   async deleteObject(id: string) {
-    let res = await Note.findOneAndDelete({ _id: id });
+    let res = await Note.findOneAndDelete(this.withTenant({ _id: id }));
     if (res) return true;
-    res = await Video.findOneAndDelete({ _id: id });
+    res = await Video.findOneAndDelete(this.withTenant({ _id: id }));
     if (res) return true;
-    res = await Message.findOneAndDelete({ _id: id });
+    res = await Message.findOneAndDelete(this.withTenant({ _id: id }));
     if (res) return true;
     return false;
   }
 
   async deleteManyObjects(filter: Record<string, unknown>) {
     if (filter.type === "Note") {
-      return await Note.deleteMany({ ...filter });
+      return await Note.deleteMany(this.withTenant({ ...filter }));
     }
     if (filter.type === "Video") {
-      return await Video.deleteMany({ ...filter });
+      return await Video.deleteMany(this.withTenant({ ...filter }));
     }
     if (filter.type === "Message") {
-      return await Message.deleteMany({ ...filter });
+      return await Message.deleteMany(this.withTenant({ ...filter }));
     }
     return { deletedCount: 0 };
   }
@@ -534,7 +598,7 @@ export class MongoDBLocal implements DB {
     condition: Record<string, unknown>,
     opts: { before?: string; after?: string; limit?: number } = {},
   ) {
-    const query = EncryptedMessage.find(condition);
+    const query = EncryptedMessage.find(this.withTenant(condition));
     if (opts.before) {
       query.where("createdAt").lt(new Date(opts.before) as unknown as number);
     }
@@ -549,33 +613,32 @@ export class MongoDBLocal implements DB {
   }
 
   async findEncryptedKeyPair(userName: string) {
-    return await EncryptedKeyPair.findOne({ userName }).lean();
+    return await EncryptedKeyPair.findOne(this.withTenant({ userName })).lean();
   }
 
   async upsertEncryptedKeyPair(userName: string, content: string) {
-    await EncryptedKeyPair.findOneAndUpdate({ userName }, { content }, {
-      upsert: true,
-    });
+    await EncryptedKeyPair.findOneAndUpdate(
+      this.withTenant({ userName }),
+      { content },
+      { upsert: true },
+    );
   }
 
   async deleteEncryptedKeyPair(userName: string) {
-    await EncryptedKeyPair.deleteOne({ userName });
+    await EncryptedKeyPair.deleteOne(this.withTenant({ userName }));
   }
 
   async listKeyPackages(userName: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
     await this.cleanupKeyPackages(userName);
-    return await KeyPackage.find({
-      userName,
-      tenant_id: tenantId,
-      used: false,
-    }).lean();
+    return await KeyPackage.find(
+      this.withTenant({ userName, used: false }),
+    ).lean();
   }
 
   async findKeyPackage(userName: string, id: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    return await KeyPackage.findOne({ _id: id, userName, tenant_id: tenantId })
-      .lean();
+    return await KeyPackage.findOne(
+      this.withTenant({ _id: id, userName }),
+    ).lean();
   }
 
   async createKeyPackage(
@@ -586,15 +649,16 @@ export class MongoDBLocal implements DB {
     groupInfo?: string,
     expiresAt?: Date,
   ) {
-    const doc = new KeyPackage({
-      userName,
-      content,
-      mediaType,
-      encoding,
-      groupInfo,
-      expiresAt,
-      tenant_id: this.env["ACTIVITYPUB_DOMAIN"] ?? "",
-    });
+    const doc = new KeyPackage(
+      this.withTenant({
+        userName,
+        content,
+        mediaType,
+        encoding,
+        groupInfo,
+        expiresAt,
+      }),
+    );
     (doc as unknown as { $locals?: { env?: Record<string, string> } }).$locals =
       {
         env: this.env,
@@ -604,32 +668,30 @@ export class MongoDBLocal implements DB {
   }
 
   async markKeyPackageUsed(userName: string, id: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    await KeyPackage.updateOne({ _id: id, userName, tenant_id: tenantId }, {
-      used: true,
-    });
+    await KeyPackage.updateOne(
+      this.withTenant({ _id: id, userName }),
+      { used: true },
+    );
   }
 
   async cleanupKeyPackages(userName: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    await KeyPackage.deleteMany({
-      userName,
-      tenant_id: tenantId,
-      $or: [
-        { used: true },
-        { expiresAt: { $lt: new Date() } },
-      ],
-    });
+    await KeyPackage.deleteMany(
+      this.withTenant({
+        userName,
+        $or: [
+          { used: true },
+          { expiresAt: { $lt: new Date() } },
+        ],
+      }),
+    );
   }
 
   async deleteKeyPackage(userName: string, id: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    await KeyPackage.deleteOne({ _id: id, userName, tenant_id: tenantId });
+    await KeyPackage.deleteOne(this.withTenant({ _id: id, userName }));
   }
 
   async deleteKeyPackagesByUser(userName: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    await KeyPackage.deleteMany({ userName, tenant_id: tenantId });
+    await KeyPackage.deleteMany(this.withTenant({ userName }));
   }
 
   async createHandshakeMessage(data: {
@@ -637,12 +699,13 @@ export class MongoDBLocal implements DB {
     recipients: string[];
     message: string;
   }) {
-    const doc = new HandshakeMessage({
-      sender: data.sender,
-      recipients: data.recipients,
-      message: data.message,
-      tenant_id: this.env["ACTIVITYPUB_DOMAIN"] ?? "",
-    });
+    const doc = new HandshakeMessage(
+      this.withTenant({
+        sender: data.sender,
+        recipients: data.recipients,
+        message: data.message,
+      }),
+    );
     (doc as unknown as { $locals?: { env?: Record<string, string> } }).$locals =
       {
         env: this.env,
@@ -655,8 +718,9 @@ export class MongoDBLocal implements DB {
     condition: Record<string, unknown>,
     opts: { before?: string; after?: string; limit?: number } = {},
   ) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const query = HandshakeMessage.find({ ...condition, tenant_id: tenantId });
+    const query = HandshakeMessage.find(
+      this.withTenant({ ...condition }),
+    );
     if (opts.before) {
       query.where("createdAt").lt(new Date(opts.before) as unknown as number);
     }
@@ -671,8 +735,7 @@ export class MongoDBLocal implements DB {
   }
 
   async listNotifications() {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    return await Notification.find({ tenant_id: tenantId })
+    return await Notification.find(this.withTenant({}))
       .sort({ createdAt: -1 })
       .lean();
   }
@@ -688,20 +751,17 @@ export class MongoDBLocal implements DB {
   }
 
   async markNotificationRead(id: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
     const res = await Notification.findOneAndUpdate(
-      { _id: id, tenant_id: tenantId },
+      this.withTenant({ _id: id }),
       { read: true },
     );
     return !!res;
   }
 
   async deleteNotification(id: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const res = await Notification.findOneAndDelete({
-      _id: id,
-      tenant_id: tenantId,
-    });
+    const res = await Notification.findOneAndDelete(
+      this.withTenant({ _id: id }),
+    );
     return !!res;
   }
 
@@ -748,43 +808,22 @@ export class MongoDBLocal implements DB {
   }
 
   async registerFcmToken(token: string, userName: string) {
-    if (this.env["DB_MODE"] === "host") {
-      await HostFcmToken.updateOne(
-        {
-          token,
-          tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
-        },
-        { $set: { token, userName } },
-        { upsert: true },
-      );
-    } else {
-      await FcmToken.updateOne({ token }, { $set: { token, userName } }, {
-        upsert: true,
-      });
-    }
+    await FcmToken.updateOne(
+      this.withTenant({ token }),
+      { $set: { token, userName } },
+      { upsert: true },
+    );
   }
 
   async unregisterFcmToken(token: string) {
-    if (this.env["DB_MODE"] === "host") {
-      await HostFcmToken.deleteOne({
-        token,
-        tenant_id: this.env["ACTIVITYPUB_DOMAIN"],
-      });
-    } else {
-      await FcmToken.deleteOne({ token });
-    }
+    await FcmToken.deleteOne(this.withTenant({ token }));
   }
 
   async listFcmTokens() {
-    if (this.env["DB_MODE"] === "host") {
-      const docs = await HostFcmToken.find<{ token: string }>(
-        { tenant_id: this.env["ACTIVITYPUB_DOMAIN"] },
-      ).lean();
-      return docs.map((d) => ({ token: d.token }));
-    } else {
-      const docs = await FcmToken.find<{ token: string }>({}).lean();
-      return docs.map((d) => ({ token: d.token }));
-    }
+    const docs = await FcmToken.find(this.withTenant({})).lean<
+      { token: string }[]
+    >();
+    return docs.map((d) => ({ token: d.token }));
   }
 
   async listInstances(owner: string) {

@@ -1,7 +1,11 @@
 import mongoose from "mongoose";
+import tenantScope from "../plugins/tenant_scope.ts";
 
 const videoSchema = new mongoose.Schema({
-  _id: { type: String },
+  _id: {
+    type: String,
+    default: () => new mongoose.Types.ObjectId().toString(),
+  },
   attributedTo: { type: String, required: true },
   actor_id: { type: String, required: true, index: true },
   content: { type: String, default: "" },
@@ -15,6 +19,8 @@ const videoSchema = new mongoose.Schema({
     cc: { type: [String], default: [] },
   },
 });
+
+videoSchema.plugin(tenantScope, { envKey: "ACTIVITYPUB_DOMAIN" });
 
 const Video = mongoose.models.Video ??
   mongoose.model("Video", videoSchema, "videos");

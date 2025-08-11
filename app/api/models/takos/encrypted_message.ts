@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import tenantScope from "../plugins/tenant_scope.ts";
 
 const encryptedMessageSchema = new mongoose.Schema({
   from: { type: String, required: true },
@@ -7,6 +8,10 @@ const encryptedMessageSchema = new mongoose.Schema({
   mediaType: { type: String, default: "message/mls" },
   encoding: { type: String, default: "base64" },
   createdAt: { type: Date, default: Date.now },
+});
+
+encryptedMessageSchema.plugin(tenantScope, {
+  envKey: "ACTIVITYPUB_DOMAIN",
 });
 
 const EncryptedMessage = mongoose.models.EncryptedMessage ??

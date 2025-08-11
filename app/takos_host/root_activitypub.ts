@@ -12,7 +12,7 @@ import {
   formatUserInfoForPost,
   getUserInfo,
 } from "../api/services/user-info.ts";
-import HostAccount from "../api/models/takos_host/account.ts";
+import Account from "../api/models/takos/account.ts";
 import {
   parseActivityRequest,
   storeCreateActivity,
@@ -73,7 +73,7 @@ export function createRootActivityPubApp(env: Record<string, string>) {
         type: "newPost",
         payload: { timeline: "latest", post: formatted },
       });
-      const followers = await HostAccount.find({
+      const followers = await Account.find({
         following: actorId,
       }).lean<{ userName: string; tenant_id: string }[]>();
       for (const acc of followers) {
