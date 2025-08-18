@@ -1,6 +1,3 @@
-// openmls wasm ベース最小ラッパー (ts-mls 完全除去段階1)
-// 既存の呼び出しに合わせた互換性を段階的に埋めていく。
-
 import {
   om_generateKeyPackage,
   om_createGroup,

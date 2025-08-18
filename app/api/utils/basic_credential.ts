@@ -1,6 +1,3 @@
-// KeyPackage から BasicCredential.identity を取り出す簡易パーサー
-// ts-mls に依存せず最小限の TLS 解析のみを行う
-
 function readUint16(view: DataView, pos: number): [number, number] {
   if (pos + 2 > view.byteLength) throw new Error("out of range");
   return [view.getUint16(pos, false), pos + 2];

@@ -108,9 +108,6 @@ export const saveMLSGroupStates = async (
     await store.save();
     return;
   }
-  // ブラウザ環境では ts-mls の ClientState に関数など非クローン要素が含まれ
-  // IndexedDB の structured clone で DataCloneError になるため、保存はスキップする。
-  // 将来的にシリアライズAPIが追加されたらここで永続化に切り替える。
   return;
 };
 
