@@ -23,8 +23,8 @@ export interface OpenMlsCreatedGroup {
 }
 
 interface WasmModule {
-  generate_key_package(): KeyPackageResult;
-  create_group(): CreateGroupResult;
+  generate_key_package(identity: string): KeyPackageResult;
+  create_group(identity: string): CreateGroupResult;
   encrypt(handle: number, plaintext: Uint8Array): EncryptResult;
   decrypt(handle: number, messageB64: string): DecryptResult;
   export_group_info(handle: number): string;
@@ -44,7 +44,7 @@ async function loadWasm(): Promise<WasmModule> {
 
 export async function om_generateKeyPackage(identity: string): Promise<OpenMlsGeneratedKeyPackage> {
   const wasm = await loadWasm();
-  const result = wasm.generate_key_package();
+  const result = wasm.generate_key_package(identity);
   
   // 簡単なハッシュ生成（実装改善が必要）
   const hash = Array.from(new TextEncoder().encode(result.key_package))
@@ -58,9 +58,9 @@ export async function om_generateKeyPackage(identity: string): Promise<OpenMlsGe
   };
 }
 
-export async function om_createGroup(_identity: string): Promise<OpenMlsCreatedGroup> {
+export async function om_createGroup(identity: string): Promise<OpenMlsCreatedGroup> {
   const wasm = await loadWasm();
-  const result = wasm.create_group();
+  const result = wasm.create_group(identity);
   
   return {
     handle: result.handle,

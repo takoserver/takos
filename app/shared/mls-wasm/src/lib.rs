@@ -71,7 +71,7 @@ pub struct DecryptResult {
 }
 
 #[wasm_bindgen]
-pub fn generate_key_package() -> Result<KeyPackageResult, JsValue> {
+pub fn generate_key_package(identity: &str) -> Result<KeyPackageResult, JsValue> {
     let provider = &OpenMlsRustCrypto::default();
     
     // Create signature keypair for Ed25519
@@ -79,7 +79,7 @@ pub fn generate_key_package() -> Result<KeyPackageResult, JsValue> {
         .map_err(|e| JsValue::from_str(&format!("create signature key: {e:?}")))?;
     
     // Create basic credential
-    let credential = BasicCredential::new(b"test@example.com".to_vec());
+    let credential = BasicCredential::new(identity.as_bytes().to_vec());
     let credential_with_key = CredentialWithKey {
         credential: credential.into(),
         signature_key: signer.to_public_vec().into(),
@@ -99,7 +99,7 @@ pub fn generate_key_package() -> Result<KeyPackageResult, JsValue> {
 }
 
 #[wasm_bindgen]
-pub fn create_group() -> Result<CreateGroupResult, JsValue> {
+pub fn create_group(identity: &str) -> Result<CreateGroupResult, JsValue> {
     let provider = &OpenMlsRustCrypto::default();
     let _group_id = random_group_id();
     
@@ -108,7 +108,7 @@ pub fn create_group() -> Result<CreateGroupResult, JsValue> {
         .map_err(|e| JsValue::from_str(&format!("create signature key: {e:?}")))?;
     
     // Create basic credential
-    let credential = BasicCredential::new(b"test@example.com".to_vec());
+    let credential = BasicCredential::new(identity.as_bytes().to_vec());
     let credential_with_key = CredentialWithKey {
         credential: credential.into(),
         signature_key: signer.to_public_vec().into(),
