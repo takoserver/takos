@@ -168,7 +168,7 @@ export function ChatSendForm(props: ChatSendFormProps) {
               </Switch>
             </div>
           </Show>
-          <div class="relative flex items-center gap-1 flex-1 border border-[#333333] bg-[#3c3c3c] rounded-[16px] shadow-[1px_1px_10px_rgba(0,0,0,0.2)] pr-2">
+          <div class="relative flex items-center gap-1">
             <textarea
               id="msg"
               class="flex-1 w-full text-[15px] m-0 resize-none bg-transparent whitespace-pre-wrap break-words text-white"
