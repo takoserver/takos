@@ -183,6 +183,31 @@ pub fn decrypt(handle: u32, message_b64: &str) -> Result<DecryptResult, JsValue>
     }
 }
 
+#[wasm_bindgen(getter_with_clone)]
+pub struct MembersResult {
+    pub members: Vec<String>,
+}
+
+#[wasm_bindgen]
+pub fn get_group_members(handle: u32) -> Result<MembersResult, JsValue> {
+    let guard = GROUPS.lock().unwrap();
+    let h = guard.get(&handle).ok_or_else(|| JsValue::from_str("unknown handle"))?;
+    
+    let mut members = Vec::new();
+    
+    // グループの全メンバーを取得
+    for member in h.group.members() {
+        // Credentialからidentityを抽出（暫定的にBasicCredentialとして扱う）
+        if let Ok(basic_cred) = BasicCredential::try_from(member.credential.clone()) {
+            let identity_bytes = basic_cred.identity();
+            let identity = String::from_utf8_lossy(identity_bytes).to_string();
+            members.push(identity);
+        }
+    }
+    
+    Ok(MembersResult { members })
+}
+
 #[wasm_bindgen]
 pub fn export_group_info(handle: u32) -> Result<String, JsValue> {
     let provider = &RustCrypto::default();

@@ -6,6 +6,10 @@ import type {
   DecryptResult,
 } from "../../../../shared/mls-wasm/pkg/mls_wasm.d.ts";
 
+interface MembersResult {
+  members: string[];
+}
+
 export interface OpenMlsGeneratedKeyPackage {
   key_package: string; // base64 (TLS KeyPackage)
   hash: string; // hex sha256
@@ -24,6 +28,7 @@ interface WasmModule {
   encrypt(handle: number, plaintext: Uint8Array): EncryptResult;
   decrypt(handle: number, messageB64: string): DecryptResult;
   export_group_info(handle: number): string;
+  get_group_members(handle: number): MembersResult;
 }
 
 let wasmModule: WasmModule | null = null;
@@ -80,6 +85,12 @@ export async function om_decrypt(handle: number, messageB64: string): Promise<Ui
 export async function om_exportGroupInfo(handle: number): Promise<string> {
   const wasm = await loadWasm();
   return wasm.export_group_info(handle);
+}
+
+export async function om_getGroupMembers(handle: number): Promise<string[]> {
+  const wasm = await loadWasm();
+  const result = wasm.get_group_members(handle);
+  return result.members;
 }
 
 export function om_freeGroup(handle: number): void {

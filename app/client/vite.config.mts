@@ -9,12 +9,34 @@ export default defineConfig({
     solid(),
     tailwindcss(),
     VitePWA({ registerType: "autoUpdate" }),
+    // WASM サポート用のカスタムプラグイン
+    {
+      name: "wasm-support",
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url?.endsWith('.wasm')) {
+            res.setHeader('Content-Type', 'application/wasm');
+          }
+          next();
+        });
+      },
+    },
   ],
 
   server: {
     host: "0.0.0.0",
     port: 1420,
     strictPort: true,
+    fs: {
+      allow: [
+        // 現在のプロジェクトディレクトリ
+        ".",
+        // 共有のmls-wasmディレクトリ
+        "../shared/mls-wasm",
+        // ルートディレクトリからの相対パス
+        "../../app/shared/mls-wasm"
+      ]
+    }
   },
 
   envPrefix: ["VITE_", "TAURI_"],
@@ -23,5 +45,16 @@ export default defineConfig({
     target: process.env.TAURI_PLATFORM ? "es2021" : "esnext",
     minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
     sourcemap: !!process.env.TAURI_DEBUG,
+    rollupOptions: {
+      external: [],
+    },
+  },
+
+  // WASM ファイルのサポート
+  assetsInclude: ["**/*.wasm"],
+
+  // 最適化の設定
+  optimizeDeps: {
+    exclude: ["../../../../shared/mls-wasm/pkg/mls_wasm.js"],
   },
 });

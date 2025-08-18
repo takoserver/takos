@@ -1,11 +1,12 @@
 // openmls wasm ベース最小ラッパー (ts-mls 完全除去段階1)
-// 既存の呼び出しに合わせた互換 API を段階的に埋めていく。
+// 既存の呼び出しに合わせた互換性を段階的に埋めていく。
 
 import {
   om_generateKeyPackage,
   om_createGroup,
   om_encrypt,
   om_decrypt,
+  om_getGroupMembers,
   om_exportGroupInfo,
 } from "./mls_openmls.ts";
 
@@ -43,6 +44,7 @@ export interface StoredGroupState {
   handle: number;
   identity: string;
   groupIdB64: string;
+  members?: string[]; // メンバーリストをキャッシュ
 }
 
   export async function generateKeyPair(identity: string): Promise<GeneratedKeyPair> {
@@ -57,13 +59,32 @@ export interface StoredGroupState {
 
   export function verifyCommit(): Promise<boolean> { return Promise.resolve(true); }
   export function verifyPrivateMessage(): Promise<boolean> { return Promise.resolve(true); }
-  export function verifyGroupInfo(): Promise<boolean> { return Promise.resolve(true); }
+
+  export async function getGroupMembers(state: StoredGroupState): Promise<string[]> {
+    // キャッシュがあればそれを返す
+    if (state.members) {
+      return state.members;
+    }
+    // キャッシュがなければWASMから取得
+    return await om_getGroupMembers(state.handle);
+  }
+
+  export function verifyGroupInfo(): Promise<boolean> { 
+    return Promise.resolve(true); 
+  }
   export function verifyWelcome(_data: Uint8Array): Promise<boolean> { return Promise.resolve(true); }
 
   export async function createMLSGroup(identity: string): Promise<{ state: StoredGroupState; keyPair: GeneratedKeyPair; gid: Uint8Array }> {
     const created = await om_createGroup(identity);
     const keyPair = await generateKeyPair(identity);
-    const state: StoredGroupState = { handle: created.handle, identity, groupIdB64: created.group_id };
+    // メンバーリストを取得してキャッシュ
+    const members = await om_getGroupMembers(created.handle);
+    const state: StoredGroupState = { 
+      handle: created.handle, 
+      identity, 
+      groupIdB64: created.group_id,
+      members 
+    };
     return { state, keyPair, gid: Uint8Array.from(atob(created.group_id), c => c.charCodeAt(0)) };
   }
 

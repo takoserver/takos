@@ -76,6 +76,7 @@ import { GroupCreateDialog } from "./chat/GroupCreateDialog.tsx";
 import type { ActorID, ChatMessage, Room } from "./chat/types.ts";
 import { b64ToBuf, bufToB64 } from "../../../shared/buffer.ts";
 import type { GeneratedKeyPair } from "./e2ee/mls_wrapper.ts";
+import { getGroupMembers } from "./e2ee/mls_wrapper.ts";
 import { useMLS } from "./e2ee/useMLS.ts";
 
 function adjustHeight(el?: HTMLTextAreaElement) {
@@ -528,14 +529,36 @@ export function Chat() {
   }
 
   // MLSの状態から参加者（自分以外）を抽出（actor URL / handle を正規化しつつ重複除去）
-  const participantsFromState = (roomId: string): string[] => {
+  const participantsFromState = async (roomId: string): Promise<string[]> => {
     const user = account();
     if (!user) return [];
     const state = groups()[roomId];
     if (!state) return [];
     const selfHandle = `${user.userName}@${getDomain()}` as ActorID;
     try {
-      const raws = extractMembers(state);
+      const raws = await extractMembers(state);
+      const normed = raws
+        .map((m) => normalizeHandle(m as ActorID) ?? m)
+        .filter((m): m is string => !!m);
+      const withoutSelf = normed.filter((m) => {
+        const h = normalizeHandle(m as ActorID) ?? m;
+        return h !== selfHandle;
+      });
+      return Array.from(new Set(withoutSelf));
+    } catch {
+      return [];
+    }
+  };
+
+  // 同期版: キャッシュされたメンバーリストのみを使用
+  const participantsFromStateSync = (roomId: string): string[] => {
+    const user = account();
+    if (!user) return [];
+    const state = groups()[roomId];
+    if (!state || !state.members) return [];
+    const selfHandle = `${user.userName}@${getDomain()}` as ActorID;
+    try {
+      const raws = state.members;
       const normed = raws
         .map((m) => normalizeHandle(m as ActorID) ?? m)
         .filter((m): m is string => !!m);
@@ -615,7 +638,7 @@ export function Chat() {
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const isUuidRoom = uuidRe.test(room.id);
     // MLSの状態から相手を特定（自分以外）
-    const partner = participantsFromState(room.id)[0];
+    const partner = participantsFromStateSync(room.id)[0];
     if (!partner) return;
 
     // 画面表示用に client 側で members を補完（サーバーから返らない想定）
@@ -893,7 +916,7 @@ export function Chat() {
     await syncHandshakes(room);
     group = groups()[room.id];
     const selfHandle = `${user.userName}@${getDomain()}`;
-    const participantsNow = extractMembers(group)
+    const participantsNow = (await extractMembers(group))
       .map((x) => normalizeHandle(x) ?? x)
       .filter((v): v is string => !!v);
     const isJoined = participantsNow.includes(selfHandle);
@@ -1131,7 +1154,7 @@ export function Chat() {
       try {
         const acc = account();
         if (acc) {
-          const participants = extractMembers(group).map((x) =>
+          const participants = (await extractMembers(group)).map((x) =>
             normalizeHandle(x) ?? x
           ).filter((v): v is string => !!v);
           await syncPendingWithParticipants(acc.id, room.id, participants);
@@ -1202,7 +1225,7 @@ export function Chat() {
       const g = groups()[room.id];
       if (g && user) {
         const selfHandle = `${user.userName}@${getDomain()}`;
-        const members = extractMembers(g).map((x) => normalizeHandle(x) ?? x)
+        const members = (await extractMembers(g)).map((x) => normalizeHandle(x) ?? x)
           .filter((v): v is string => !!v);
         setPartnerHasKey(members.includes(selfHandle));
       }
@@ -1233,19 +1256,14 @@ export function Chat() {
     setLoadingOlder(false);
   };
 
-  const extractMembers = (state: StoredGroupState): string[] => {
-    const list: string[] = [];
-    const tree = state.ratchetTree as unknown as {
-      nodeType: string;
-      leaf?: { credential?: { identity?: Uint8Array } };
-    }[];
-    for (const node of tree) {
-      if (node?.nodeType === "leaf") {
-        const id = node.leaf?.credential?.identity;
-        if (id) list.push(new TextDecoder().decode(id));
-      }
+  const extractMembers = async (state: StoredGroupState): Promise<string[]> => {
+    try {
+      // openmls WASMからメンバーリストを取得
+      return await getGroupMembers(state);
+    } catch (error) {
+      console.error("Failed to extract members:", error);
+      return [];
     }
-    return list;
   };
 
   const loadRooms = async () => {
@@ -1271,6 +1289,9 @@ export function Chat() {
     for (const item of serverRooms) {
       const state = groups()[item.id];
       const meta = state
+        // 拡張の型適合 - openmls移行のため一時的に無効化
+        ? { name: "", icon: undefined }
+        /*
         // 拡張の型適合 (extensionType を number に) ※ ts-mls の型差異吸収
         ? decodeGroupMetadata(
           (() => {
@@ -1301,7 +1322,8 @@ export function Chat() {
               }[];
             });
           })(),
-        ) || {
+        )
+        */ || {
           name: "",
           icon: undefined,
         }
@@ -1310,7 +1332,7 @@ export function Chat() {
       const icon = meta.icon ?? "";
       // 参加者は MLS の leaf から導出。MLS が未同期の場合は pending 招待から暫定的に補完（UI表示用）
       let members = state
-        ? extractMembers(state)
+        ? (await extractMembers(state))
           .map((m) => normalizeHandle(m as ActorID) ?? m)
           .filter((m) => (normalizeHandle(m as ActorID) ?? m) !== handle)
         : [] as string[];
@@ -1592,8 +1614,8 @@ export function Chat() {
       const res = await removeMembers(group, indices);
       const content = encodePublicMessage(res.commit);
       const room = chatRooms().find((r) => r.id === roomId);
-      const toList = participantsFromState(roomId).length > 0
-        ? participantsFromState(roomId)
+      const toList = participantsFromStateSync(roomId).length > 0
+        ? participantsFromStateSync(roomId)
         : (room?.members ?? []).filter((m) => !!m);
       const ok = await sendHandshake(
         roomId,
@@ -1698,7 +1720,7 @@ export function Chat() {
     // 必要であれば、相手の KeyPackage を使って Add→Commit→Welcome を先行送信
     try {
       const self = `${user.userName}@${getDomain()}`;
-      const current = participantsFromState(roomId);
+      const current = participantsFromStateSync(roomId);
       const targets = (room.members ?? []).filter((m) => m && m !== self);
       const need = targets.filter((t) => !current.includes(t));
       if (need.length > 0) {
@@ -1761,7 +1783,7 @@ export function Chat() {
           try {
             const acc = account();
             if (acc) {
-              const participants = extractMembers(group).map((x) =>
+              const participants = (await extractMembers(group)).map((x) =>
                 normalizeHandle(x) ?? x
               ).filter((v): v is string => !!v);
               await syncPendingWithParticipants(acc.id, roomId, participants);
@@ -1792,8 +1814,8 @@ export function Chat() {
         const ok = await sendEncryptedMessage(
           roomId,
           `${user.userName}@${getDomain()}`,
-          participantsFromState(roomId).length > 0
-            ? participantsFromState(roomId)
+          participantsFromStateSync(roomId).length > 0
+            ? participantsFromStateSync(roomId)
             : (room.members ?? []).map((m) => m || "").filter((v) => !!v),
           {
             content: bufToB64(ack.message),
@@ -1817,8 +1839,8 @@ export function Chat() {
       const ok = await sendEncryptedMessage(
         roomId,
         `${user.userName}@${getDomain()}`,
-        participantsFromState(roomId).length > 0
-          ? participantsFromState(roomId)
+        participantsFromStateSync(roomId).length > 0
+          ? participantsFromStateSync(roomId)
           : (room.members ?? []).map((m) => m || "").filter((v) => !!v),
         {
           content: bufToB64(msgEnc.message),
@@ -2511,19 +2533,20 @@ export function Chat() {
 
         // members を MLS 由来に同期（変更がある場合のみ更新）
         let changed = false;
-        const nextA = list.map((r) => {
-          if (r.type === "memo") return r;
-          const parts = participantsFromState(r.id);
-          if (parts.length === 0) return r;
+        const results = await Promise.all(list.map(async (r) => {
+          if (r.type === "memo") return { room: r, hasChanged: false };
+          const parts = await participantsFromState(r.id);
+          if (parts.length === 0) return { room: r, hasChanged: false };
           const cur = r.members ?? [];
           const equals = cur.length === parts.length &&
             cur.every((v, i) => v === parts[i]);
           if (!equals) {
-            changed = true;
-            return { ...r, members: parts };
+            return { room: { ...r, members: parts }, hasChanged: true };
           }
-          return r;
-        });
+          return { room: r, hasChanged: false };
+        }));
+        const nextA = results.map(result => result.room);
+        changed = results.some(result => result.hasChanged);
         if (changed) setChatRooms(nextA);
 
         // 1対1・未命名の表示名補完（変更がある場合のみ更新）
