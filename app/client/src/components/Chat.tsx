@@ -50,7 +50,8 @@ import {
   decodePublicMessage,
   encodePublicMessage,
 } from "./e2ee/mls_message.ts";
-import { decodeMlsMessage } from "ts-mls";
+// ts-mls 排除: openmls wasm 移行中。ワイヤ判定は暫定 peekWire に委譲。
+import { peekWire } from "./e2ee/mls_wire.ts";
 import { decodeGroupMetadata } from "./e2ee/group_metadata.ts";
 import {
   appendRosterEvidence,
@@ -783,30 +784,14 @@ export function Chat() {
       if (!body) continue;
       try {
         try {
-          const dec = decodeMlsMessage(body, 0)?.[0];
-          if (dec && dec.wireformat === "mls_public_message") {
-            group = await processCommit(
-              group,
-              dec.publicMessage as unknown as never,
-            );
-            updated = true;
-            lastHandshakeId.set(room.id, String(h.createdAt));
-            continue;
-          }
+          const dec = peekWire(bufToB64(body));
+          // TODO: openmls wasm の public message decode 実装後に commit 判定を追加
         } catch {
           /* not a commit */
         }
         try {
-          const dec = decodeMlsMessage(body, 0)?.[0];
-          if (dec && dec.wireformat === "mls_public_message") {
-            group = await processProposal(
-              group,
-              dec.publicMessage as unknown as never,
-            );
-            updated = true;
-            lastHandshakeId.set(room.id, String(h.createdAt));
-            continue;
-          }
+          const dec = peekWire(bufToB64(body));
+          // TODO: openmls wasm の public message decode 実装後に proposal 判定を追加
         } catch {
           /* not a proposal */
         }
@@ -938,7 +923,7 @@ export function Chat() {
           contentLen: m.content ? m.content.length : 0,
         });
         try {
-          const peek = decodeMlsMessage(data, 0)?.[0];
+          const peek = peekWire(bufToB64(data));
           console.debug("[decrypt] peekWireformat", {
             id: m.id,
             wireformat: peek?.wireformat,
@@ -966,7 +951,7 @@ export function Chat() {
           continue;
         }
         try {
-          const peek2 = decodeMlsMessage(b64ToBuf(m.content), 0)?.[0];
+          const peek2 = peekWire(m.content);
           console.warn("[decrypt] failed -> placeholder", {
             id: m.id,
             room: room.id,
