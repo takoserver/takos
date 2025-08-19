@@ -229,9 +229,12 @@ impl Group {
         provider: &mut Provider,
         mut msg: &[u8],
     ) -> Result<Vec<u8>, JsError> {
-        let msg = MlsMessageIn::tls_deserialize(&mut msg).unwrap();
+        // 受信メッセージをデシリアライズする。
+        let msg = MlsMessageIn::tls_deserialize(&mut msg).map_err(JsError::from)?;
 
         let msg = match msg.extract() {
+            // 公開/非公開メッセージは `process_message` で処理し、
+            // 平文データを返す。
             openmls::framing::MlsMessageBodyIn::PublicMessage(msg) => {
                 self.mls_group.process_message(provider.as_ref(), msg)?
             }
@@ -239,9 +242,21 @@ impl Group {
             openmls::framing::MlsMessageBodyIn::PrivateMessage(msg) => {
                 self.mls_group.process_message(provider.as_ref(), msg)?
             }
-            openmls::framing::MlsMessageBodyIn::Welcome(_) => todo!(),
-            openmls::framing::MlsMessageBodyIn::GroupInfo(_) => todo!(),
-            openmls::framing::MlsMessageBodyIn::KeyPackage(_) => todo!(),
+
+            // Welcome メッセージを取り込んでグループを更新する。
+            openmls::framing::MlsMessageBodyIn::Welcome(welcome) => {
+                let config = MlsGroupJoinConfig::builder().build();
+                self.mls_group =
+                    StagedWelcome::new_from_welcome(&provider.0, &config, welcome, None)?
+                        .into_group(&provider.0)?;
+                return Ok(vec![]);
+            }
+
+            // GroupInfo は現在は特別な処理を行わず、空配列を返す。
+            openmls::framing::MlsMessageBodyIn::GroupInfo(_) => return Ok(vec![]),
+
+            // KeyPackage も同様に内容を返さない。
+            openmls::framing::MlsMessageBodyIn::KeyPackage(_) => return Ok(vec![]),
         };
 
         match msg.into_content() {
@@ -250,9 +265,11 @@ impl Group {
             }
             openmls::framing::ProcessedMessageContent::ProposalMessage(_)
             | openmls::framing::ProcessedMessageContent::ExternalJoinProposalMessage(_) => {
+                // 提案関連メッセージは内容を返さない。
                 Ok(vec![])
             }
             openmls::framing::ProcessedMessageContent::StagedCommitMessage(staged_commit) => {
+                // コミットはマージしてから空配列を返す。
                 self.mls_group
                     .merge_staged_commit(provider.as_mut(), *staged_commit)?;
                 Ok(vec![])
