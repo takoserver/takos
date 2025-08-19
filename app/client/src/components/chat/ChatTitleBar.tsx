@@ -4,7 +4,7 @@ import { isFriendRoom } from "./types.ts";
 import { useAtom } from "solid-jotai";
 import { activeAccount } from "../../states/account.ts";
 import { getDomain } from "../../utils/config.ts";
-import type { BindingStatus } from "../e2ee/binding.ts";
+import type { BindingStatus } from "../e2ee/useMLS.ts";
 
 interface ChatTitleBarProps {
   isMobile: boolean;

@@ -35,18 +35,22 @@ import { addMessageHandler, removeMessageHandler } from "../utils/ws.ts";
 import {
   createCommitAndWelcomes,
   createMLSGroup,
+  decodePublicMessage,
   decryptMessage,
+  encodeCommit,
+  encodeWelcome,
   encryptMessage,
+  type GeneratedKeyPair,
   generateKeyPair,
+  getGroupMembers,
   joinWithWelcome,
+  peekWire,
   removeMembers,
   type RosterEvidence,
   type StoredGroupState,
   verifyWelcome,
-} from "./e2ee/mls_wrapper.ts";
-import { decodePublicMessage, encodeCommit, encodeWelcome } from "./e2ee/mls_message.ts";
+} from "./e2ee/mls.ts";
 // ts-mls 排除: openmls wasm 移行中。ワイヤ判定は暫定 peekWire に委譲。
-import { peekWire } from "./e2ee/mls_wire.ts";
 import {
   appendRosterEvidence,
   getCacheItem,
@@ -69,8 +73,6 @@ import { ChatSendForm } from "./chat/ChatSendForm.tsx";
 import { GroupCreateDialog } from "./chat/GroupCreateDialog.tsx";
 import type { ActorID, ChatMessage, Room } from "./chat/types.ts";
 import { b64ToBuf, bufToB64 } from "../../../shared/buffer.ts";
-import type { GeneratedKeyPair } from "./e2ee/mls_wrapper.ts";
-import { getGroupMembers } from "./e2ee/mls_wrapper.ts";
 import { useMLS } from "./e2ee/useMLS.ts";
 
 function adjustHeight(el?: HTMLTextAreaElement) {
@@ -277,7 +279,11 @@ async function generateImagePreview(
         ctx.drawImage(img, 0, 0, width, height);
         canvas.toBlob((blob) => {
           if (!blob) return resolve(null);
-            resolve({ file: new File([blob], file.name, { type: blob.type }), width, height });
+          resolve({
+            file: new File([blob], file.name, { type: blob.type }),
+            width,
+            height,
+          });
         }, file.type);
       } finally {
         URL.revokeObjectURL(url);
@@ -1503,8 +1509,8 @@ export function Chat() {
         ),
       );
       if (indices.length === 0) return false;
-  const res = await removeMembers(group, indices);
-  const content = encodeCommit(res.commit);
+      const res = await removeMembers(group, indices);
+      const content = encodeCommit(res.commit);
       const room = chatRooms().find((r) => r.id === roomId);
       const toList = participantsFromStateSync(roomId).length > 0
         ? participantsFromStateSync(roomId)
@@ -1587,8 +1593,8 @@ export function Chat() {
       alert("このユーザーは暗号化された会話に対応していません。");
       return;
     }
-  // 送信可能か（宛先候補が存在するか）事前チェックは後で再計算するが、
-  // 参加処理直後などで roster が未反映の場合は room.members を利用して補完する。
+    // 送信可能か（宛先候補が存在するか）事前チェックは後で再計算するが、
+    // 参加処理直後などで roster が未反映の場合は room.members を利用して補完する。
     // クライアント側で仮のメッセージIDを生成しておく
     const localId = crypto.randomUUID();
     const note: Record<string, unknown> = {
@@ -1750,7 +1756,8 @@ export function Chat() {
           detail: {
             type: "warning",
             title: "宛先なし",
-            description: "相手がまだ参加していないため送信できません (Welcome 待ち)",
+            description:
+              "相手がまだ参加していないため送信できません (Welcome 待ち)",
           },
         }),
       );
@@ -2290,16 +2297,22 @@ export function Chat() {
                 // 未実装のため本来の join はできないが、暗号化操作に有効なハンドルを確保するため
                 // 空の新規グループをローカル生成して暫定参加状態とする（後で本物のWelcome処理で置換予定）
                 try {
-                  const actorUrl = new URL(`/users/${user.userName}`, globalThis.location.origin).href;
+                  const actorUrl = new URL(
+                    `/users/${user.userName}`,
+                    globalThis.location.origin,
+                  ).href;
                   const created = await createMLSGroup(actorUrl);
-                  joined = { ...created.state, members: [ `${user.userName}@${getDomain()}` ] };
+                  joined = {
+                    ...created.state,
+                    members: [`${user.userName}@${getDomain()}`],
+                  };
                 } catch (e2) {
                   console.warn("暫定グループ生成に失敗", e2);
                   joined = {
                     handle: -1,
                     identity: `${user.userName}@${getDomain()}`,
                     groupIdB64: btoa(room.id).slice(0, 32),
-                    members: [ `${user.userName}@${getDomain()}` ],
+                    members: [`${user.userName}@${getDomain()}`],
                   } as StoredGroupState; // 最後の手段（暗号化は失敗する可能性）
                 }
                 break;
@@ -2470,7 +2483,9 @@ export function Chat() {
         const last = prev.length > 0 ? prev[prev.length - 1] : undefined;
         const fetched = await fetchMessagesForRoom(
           room,
-          last ? { after: last.timestamp.toISOString() } : { limit: messageLimit },
+          last
+            ? { after: last.timestamp.toISOString() }
+            : { limit: messageLimit },
         );
         if (fetched.length === 0) return;
         // after 指定時は新着のみ返る想定。重複安全のためフィルタ
@@ -2480,11 +2495,11 @@ export function Chat() {
         setMessages([...prev, ...newOnes]);
         setMessagesByRoom((cur) => {
           const key = roomCacheKey(room.id);
-            const list = (cur[key] ?? []).concat(newOnes);
-            const next = { ...cur, [key]: list };
-            const user = account();
-            if (user) void saveDecryptedMessages(user.id, room.id, list);
-            return next;
+          const list = (cur[key] ?? []).concat(newOnes);
+          const next = { ...cur, [key]: list };
+          const user = account();
+          if (user) void saveDecryptedMessages(user.id, room.id, list);
+          return next;
         });
         updateRoomLast(room.id, newOnes[newOnes.length - 1]);
       } catch { /* ignore */ }
@@ -2672,7 +2687,6 @@ export function Chat() {
     if (previewPoller) clearInterval(previewPoller);
   });
 
-
   return (
     <>
       <div class="w-full h-screen overflow-hidden">
@@ -2824,24 +2838,41 @@ export function Chat() {
                                 : []);
                             for (const kp of baseList) {
                               try {
-                                if (!kp) throw new Error("key pair not prepared");
+                                if (!kp) {
+                                  throw new Error("key pair not prepared");
+                                }
                                 const st = await joinWithWelcome(w, kp);
                                 joined = st;
                                 break;
                               } catch (err) {
-                                const msg = err instanceof Error ? err.message : String(err);
+                                const msg = err instanceof Error
+                                  ? err.message
+                                  : String(err);
                                 if (msg.includes("未実装")) {
                                   try {
-                                    const actorUrl = new URL(`/users/${user.userName}`, globalThis.location.origin).href;
-                                    const created = await createMLSGroup(actorUrl);
-                                    joined = { ...created.state, members: [ `${user.userName}@${getDomain()}` ] };
+                                    const actorUrl = new URL(
+                                      `/users/${user.userName}`,
+                                      globalThis.location.origin,
+                                    ).href;
+                                    const created = await createMLSGroup(
+                                      actorUrl,
+                                    );
+                                    joined = {
+                                      ...created.state,
+                                      members: [
+                                        `${user.userName}@${getDomain()}`,
+                                      ],
+                                    };
                                   } catch (e2) {
                                     console.warn("暫定グループ生成に失敗", e2);
                                     joined = {
                                       handle: -1,
-                                      identity: `${user.userName}@${getDomain()}`,
+                                      identity:
+                                        `${user.userName}@${getDomain()}`,
                                       groupIdB64: btoa(id).slice(0, 32),
-                                      members: [ `${user.userName}@${getDomain()}` ],
+                                      members: [
+                                        `${user.userName}@${getDomain()}`,
+                                      ],
                                     } as StoredGroupState;
                                   }
                                   break;
@@ -2850,23 +2881,52 @@ export function Chat() {
                               }
                             }
                             if (!joined) {
-                              throw new Error("Welcomeの適用に失敗しました (全KP失敗)");
+                              throw new Error(
+                                "Welcomeの適用に失敗しました (全KP失敗)",
+                              );
                             }
-                            try { await addRoom(user.userName, { id }); } catch { /* ignore */ }
+                            try {
+                              await addRoom(user.userName, { id });
+                            } catch { /* ignore */ }
                             setGroups({ ...groups(), [id]: joined });
                             await saveGroupStates();
-                            setPendingWelcomes((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                            setPendingWelcomes((prev) => {
+                              const n = { ...prev };
+                              delete n[id];
+                              return n;
+                            });
                             const room = chatRooms().find((r) => r.id === id);
                             if (room) await loadMessages(room, true);
                             try {
                               await apiFetch(
-                                `/api/users/${encodeURIComponent(user.userName)}/pendingInvites/ack`,
-                                { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ roomId: id, deviceId: "" }) },
+                                `/api/users/${
+                                  encodeURIComponent(user.userName)
+                                }/pendingInvites/ack`,
+                                {
+                                  method: "POST",
+                                  headers: {
+                                    "content-type": "application/json",
+                                  },
+                                  body: JSON.stringify({
+                                    roomId: id,
+                                    deviceId: "",
+                                  }),
+                                },
                               );
                             } catch { /* ignore */ }
-                            try { await loadRooms(); } catch { /* ignore */ }
+                            try {
+                              await loadRooms();
+                            } catch { /* ignore */ }
                           } catch (err) {
-                            globalThis.dispatchEvent(new CustomEvent("app:toast", { detail: { type: "error", title: "参加に失敗", description: String(err) } }));
+                            globalThis.dispatchEvent(
+                              new CustomEvent("app:toast", {
+                                detail: {
+                                  type: "error",
+                                  title: "参加に失敗",
+                                  description: String(err),
+                                },
+                              }),
+                            );
                           }
                         }}
                       >

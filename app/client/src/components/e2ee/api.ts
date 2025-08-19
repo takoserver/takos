@@ -2,11 +2,9 @@ import { apiFetch } from "../../utils/config.ts";
 import {
   decodeGroupInfo,
   encodeCommit,
-  encodeWelcome,
   encodeProposal,
   encodePublicMessage,
-} from "./mls_message.ts";
-import {
+  encodeWelcome,
   type GeneratedKeyPair,
   joinWithGroupInfo,
   type RawKeyPackageInput,
@@ -15,7 +13,7 @@ import {
   updateKey,
   verifyGroupInfo,
   verifyKeyPackage,
-} from "./mls_wrapper.ts";
+} from "./mls.ts";
 import {
   appendKeyPackageRecords,
   appendRosterEvidence,
@@ -532,18 +530,33 @@ export const sendHandshake = async (
     );
     if (!res.ok) {
       let body: unknown = null;
-      try { body = await res.json(); } catch { /* ignore */ }
-      console.warn("[sendHandshake] failed", { roomId, status: res.status, from, to, body });
+      try {
+        body = await res.json();
+      } catch { /* ignore */ }
+      console.warn("[sendHandshake] failed", {
+        roomId,
+        status: res.status,
+        from,
+        to,
+        body,
+      });
     } else {
       try {
         const data: unknown = await res.clone().json();
         const partial = (data && typeof data === "object" && "partial" in data)
           ? (data as { partial?: unknown }).partial
           : undefined;
-        const unresolved = (data && typeof data === "object" && "unresolved" in data)
-          ? (data as { unresolved?: unknown }).unresolved
-          : undefined;
-        console.info("[sendHandshake] ok", { roomId, from, toCount: Array.isArray(to) ? to.length : undefined, partial, unresolved });
+        const unresolved =
+          (data && typeof data === "object" && "unresolved" in data)
+            ? (data as { unresolved?: unknown }).unresolved
+            : undefined;
+        console.info("[sendHandshake] ok", {
+          roomId,
+          from,
+          toCount: Array.isArray(to) ? to.length : undefined,
+          partial,
+          unresolved,
+        });
       } catch {
         console.info("[sendHandshake] ok(no-json)", { roomId, from });
       }
@@ -592,8 +605,8 @@ export const updateRoomKey = async (
     if (!rec) {
       throw new Error("保存済みの actorId と一致しません");
     }
-  const res = await updateKey(state, identity);
-  const content = encodeCommit(res.commit);
+    const res = await updateKey(state, identity);
+    const content = encodeCommit(res.commit);
     const ok = await sendHandshake(roomId, from, content);
     if (!ok) return null;
     return res;

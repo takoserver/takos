@@ -180,14 +180,14 @@ async function resolveRecipientsToActorIris(
       if (uname && host && host === localDomain) {
         try {
           // ローカルアカウント存在確認
-            const dbi = ensureDB();
-            const acc = await dbi.findAccountByUserName(uname);
-            if (acc) {
-              resolved.push(`https://${host}/users/${uname}`);
-              continue;
-            } else {
-              console.warn("local recipient not found", acct);
-            }
+          const dbi = ensureDB();
+          const acc = await dbi.findAccountByUserName(uname);
+          if (acc) {
+            resolved.push(`https://${host}/users/${uname}`);
+            continue;
+          } else {
+            console.warn("local recipient not found", acct);
+          }
         } catch (e) {
           console.warn("local recipient lookup failed", acct, e);
         }
@@ -261,15 +261,16 @@ async function handleHandshake(
   | { ok: true; id: string }
   | { ok: false; status: number; error: string }
 > {
-  const { from, to, content, mediaType, encoding, attachments, deviceMap } = body as {
-    from?: unknown;
-    to?: unknown;
-    content?: unknown;
-    mediaType?: unknown;
-    encoding?: unknown;
-    attachments?: unknown;
-    deviceMap?: unknown;
-  };
+  const { from, to, content, mediaType, encoding, attachments, deviceMap } =
+    body as {
+      from?: unknown;
+      to?: unknown;
+      content?: unknown;
+      mediaType?: unknown;
+      encoding?: unknown;
+      attachments?: unknown;
+      deviceMap?: unknown;
+    };
   console.info("[handleHandshake] incoming", {
     roomId,
     hasFrom: typeof from === "string",
@@ -337,7 +338,7 @@ async function handleHandshake(
   const mType = mediaType as string;
   const encType = encoding as string;
 
-  // --- MLS TLV デコードで種別判定 (client の mls_message.ts と整合) ---
+  // --- MLS TLV デコードで種別判定 (client の mls.ts と整合) ---
   function decodeMlsEnvelope(
     b64: string,
   ): { type: string; originalType: string; body: Uint8Array } | null {
@@ -397,8 +398,8 @@ async function handleHandshake(
     }
   }
   const localTargets = (envelope &&
-        (envelope.originalType === "Welcome" ||
-          envelope.originalType === "Commit")) || forceTreatAsCommit
+      (envelope.originalType === "Welcome" ||
+        envelope.originalType === "Commit")) || forceTreatAsCommit
     ? recipients.filter((m) => m.endsWith(`@${domain}`) && m !== from)
     : [];
 
@@ -494,14 +495,22 @@ async function handleHandshake(
 
   if (localTargets.length > 0) {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const dm = (deviceMap && typeof deviceMap === "object") ? deviceMap as Record<string, unknown> : {};
+    const dm = (deviceMap && typeof deviceMap === "object")
+      ? deviceMap as Record<string, unknown>
+      : {};
     for (const lm of localTargets) {
       const uname = lm.split("@")[0];
       const handleLike = lm.startsWith("@") ? lm.slice(1) : lm;
       const devIdRaw = dm[lm] ?? dm[handleLike] ?? dm[uname];
-      const deviceId = typeof devIdRaw === "string" && devIdRaw.length > 0 ? devIdRaw : `unknown:${uname}`;
+      const deviceId = typeof devIdRaw === "string" && devIdRaw.length > 0
+        ? devIdRaw
+        : `unknown:${uname}`;
       await db.savePendingInvite(roomId, uname, deviceId, expiresAt);
-  console.info("[handshake] savePendingInvite", { roomId, to: lm, deviceId });
+      console.info("[handshake] savePendingInvite", {
+        roomId,
+        to: lm,
+        deviceId,
+      });
       sendToUser(lm, { type: "pendingInvite", payload: { roomId, from } });
       try {
         // ローカルユーザー向けにサーバー側で通知を作成
@@ -605,9 +614,11 @@ async function handleHandshake(
     },
   );
 
-  return { ok: true, id: String(msg._id), ...(partial
-      ? { partial: true as const, unresolved: unresolvedOut }
-      : {}) };
+  return {
+    ok: true,
+    id: String(msg._id),
+    ...(partial ? { partial: true as const, unresolved: unresolvedOut } : {}),
+  };
 }
 
 // ルーム管理 API (ActivityPub 対応)
@@ -695,7 +706,12 @@ app.post("/ap/rooms", authRequired, async (c) => {
     if (!hs.ok) {
       return jsonResponse(c, { error: hs.error }, hs.status);
     }
-    return jsonResponse(c, { id, ...(hs as { partial?: boolean; unresolved?: string[] }) }, 201, "application/json");
+    return jsonResponse(
+      c,
+      { id, ...(hs as { partial?: boolean; unresolved?: string[] }) },
+      201,
+      "application/json",
+    );
   }
   return jsonResponse(c, { id }, 201, "application/json");
 });
@@ -1231,7 +1247,11 @@ app.post(
     if (!result.ok) {
       return jsonResponse(c, { error: result.error }, result.status);
     }
-  return c.json({ result: "sent", id: result.id, ...(result as { partial?: boolean; unresolved?: string[] }) });
+    return c.json({
+      result: "sent",
+      id: result.id,
+      ...(result as { partial?: boolean; unresolved?: string[] }),
+    });
   },
 );
 
