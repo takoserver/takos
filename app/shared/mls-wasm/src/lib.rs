@@ -245,7 +245,7 @@ pub fn export_group_info(handle: u32) -> Result<String, JsValue> {
 #[wasm_bindgen(getter_with_clone)]
 pub struct AddMembersResult {
     pub commit: Vec<u8>,
-    pub welcome: Vec<u8>,
+    pub welcomes: Vec<Vec<u8>>,
 }
 
 #[wasm_bindgen]
@@ -279,9 +279,11 @@ pub fn add_members(handle: u32, key_packages: Array) -> Result<AddMembersResult,
         .tls_serialize_detached()
         .map_err(|e| JsValue::from_str(&format!("serialize welcome: {:?}", e)))?;
 
+    let welcomes = vec![welcome_bytes.clone(); kps.len()];
+
     Ok(AddMembersResult {
         commit: commit_bytes,
-        welcome: welcome_bytes,
+        welcomes,
     })
 }
 

@@ -24,7 +24,7 @@ interface OpenMlsCreatedGroup {
 
 interface AddMembersResult {
   commit: Uint8Array;
-  welcome: Uint8Array;
+  welcomes: Uint8Array[];
 }
 
 interface JoinWithWelcomeResult {
@@ -512,16 +512,25 @@ export function addMembers(
     const pkgs = addKeyPackages.map((p) => p.content);
     const res = wasm.add_members(state.handle, pkgs);
     const members = await om_getGroupMembers(state.handle);
-    const welcomes = addKeyPackages.map((p) => ({
+    const welcomes = addKeyPackages.map((p, i) => ({
       actor: p.actor,
       deviceId: p.deviceId,
-      data: res.welcome,
+      data: res.welcomes[i],
+    }));
+    const evidences = addKeyPackages.map((p) => ({
+      type: "RosterEvidence" as const,
+      actor: p.actor ?? "",
+      keyPackageUrl: p.url ?? "",
+      keyPackageHash: p.hash ?? "",
+      leafSignatureKeyFpr: p.leafSignatureKeyFpr ?? "",
+      fetchedAt: p.fetchedAt ?? new Date().toISOString(),
+      etag: p.etag,
     }));
     return {
       commit: res.commit,
       welcomes,
       state: { ...state, members },
-      evidences: [],
+      evidences,
     };
   })();
 }
