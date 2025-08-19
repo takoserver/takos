@@ -8,6 +8,8 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use tls_codec::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+use crate::group_info::GroupInfo;
+use openmls::prelude::group_info::GroupInfo;
 
 static GROUPS: Lazy<Mutex<HashMap<u32, GroupHandle>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 static NEXT_ID: Lazy<Mutex<u32>> = Lazy::new(|| Mutex::new(1));
