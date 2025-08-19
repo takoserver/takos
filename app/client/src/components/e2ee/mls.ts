@@ -6,6 +6,7 @@ import { b64ToBuf, bufToB64 } from "../../../../shared/buffer.ts";
 import wasmInit, {
   Group,
   Identity,
+  KeyPackage,
   Provider,
   RatchetTree,
 } from "../../../../shared/openmls-wasm/pkg/openmls_wasm.js";
@@ -501,40 +502,32 @@ export function addMembers(
     const evidences: RosterEvidence[] = [];
 
     for (const pkg of addKeyPackages) {
-      // WASM バインディングでは KeyPackage の TLS デシリアライズが
-      // エクスポートされていないため、直接デシリアライズはできません。
-      // そこで可能であれば同一プロセス内で生成された KeyPackage を
-      // `Identity.key_package(provider)` から取得して利用し、そうでない
-      // 場合はプレースホルダの commit/welcome を返して TypeError を回避します。
-  const _kpBytes = b64ToBuf(pkg.content);
-      let messages: { commit: Uint8Array; welcome: Uint8Array };
+      const kpBytes = b64ToBuf(pkg.content);
       try {
-        if (pkg.actor && pkg.actor === state.identity) {
-          // 自分が生成した KeyPackage の場合のみ Identity から取得して追加を試みる
-          const memberIdentity = new Identity(provider, pkg.actor);
-          const keyPackageObj = memberIdentity.key_package(provider);
-          const addMsgs = state.handle.propose_and_commit_add(
-            provider,
-            identityObj,
-            keyPackageObj,
-          );
-          state.handle.merge_pending_commit(provider);
-          messages = { commit: addMsgs.commit, welcome: addMsgs.welcome };
-        } else {
-          // 外部から取得した KeyPackage のバイナリは JS バインディングで
-          // デシリアライズできないため、空のプレースホルダを返す
-          messages = { commit: new Uint8Array(0), welcome: new Uint8Array(0) };
-        }
+        // OpenMLS WASM バインディングの KeyPackage.tls_deserialize を使用
+        const keyPackage = KeyPackage.tls_deserialize(kpBytes);
+        const messages = state.handle.propose_and_commit_add(
+          provider,
+          identityObj,
+          keyPackage,
+        );
+        state.handle.merge_pending_commit(provider);
+        commits.push(messages.commit);
+        welcomes.push({
+          actor: pkg.actor,
+          deviceId: pkg.deviceId,
+          data: messages.welcome,
+        });
       } catch (err) {
-        console.warn("addMembers propose_and_commit_add failed", err);
-        messages = { commit: new Uint8Array(0), welcome: new Uint8Array(0) };
+        console.warn("addMembers KeyPackage.tls_deserialize failed", err);
+        // デシリアライズまたは追加に失敗した場合は空のプレースホルダを返す
+        commits.push(new Uint8Array(0));
+        welcomes.push({
+          actor: pkg.actor,
+          deviceId: pkg.deviceId,
+          data: new Uint8Array(0),
+        });
       }
-      commits.push(messages.commit);
-      welcomes.push({
-        actor: pkg.actor,
-        deviceId: pkg.deviceId,
-        data: messages.welcome,
-      });
       evidences.push({
         type: "RosterEvidence" as const,
         actor: pkg.actor ?? "",

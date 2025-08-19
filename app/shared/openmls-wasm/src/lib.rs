@@ -5,14 +5,14 @@ use openmls::{
     credentials::{BasicCredential, CredentialWithKey},
     framing::{MlsMessageBodyIn, MlsMessageIn, MlsMessageOut},
     group::{GroupId, MlsGroup, MlsGroupJoinConfig, StagedWelcome},
-    key_packages::KeyPackage as OpenMlsKeyPackage,
-    prelude::SignatureScheme,
+    key_packages::{KeyPackage as OpenMlsKeyPackage, KeyPackageIn},
+    prelude::{SignatureScheme, ProtocolVersion},
     treesync::RatchetTreeIn,
 };
 use openmls_basic_credential::SignatureKeyPair;
 use openmls_rust_crypto::OpenMlsRustCrypto;
 use openmls_traits::{types::Ciphersuite, OpenMlsProvider};
-use tls_codec::{Deserialize, Serialize};
+use tls_codec::{Deserialize, Serialize, TlsDeserializeBytes};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -364,6 +364,21 @@ impl KeyPackage {
         let mut serialized = vec![];
         self.0.tls_serialize(&mut serialized).unwrap();
         unsafe { Uint8Array::new(&Uint8Array::view(&serialized)) }
+    }
+
+    /// バイト配列から KeyPackage を TLS 形式でデシリアライズする
+    pub fn tls_deserialize(data: &[u8]) -> Result<KeyPackage, JsError> {
+        // 1) 未検証 KeyPackage にデシリアライズ
+        let kp_in: KeyPackageIn = KeyPackageIn::tls_deserialize_exact(data)
+            .map_err(|e| JsError::new(&format!("KeyPackage parse error: {e}")))?;
+
+        // 2) 検証して本物の KeyPackage を得る（MLS 1.0 を想定）
+        let provider = OpenMlsRustCrypto::default();
+        let key_package: OpenMlsKeyPackage = kp_in
+            .validate(provider.crypto(), ProtocolVersion::Mls10)
+            .map_err(|e| JsError::new(&format!("KeyPackage validate error: {e}")))?;
+
+        Ok(KeyPackage(key_package))
     }
 }
 
