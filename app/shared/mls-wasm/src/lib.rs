@@ -2,6 +2,7 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use js_sys::Array;
 use once_cell::sync::Lazy;
 use openmls::prelude::*;
+use openmls_basic_credential::{BasicCredential, SignatureKeyPair};
 use openmls_rust_crypto::{OpenMlsRustCrypto, RustCrypto};
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -195,8 +196,11 @@ pub fn decrypt(handle: u32, message_b64: &str) -> Result<DecryptResult, JsValue>
     let mls_message = MlsMessageIn::tls_deserialize_exact(&data)
         .map_err(|e| JsValue::from_str(&format!("parse message: {e:?}")))?;
 
-    let protocol_message = mls_message.extract()
-        .map_err(|e| JsValue::from_str(&format!("extract protocol message: {e:?}")))?;
+    let protocol_message = match mls_message {
+        MlsMessageIn::PublicMessage(pm) => pm.into(),
+        MlsMessageIn::PrivateMessage(pm) => pm.into(),
+        _ => return Err(JsValue::from_str("unsupported message type")),
+    };
 
     let processed = h
         .group
@@ -259,12 +263,12 @@ pub fn add_members(handle: u32, key_packages: Array) -> Result<AddMembersResult,
             .as_string()
             .ok_or_else(|| JsValue::from_str("invalid key package"))?;
         let kp_bytes = b64dec(&kp_b64).map_err(|e| JsValue::from_str(&e))?;
-        let kp = KeyPackage::tls_deserialize_exact(&kp_bytes)
+        let kp = KeyPackage::tls_deserialize(&mut kp_bytes.as_slice())
             .map_err(|e| JsValue::from_str(&format!("parse key package: {:?}", e)))?;
         kps.push(kp);
     }
 
-    let (commit, welcome) = h
+    let (commit, welcome, _gi) = h
         .group
         .add_members(provider, &h.signer, &kps)
         .map_err(|e| JsValue::from_str(&format!("add_members: {:?}", e)))?;
@@ -301,14 +305,10 @@ pub fn join_with_welcome(identity: &str, welcome: &[u8]) -> Result<JoinWithWelco
     };
 
     let w_bytes = welcome.to_vec();
-    let welcome_msg = Welcome::tls_deserialize_exact(&w_bytes)
+    let welcome_msg = Welcome::tls_deserialize(&mut w_bytes.as_slice())
         .map_err(|e| JsValue::from_str(&format!("parse welcome: {:?}", e)))?;
 
-    let config = MlsGroupJoinConfig::builder()
-        .ciphersuite(CS)
-        .build();
-
-    let group = MlsGroup::new_from_welcome(provider, &config, welcome_msg, None)
+    let group = MlsGroup::new_from_welcome(provider, &signer, welcome_msg, None)
         .map_err(|e| JsValue::from_str(&format!("join group: {:?}", e)))?;
 
     let group_info_bytes = export_group_info_internal(&group, &RustCrypto::default(), &signer)
@@ -349,7 +349,7 @@ pub fn remove_members(handle: u32, indices: Array) -> Result<RemoveMembersResult
         leaf_indices.push(LeafNodeIndex::new(v));
     }
 
-    let (commit, _welcome) = h
+    let (commit, _welcome, _gi) = h
         .group
         .remove_members(provider, &h.signer, &leaf_indices)
         .map_err(|e| JsValue::from_str(&format!("remove_members: {:?}", e)))?;
@@ -377,11 +377,9 @@ pub fn update_key(handle: u32) -> Result<UpdateKeyResult, JsValue> {
         .get_mut(&handle)
         .ok_or_else(|| JsValue::from_str("unknown handle"))?;
 
-    let leaf_node_params = LeafNodeParameters::builder()
-        .build()
-        .map_err(|e| JsValue::from_str(&format!("build leaf node params: {:?}", e)))?;
+    let leaf_node_params = LeafNodeParameters::default();
 
-    let commit = h
+    let (commit, _welcome, _gi) = h
         .group
         .self_update(provider, &h.signer, leaf_node_params)
         .map_err(|e| JsValue::from_str(&format!("self_update: {:?}", e)))?;
@@ -437,23 +435,12 @@ pub fn join_with_group_info(
     };
 
     let gi_bytes = group_info.to_vec();
-    let gi = VerifiableGroupInfo::tls_deserialize_exact(&gi_bytes)
+    let gi = GroupInfo::tls_deserialize(&mut gi_bytes.as_slice())
         .map_err(|e| JsValue::from_str(&format!("parse group info: {:?}", e)))?;
 
-    let join_config = MlsGroupJoinConfig::builder()
-        .ciphersuite(CS)
-        .build();
-
-    let (group, commit) = MlsGroup::join_by_external_commit(
-        provider,
-        &signer,
-        Some(&join_config),
-        gi,
-        credential_with_key.clone(),
-        Extensions::empty(),
-        &[],
-    )
-    .map_err(|e| JsValue::from_str(&format!("join_by_external_commit: {:?}", e)))?;
+    let (group, _welcome, commit) =
+        MlsGroup::join_by_external_commit(provider, &signer, gi, None, credential_with_key.clone())
+            .map_err(|e| JsValue::from_str(&format!("join_by_external_commit: {:?}", e)))?;
 
     let commit_bytes = commit
         .tls_serialize_detached()
@@ -486,11 +473,14 @@ pub fn process_commit(handle: u32, commit: &[u8]) -> Result<MembersResult, JsVal
         .ok_or_else(|| JsValue::from_str("unknown handle"))?;
 
     let buf = commit.to_vec();
-    let msg_in = MlsMessageIn::tls_deserialize_exact(&buf)
+    let msg_in = MlsMessageIn::tls_deserialize(&mut buf.as_slice())
         .map_err(|e| JsValue::from_str(&format!("parse commit: {:?}", e)))?;
 
-    let protocol_message = msg_in.extract()
-        .map_err(|e| JsValue::from_str(&format!("extract protocol message: {:?}", e)))?;
+    let protocol_message = match msg_in {
+        MlsMessageIn::PublicMessage(pm) => pm.into(),
+        MlsMessageIn::PrivateMessage(pm) => pm.into(),
+        _ => return Err(JsValue::from_str("unsupported message type")),
+    };
 
     let processed = h
         .group
@@ -519,11 +509,14 @@ pub fn process_proposal(handle: u32, proposal: &[u8]) -> Result<MembersResult, J
         .ok_or_else(|| JsValue::from_str("unknown handle"))?;
 
     let buf = proposal.to_vec();
-    let msg_in = MlsMessageIn::tls_deserialize_exact(&buf)
+    let msg_in = MlsMessageIn::tls_deserialize(&mut buf.as_slice())
         .map_err(|e| JsValue::from_str(&format!("parse proposal: {:?}", e)))?;
 
-    let protocol_message = msg_in.extract()
-        .map_err(|e| JsValue::from_str(&format!("extract protocol message: {:?}", e)))?;
+    let protocol_message = match msg_in {
+        MlsMessageIn::PublicMessage(pm) => pm.into(),
+        MlsMessageIn::PrivateMessage(pm) => pm.into(),
+        _ => return Err(JsValue::from_str("unsupported message type")),
+    };
 
     let processed = h
         .group
@@ -543,7 +536,7 @@ pub fn process_proposal(handle: u32, proposal: &[u8]) -> Result<MembersResult, J
 #[wasm_bindgen]
 pub fn decode_key_package(data: &[u8]) -> Result<Vec<u8>, JsValue> {
     let buf = data.to_vec();
-    let kp = KeyPackage::tls_deserialize_exact(&buf)
+    let kp = KeyPackage::tls_deserialize(&mut buf.as_slice())
         .map_err(|e| JsValue::from_str(&format!("parse key package: {:?}", e)))?;
     Ok(kp.leaf_node().signature_key().as_slice().to_vec())
 }
@@ -551,7 +544,7 @@ pub fn decode_key_package(data: &[u8]) -> Result<Vec<u8>, JsValue> {
 #[wasm_bindgen]
 pub fn decode_welcome(data: &[u8]) -> Result<JsValue, JsValue> {
     let buf = data.to_vec();
-    let _welcome = Welcome::tls_deserialize_exact(&buf)
+    let _welcome = Welcome::tls_deserialize(&mut buf.as_slice())
         .map_err(|e| JsValue::from_str(&format!("parse welcome: {:?}", e)))?;
     let obj = js_sys::Object::new();
     // Note: encrypted_group_info is no longer accessible in the new API
@@ -567,10 +560,10 @@ pub fn decode_welcome(data: &[u8]) -> Result<JsValue, JsValue> {
 #[wasm_bindgen]
 pub fn decode_group_info(data: &[u8]) -> Result<JsValue, JsValue> {
     let buf = data.to_vec();
-    let gi = VerifiableGroupInfo::tls_deserialize_exact(&buf)
+    let gi = GroupInfo::tls_deserialize(&mut buf.as_slice())
         .map_err(|e| JsValue::from_str(&format!("parse group info: {:?}", e)))?;
     let obj = js_sys::Object::new();
-    let gid = gi.group_id().as_slice().to_vec();
+    let gid = gi.group_context().group_id().as_slice().to_vec();
     js_sys::Reflect::set(
         &obj,
         &JsValue::from_str("group_id"),
@@ -583,7 +576,7 @@ pub fn decode_group_info(data: &[u8]) -> Result<JsValue, JsValue> {
 #[wasm_bindgen]
 pub fn decode_public_message(data: &[u8]) -> Result<JsValue, JsValue> {
     let buf = data.to_vec();
-    let msg = MlsMessageIn::tls_deserialize_exact(&buf)
+    let msg = MlsMessageIn::tls_deserialize(&mut buf.as_slice())
         .map_err(|e| JsValue::from_str(&format!("parse public message: {:?}", e)))?;
     
     match msg {
@@ -604,7 +597,7 @@ pub fn decode_public_message(data: &[u8]) -> Result<JsValue, JsValue> {
 #[wasm_bindgen]
 pub fn decode_private_message(data: &[u8]) -> Result<JsValue, JsValue> {
     let buf = data.to_vec();
-    let msg = MlsMessageIn::tls_deserialize_exact(&buf)
+    let msg = MlsMessageIn::tls_deserialize(&mut buf.as_slice())
         .map_err(|e| JsValue::from_str(&format!("parse private message: {:?}", e)))?;
     
     match msg {
@@ -635,7 +628,7 @@ pub enum WireFormat {
 #[wasm_bindgen]
 pub fn peek_wire(data: &[u8]) -> WireFormat {
     let buf = data.to_vec();
-    if let Ok(msg) = MlsMessageIn::tls_deserialize_exact(&buf) {
+    if let Ok(msg) = MlsMessageIn::tls_deserialize(&mut buf.as_slice()) {
         return match msg {
             MlsMessageIn::PublicMessage(_) => WireFormat::PublicMessage,
             MlsMessageIn::PrivateMessage(_) => WireFormat::PrivateMessage,
@@ -643,17 +636,17 @@ pub fn peek_wire(data: &[u8]) -> WireFormat {
     }
 
     let buf = data.to_vec();
-    if KeyPackage::tls_deserialize_exact(&buf).is_ok() {
+    if KeyPackage::tls_deserialize(&mut buf.as_slice()).is_ok() {
         return WireFormat::KeyPackage;
     }
 
     let buf = data.to_vec();
-    if Welcome::tls_deserialize_exact(&buf).is_ok() {
+    if Welcome::tls_deserialize(&mut buf.as_slice()).is_ok() {
         return WireFormat::Welcome;
     }
 
     let buf = data.to_vec();
-    if VerifiableGroupInfo::tls_deserialize_exact(&buf).is_ok() {
+    if GroupInfo::tls_deserialize(&mut buf.as_slice()).is_ok() {
         return WireFormat::GroupInfo;
     }
 
@@ -664,7 +657,7 @@ pub fn peek_wire(data: &[u8]) -> WireFormat {
 pub fn verify_key_package(data: &[u8], expected_identity: Option<String>) -> bool {
     let provider = &OpenMlsRustCrypto::default();
     let buf = data.to_vec();
-    let kp = match KeyPackage::tls_deserialize_exact(&buf) {
+    let kp = match KeyPackage::tls_deserialize(&mut buf.as_slice()) {
         Ok(k) => k,
         Err(_) => return false,
     };
@@ -693,14 +686,15 @@ pub fn verify_commit(handle: u32, data: &[u8]) -> bool {
     };
 
     let buf = data.to_vec();
-    let msg = match MlsMessageIn::tls_deserialize_exact(&buf) {
+    let msg = match MlsMessageIn::tls_deserialize(&mut buf.as_slice()) {
         Ok(m) => m,
         Err(_) => return false,
     };
 
-    let protocol_message = match msg.extract() {
-        Ok(pm) => pm,
-        Err(_) => return false,
+    let protocol_message = match msg {
+        MlsMessageIn::PublicMessage(pm) => pm.into(),
+        MlsMessageIn::PrivateMessage(pm) => pm.into(),
+        _ => return false,
     };
 
     let processed = match h.group.process_message(provider, protocol_message) {
@@ -721,14 +715,15 @@ pub fn verify_private_message(handle: u32, data: &[u8]) -> bool {
     };
 
     let buf = data.to_vec();
-    let msg = match MlsMessageIn::tls_deserialize_exact(&buf) {
+    let msg = match MlsMessageIn::tls_deserialize(&mut buf.as_slice()) {
         Ok(m) => m,
         Err(_) => return false,
     };
 
-    let protocol_message = match msg.extract() {
-        Ok(pm) => pm,
-        Err(_) => return false,
+    let protocol_message = match msg {
+        MlsMessageIn::PublicMessage(pm) => pm.into(),
+        MlsMessageIn::PrivateMessage(pm) => pm.into(),
+        _ => return false,
     };
 
     match h.group.process_message(provider, protocol_message) {
@@ -741,7 +736,7 @@ pub fn verify_private_message(handle: u32, data: &[u8]) -> bool {
 pub fn verify_group_info(data: &[u8]) -> bool {
     let provider = &OpenMlsRustCrypto::default();
     let buf = data.to_vec();
-    match VerifiableGroupInfo::tls_deserialize_exact(&buf) {
+    match GroupInfo::tls_deserialize(&mut buf.as_slice()) {
         Ok(gi) => gi.verify(provider).is_ok(),
         Err(_) => false,
     }
@@ -751,7 +746,7 @@ pub fn verify_group_info(data: &[u8]) -> bool {
 pub fn verify_welcome(data: &[u8]) -> bool {
     let _provider = &OpenMlsRustCrypto::default();
     let buf = data.to_vec();
-    match Welcome::tls_deserialize_exact(&buf) {
+    match Welcome::tls_deserialize(&mut buf.as_slice()) {
         Ok(_w) => true, // Welcome verification API has changed, just return true for successful parsing
         Err(_) => false,
     }
