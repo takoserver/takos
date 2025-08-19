@@ -249,12 +249,19 @@ export class MongoDB implements DB {
     return acc?.following ?? [];
   }
 
-  async listChatrooms(id: string) {
-    const query = this.withTenant(Chatroom.find({ owner: id }));
-    const rooms = await query.lean<
-      (ChatroomInfo & { owner: string })[]
-    >();
-    return rooms.map(({ owner: _o, ...room }) => room);
+  async listChatrooms(userName: string) {
+    const query = this.withTenant(Chatroom.find({ userName }));
+    const rooms = await query.lean<{ userName: string; id: string }[]>();
+    const invites = await this.findPendingInvites({
+      userName,
+      acked: false,
+    }) as { roomId: string }[];
+    const joined = rooms.map(({ id }) => ({ id, status: "joined" as const }));
+    const invited = invites.map((i) => ({
+      id: i.roomId,
+      status: "invited" as const,
+    }));
+    return [...joined, ...invited];
   }
 
   async listChatroomsByMember(_member: string) {
@@ -264,47 +271,45 @@ export class MongoDB implements DB {
   }
 
   async addChatroom(
-    id: string,
+    userName: string,
     room: ChatroomInfo,
   ) {
     const doc = new Chatroom({
-      owner: id,
-      ...room,
+      userName,
+      id: room.id,
     });
     if (this.env["DB_MODE"] === "host") {
       (doc as unknown as { $locals?: { env?: Record<string, string> } })
         .$locals = { env: this.env };
     }
     await doc.save();
-    return await this.listChatrooms(id);
+    return await this.listChatrooms(userName);
   }
 
-  async removeChatroom(id: string, roomId: string) {
-    const query = Chatroom.deleteOne({ owner: id, id: roomId });
+  async removeChatroom(userName: string, roomId: string) {
+    const query = Chatroom.deleteOne({ userName, id: roomId });
     this.withTenant(query);
     await query;
-    return await this.listChatrooms(id);
+    return await this.listChatrooms(userName);
   }
 
   async findChatroom(roomId: string) {
     const query = this.withTenant(Chatroom.findOne({ id: roomId }));
-    const doc = await query.lean<
-      (ChatroomInfo & { owner: string }) | null
-    >();
+    const doc = await query.lean<{ userName: string; id: string } | null>();
     if (doc) {
-      const { owner, ...room } = doc;
-      return { owner, room };
+      const { userName, id } = doc;
+      return { userName, room: { id, status: "joined" } };
     }
     // 履歴からの補完は行わない
     return null;
   }
 
   async updateChatroom(
-    owner: string,
+    userName: string,
     room: ChatroomInfo,
   ) {
     // もはや更新対象フィールドが無いので no-op
-    const query = Chatroom.updateOne({ owner, id: room.id }, { $set: {} });
+    const query = Chatroom.updateOne({ userName, id: room.id }, { $set: {} });
     this.withTenant(query);
     await query;
   }

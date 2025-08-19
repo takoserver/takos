@@ -34,6 +34,7 @@ export interface Room {
   members: ActorID[];
   // サーバー未同期時などに使用される招待者リスト（存在しない場合がある）
   pendingInvites?: ActorID[];
+  status?: "joined" | "invited";
   hasName?: boolean;
   hasIcon?: boolean;
 }

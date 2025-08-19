@@ -12,6 +12,7 @@ export interface ListOpts {
 /** チャットルーム情報（MLS 状態は含まない） */
 export interface ChatroomInfo {
   id: string;
+  status: "joined" | "invited";
   // name, icon, members はサーバーでは保持しない
 }
 
@@ -36,29 +37,29 @@ export interface DB {
   addFollowing(id: string, target: string): Promise<string[]>;
   removeFollowing(id: string, target: string): Promise<string[]>;
   listChatrooms(
-    id: string,
+    userName: string,
   ): Promise<ChatroomInfo[]>;
   listChatroomsByMember(
     member: string,
   ): Promise<ChatroomInfo[]>;
   addChatroom(
-    id: string,
+    userName: string,
     room: ChatroomInfo,
   ): Promise<ChatroomInfo[]>;
   removeChatroom(
-    id: string,
+    userName: string,
     roomId: string,
   ): Promise<ChatroomInfo[]>;
   findChatroom(
     roomId: string,
   ): Promise<
     {
-      owner: string;
+      userName: string;
       room: ChatroomInfo;
     } | null
   >;
   updateChatroom(
-    owner: string,
+    userName: string,
     room: ChatroomInfo,
   ): Promise<void>;
   updateSessionActivity(

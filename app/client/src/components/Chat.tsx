@@ -1285,7 +1285,9 @@ export function Chat() {
     ];
     const handle = `${user.userName}@${getDomain()}` as ActorID;
     // 暗黙のルーム（メッセージ由来）は除外して、明示的に作成されたもののみ取得
-    const serverRooms = await searchRooms(user.id, { implicit: "include" });
+    const serverRooms = await searchRooms(user.userName, {
+      implicit: "include",
+    });
     for (const item of serverRooms) {
       const state = groups()[item.id];
       const meta = state
@@ -1354,6 +1356,7 @@ export function Chat() {
         unreadCount: 0,
         type: "group",
         members,
+        status: item.status,
         hasName: name.trim() !== "",
         hasIcon: icon.trim() !== "",
         lastMessage: "...",
@@ -1561,7 +1564,7 @@ export function Chat() {
     await initGroupState(room.id);
     try {
       await addRoom(
-        user.id,
+        user.userName,
         { id: room.id, name: room.name, members },
       );
     } catch (e) {
@@ -2149,6 +2152,7 @@ export function Chat() {
             unreadCount: 0,
             type: "group",
             members: others,
+            status: "invited",
             lastMessage: "...",
             lastMessageTime: undefined,
           };
@@ -2349,6 +2353,7 @@ export function Chat() {
           unreadCount: 0,
           type: "group",
           members: [],
+          status: "invited",
           lastMessage: "...",
           lastMessageTime: undefined,
         };
@@ -2375,8 +2380,10 @@ export function Chat() {
           if (joined) {
             // 参加成功: 自分の chatrooms に登録
             try {
-              await addRoom(user.id, { id: room.id });
+              await addRoom(user.userName, { id: room.id });
             } catch { /* ignore */ }
+            room.status = "joined";
+            upsertRoom(room);
             setGroups({ ...groups(), [room.id]: joined });
             await saveGroupStates();
             setPendingWelcomes((prev) => {
@@ -2990,7 +2997,7 @@ export function Chat() {
                             }
                             if (joined) {
                               try {
-                                await addRoom(user.id, { id });
+                                await addRoom(user.userName, { id });
                               } catch { /* ignore */ }
                               setGroups({ ...groups(), [id]: joined });
                               await saveGroupStates();

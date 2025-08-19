@@ -251,7 +251,7 @@ const NotificationsContent: Component = () => {
                             {invite
                               ? `${
                                 invite.sender ?? "不明"
-                              } からの会話招待です。参加しますか？`
+                              } からの会話招待です。チャットに追加しますか？`
                               : n.message}
                           </p>
                         </div>
@@ -282,7 +282,7 @@ const NotificationsContent: Component = () => {
                               await deleteNotification(n.id);
                             }}
                           >
-                            参加する
+                            チャットに追加
                           </Button>
                           <Button
                             variant="ghost"

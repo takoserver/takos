@@ -546,17 +546,23 @@ async function handleHandshake(
 
 // ActivityPub ルーム一覧取得
 // --- ルームメタ一覧 API（明示作成されたもののみ） ---
-// GET /api/rooms?owner=:id
+// GET /api/rooms?userName=:name
 // - サーバが保持するメタデータ（id, name, icon）のみ返却
 // - 検索・フィルタは行わない（クライアント側実装）
 app.get("/rooms", authRequired, async (c) => {
-  const owner = c.req.query("owner");
-  if (!owner) return jsonResponse(c, { error: "missing owner" }, 400);
+  const userName = c.req.query("userName");
+  if (!userName) {
+    return jsonResponse(c, { error: "missing userName" }, 400);
+  }
   const db = createDB(getEnv(c));
-  const account = await db.findAccountById(owner);
-  if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
-  const list = await db.listChatrooms(owner);
-  return jsonResponse(c, { rooms: list.map((r) => ({ id: r.id })) });
+  const account = await db.findAccountByUserName(userName);
+  if (!account) {
+    return jsonResponse(c, { error: "Account not found" }, 404);
+  }
+  const list = await db.listChatrooms(userName);
+  return jsonResponse(c, {
+    rooms: list.map((r) => ({ id: r.id, status: r.status })),
+  });
 });
 
 // Get pending invites for a local user (non-acked)
@@ -602,16 +608,16 @@ app.post("/ap/rooms", authRequired, async (c) => {
   const body = await c.req.json();
   if (
     typeof body !== "object" ||
-    typeof body.owner !== "string"
+    typeof body.userName !== "string"
   ) {
     return jsonResponse(c, { error: "invalid room" }, 400);
   }
   const env = getEnv(c);
   const db = createDB(env);
-  const account = await db.findAccountById(body.owner);
+  const account = await db.findAccountByUserName(body.userName);
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
   const id = typeof body.id === "string" ? body.id : crypto.randomUUID();
-  await db.addChatroom(body.owner, { id });
+  await db.addChatroom(body.userName, { id, status: "joined" });
   const domain = getDomain(c);
   if (body.handshake && typeof body.handshake === "object") {
     const hs = await handleHandshake(env, domain, id, body.handshake);
