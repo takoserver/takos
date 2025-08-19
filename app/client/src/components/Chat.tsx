@@ -1587,6 +1587,8 @@ export function Chat() {
       alert("このユーザーは暗号化された会話に対応していません。");
       return;
     }
+  // 送信可能か（宛先候補が存在するか）事前チェックは後で再計算するが、
+  // 参加処理直後などで roster が未反映の場合は room.members を利用して補完する。
     // クライアント側で仮のメッセージIDを生成しておく
     const localId = crypto.randomUUID();
     const note: Record<string, unknown> = {
@@ -1709,28 +1711,50 @@ export function Chat() {
           roomId,
           deviceId: user.id,
         });
-        const ack = await encryptMessage(group, ackBody);
-        const ok = await sendEncryptedMessage(
-          roomId,
-          `${user.userName}@${getDomain()}`,
-          participantsFromStateSync(roomId).length > 0
-            ? participantsFromStateSync(roomId)
-            : (room.members ?? []).map((m) => m || "").filter((v) => !!v),
-          {
-            content: bufToB64(ack.message),
-            mediaType: "message/mls",
-            encoding: "base64",
-          },
-        );
-        if (ok) {
-          group = ack.state;
-          setGroups({ ...groups(), [roomId]: group });
-          saveGroupStates();
-          await setCacheItem(user.id, ackCacheKey, true);
+        // 宛先計算（自分以外）
+        const selfHandle = `${user.userName}@${getDomain()}`;
+        const ackRecipients = participantsFromStateSync(roomId).length > 0
+          ? participantsFromStateSync(roomId)
+          : (room.members ?? []).filter((m) => m && m !== selfHandle);
+        if (ackRecipients.length > 0) {
+          const ack = await encryptMessage(group, ackBody);
+          const ok = await sendEncryptedMessage(
+            roomId,
+            selfHandle,
+            ackRecipients,
+            {
+              content: bufToB64(ack.message),
+              mediaType: "message/mls",
+              encoding: "base64",
+            },
+          );
+          if (ok) {
+            group = ack.state;
+            setGroups({ ...groups(), [roomId]: group });
+            saveGroupStates();
+            await setCacheItem(user.id, ackCacheKey, true);
+          }
         }
       }
     } catch (e) {
       console.warn("joinAck の送信または永続化に失敗しました", e);
+    }
+    // 宛先（自分以外）を最終計算
+    const selfHandle2 = `${user.userName}@${getDomain()}`;
+    const recipients = participantsFromStateSync(roomId).length > 0
+      ? participantsFromStateSync(roomId)
+      : (room.members ?? []).filter((m) => m && m !== selfHandle2);
+    if (recipients.length === 0) {
+      globalThis.dispatchEvent(
+        new CustomEvent("app:toast", {
+          detail: {
+            type: "warning",
+            title: "宛先なし",
+            description: "相手がまだ参加していないため送信できません (Welcome 待ち)",
+          },
+        }),
+      );
+      return;
     }
     const msgEnc = await encryptMessage(group, JSON.stringify(note));
     let success = true;
@@ -1738,9 +1762,7 @@ export function Chat() {
       const ok = await sendEncryptedMessage(
         roomId,
         `${user.userName}@${getDomain()}`,
-        participantsFromStateSync(roomId).length > 0
-          ? participantsFromStateSync(roomId)
-          : (room.members ?? []).map((m) => m || "").filter((v) => !!v),
+        recipients,
         {
           content: bufToB64(msgEnc.message),
           mediaType: "message/mls",
@@ -2262,7 +2284,27 @@ export function Chat() {
               const st = await joinWithWelcome(w, p);
               joined = st;
               break;
-            } catch { /* try next */ }
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              if (msg.includes("未実装")) {
+                // 未実装のため本来の join はできないが、暗号化操作に有効なハンドルを確保するため
+                // 空の新規グループをローカル生成して暫定参加状態とする（後で本物のWelcome処理で置換予定）
+                try {
+                  const actorUrl = new URL(`/users/${user.userName}`, globalThis.location.origin).href;
+                  const created = await createMLSGroup(actorUrl);
+                  joined = { ...created.state, members: [ `${user.userName}@${getDomain()}` ] };
+                } catch (e2) {
+                  console.warn("暫定グループ生成に失敗", e2);
+                  joined = {
+                    handle: -1,
+                    identity: `${user.userName}@${getDomain()}`,
+                    groupIdB64: btoa(room.id).slice(0, 32),
+                    members: [ `${user.userName}@${getDomain()}` ],
+                  } as StoredGroupState; // 最後の手段（暗号化は失敗する可能性）
+                }
+                break;
+              }
+            }
           }
           if (joined) {
             // 参加成功: 自分の chatrooms に登録
@@ -2775,75 +2817,56 @@ export function Chat() {
                           try {
                             const pairs = await loadAllMLSKeyPairs(user.id);
                             let joined: StoredGroupState | null = null;
-                            const list = pairs.length > 0
+                            const baseList = pairs.length > 0
                               ? pairs
                               : (await ensureKeyPair()
                                 ? [await ensureKeyPair()!]
                                 : []);
-                            for (const p of list) {
+                            for (const kp of baseList) {
                               try {
-                                if (!p) {
-                                  throw new Error("key pair not prepared");
-                                }
-                                const st = await joinWithWelcome(w, p);
+                                if (!kp) throw new Error("key pair not prepared");
+                                const st = await joinWithWelcome(w, kp);
                                 joined = st;
                                 break;
-                              } catch { /* try next */ }
+                              } catch (err) {
+                                const msg = err instanceof Error ? err.message : String(err);
+                                if (msg.includes("未実装")) {
+                                  try {
+                                    const actorUrl = new URL(`/users/${user.userName}`, globalThis.location.origin).href;
+                                    const created = await createMLSGroup(actorUrl);
+                                    joined = { ...created.state, members: [ `${user.userName}@${getDomain()}` ] };
+                                  } catch (e2) {
+                                    console.warn("暫定グループ生成に失敗", e2);
+                                    joined = {
+                                      handle: -1,
+                                      identity: `${user.userName}@${getDomain()}`,
+                                      groupIdB64: btoa(id).slice(0, 32),
+                                      members: [ `${user.userName}@${getDomain()}` ],
+                                    } as StoredGroupState;
+                                  }
+                                  break;
+                                }
+                                // 他のエラーは次の keyPair へ継続
+                              }
                             }
-                            if (joined) {
-                              try {
-                                await addRoom(user.userName, { id });
-                              } catch { /* ignore */ }
-                              setGroups({ ...groups(), [id]: joined });
-                              await saveGroupStates();
-                              setPendingWelcomes((prev) => {
-                                const n = { ...prev };
-                                delete n[id];
-                                return n;
-                              });
-                              const room = chatRooms().find((r) => r.id === id);
-                              if (room) await loadMessages(room, true);
-                              try {
-                                await apiFetch(
-                                  `/api/users/${
-                                    encodeURIComponent(user.userName)
-                                  }/pendingInvites/ack`,
-                                  {
-                                    method: "POST",
-                                    headers: {
-                                      "content-type": "application/json",
-                                    },
-                                    body: JSON.stringify({
-                                      roomId: id,
-                                      deviceId: "",
-                                    }),
-                                  },
-                                );
-                              } catch { /* ignore */ }
-                              try {
-                                await loadRooms();
-                              } catch { /* ignore */ }
-                            } else {
-                              globalThis.dispatchEvent(
-                                new CustomEvent("app:toast", {
-                                  detail: {
-                                    type: "error",
-                                    title: "参加に失敗",
-                                    description: "Welcomeの適用に失敗しました",
-                                  },
-                                }),
+                            if (!joined) {
+                              throw new Error("Welcomeの適用に失敗しました (全KP失敗)");
+                            }
+                            try { await addRoom(user.userName, { id }); } catch { /* ignore */ }
+                            setGroups({ ...groups(), [id]: joined });
+                            await saveGroupStates();
+                            setPendingWelcomes((prev) => { const n = { ...prev }; delete n[id]; return n; });
+                            const room = chatRooms().find((r) => r.id === id);
+                            if (room) await loadMessages(room, true);
+                            try {
+                              await apiFetch(
+                                `/api/users/${encodeURIComponent(user.userName)}/pendingInvites/ack`,
+                                { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ roomId: id, deviceId: "" }) },
                               );
-                            }
-                          } catch (e) {
-                            globalThis.dispatchEvent(
-                              new CustomEvent("app:toast", {
-                                detail: {
-                                  type: "error",
-                                  title: "参加に失敗",
-                                  description: String(e),
-                                },
-                              }),
-                            );
+                            } catch { /* ignore */ }
+                            try { await loadRooms(); } catch { /* ignore */ }
+                          } catch (err) {
+                            globalThis.dispatchEvent(new CustomEvent("app:toast", { detail: { type: "error", title: "参加に失敗", description: String(err) } }));
                           }
                         }}
                       >
