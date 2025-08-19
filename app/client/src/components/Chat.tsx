@@ -1495,6 +1495,44 @@ export function Chat() {
     const me = `${user.userName}@${getDomain()}`;
     if (!members.includes(me)) members.push(me);
     const others = members.filter((m) => m !== me);
+    const kpInputs: {
+      content: string;
+      actor?: string;
+      deviceId?: string;
+    }[] = [];
+    for (const h of others) {
+      const [uname, dom] = splitActor(h as ActorID);
+      const kps = await fetchKeyPackages(uname, dom);
+      if (kps && kps.length > 0) {
+        const kp = pickUsableKeyPackage(
+          kps as unknown as {
+            content: string;
+            expiresAt?: string;
+            used?: boolean;
+            deviceId?: string;
+          }[],
+        );
+        if (!kp) continue;
+        const actor = dom ? `https://${dom}/users/${uname}` : undefined;
+        kpInputs.push({
+          content: kp.content,
+          actor,
+          deviceId: kp.deviceId,
+        });
+      }
+    }
+    if (kpInputs.length === 0) {
+      globalThis.dispatchEvent(
+        new CustomEvent("app:toast", {
+          detail: {
+            type: "error",
+            title: "招待できません",
+            description: "相手がKeyPackageを公開していないため招待できません",
+          },
+        }),
+      );
+      return;
+    }
     // すべてのトークは同等。毎回新規作成してサーバ保存する
     const finalName = (name ?? "").trim();
 
@@ -1536,68 +1574,28 @@ export function Chat() {
       try {
         const group = groups()[room.id];
         if (group) {
-          const kpInputs: {
-            content: string;
-            actor?: string;
-            deviceId?: string;
-          }[] = [];
-          for (const h of others) {
-            const [uname, dom] = splitActor(h as ActorID);
-            const kps = await fetchKeyPackages(uname, dom);
-            if (kps && kps.length > 0) {
-              const kp = pickUsableKeyPackage(
-                kps as unknown as {
-                  content: string;
-                  expiresAt?: string;
-                  used?: boolean;
-                  deviceId?: string;
-                }[],
+          const resAdd = await createCommitAndWelcomes(group, kpInputs);
+          const commitContent = encodePublicMessage(resAdd.commit);
+          const ok = await sendHandshake(
+            room.id,
+            `${user.userName}@${getDomain()}`,
+            commitContent,
+            // ルーム作成時は members が最新のロスター
+            members,
+          );
+          if (ok) {
+            for (const w of resAdd.welcomes) {
+              const wContent = encodePublicMessage(w.data);
+              const wk = await sendHandshake(
+                room.id,
+                `${user.userName}@${getDomain()}`,
+                wContent,
+                members,
               );
-              if (!kp) continue;
-              const actor = dom ? `https://${dom}/users/${uname}` : undefined;
-              kpInputs.push({
-                content: kp.content,
-                actor,
-                deviceId: kp.deviceId,
-              });
+              if (!wk) break;
             }
-          }
-          if (kpInputs.length > 0) {
-            const resAdd = await createCommitAndWelcomes(group, kpInputs);
-            const commitContent = encodePublicMessage(resAdd.commit);
-            const ok = await sendHandshake(
-              room.id,
-              `${user.userName}@${getDomain()}`,
-              commitContent,
-              // ルーム作成時は members が最新のロスター
-              members,
-            );
-            if (ok) {
-              for (const w of resAdd.welcomes) {
-                const wContent = encodePublicMessage(w.data);
-                const wk = await sendHandshake(
-                  room.id,
-                  `${user.userName}@${getDomain()}`,
-                  wContent,
-                  members,
-                );
-                if (!wk) break;
-              }
-              setGroups({ ...groups(), [room.id]: resAdd.state });
-              saveGroupStates();
-            }
-          } else {
-            // KeyPackage が存在しない相手には招待できないため通知
-            globalThis.dispatchEvent(
-              new CustomEvent("app:toast", {
-                detail: {
-                  type: "error",
-                  title: "招待できません",
-                  description:
-                    "相手がKeyPackageを公開していないため招待できません",
-                },
-              }),
-            );
+            setGroups({ ...groups(), [room.id]: resAdd.state });
+            saveGroupStates();
           }
         }
       } catch (e) {
