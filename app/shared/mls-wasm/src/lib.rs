@@ -2,7 +2,6 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use js_sys::Array;
 use once_cell::sync::Lazy;
 use openmls::prelude::*;
-use openmls_basic_credential::{BasicCredential, SignatureKeyPair};
 use openmls_rust_crypto::{OpenMlsRustCrypto, RustCrypto};
 use std::collections::HashMap;
 use std::sync::Mutex;
