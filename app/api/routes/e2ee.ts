@@ -144,6 +144,13 @@ async function resolveRecipientsToActorIris(
 ): Promise<{ resolved: string[]; unresolved: string[] }> {
   const resolved: string[] = [];
   const unresolved: string[] = [];
+  const localDomain = env["ACTIVITYPUB_DOMAIN"] || "";
+  // ローカルユーザー存在確認用に DB アクセス（無ければスキップ）
+  let db: ReturnType<typeof createDB> | null = null;
+  const ensureDB = () => {
+    if (!db) db = createDB(env);
+    return db!;
+  };
 
   for (const r of recipients) {
     if (!r || typeof r !== "string") continue;
@@ -167,6 +174,23 @@ async function resolveRecipientsToActorIris(
         }
       } catch (err) {
         console.error("resolveActorCached failed for", acct, err);
+      }
+      // ここでローカルドメイン (user@local) の場合は直接 IRI を生成して解決扱いにする
+      const [uname, host] = acct.split("@");
+      if (uname && host && host === localDomain) {
+        try {
+          // ローカルアカウント存在確認
+            const dbi = ensureDB();
+            const acc = await dbi.findAccountByUserName(uname);
+            if (acc) {
+              resolved.push(`https://${host}/users/${uname}`);
+              continue;
+            } else {
+              console.warn("local recipient not found", acct);
+            }
+        } catch (e) {
+          console.warn("local recipient lookup failed", acct, e);
+        }
       }
       // Could not resolve -> exclude and mark unresolved
       unresolved.push(r);
@@ -245,6 +269,15 @@ async function handleHandshake(
     encoding?: unknown;
     attachments?: unknown;
   };
+  console.info("[handleHandshake] incoming", {
+    roomId,
+    hasFrom: typeof from === "string",
+    from,
+    toCount: Array.isArray(to) ? to.length : undefined,
+    mediaType,
+    encoding,
+    contentLen: typeof content === "string" ? content.length : undefined,
+  });
   if (typeof from !== "string" || typeof content !== "string") {
     return { ok: false, status: 400, error: "invalid body" };
   }
@@ -349,9 +382,22 @@ async function handleHandshake(
     }
   }
   const envelope = decodeMlsEnvelope(content);
-  const localTargets = envelope &&
-      (envelope.originalType === "Welcome" ||
-        envelope.originalType === "Commit")
+  // openmls 未統合段階: 空(0バイト) commit を最初に送る実装の場合 envelope=null になる
+  // 既存ハンドシェイクが無く recipients があるなら Commit 相当とみなして pendingInvite を生成する
+  let forceTreatAsCommit = false;
+  if (!envelope) {
+    try {
+      const prev = await db.findHandshakeMessages({ roomId }, { limit: 1 });
+      if ((prev as unknown[]).length === 0 && recipients.length > 0) {
+        forceTreatAsCommit = true;
+      }
+    } catch (e) {
+      console.warn("fallback empty commit check failed", { roomId, e });
+    }
+  }
+  const localTargets = (envelope &&
+        (envelope.originalType === "Welcome" ||
+          envelope.originalType === "Commit")) || forceTreatAsCommit
     ? recipients.filter((m) => m.endsWith(`@${domain}`) && m !== from)
     : [];
 
@@ -401,6 +447,8 @@ async function handleHandshake(
   const activity = createCreateActivity(domain, actorId, activityObj);
   (activity as ActivityPubActivity)["@context"] = context;
   // Resolve recipients to actor IRIs (acct: or user@host) where possible.
+  let partial = false;
+  let unresolvedOut: string[] | undefined;
   try {
     const { resolved, unresolved } = await resolveRecipientsToActorIris(
       recipients,
@@ -409,9 +457,21 @@ async function handleHandshake(
     if (resolved.length === 0) {
       return { ok: false, status: 400, error: "no valid recipients" };
     }
+    console.info("[handshake] resolve", {
+      roomId,
+      from: sender,
+      recipients,
+      resolved,
+      unresolved,
+    });
     (activity as ActivityPubActivity).to = resolved;
     if (unresolved.length > 0) {
+      partial = true;
+      unresolvedOut = unresolved;
       console.warn("some recipients could not be resolved:", unresolved);
+      // Activity の拡張に埋め込み（クライアントが参照するかは任意）
+      (activityObj as ActivityPubActivity & { partialRecipients?: unknown })
+        .partialRecipients = { unresolved };
     }
   } catch (err) {
     console.error("failed to resolve recipients", err);
@@ -436,6 +496,7 @@ async function handleHandshake(
     for (const lm of localTargets) {
       const uname = lm.split("@")[0];
       await db.savePendingInvite(roomId, uname, "", expiresAt);
+  console.info("[handshake] savePendingInvite", { roomId, to: lm });
       sendToUser(lm, { type: "pendingInvite", payload: { roomId, from } });
       try {
         // ローカルユーザー向けにサーバー側で通知を作成
@@ -539,7 +600,9 @@ async function handleHandshake(
     },
   );
 
-  return { ok: true, id: String(msg._id) };
+  return { ok: true, id: String(msg._id), ...(partial
+      ? { partial: true as const, unresolved: unresolvedOut }
+      : {}) };
 }
 
 // ルーム管理 API (ActivityPub 対応)
@@ -561,7 +624,10 @@ app.get("/rooms", authRequired, async (c) => {
   }
   const list = await db.listChatrooms(userName);
   return jsonResponse(c, {
-    rooms: list.map((r) => ({ id: r.id, status: r.status })),
+    rooms: list.map((r: { id: string; status: string }) => ({
+      id: r.id,
+      status: r.status,
+    })),
   });
 });
 
@@ -617,13 +683,14 @@ app.post("/ap/rooms", authRequired, async (c) => {
   const account = await db.findAccountByUserName(body.userName);
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
   const id = typeof body.id === "string" ? body.id : crypto.randomUUID();
-  await db.addChatroom(body.userName, { id, status: "joined" });
+  await db.addChatroom(body.userName, { id, status: "joined" as const });
   const domain = getDomain(c);
   if (body.handshake && typeof body.handshake === "object") {
     const hs = await handleHandshake(env, domain, id, body.handshake);
     if (!hs.ok) {
       return jsonResponse(c, { error: hs.error }, hs.status);
     }
+    return jsonResponse(c, { id, ...(hs as { partial?: boolean; unresolved?: string[] }) }, 201, "application/json");
   }
   return jsonResponse(c, { id }, 201, "application/json");
 });
@@ -1159,7 +1226,7 @@ app.post(
     if (!result.ok) {
       return jsonResponse(c, { error: result.error }, result.status);
     }
-    return c.json({ result: "sent", id: result.id });
+  return c.json({ result: "sent", id: result.id, ...(result as { partial?: boolean; unresolved?: string[] }) });
   },
 );
 

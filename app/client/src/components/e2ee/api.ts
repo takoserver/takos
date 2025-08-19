@@ -1,5 +1,11 @@
 import { apiFetch } from "../../utils/config.ts";
-import { decodeGroupInfo, encodePublicMessage } from "./mls_message.ts";
+import {
+  decodeGroupInfo,
+  encodeCommit,
+  encodeWelcome,
+  encodeProposal,
+  encodePublicMessage,
+} from "./mls_message.ts";
 import {
   type GeneratedKeyPair,
   joinWithGroupInfo,
@@ -520,6 +526,24 @@ export const sendHandshake = async (
         body: JSON.stringify(payload),
       },
     );
+    if (!res.ok) {
+      let body: unknown = null;
+      try { body = await res.json(); } catch { /* ignore */ }
+      console.warn("[sendHandshake] failed", { roomId, status: res.status, from, to, body });
+    } else {
+      try {
+        const data: unknown = await res.clone().json();
+        const partial = (data && typeof data === "object" && "partial" in data)
+          ? (data as { partial?: unknown }).partial
+          : undefined;
+        const unresolved = (data && typeof data === "object" && "unresolved" in data)
+          ? (data as { unresolved?: unknown }).unresolved
+          : undefined;
+        console.info("[sendHandshake] ok", { roomId, from, toCount: Array.isArray(to) ? to.length : undefined, partial, unresolved });
+      } catch {
+        console.info("[sendHandshake] ok(no-json)", { roomId, from });
+      }
+    }
     return res.ok;
   } catch (err) {
     console.error("Error sending handshake:", err);
@@ -564,8 +588,8 @@ export const updateRoomKey = async (
     if (!rec) {
       throw new Error("保存済みの actorId と一致しません");
     }
-    const res = await updateKey(state, identity);
-    const content = encodePublicMessage(res.commit);
+  const res = await updateKey(state, identity);
+  const content = encodeCommit(res.commit);
     const ok = await sendHandshake(roomId, from, content);
     if (!ok) return null;
     return res;
@@ -994,7 +1018,7 @@ export const sendProposal = async (
   from: string,
   proposal: MLSProposalPayload,
 ): Promise<boolean> => {
-  const content = encodePublicMessage(
+  const content = encodeProposal(
     new TextEncoder().encode(JSON.stringify(proposal)),
   );
   return await sendHandshake(roomId, from, content);
@@ -1005,14 +1029,14 @@ export const sendCommit = async (
   from: string,
   commit: MLSCommitPayload,
 ): Promise<boolean> => {
-  const content = encodePublicMessage(
+  const content = encodeCommit(
     new TextEncoder().encode(JSON.stringify(commit)),
   );
   const ok = await sendHandshake(roomId, from, content);
   if (!ok) return false;
   if (commit.welcomes) {
     for (const w of commit.welcomes) {
-      const wContent = encodePublicMessage(
+      const wContent = encodeWelcome(
         new TextEncoder().encode(JSON.stringify(w)),
       );
       const success = await sendHandshake(roomId, from, wContent);
@@ -1021,6 +1045,7 @@ export const sendCommit = async (
   }
   if (commit.evidences) {
     for (const ev of commit.evidences) {
+      // Evidence は現状汎用 PublicMessage として扱う（サーバーは型で招待生成しない）
       const evContent = encodePublicMessage(
         new TextEncoder().encode(JSON.stringify(ev)),
       );

@@ -44,10 +44,7 @@ import {
   type StoredGroupState,
   verifyWelcome,
 } from "./e2ee/mls_wrapper.ts";
-import {
-  decodePublicMessage,
-  encodePublicMessage,
-} from "./e2ee/mls_message.ts";
+import { decodePublicMessage, encodeCommit, encodeWelcome } from "./e2ee/mls_message.ts";
 // ts-mls 排除: openmls wasm 移行中。ワイヤ判定は暫定 peekWire に委譲。
 import { peekWire } from "./e2ee/mls_wire.ts";
 import {
@@ -254,42 +251,37 @@ async function decryptFile(
 async function generateImagePreview(
   file: File,
 ): Promise<{ file: File; width: number; height: number } | null> {
+  if (!file.type.startsWith("image/")) return null;
   return await new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
-      const max = 320;
-      const scale = Math.min(1, max / img.width);
-      const w = Math.round(img.width * scale);
-      const h = Math.round(img.height * scale);
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
+      try {
+        const max = 320;
+        let { width, height } = img;
+        if (width > height && width > max) {
+          height = Math.round(height * (max / width));
+          width = max;
+        } else if (height > max) {
+          width = Math.round(width * (max / height));
+          height = max;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!blob) return resolve(null);
+            resolve({ file: new File([blob], file.name, { type: blob.type }), width, height });
+        }, file.type);
+      } finally {
         URL.revokeObjectURL(url);
-        resolve(null);
-        return;
       }
-      ctx.drawImage(img, 0, 0, w, h);
-      canvas.toBlob(
-        (blob) => {
-          URL.revokeObjectURL(url);
-          if (blob) {
-            resolve({
-              file: new File([blob], `preview-${file.name}.jpg`, {
-                type: "image/jpeg",
-              }),
-              width: w,
-              height: h,
-            });
-          } else {
-            resolve(null);
-          }
-        },
-        "image/jpeg",
-        0.8,
-      );
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
@@ -298,57 +290,8 @@ async function generateImagePreview(
     img.src = url;
   });
 }
-// 動画からプレビュー用の静止画を生成
-async function generateVideoPreview(
-  file: File,
-): Promise<{ file: File; width: number; height: number } | null> {
-  return await new Promise((resolve) => {
-    const video = document.createElement("video");
-    const url = URL.createObjectURL(file);
-    video.preload = "metadata";
-    video.muted = true;
-    video.src = url;
-    video.onloadeddata = () => {
-      const max = 320;
-      const scale = Math.min(1, max / video.videoWidth);
-      const w = Math.round(video.videoWidth * scale);
-      const h = Math.round(video.videoHeight * scale);
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        URL.revokeObjectURL(url);
-        resolve(null);
-        return;
-      }
-      ctx.drawImage(video, 0, 0, w, h);
-      canvas.toBlob(
-        (blob) => {
-          URL.revokeObjectURL(url);
-          if (blob) {
-            resolve({
-              file: new File([blob], `preview-${file.name}.jpg`, {
-                type: "image/jpeg",
-              }),
-              width: w,
-              height: h,
-            });
-          } else {
-            resolve(null);
-          }
-        },
-        "image/jpeg",
-        0.8,
-      );
-    };
-    video.onerror = () => {
-      URL.revokeObjectURL(url);
-      resolve(null);
-    };
-  });
-}
-// 添付ファイルをアップロードし、必要ならプレビューも付与
+
+// 添付ファイル (暗号化+アップロード, プレビュー生成) を構築
 async function buildAttachment(file: File) {
   const enc = await encryptFile(file);
   const url = await uploadFile({
@@ -356,13 +299,13 @@ async function buildAttachment(file: File) {
     mediaType: enc.mediaType,
     key: enc.key,
     iv: enc.iv,
-    name: file.name,
+    name: enc.name,
   });
-  if (!url) return undefined;
-  let preview: ActivityPubPreview | undefined;
-  if (file.type.startsWith("image/")) {
-    const p = await generateImagePreview(file);
-    if (p) {
+  if (!url) throw new Error("upload failed");
+  let preview: Record<string, unknown> | undefined;
+  const p = await generateImagePreview(file);
+  if (p) {
+    try {
       const pEnc = await encryptFile(p.file);
       const pUrl = await uploadFile({
         content: pEnc.data,
@@ -381,28 +324,8 @@ async function buildAttachment(file: File) {
           height: p.height,
         };
       }
-    }
-  } else if (file.type.startsWith("video/")) {
-    const p = await generateVideoPreview(file);
-    if (p) {
-      const pEnc = await encryptFile(p.file);
-      const pUrl = await uploadFile({
-        content: pEnc.data,
-        mediaType: pEnc.mediaType,
-        key: pEnc.key,
-        iv: pEnc.iv,
-        name: p.file.name,
-      });
-      if (pUrl) {
-        preview = {
-          url: pUrl,
-          mediaType: pEnc.mediaType,
-          key: pEnc.key,
-          iv: pEnc.iv,
-          width: p.width,
-          height: p.height,
-        };
-      }
+    } catch (e) {
+      console.warn("preview generation failed", e);
     }
   }
   const attType = file.type.startsWith("image/")
@@ -419,9 +342,7 @@ async function buildAttachment(file: File) {
     key: enc.key,
     iv: enc.iv,
   };
-  if (preview) {
-    att.preview = { type: "Image", ...preview };
-  }
+  if (preview) att.preview = { type: "Image", ...preview };
   return att;
 }
 
@@ -918,7 +839,7 @@ export function Chat() {
       .map((x) => normalizeHandle(x) ?? x)
       .filter((v): v is string => !!v);
     const isJoined = participantsNow.includes(selfHandle);
-    if (!isJoined && room.type !== "memo") {
+    if (!isJoined) {
       // 未参加（招待のみ）の場合は復号を試みず空で返す（UI側で招待状態を表示）
       return [];
     }
@@ -945,10 +866,7 @@ export function Chat() {
         });
         try {
           const peek = peekWire(bufToB64(data));
-          console.debug("[decrypt] peekWireformat", {
-            id: m.id,
-            wireformat: peek?.wireformat,
-          });
+          console.debug("[decrypt] peek", { id: m.id, kind: peek?.kind });
         } catch (e) {
           console.debug("[decrypt] peek failed", { id: m.id, err: e });
         }
@@ -980,7 +898,7 @@ export function Chat() {
             mediaType: m.mediaType,
             encoding: m.encoding,
             contentLen: m.content ? m.content.length : 0,
-            peekWireformat: peek2?.wireformat,
+            peekKind: peek2?.kind,
           });
         } catch (e) {
           console.warn("[decrypt] failed -> placeholder (peek failed)", {
@@ -1290,46 +1208,8 @@ export function Chat() {
     });
     for (const item of serverRooms) {
       const state = groups()[item.id];
-      const meta = state
-        // 拡張の型適合 - openmls移行のため一時的に無効化
-        ? { name: "", icon: undefined } ||
-          /*
-        // 拡張の型適合 (extensionType を number に) ※ ts-mls の型差異吸収
-        ? decodeGroupMetadata(
-          (() => {
-            type RawExt = {
-              extensionType: number | string;
-              extensionData: Uint8Array;
-            } | unknown;
-            const arr: RawExt[] = state.groupContext
-              .extensions as unknown as RawExt[];
-            return arr.flatMap((e) => {
-              if (
-                typeof e === "object" && e !== null &&
-                "extensionType" in e && "extensionData" in e
-              ) {
-                const et =
-                  (e as { extensionType: number | string }).extensionType;
-                const ed = (e as { extensionData: unknown }).extensionData;
-                if (ed instanceof Uint8Array) {
-                  return [{
-                    extensionType: typeof et === "string" ? Number(et) : et,
-                    extensionData: ed,
-                  }];
-                }
-              }
-              return [] as {
-                extensionType: number;
-                extensionData: Uint8Array;
-              }[];
-            });
-          })(),
-        )
-        */ {
-            name: "",
-            icon: undefined,
-          }
-        : { name: "", icon: undefined };
+      // openmls 移行中はメタデータ未利用のためダミー
+      const meta = { name: "", icon: undefined as string | undefined };
       const name = meta.name ?? "";
       const icon = meta.icon ?? "";
       // 参加者は MLS の leaf から導出。MLS が未同期の場合は pending 招待から暫定的に補完（UI表示用）
@@ -1578,7 +1458,7 @@ export function Chat() {
         const group = groups()[room.id];
         if (group) {
           const resAdd = await createCommitAndWelcomes(group, kpInputs);
-          const commitContent = encodePublicMessage(resAdd.commit);
+          const commitContent = encodeCommit(resAdd.commit);
           const ok = await sendHandshake(
             room.id,
             `${user.userName}@${getDomain()}`,
@@ -1588,7 +1468,7 @@ export function Chat() {
           );
           if (ok) {
             for (const w of resAdd.welcomes) {
-              const wContent = encodePublicMessage(w.data);
+              const wContent = encodeWelcome(w.data);
               const wk = await sendHandshake(
                 room.id,
                 `${user.userName}@${getDomain()}`,
@@ -1623,8 +1503,8 @@ export function Chat() {
         ),
       );
       if (indices.length === 0) return false;
-      const res = await removeMembers(group, indices);
-      const content = encodePublicMessage(res.commit);
+  const res = await removeMembers(group, indices);
+  const content = encodeCommit(res.commit);
       const room = chatRooms().find((r) => r.id === roomId);
       const toList = participantsFromStateSync(roomId).length > 0
         ? participantsFromStateSync(roomId)
@@ -1764,7 +1644,7 @@ export function Chat() {
         }
         if (kpInputs.length > 0) {
           const resAdd = await createCommitAndWelcomes(group, kpInputs);
-          const commitContent = encodePublicMessage(resAdd.commit);
+          const commitContent = encodeCommit(resAdd.commit);
           const toList = Array.from(
             new Set([
               ...current,
@@ -1780,7 +1660,7 @@ export function Chat() {
           );
           if (!ok) throw new Error("Commit送信に失敗しました");
           for (const w of resAdd.welcomes) {
-            const wContent = encodePublicMessage(w.data);
+            const wContent = encodeWelcome(w.data);
             const wk = await sendHandshake(
               roomId,
               `${user.userName}@${getDomain()}`,
@@ -2054,7 +1934,7 @@ export function Chat() {
                     ),
                   ),
                 );
-                const newRoom = {
+                const newRoom: Room = {
                   id: payload.roomId,
                   name: "",
                   userName: user.userName,
@@ -2524,6 +2404,44 @@ export function Chat() {
     }, 60_000) as unknown as number;
   });
 
+  // アクティブなルームの本文をポーリングしてWS無しでも新着を取得
+  let messagePoller: number | undefined;
+  createEffect(() => {
+    const roomId = selectedRoom();
+    if (messagePoller) {
+      clearInterval(messagePoller);
+      messagePoller = undefined;
+    }
+    if (!roomId) return;
+    messagePoller = setInterval(async () => {
+      try {
+        const room = chatRooms().find((r) => r.id === roomId);
+        if (!room) return;
+        const prev = messages();
+        const last = prev.length > 0 ? prev[prev.length - 1] : undefined;
+        const fetched = await fetchMessagesForRoom(
+          room,
+          last ? { after: last.timestamp.toISOString() } : { limit: messageLimit },
+        );
+        if (fetched.length === 0) return;
+        // after 指定時は新着のみ返る想定。重複安全のためフィルタ
+        const existingIds = new Set(prev.map((m) => m.id));
+        const newOnes = fetched.filter((m) => !existingIds.has(m.id));
+        if (newOnes.length === 0) return;
+        setMessages([...prev, ...newOnes]);
+        setMessagesByRoom((cur) => {
+          const key = roomCacheKey(room.id);
+            const list = (cur[key] ?? []).concat(newOnes);
+            const next = { ...cur, [key]: list };
+            const user = account();
+            if (user) void saveDecryptedMessages(user.id, room.id, list);
+            return next;
+        });
+        updateRoomLast(room.id, newOnes[newOnes.length - 1]);
+      } catch { /* ignore */ }
+    }, 8_000) as unknown as number;
+  });
+
   // ルーム一覧の読み込みはアカウント変更時と初期表示時のみ実行
   onMount(() => {
     void loadRooms();
@@ -2705,136 +2623,6 @@ export function Chat() {
     if (previewPoller) clearInterval(previewPoller);
   });
 
-  // APIベースのイベントで更新（WS不要運用向け）
-  onMount(async () => {
-    try {
-      const user = account();
-      if (user) {
-        const cur = await getCacheItem(user.id, "eventsCursor");
-        if (typeof cur === "string") setEventsCursor(cur);
-      }
-    } catch { /* ignore */ }
-
-    const processEvents = async (
-      evs: {
-        id: string;
-        type: string;
-        roomId?: string;
-        from?: string;
-        to?: string[];
-        createdAt?: string;
-      }[],
-    ) => {
-      const user = account();
-      if (!user) return;
-      let maxTs = eventsCursor();
-      const byRoom = new Map<
-        string,
-        { handshake: boolean; message: boolean }
-      >();
-      for (const ev of evs) {
-        const rid = ev.roomId;
-        if (!rid) continue;
-        const cur = byRoom.get(rid) || { handshake: false, message: false };
-        if (ev.type === "handshake") cur.handshake = true;
-        if (ev.type === "encryptedMessage" || ev.type === "publicMessage") {
-          cur.message = true;
-        }
-        byRoom.set(rid, cur);
-        if (ev.createdAt && (!maxTs || ev.createdAt > maxTs)) {
-          maxTs = ev.createdAt;
-        }
-      }
-      for (const [rid, flg] of byRoom) {
-        let room = chatRooms().find((r) => r.id === rid);
-        if (!room) {
-          room = {
-            id: rid,
-            name: "",
-            userName: account()?.userName || "",
-            domain: getDomain(),
-            avatar: "",
-            unreadCount: 0,
-            type: "group",
-            members: [],
-            lastMessage: "...",
-            lastMessageTime: undefined,
-          };
-          upsertRoom(room);
-          try {
-            await applyDisplayFallback([room]);
-          } catch { /* ignore */ }
-          await initGroupState(rid);
-        }
-        if (room && flg.handshake) await syncHandshakes(room);
-        if (room && flg.message) {
-          const isSel = selectedRoom() === rid;
-          if (isSel) {
-            const prev = messages();
-            const lastTs = prev.length > 0
-              ? prev[prev.length - 1].timestamp.toISOString()
-              : undefined;
-            const fetched = await fetchMessagesForRoom(
-              room,
-              lastTs ? { after: lastTs } : { limit: 1 },
-            );
-            if (fetched.length > 0) {
-              setMessages((old) => {
-                const ids = new Set(old.map((m) => m.id));
-                const add = fetched.filter((m) => !ids.has(m.id));
-                const next = [...old, ...add];
-                setMessagesByRoom({
-                  ...messagesByRoom(),
-                  [roomCacheKey(rid)]: next,
-                });
-                const user2 = account();
-                if (user2) void saveDecryptedMessages(user2.id, rid, next);
-                return next;
-              });
-              updateRoomLast(rid, fetched[fetched.length - 1]);
-            }
-          } else {
-            const fetched = await fetchMessagesForRoom(room, {
-              limit: 1,
-              dryRun: true,
-            });
-            if (fetched.length > 0) {
-              updateRoomLast(rid, fetched[fetched.length - 1]);
-            }
-          }
-        }
-      }
-      if (maxTs) {
-        setEventsCursor(maxTs);
-        try {
-          const user2 = account();
-          if (user2) await setCacheItem(user2.id, "eventsCursor", maxTs);
-        } catch { /* ignore */ }
-      }
-    };
-
-    const syncOnce = async () => {
-      try {
-        const evs = await fetchEvents({
-          since: eventsCursor() ?? undefined,
-          limit: 100,
-        });
-        if (evs.length > 0) await processEvents(evs);
-      } catch { /* ignore */ }
-    };
-
-    await syncOnce();
-    const onFocus = () => void syncOnce();
-    globalThis.addEventListener("focus", onFocus);
-    globalThis.addEventListener("online", onFocus);
-    globalThis.addEventListener("visibilitychange", () => {
-      if (!document.hidden) void syncOnce();
-    });
-    onCleanup(() => {
-      globalThis.removeEventListener("focus", onFocus);
-      globalThis.removeEventListener("online", onFocus);
-    });
-  });
 
   return (
     <>

@@ -18,7 +18,7 @@ import {
   sendHandshake,
 } from "../e2ee/api.ts";
 import { createCommitAndWelcomes } from "../e2ee/mls_wrapper.ts";
-import { encodePublicMessage } from "../e2ee/mls_message.ts";
+import { encodeCommit, encodeWelcome } from "../e2ee/mls_message.ts";
 
 interface ChatSettingsOverlayProps {
   isOpen: boolean;
@@ -407,9 +407,9 @@ export function ChatSettingsOverlay(props: ChatSettingsOverlayProps) {
       const state = props.groupState;
       if (!state) throw new Error("ルームの暗号状態が未初期化です");
       // 追加用の Commit/Welcome を生成
-      const res = await createCommitAndWelcomes(state, [kpInput]);
-      // Handshake として送信（commit と welcome）
-      const commitContent = encodePublicMessage(res.commit);
+  const res = await createCommitAndWelcomes(state, [kpInput]);
+  // Handshake として送信（commit と welcome）
+  const commitContent = encodeCommit(res.commit);
       // 既知のメンバー（UIが持つ room.members）と自分を宛先に含める
       const self = `${user.userName}@${getDomain()}`;
       const toList = Array.from(
@@ -423,7 +423,7 @@ export function ChatSettingsOverlay(props: ChatSettingsOverlayProps) {
       );
       if (!ok) throw new Error("Commitの送信に失敗しました");
       for (const w of res.welcomes) {
-        const wContent = encodePublicMessage(w.data);
+        const wContent = encodeWelcome(w.data);
         const wk = await sendHandshake(
           props.room.id,
           `${user.userName}@${getDomain()}`,

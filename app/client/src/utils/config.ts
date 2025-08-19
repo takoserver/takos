@@ -31,7 +31,6 @@ let domain = "";
 export async function apiFetch(path: string, init?: RequestInit) {
   // Tauri環境判定
   const is = isTauri();
-  console.log("isTauri:" + is);
   let res: Response;
   try {
     res = is ? await tauriFetch(apiUrl(path), init) : await fetch(
