@@ -435,6 +435,7 @@ export const sendEncryptedMessage = async (
 export const fetchEncryptedMessages = async (
   roomId: string,
   member: string,
+  handle: number,
   params?: { limit?: number; before?: string; after?: string },
 ): Promise<EncryptedMessage[]> => {
   try {
@@ -469,7 +470,7 @@ export const fetchEncryptedMessages = async (
         (msg as { encoding?: unknown }).encoding === "base64"
       ) {
         const raw = b64ToBytes((msg as { content: string }).content);
-        if (!await verifyPrivateMessage(raw)) {
+        if (!await verifyPrivateMessage(handle, raw)) {
           console.warn(
             "[fetchEncryptedMessages] 署名検証に失敗しました",
             msg,

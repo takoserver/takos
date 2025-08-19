@@ -733,7 +733,7 @@ export function Chat() {
         const decoded = parseMLSMessage(bufToB64(body));
         if (decoded && group) {
           if (decoded.type === "Commit") {
-            const ok = await verifyCommit(decoded.body);
+            const ok = await verifyCommit(group.handle, decoded.body);
             if (!ok) {
               globalThis.dispatchEvent(
                 new CustomEvent("app:toast", {
@@ -872,6 +872,7 @@ export function Chat() {
     const list = await fetchEncryptedMessages(
       room.id,
       `${user.userName}@${getDomain()}`,
+      group.handle,
       params,
     );
     // 復号は古い順に処理しないとラチェットが進まず失敗するため昇順で処理
