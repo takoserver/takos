@@ -2,7 +2,7 @@ import type {
   GeneratedKeyPair,
   RosterEvidence,
   StoredGroupState,
-} from "./mls_wrapper.ts";
+} from "./mls.ts";
 import { load as loadStore, type Store } from "@tauri-apps/plugin-store";
 import { isTauri } from "../../utils/config.ts";
 import type { ChatMessage } from "../chat/types.ts";

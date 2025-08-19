@@ -3,22 +3,25 @@ import { useAtom } from "solid-jotai";
 import { activeAccount } from "../../states/account.ts";
 import { apiFetch, getDomain } from "../../utils/config.ts";
 import type { Room } from "./types.ts";
-import type { BindingStatus } from "../e2ee/binding.ts";
+import type { BindingStatus } from "../e2ee/useMLS.ts";
 import { useMLS } from "../e2ee/useMLS.ts";
 import {
   getCacheItem,
   loadMLSGroupStates,
   setCacheItem,
 } from "../e2ee/storage.ts";
-import type { StoredGroupState } from "../e2ee/mls_wrapper.ts";
 import { fetchUserInfo } from "../microblog/api.ts";
 import {
   fetchEncryptedMessages,
   fetchKeyPackages,
   sendHandshake,
 } from "../e2ee/api.ts";
-import { createCommitAndWelcomes } from "../e2ee/mls_wrapper.ts";
-import { encodeCommit, encodeWelcome } from "../e2ee/mls_message.ts";
+import {
+  createCommitAndWelcomes,
+  encodeCommit,
+  encodeWelcome,
+  type StoredGroupState,
+} from "../e2ee/mls.ts";
 
 interface ChatSettingsOverlayProps {
   isOpen: boolean;
@@ -407,9 +410,9 @@ export function ChatSettingsOverlay(props: ChatSettingsOverlayProps) {
       const state = props.groupState;
       if (!state) throw new Error("ルームの暗号状態が未初期化です");
       // 追加用の Commit/Welcome を生成
-  const res = await createCommitAndWelcomes(state, [kpInput]);
-  // Handshake として送信（commit と welcome）
-  const commitContent = encodeCommit(res.commit);
+      const res = await createCommitAndWelcomes(state, [kpInput]);
+      // Handshake として送信（commit と welcome）
+      const commitContent = encodeCommit(res.commit);
       const deviceMap: Record<string, string> = {};
       if (kpInput.deviceId) {
         const normalized = normalizeHandle(ident.user) ?? ident.user;
