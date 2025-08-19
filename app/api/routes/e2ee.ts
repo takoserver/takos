@@ -251,10 +251,16 @@ async function handleHandshake(
   if (!Array.isArray(to) || to.some((v) => typeof v !== "string")) {
     return { ok: false, status: 400, error: "invalid recipients" };
   }
-  if (mediaType !== undefined && mediaType !== "message/mls") {
+  if (typeof mediaType !== "string") {
+    return { ok: false, status: 400, error: "mediaType is required" };
+  }
+  if (mediaType !== "message/mls") {
     return { ok: false, status: 400, error: "invalid mediaType" };
   }
-  if (encoding !== undefined && encoding !== "base64") {
+  if (typeof encoding !== "string") {
+    return { ok: false, status: 400, error: "encoding is required" };
+  }
+  if (encoding !== "base64") {
     return { ok: false, status: 400, error: "invalid encoding" };
   }
   // Public や followers などのコレクション URI を拒否
@@ -294,8 +300,8 @@ async function handleHandshake(
     return { ok: false, status: 400, error: "no recipients" };
   }
 
-  const mType = typeof mediaType === "string" ? mediaType : "message/mls";
-  const encType = typeof encoding === "string" ? encoding : "base64";
+  const mType = mediaType as string;
+  const encType = encoding as string;
 
   // --- MLS TLV デコードで種別判定 (client の mls_message.ts と整合) ---
   function decodeMlsEnvelope(
