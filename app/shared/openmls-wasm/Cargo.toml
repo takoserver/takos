@@ -1,0 +1,31 @@
+[package]
+name = "openmls-wasm"
+version = "0.1.0"
+authors = ["OpenMLS Authors"]
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/openmls/openmls/tree/main/openmls-wasm"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+# WASM 基盤
+wasm-bindgen = "0.2.100"         # 最新系列。:contentReference[oaicite:1]{index=1}
+js-sys = "0.3.77"                # wasm-bindgen と対になる最新系列。:contentReference[oaicite:2]{index=2}
+console_error_panic_hook = { version = "0.1.7", optional = true }
+
+# OpenMLS スタック（crates.io 参照）
+openmls = { version = "0.7", features = ["js"] }          # 0.7.0 / js フィーチャあり。:contentReference[oaicite:3]{index=3}
+openmls_traits = "0.4"                                     # 0.4.0。:contentReference[oaicite:4]{index=4}
+openmls_rust_crypto = "0.4"                                # 0.4.0。:contentReference[oaicite:5]{index=5}
+openmls_basic_credential = "0.4"                           # 0.4.0。:contentReference[oaicite:6]{index=6}
+tls_codec = "0.4.2"                                        # 0.4.2（MIT/Apache-2.0）。:contentReference[oaicite:7]{index=7}
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.50"
+
