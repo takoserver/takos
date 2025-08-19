@@ -118,31 +118,19 @@ export function ChatRoomList(props: ChatRoomListProps) {
     const me = account();
     if (!me) return room.name;
     if (room.type === "memo") return room.name;
+    if (room.members.length === 0) return "メンバー同期中";
     const selfHandle = `${me.userName}@${getDomain()}`;
     // グループ（1:1以外）はそのまま（後段の補完で名前が入る想定）
     if (!isFriendRoom(room)) return room.name;
-    if (isFriendRoom(room)) {
-      const rawOther = room.members.find((m) => m !== selfHandle) ??
-        room.members[0];
-      const other = normalizeHandle(rawOther);
-      if (
-        room.name === "" || room.name === me.displayName ||
-        room.name === me.userName || room.name === selfHandle
-      ) {
-        // 自分名や空のときは相手のハンドルを優先
-        if (other && other !== selfHandle) return other;
-        // 相手未確定なら pendingInvites から推測（接尾辞は付けない）
-        const cand = (room.pendingInvites && room.pendingInvites[0]) ||
-          undefined;
-        const guess = normalizeHandle(cand);
-        if (guess && guess !== selfHandle) {
-          const short = guess.includes("@") ? guess.split("@")[0] : guess;
-          return short;
-        }
-        // 何も推定できない場合は空文字（表示は空のまま）
-        return "";
-      }
-      return room.name;
+    const rawOther = room.members.find((m) => m !== selfHandle) ??
+      room.members[0];
+    const other = normalizeHandle(rawOther);
+    if (
+      room.name === "" || room.name === me.displayName ||
+      room.name === me.userName || room.name === selfHandle
+    ) {
+      if (other && other !== selfHandle) return other;
+      return "メンバー同期中";
     }
     return room.name;
   };
@@ -400,7 +388,9 @@ export function ChatRoomList(props: ChatRoomListProps) {
                       </span>
                       <span class="text-[12px] text-[#aaaaaa] font-normal flex justify-between items-center">
                         <p class="truncate">
-                          {room.status === "invited"
+                          {room.members.length === 0
+                            ? "メンバー同期中"
+                            : room.status === "invited"
                             ? "招待中"
                             : room.lastMessage}
                         </p>
@@ -515,7 +505,9 @@ export function ChatRoomList(props: ChatRoomListProps) {
                       </span>
                       <span class="text-[12px] text-[#aaaaaa] font-normal flex justify-between items-center">
                         <p class="truncate">
-                          {room.status === "invited"
+                          {room.members.length === 0
+                            ? "メンバー同期中"
+                            : room.status === "invited"
                             ? "招待中"
                             : room.lastMessage}
                         </p>

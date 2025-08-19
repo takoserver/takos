@@ -5,7 +5,7 @@ import {
   fetchAccounts,
   setAccounts,
 } from "../states/account.ts";
-import { getDomain } from "./config.ts";
+import { getAccountStatsTtl, getDomain } from "./config.ts";
 import {
   fetchFollowers,
   fetchFollowing,
@@ -43,8 +43,9 @@ export function useInitialLoad() {
     const currentId = actId();
     if (!currentId) return;
 
-    // 既に一度取得済みならスキップ（必要に応じて TODO: 有効期限導入）
-    if (statsMap()[currentId]) return;
+    const ttl = getAccountStatsTtl();
+    const cached = statsMap()[currentId];
+    if (cached && Date.now() - cached.fetchedAt < ttl) return;
 
     try {
       const allAccounts = await fetchAccounts();
@@ -62,6 +63,7 @@ export function useInitialLoad() {
             followersCount: profile.followersCount ?? 0,
             followingCount: profile.followingCount ?? 0,
           },
+          fetchedAt: Date.now(),
         });
       }
 

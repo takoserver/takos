@@ -1,8 +1,12 @@
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { fetchFollowing } from "../microblog/api.ts";
 import { useAtom } from "solid-jotai";
-import { activeAccount } from "../../states/account.ts";
-import { followingListMap, setFollowingList } from "../../states/account.ts";
+import {
+  activeAccount,
+  type FollowInfo,
+  followingListMap,
+  setFollowingList,
+} from "../../states/account.ts";
 import { getDomain } from "../../utils/config.ts";
 
 interface GroupCreateDialogProps {
@@ -32,40 +36,14 @@ export function GroupCreateDialog(props: GroupCreateDialogProps) {
     return acc ? `${acc.userName}@${getDomain()}` : null;
   });
 
-  // フォロイングユーザーのためのインターフェース
-  interface FollowingUser {
-    userName?: string;
-    domain?: string;
-    displayName?: string;
-    avatar?: string;
-    authorAvatar?: string;
-  }
-
   // 表示用に整形する補助
-  const toDisplayList = (list: unknown[]) => (
+  const toDisplayList = (list: FollowInfo[]) => (
     Array.isArray(list)
-      ? list.map((f: unknown) => {
-        const user = f as FollowingUser | string;
-        return {
-          id: (function () {
-            if (typeof user === "object" && user && "userName" in user) {
-              if (
-                user.userName && user.domain
-              ) return `${user.userName}@${user.domain}`;
-              if (
-                user.userName && !user.domain
-              ) return `${user.userName}@${getDomain()}`;
-            }
-            return String(user);
-          })(),
-          name: typeof user === "object" && user && "displayName" in user
-            ? (user.displayName || user.userName || String(user))
-            : String(user),
-          avatar: typeof user === "object" && user && "avatar" in user
-            ? (user.avatar || user.authorAvatar)
-            : undefined,
-        };
-      })
+      ? list.map((user) => ({
+        id: `${user.userName}@${user.domain}`,
+        name: user.displayName || user.userName,
+        avatar: user.avatarInitial || undefined,
+      }))
       : []
   );
 

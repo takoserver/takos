@@ -66,26 +66,50 @@ export type AccountStats = {
   followingCount: number;
 };
 
+// キャッシュされた統計情報と取得時刻
+export type CachedAccountStats = {
+  stats: AccountStats;
+  fetchedAt: number;
+};
+
 // key は account.id
-export const accountStatsMap = atom<Record<string, AccountStats>>({});
+export const accountStatsMap = atom<Record<string, CachedAccountStats>>({});
 
 export const setAccountStatsMap = atom(
   (get) => get(accountStatsMap),
-  (_get, set, payload: { accountId: string; stats: AccountStats }) => {
+  (
+    _get,
+    set,
+    payload: { accountId: string; stats: AccountStats; fetchedAt?: number },
+  ) => {
     set(
       accountStatsMap,
-      (prev) => ({ ...prev, [payload.accountId]: payload.stats }),
+      (prev) => ({
+        ...prev,
+        [payload.accountId]: {
+          stats: payload.stats,
+          fetchedAt: payload.fetchedAt ?? Date.now(),
+        },
+      }),
     );
   },
 );
 
+// フォロー/フォロワー情報
+export interface FollowInfo {
+  userName: string;
+  displayName: string;
+  avatarInitial: string;
+  domain: string;
+}
+
 // フォロー/フォロワー一覧のキャッシュ（key は account.id）
-export const followingListMap = atom<Record<string, unknown[]>>({});
-export const followersListMap = atom<Record<string, unknown[]>>({});
+export const followingListMap = atom<Record<string, FollowInfo[]>>({});
+export const followersListMap = atom<Record<string, FollowInfo[]>>({});
 
 export const setFollowingList = atom(
   (get) => get(followingListMap),
-  (_get, set, payload: { accountId: string; list: unknown[] }) => {
+  (_get, set, payload: { accountId: string; list: FollowInfo[] }) => {
     set(
       followingListMap,
       (prev) => ({ ...prev, [payload.accountId]: payload.list }),
@@ -95,7 +119,7 @@ export const setFollowingList = atom(
 
 export const setFollowersList = atom(
   (get) => get(followersListMap),
-  (_get, set, payload: { accountId: string; list: unknown[] }) => {
+  (_get, set, payload: { accountId: string; list: FollowInfo[] }) => {
     set(
       followersListMap,
       (prev) => ({ ...prev, [payload.accountId]: payload.list }),

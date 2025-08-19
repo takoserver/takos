@@ -1,6 +1,7 @@
 import type { ActivityPubObject, MicroblogPost } from "./types.ts";
 import { apiFetch, getDomain } from "../../utils/config.ts";
 import { loadCacheEntry, saveCacheEntry } from "../e2ee/storage.ts";
+import type { FollowInfo } from "../../states/account.ts";
 
 /**
  * ActivityPub Object を取得
@@ -447,13 +448,16 @@ export const fetchUserInfoBatch = async (
 };
 
 // 指定ユーザーのフォロワー一覧を取得
-export const fetchFollowers = async (username: string) => {
+export const fetchFollowers = async (
+  username: string,
+): Promise<FollowInfo[]> => {
   try {
     const res = await apiFetch(
       `/api/users/${encodeURIComponent(username)}/followers`,
     );
     if (!res.ok) throw new Error("Failed to fetch followers");
-    return await res.json();
+    const data = await res.json() as FollowInfo[];
+    return data;
   } catch (error) {
     console.error("Error fetching followers:", error);
     return [];
@@ -461,13 +465,16 @@ export const fetchFollowers = async (username: string) => {
 };
 
 // 指定ユーザーのフォロー中一覧を取得
-export const fetchFollowing = async (username: string) => {
+export const fetchFollowing = async (
+  username: string,
+): Promise<FollowInfo[]> => {
   try {
     const res = await apiFetch(
       `/api/users/${encodeURIComponent(username)}/following`,
     );
     if (!res.ok) throw new Error("Failed to fetch following");
-    return await res.json();
+    const data = await res.json() as FollowInfo[];
+    return data;
   } catch (error) {
     console.error("Error fetching following:", error);
     return [];

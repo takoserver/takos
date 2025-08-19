@@ -384,22 +384,9 @@ async function handleHandshake(
     }
   }
   const envelope = decodeMlsEnvelope(content);
-  // openmls 未統合段階: 空(0バイト) commit を最初に送る実装の場合 envelope=null になる
-  // 既存ハンドシェイクが無く recipients があるなら Commit 相当とみなして pendingInvite を生成する
-  let forceTreatAsCommit = false;
-  if (!envelope) {
-    try {
-      const prev = await db.findHandshakeMessages({ roomId }, { limit: 1 });
-      if ((prev as unknown[]).length === 0 && recipients.length > 0) {
-        forceTreatAsCommit = true;
-      }
-    } catch (e) {
-      console.warn("fallback empty commit check failed", { roomId, e });
-    }
-  }
-  const localTargets = (envelope &&
+  const localTargets = envelope &&
       (envelope.originalType === "Welcome" ||
-        envelope.originalType === "Commit")) || forceTreatAsCommit
+        envelope.originalType === "Commit")
     ? recipients.filter((m) => m.endsWith(`@${domain}`) && m !== from)
     : [];
 
@@ -640,9 +627,13 @@ app.get("/rooms", authRequired, async (c) => {
   }
   const list = await db.listChatrooms(userName);
   return jsonResponse(c, {
-    rooms: list.map((r: { id: string; status: string }) => ({
+    rooms: list.map((
+      r: { id: string; status: string; name?: string; icon?: string },
+    ) => ({
       id: r.id,
       status: r.status,
+      name: r.name,
+      icon: r.icon,
     })),
   });
 });
@@ -699,7 +690,12 @@ app.post("/ap/rooms", authRequired, async (c) => {
   const account = await db.findAccountByUserName(body.userName);
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
   const id = typeof body.id === "string" ? body.id : crypto.randomUUID();
-  await db.addChatroom(body.userName, { id, status: "joined" as const });
+  await db.addChatroom(body.userName, {
+    id,
+    status: "joined" as const,
+    name: typeof body.name === "string" ? body.name : undefined,
+    icon: typeof body.icon === "string" ? body.icon : undefined,
+  });
   const domain = getDomain(c);
   if (body.handshake && typeof body.handshake === "object") {
     const hs = await handleHandshake(env, domain, id, body.handshake);

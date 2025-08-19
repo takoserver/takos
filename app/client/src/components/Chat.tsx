@@ -40,17 +40,22 @@ import {
   encodeCommit,
   encodeWelcome,
   encryptMessage,
+  freeGroup,
   type GeneratedKeyPair,
   generateKeyPair,
   getGroupMembers,
   joinWithWelcome,
+  parseMLSMessage,
   peekWire,
+  processCommit,
+  processProposal,
   removeMembers,
   type RosterEvidence,
   type StoredGroupState,
+  verifyCommit,
   verifyWelcome,
 } from "./e2ee/mls.ts";
-// ts-mls 排除: openmls wasm 移行中。ワイヤ判定は暫定 peekWire に委譲。
+// ts-mls 排除: openmls wasm 移行中。
 import {
   appendRosterEvidence,
   getCacheItem,
@@ -711,11 +716,6 @@ export function Chat() {
     const user = account();
     if (!user) return;
     let group = groups()[room.id];
-    if (!group) {
-      await initGroupState(room.id);
-      group = groups()[room.id];
-      if (!group) return;
-    }
     const after = lastHandshakeId.get(room.id);
     const hs = await fetchHandshakes(
       room.id,
@@ -725,23 +725,46 @@ export function Chat() {
     const ordered = [...hs].sort((a, b) =>
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
-    // deno-lint-ignore prefer-const
     let updated = false;
     for (const h of ordered) {
       const body = decodePublicMessage(h.message);
       if (!body) continue;
       try {
-        try {
-          peekWire(bufToB64(body));
-          // TODO: openmls wasm の public message decode 実装後に commit 判定を追加
-        } catch {
-          /* not a commit */
-        }
-        try {
-          peekWire(bufToB64(body));
-          // TODO: openmls wasm の public message decode 実装後に proposal 判定を追加
-        } catch {
-          /* not a proposal */
+        const decoded = parseMLSMessage(bufToB64(body));
+        if (decoded && group) {
+          if (decoded.type === "Commit") {
+            const ok = await verifyCommit(decoded.body);
+            if (!ok) {
+              globalThis.dispatchEvent(
+                new CustomEvent("app:toast", {
+                  detail: {
+                    type: "warning",
+                    title: "無視しました",
+                    description: "不正なCommitメッセージを無視しました",
+                  },
+                }),
+              );
+            } else {
+              group = await processCommit(group, decoded.body);
+              updated = true;
+            }
+          } else if (decoded.type === "Proposal") {
+            group = await processProposal(group, decoded.body);
+            updated = true;
+          } else {
+            console.warn("未知のMLS公開メッセージ", decoded.type);
+            globalThis.dispatchEvent(
+              new CustomEvent("app:toast", {
+                detail: {
+                  type: "warning",
+                  title: "未対応のメッセージ",
+                  description: "未対応のMLSメッセージを無視しました",
+                },
+              }),
+            );
+          }
+          lastHandshakeId.set(room.id, String(h.createdAt));
+          continue;
         }
         try {
           const obj = JSON.parse(new TextDecoder().decode(body));
@@ -795,7 +818,7 @@ export function Chat() {
         console.warn("handshake apply failed", e);
       }
     }
-    if (updated) {
+    if (updated && group) {
       setGroups({ ...groups(), [room.id]: group });
       await saveGroupStates();
     }
@@ -833,13 +856,10 @@ export function Chat() {
     const encryptedMsgs: ChatMessage[] = [];
     const isDryRun = Boolean(params?.dryRun);
     let group = groups()[room.id];
-    if (!group) {
-      await initGroupState(room.id);
-      group = groups()[room.id];
-      if (!group) return [];
-    }
+    if (!group) return [];
     await syncHandshakes(room);
     group = groups()[room.id];
+    if (!group) return [];
     const selfHandle = `${user.userName}@${getDomain()}`;
     const participantsNow = (await extractMembers(group))
       .map((x) => normalizeHandle(x) ?? x)
@@ -871,7 +891,7 @@ export function Chat() {
           contentLen: m.content ? m.content.length : 0,
         });
         try {
-          const peek = peekWire(bufToB64(data));
+          const peek = await peekWire(bufToB64(data));
           console.debug("[decrypt] peek", { id: m.id, kind: peek?.kind });
         } catch (e) {
           console.debug("[decrypt] peek failed", { id: m.id, err: e });
@@ -896,7 +916,7 @@ export function Chat() {
           continue;
         }
         try {
-          const peek2 = peekWire(m.content);
+          const peek2 = await peekWire(m.content);
           console.warn("[decrypt] failed -> placeholder", {
             id: m.id,
             room: room.id,
@@ -1214,25 +1234,14 @@ export function Chat() {
     });
     for (const item of serverRooms) {
       const state = groups()[item.id];
-      // openmls 移行中はメタデータ未利用のためダミー
-      const meta = { name: "", icon: undefined as string | undefined };
-      const name = meta.name ?? "";
-      const icon = meta.icon ?? "";
-      // 参加者は MLS の leaf から導出。MLS が未同期の場合は pending 招待から暫定的に補完（UI表示用）
-      let members = state
+      const name = item.name ?? "";
+      const icon = item.icon ?? "";
+      // 参加者は MLS の leaf から導出
+      const members = state
         ? (await extractMembers(state))
           .map((m) => normalizeHandle(m as ActorID) ?? m)
           .filter((m) => (normalizeHandle(m as ActorID) ?? m) !== handle)
         : [] as string[];
-      if (members.length === 0) {
-        try {
-          const pend = await readPending(user.id, item.id);
-          const others = (pend || []).filter((m) => m && m !== handle);
-          if (others.length > 0) members = others;
-        } catch {
-          /* ignore */
-        }
-      }
       rooms.push({
         id: item.id,
         name,
@@ -1283,21 +1292,6 @@ export function Chat() {
     // 参加者は MLS の leaf から導出済みの room.members のみを信頼（APIやpendingは使わない）
     const uniqueOthers = (r: Room): string[] =>
       (r.members ?? []).filter((m) => m && m !== selfHandle);
-
-    // MLS 同期前の暫定表示: members が空のルームは pending 招待から1名だけでも補完
-    for (const r of rooms) {
-      try {
-        if ((r.members?.length ?? 0) === 0 && r.type !== "memo") {
-          const pend = await readPending(user.id, r.id);
-          const cand = (pend || []).filter((m) => m && m !== selfHandle);
-          if (cand.length > 0) {
-            r.members = [cand[0]];
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
     const totalMembers = (r: Room) => 1 + uniqueOthers(r).length; // 自分+その他
     // 事前補正: 2人想定で名前が自分の表示名/ユーザー名のときは未命名として扱う
     for (const r of rooms) {
@@ -1511,6 +1505,7 @@ export function Chat() {
       if (indices.length === 0) return false;
       const res = await removeMembers(group, indices);
       const content = encodeCommit(res.commit);
+      const selfHandle = `${user.userName}@${getDomain()}`;
       const room = chatRooms().find((r) => r.id === roomId);
       const toList = participantsFromStateSync(roomId).length > 0
         ? participantsFromStateSync(roomId)
@@ -1522,7 +1517,17 @@ export function Chat() {
         toList,
       );
       if (!ok) return false;
-      setGroups({ ...groups(), [roomId]: res.state });
+      if (actorId === selfHandle) {
+        await freeGroup(group.handle);
+        setGroups((prev) => {
+          const n = { ...prev };
+          delete n[roomId];
+          return n;
+        });
+        setChatRooms((prev) => prev.filter((r) => r.id !== roomId));
+      } else {
+        setGroups({ ...groups(), [roomId]: res.state });
+      }
       await saveGroupStates();
       await apiFetch(`/ap/rooms/${encodeURIComponent(roomId)}/members`, {
         method: "POST",
@@ -1960,36 +1965,68 @@ export function Chat() {
               // 既に一覧にあれば同期処理だけ行う
               let room = chatRooms().find((r) => r.id === payload.roomId);
               if (!room) {
-                const maybeFrom = typeof payload.from === "string"
-                  ? payload.from
-                  : undefined;
-                const others = Array.from(
-                  new Set(
-                    [maybeFrom].filter((m): m is string =>
-                      typeof m === "string" && m !== self
-                    ),
-                  ),
-                );
+                let name = "";
+                let icon = "";
+                try {
+                  const list = await searchRooms(user.userName, {
+                    implicit: "include",
+                  });
+                  const meta = list.find((r) => r.id === payload.roomId);
+                  if (meta) {
+                    name = meta.name ?? "";
+                    icon = meta.icon ?? "";
+                  }
+                } catch (err) {
+                  console.warn("ルーム情報の取得に失敗しました", err);
+                }
+                try {
+                  await syncHandshakes({
+                    id: payload.roomId,
+                    name,
+                    userName: user.userName,
+                    domain: getDomain(),
+                    unreadCount: 0,
+                    type: "group",
+                    members: [],
+                  });
+                } catch (err) {
+                  console.warn("ハンドシェイク同期に失敗しました", err);
+                }
+                let members: string[] = [];
+                try {
+                  const state = groups()[payload.roomId];
+                  members = state
+                    ? (await extractMembers(state)).map((m) =>
+                      normalizeHandle(m as ActorID) ?? m
+                    ).filter((m) => m !== self)
+                    : [];
+                } catch (err) {
+                  console.warn("メンバー取得に失敗しました", err);
+                }
                 const newRoom: Room = {
                   id: payload.roomId,
-                  name: "",
+                  name,
                   userName: user.userName,
                   domain: getDomain(),
-                  avatar: "",
+                  avatar: icon,
                   unreadCount: 0,
                   type: "group",
-                  members: others,
-                  lastMessage: "...",
+                  members,
+                  status: "invited",
+                  hasName: name.trim() !== "",
+                  hasIcon: icon.trim() !== "",
                   lastMessageTime: undefined,
                 };
                 upsertRoom(newRoom);
                 try {
                   await applyDisplayFallback([newRoom]);
-                } catch { /* ignore */ }
-                await initGroupState(newRoom.id);
+                } catch (err) {
+                  console.warn("applyDisplayFallback failed", err);
+                }
                 room = newRoom;
+              } else {
+                await syncHandshakes(room);
               }
-              if (room) await syncHandshakes(room);
             }
             return;
           }
@@ -2076,7 +2113,6 @@ export function Chat() {
           try {
             await applyDisplayFallback([room]);
           } catch { /* ignore */ }
-          await initGroupState(room.id);
         }
         if (room) await syncHandshakes(room);
         return;
@@ -2274,7 +2310,6 @@ export function Chat() {
           lastMessageTime: undefined,
         };
         upsertRoom(room);
-        await initGroupState(room.id);
       }
       try {
         await syncHandshakes(room);
@@ -2292,31 +2327,7 @@ export function Chat() {
               joined = st;
               break;
             } catch (err) {
-              const msg = err instanceof Error ? err.message : String(err);
-              if (msg.includes("未実装")) {
-                // 未実装のため本来の join はできないが、暗号化操作に有効なハンドルを確保するため
-                // 空の新規グループをローカル生成して暫定参加状態とする（後で本物のWelcome処理で置換予定）
-                try {
-                  const actorUrl = new URL(
-                    `/users/${user.userName}`,
-                    globalThis.location.origin,
-                  ).href;
-                  const created = await createMLSGroup(actorUrl);
-                  joined = {
-                    ...created.state,
-                    members: [`${user.userName}@${getDomain()}`],
-                  };
-                } catch (e2) {
-                  console.warn("暫定グループ生成に失敗", e2);
-                  joined = {
-                    handle: -1,
-                    identity: `${user.userName}@${getDomain()}`,
-                    groupIdB64: btoa(room.id).slice(0, 32),
-                    members: [`${user.userName}@${getDomain()}`],
-                  } as StoredGroupState; // 最後の手段（暗号化は失敗する可能性）
-                }
-                break;
-              }
+              console.warn("joinWithWelcome failed", err);
             }
           }
           if (joined) {
@@ -2433,7 +2444,6 @@ export function Chat() {
               lastMessageTime: undefined,
             };
             upsertRoom(room);
-            await initGroupState(room.id);
           }
           await syncHandshakes(room);
         }
@@ -2685,6 +2695,9 @@ export function Chat() {
     acceptCleanup?.();
     if (invitePoller) clearInterval(invitePoller);
     if (previewPoller) clearInterval(previewPoller);
+    for (const g of Object.values(groups())) {
+      void freeGroup(g.handle);
+    }
   });
 
   return (
@@ -2845,39 +2858,7 @@ export function Chat() {
                                 joined = st;
                                 break;
                               } catch (err) {
-                                const msg = err instanceof Error
-                                  ? err.message
-                                  : String(err);
-                                if (msg.includes("未実装")) {
-                                  try {
-                                    const actorUrl = new URL(
-                                      `/users/${user.userName}`,
-                                      globalThis.location.origin,
-                                    ).href;
-                                    const created = await createMLSGroup(
-                                      actorUrl,
-                                    );
-                                    joined = {
-                                      ...created.state,
-                                      members: [
-                                        `${user.userName}@${getDomain()}`,
-                                      ],
-                                    };
-                                  } catch (e2) {
-                                    console.warn("暫定グループ生成に失敗", e2);
-                                    joined = {
-                                      handle: -1,
-                                      identity:
-                                        `${user.userName}@${getDomain()}`,
-                                      groupIdB64: btoa(id).slice(0, 32),
-                                      members: [
-                                        `${user.userName}@${getDomain()}`,
-                                      ],
-                                    } as StoredGroupState;
-                                  }
-                                  break;
-                                }
-                                // 他のエラーは次の keyPair へ継続
+                                console.warn("joinWithWelcome failed", err);
                               }
                             }
                             if (!joined) {

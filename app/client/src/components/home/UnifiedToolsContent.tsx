@@ -15,7 +15,11 @@ import {
   activeAccountId,
   fetchAccounts,
 } from "../../states/account.ts";
-import { followingListMap, setFollowingList } from "../../states/account.ts";
+import {
+  type FollowInfo,
+  followingListMap,
+  setFollowingList,
+} from "../../states/account.ts";
 import { apiFetch, getDomain, getOrigin } from "../../utils/config.ts";
 import { navigate } from "../../utils/router.ts";
 import { fetchPostById } from "../microblog/api.ts";
@@ -114,29 +118,25 @@ export default function UnifiedToolsContent() {
 
         // グローバルのフォロー一覧キャッシュ
         const cached = followingMap()[id];
-        let list: any[] | null = null;
+        let list: FollowInfo[] | null = null;
         if (cached) {
-          list = Array.isArray(cached) ? cached : [];
+          list = cached;
         } else {
           // 未キャッシュの場合のみ取得してグローバルへ保存
           const res = await apiFetch(`/api/users/${username}/following`);
           if (res.ok) {
-            list = await res.json();
-            saveFollowing({
-              accountId: id,
-              list: Array.isArray(list) ? list : [],
-            });
+            const data = await res.json() as FollowInfo[];
+            list = data;
+            saveFollowing({ accountId: id, list: data });
           }
         }
 
         // followStatus（表示用の真偽値マップ）を更新
         if (list) {
           const map: Record<string, boolean> = {};
-          for (const item of list as any[]) {
-            const actor = typeof item === "string"
-              ? item
-              : (item?.actor || item?.id || item?.userName) ?? "";
-            if (actor) map[actor] = true;
+          for (const item of list) {
+            const actor = `${item.userName}@${item.domain}`;
+            map[actor] = true;
           }
           setFollowStatus((prev) => ({ ...map, ...prev }));
         }
