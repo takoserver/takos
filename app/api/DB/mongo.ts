@@ -612,6 +612,14 @@ export class MongoDB implements DB {
     return await query.lean();
   }
 
+  async findEncryptedKeyPairByDevice(deviceId: string) {
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    const query = this.withTenant(
+      EncryptedKeyPair.findOne({ deviceId, tenant_id: tenantId }),
+    );
+    return await query.lean();
+  }
+
   async upsertEncryptedKeyPair(
     userName: string,
     deviceId: string,
@@ -721,6 +729,8 @@ export class MongoDB implements DB {
     });
     this.withTenant(query);
     await query;
+  // Note: do not import ws/sendToUser here to avoid circular dependency.
+  // Inventory/notification is handled by the caller (route) where sendToUser is available.
   }
 
   async markKeyPackageUsedByRef(userName: string, keyPackageRef: string) {
@@ -733,6 +743,19 @@ export class MongoDB implements DB {
     }, { used: true });
     this.withTenant(query as unknown as mongoose.Query<unknown, unknown>);
     await query;
+    // Inventory/notification is handled by the caller (route) where sendToUser is available.
+  }
+
+  async countAvailableKeyPackages(userName: string) {
+    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
+    await this.cleanupKeyPackages(userName);
+    const query = this.withTenant(KeyPackage.countDocuments({
+      userName,
+      tenant_id: tenantId,
+      used: false,
+    }));
+    const n = await query.exec();
+    return typeof n === "number" ? n : 0;
   }
 
   async cleanupKeyPackages(userName: string) {

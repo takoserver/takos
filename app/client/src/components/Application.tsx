@@ -10,7 +10,7 @@ import { Chat } from "./Chat.tsx";
 import { Notifications } from "./Notifications.tsx";
 import UnifiedToolsContent from "./home/UnifiedToolsContent.tsx";
 import Header from "./header/header.tsx";
-import { connectWebSocket, registerUser } from "../utils/ws.ts";
+import { connectWebSocket, registerUser, addMessageHandler, removeMessageHandler } from "../utils/ws.ts";
 import { getDomain } from "../utils/config.ts";
 
 export function Application() {
@@ -37,6 +37,25 @@ export function Application() {
     if (user) {
       registerUser(`${user.userName}@${getDomain()}`);
     }
+  });
+
+  // Global websocket message handler: dispatch custom events for specific types
+  onMount(() => {
+    const h = (msg: unknown) => {
+      try {
+        const m = msg as { type?: string; payload?: unknown };
+        if (m.type === "keyPackageLow") {
+          const ev = new CustomEvent("keyPackageLow", { detail: m.payload });
+          globalThis.dispatchEvent(ev as unknown as Event);
+        }
+      } catch (_e) {
+        // noop
+      }
+    };
+    addMessageHandler(h);
+    return () => {
+      removeMessageHandler(h);
+    };
   });
 
   // チャットページかつスマホ版かつチャンネルが選択されている場合にヘッダーが非表示の場合のクラス名を生成

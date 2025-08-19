@@ -394,6 +394,25 @@ export function Chat() {
   onMount(async () => {
     await loadAdsenseConfig();
     setShowAds(isAdsenseEnabled());
+    const handler = (ev: Event) => {
+      try {
+        const _detail = (ev as CustomEvent).detail as {
+          remaining?: number;
+          threshold?: number;
+        } | undefined;
+        const acc = account();
+        if (acc) {
+          // トップアップを非同期で起動
+          void topUpSelfKeyPackages(acc.userName, acc.id);
+        }
+      } catch (_e) {
+        // noop
+      }
+    };
+    globalThis.addEventListener("keyPackageLow", handler as EventListener);
+    onCleanup(() => {
+      globalThis.removeEventListener("keyPackageLow", handler as EventListener);
+    });
   });
   const [cursor, setCursor] = createSignal<string | null>(null);
   const [hasMore, setHasMore] = createSignal(true);
@@ -3139,6 +3158,8 @@ async function topUpSelfKeyPackages(userName: string, accountId: string) {
     console.warn("KeyPackage プール確認に失敗しました", e);
   }
 }
+
+// ...existing code...
 
 function normalizeHandle(actor: ActorID): string | null {
   if (actor.startsWith("http")) {

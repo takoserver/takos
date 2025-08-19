@@ -147,6 +147,8 @@ export interface DB {
     userName: string,
     deviceId: string,
   ): Promise<unknown | null>;
+  // Find encrypted key pair by device id (deviceId may be sessionId)
+  findEncryptedKeyPairByDevice(deviceId: string): Promise<unknown | null>;
   upsertEncryptedKeyPair(
     userName: string,
     deviceId: string,
@@ -178,6 +180,8 @@ export interface DB {
   cleanupKeyPackages(userName: string): Promise<void>;
   deleteKeyPackage(userName: string, id: string): Promise<void>;
   deleteKeyPackagesByUser(userName: string): Promise<void>;
+  // Count available (unused, non-expired) KeyPackages for a user
+  countAvailableKeyPackages(userName: string): Promise<number>;
   savePendingInvite(
     roomId: string,
     userName: string,

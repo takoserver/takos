@@ -808,6 +808,21 @@ app.get("/users/:user/keyPackages/:keyId", async (c) => {
   if (!doc) return c.body("Not Found", 404);
   await db.markKeyPackageUsed(user, keyId);
   await db.cleanupKeyPackages(user);
+  try {
+    const remaining = await db.countAvailableKeyPackages(user);
+    const env = getEnv(c);
+    const threshold = parseInt(env["KP_LOW_THRESHOLD"] ?? "3", 10) || 3;
+    if (remaining <= threshold) {
+      // notify all connected devices for this user
+      const domain = getDomain(c);
+      sendToUser(`${user}@${domain}`, {
+        type: "keyPackageLow",
+        payload: { remaining, threshold },
+      });
+    }
+  } catch (err) {
+    console.error("KeyPackage inventory check failed", err);
+  }
   const object = {
     "@context": [
       "https://www.w3.org/ns/activitystreams",
@@ -983,6 +998,20 @@ app.post("/users/:user/keyPackages/markUsed", authRequired, async (c) => {
     }
   }
   await db.cleanupKeyPackages(user);
+  try {
+    const remaining = await db.countAvailableKeyPackages(user);
+    const env = getEnv(c);
+    const threshold = parseInt(env["KP_LOW_THRESHOLD"] ?? "3", 10) || 3;
+    if (remaining <= threshold) {
+      const domain = getDomain(c);
+      sendToUser(`${user}@${domain}`, {
+        type: "keyPackageLow",
+        payload: { remaining, threshold },
+      });
+    }
+  } catch (err) {
+    console.error("KeyPackage inventory check failed", err);
+  }
   return c.json({ ok: true });
 });
 
