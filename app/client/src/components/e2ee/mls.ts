@@ -4,11 +4,10 @@ import { b64ToBuf, bufToB64 } from "../../../../shared/buffer.ts";
 
 // OpenMLS WASM モジュールのインポート
 import wasmInit, {
-  Provider,
-  Identity,
   Group,
+  Identity,
   KeyPackage,
-  AddMessages,
+  Provider,
   RatchetTree,
 } from "../../../../shared/openmls-wasm/pkg/openmls_wasm.js";
 
@@ -21,11 +20,6 @@ interface OpenMlsGeneratedKeyPackage {
 interface OpenMlsCreatedGroup {
   handle: Group;
   groupIdB64: string;
-}
-
-interface AddMembersResult {
-  commit: Uint8Array;
-  welcomes: Uint8Array[];
 }
 
 interface JoinWithWelcomeResult {
@@ -78,17 +72,16 @@ async function om_generateKeyPackage(
   await initWasm();
   const provider = getProvider();
   const identityObj = new Identity(provider, identity);
-  const _keyPackage = identityObj.key_package(provider);
-  
-  // KeyPackageをシリアライズして文字列として保存
-  const keyPackageData = new Uint8Array(1024); // 適切なサイズに調整
+  const keyPackage = identityObj.key_package(provider);
+  const keyPackageData = keyPackage.tls_serialize();
   const keyPackageStr = bufToB64(keyPackageData);
-  
-  const hash = Array.from(new TextEncoder().encode(keyPackageStr))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
-    .substring(0, 64);
-  
+
+  const hashArray = new Uint8Array(
+    await crypto.subtle.digest("SHA-256", keyPackageData),
+  );
+  const hash = Array.from(hashArray).map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
   return {
     key_package: keyPackageStr,
     hash,
@@ -102,7 +95,7 @@ async function om_createGroup(identity: string): Promise<OpenMlsCreatedGroup> {
   const identityObj = new Identity(provider, identity);
   const groupId = generateGroupId();
   const group = Group.create_new(provider, identityObj, groupId);
-  
+
   return {
     handle: group,
     groupIdB64: groupId,
@@ -130,13 +123,6 @@ async function om_exportGroupInfo(group: Group): Promise<Uint8Array> {
   const _ratchetTree = group.export_ratchet_tree();
   // 仮実装: 実際の実装では適切なGroupInfo形式に変換が必要
   return new Uint8Array(0);
-}
-
-function om_getGroupMembers(_group: Group): Promise<string[]> {
-  // OpenMLSでは直接メンバーリストを取得する機能がないため、
-  // 仮実装として空配列を返す
-  // 実際の実装では、グループの状態から推測またはアプリケーション層で管理
-  return Promise.resolve([]);
 }
 
 export interface GeneratedKeyPair {
@@ -354,7 +340,9 @@ export function decodeMlsMessage(
     // OpenMLSでは直接デコード機能がないため、仮実装
     switch (wireFormat) {
       case 1:
-        return Promise.resolve({ keyPackage: { leafNode: { signaturePublicKey: data } } });
+        return Promise.resolve({
+          keyPackage: { leafNode: { signaturePublicKey: data } },
+        });
       case 2:
         return Promise.resolve({ welcome: data });
       case 3:
@@ -450,13 +438,8 @@ export function verifyPrivateMessage(
   }
 }
 
-export async function getGroupMembers(
-  state: StoredGroupState,
-): Promise<string[]> {
-  if (state.members) {
-    return state.members;
-  }
-  return await om_getGroupMembers(state.handle);
+export function getGroupMembers(state: StoredGroupState): string[] {
+  return state.members ?? [];
 }
 
 export function verifyGroupInfo(data: Uint8Array): Promise<boolean> {
@@ -486,7 +469,7 @@ export async function createMLSGroup(
 > {
   const created = await om_createGroup(identity);
   const keyPair = await generateKeyPair(identity);
-  const members = await om_getGroupMembers(created.handle);
+  const members = [identity];
   const state: StoredGroupState = {
     handle: created.handle,
     identity,
@@ -504,7 +487,7 @@ export function addMembers(
   state: StoredGroupState,
   addKeyPackages: RawKeyPackageInput[],
 ): Promise<{
-  commit: Uint8Array;
+  commits: Uint8Array[];
   welcomes: WelcomeEntry[];
   state: StoredGroupState;
   evidences: RosterEvidence[];
@@ -513,38 +496,44 @@ export function addMembers(
     await initWasm();
     const provider = getProvider();
     const identityObj = new Identity(provider, state.identity);
-    
-    // 新しいメンバーのキーパッケージを準備
-    const keyPackages: KeyPackage[] = [];
-    for (const _pkg of addKeyPackages) {
-      // KeyPackageの作成は複雑なため、仮実装
-      // 実際の実装では、pkg.contentをデシリアライズしてKeyPackageを作成
-    }
-    
-    // OpenMLSでは一度に一人ずつ追加
-    let messages: AddMessages | null = null;
-    if (keyPackages.length > 0) {
-      messages = state.handle.propose_and_commit_add(provider, identityObj, keyPackages[0]);
+
+    const commits: Uint8Array[] = [];
+    const welcomes: WelcomeEntry[] = [];
+    const evidences: RosterEvidence[] = [];
+
+    for (const pkg of addKeyPackages) {
+      const kpBytes = b64ToBuf(pkg.content);
+      const keyPackage = KeyPackage.tls_deserialize(kpBytes);
+      const messages = state.handle.propose_and_commit_add(
+        provider,
+        identityObj,
+        keyPackage,
+      );
       state.handle.merge_pending_commit(provider);
+      commits.push(messages.commit);
+      welcomes.push({
+        actor: pkg.actor,
+        deviceId: pkg.deviceId,
+        data: messages.welcome,
+      });
+      evidences.push({
+        type: "RosterEvidence" as const,
+        actor: pkg.actor ?? "",
+        keyPackageUrl: pkg.url ?? "",
+        keyPackageHash: pkg.hash ?? "",
+        leafSignatureKeyFpr: pkg.leafSignatureKeyFpr ?? "",
+        fetchedAt: pkg.fetchedAt ?? new Date().toISOString(),
+        etag: pkg.etag,
+      });
     }
-    
-    const members = await om_getGroupMembers(state.handle);
-    const welcomes = addKeyPackages.map((p, _i) => ({
-      actor: p.actor,
-      deviceId: p.deviceId,
-      data: messages?.welcome || new Uint8Array(),
-    }));
-    const evidences = addKeyPackages.map((p) => ({
-      type: "RosterEvidence" as const,
-      actor: p.actor ?? "",
-      keyPackageUrl: p.url ?? "",
-      keyPackageHash: p.hash ?? "",
-      leafSignatureKeyFpr: p.leafSignatureKeyFpr ?? "",
-      fetchedAt: p.fetchedAt ?? new Date().toISOString(),
-      etag: p.etag,
-    }));
+    const memberSet = new Set(state.members ?? []);
+    for (const pkg of addKeyPackages) {
+      if (pkg.actor) memberSet.add(pkg.actor);
+    }
+    const members = Array.from(memberSet);
+
     return {
-      commit: messages?.commit || new Uint8Array(),
+      commits,
       welcomes,
       state: { ...state, members },
       evidences,
@@ -555,15 +544,17 @@ export const createCommitAndWelcomes = addMembers;
 
 export function removeMembers(
   state: StoredGroupState,
-  _removeIndices: number[],
+  removeIndices: number[],
 ): Promise<{ commit: Uint8Array; state: StoredGroupState }> {
   return (async () => {
     await initWasm();
     // OpenMLSではメンバー削除は複雑な操作のため、仮実装
-    const members = await om_getGroupMembers(state.handle);
-    return { 
+    const members = (state.members ?? []).filter((_, i) =>
+      !removeIndices.includes(i)
+    );
+    return {
       commit: new Uint8Array(), // 仮実装
-      state: { ...state, members } 
+      state: { ...state, members },
     };
   })();
 }
@@ -577,11 +568,11 @@ export async function updateKey(
   await initWasm();
   // OpenMLSでは鍵更新は複雑な操作のため、仮実装
   const keyPair = await generateKeyPair(identity);
-  const members = await om_getGroupMembers(state.handle);
-  return { 
+  const members = state.members ?? [];
+  return {
     commit: new Uint8Array(), // 仮実装
-    state: { ...state, members }, 
-    keyPair 
+    state: { ...state, members },
+    keyPair,
   };
 }
 
@@ -593,19 +584,18 @@ export function joinWithWelcome(
     await initWasm();
     const provider = getProvider();
     const _identityObj = new Identity(provider, keyPair.identity);
-    
+
     // RatchetTreeの準備（仮実装）
     const ratchetTree = new RatchetTree(); // 実際にはWelcomeメッセージから抽出
-    
+
     const group = Group.join(provider, welcome, ratchetTree);
-    const members = await om_getGroupMembers(group);
     const groupId = generateGroupId(); // 実際にはWelcomeメッセージから抽出
-    
+
     return {
       handle: group,
       identity: keyPair.identity,
       groupIdB64: groupId,
-      members,
+      members: [keyPair.identity],
     };
   })();
 }
@@ -620,18 +610,17 @@ export function joinWithGroupInfo(
     const provider = getProvider();
     const identityObj = new Identity(provider, keyPair.identity);
     const groupId = generateGroupId(); // 実際にはGroupInfoから抽出
-    
+
     // 仮実装: 新しいグループを作成
     const group = Group.create_new(provider, identityObj, groupId);
-    const members = await om_getGroupMembers(group);
-    
+
     return {
       commit: "", // 仮実装
       state: {
         handle: group,
         identity: keyPair.identity,
         groupIdB64: groupId,
-        members,
+        members: [keyPair.identity],
       },
     };
   })();
@@ -644,12 +633,10 @@ export function processCommit(
   return (async () => {
     await initWasm();
     const provider = getProvider();
-    
+
     // OpenMLSでCommitメッセージを処理
     const _decryptedData = state.handle.process_message(provider, message);
-    const members = await om_getGroupMembers(state.handle);
-    
-    return { ...state, members };
+    return { ...state };
   })();
 }
 
@@ -660,12 +647,10 @@ export function processProposal(
   return (async () => {
     await initWasm();
     const provider = getProvider();
-    
+
     // OpenMLSでProposalメッセージを処理
     const _decryptedData = state.handle.process_message(provider, message);
-    const members = await om_getGroupMembers(state.handle);
-    
-    return { ...state, members };
+    return { ...state };
   })();
 }
 
@@ -711,7 +696,7 @@ export async function decryptMessage(
   try {
     await initWasm();
     const provider = getProvider();
-    
+
     // OpenMLSでメッセージを復号化
     const plaintext = state.handle.process_message(provider, data);
     return { plaintext, state };

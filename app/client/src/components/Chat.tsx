@@ -1459,28 +1459,28 @@ export function Chat() {
         const group = groups()[room.id];
         if (group) {
           const resAdd = await createCommitAndWelcomes(group, kpInputs);
-          const commitContent = encodeCommit(resAdd.commit);
-          const ok = await sendHandshake(
-            room.id,
-            `${user.userName}@${getDomain()}`,
-            commitContent,
-            // ルーム作成時は members が最新のロスター
-            members,
-          );
-          if (ok) {
-            for (const w of resAdd.welcomes) {
-              const wContent = encodeWelcome(w.data);
-              const wk = await sendHandshake(
-                room.id,
-                `${user.userName}@${getDomain()}`,
-                wContent,
-                members,
-              );
-              if (!wk) break;
-            }
-            setGroups({ ...groups(), [room.id]: resAdd.state });
-            saveGroupStates();
+          for (let i = 0; i < resAdd.commits.length; i++) {
+            const commitContent = encodeCommit(resAdd.commits[i]);
+            const ok = await sendHandshake(
+              room.id,
+              `${user.userName}@${getDomain()}`,
+              commitContent,
+              // ルーム作成時は members が最新のロスター
+              members,
+            );
+            if (!ok) break;
+            const w = resAdd.welcomes[i];
+            const wContent = encodeWelcome(w.data);
+            const wk = await sendHandshake(
+              room.id,
+              `${user.userName}@${getDomain()}`,
+              wContent,
+              members,
+            );
+            if (!wk) break;
           }
+          setGroups({ ...groups(), [room.id]: resAdd.state });
+          saveGroupStates();
         }
       } catch (e) {
         console.warn("作成時のAdd/Welcome送信に失敗しました", e);
@@ -1663,7 +1663,6 @@ export function Chat() {
         }
         if (kpInputs.length > 0) {
           const resAdd = await createCommitAndWelcomes(group, kpInputs);
-          const commitContent = encodeCommit(resAdd.commit);
           const toList = Array.from(
             new Set([
               ...current,
@@ -1671,15 +1670,17 @@ export function Chat() {
               self,
             ]),
           );
-          const ok = await sendHandshake(
-            roomId,
-            `${user.userName}@${getDomain()}`,
-            commitContent,
-            toList,
-            { deviceMap },
-          );
-          if (!ok) throw new Error("Commit送信に失敗しました");
-          for (const w of resAdd.welcomes) {
+          for (let i = 0; i < resAdd.commits.length; i++) {
+            const commitContent = encodeCommit(resAdd.commits[i]);
+            const ok = await sendHandshake(
+              roomId,
+              `${user.userName}@${getDomain()}`,
+              commitContent,
+              toList,
+              { deviceMap },
+            );
+            if (!ok) throw new Error("Commit送信に失敗しました");
+            const w = resAdd.welcomes[i];
             const wContent = encodeWelcome(w.data);
             const wk = await sendHandshake(
               roomId,

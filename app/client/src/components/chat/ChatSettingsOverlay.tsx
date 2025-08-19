@@ -414,8 +414,6 @@ export function ChatSettingsOverlay(props: ChatSettingsOverlayProps) {
       if (!state) throw new Error("ルームの暗号状態が未初期化です");
       // 追加用の Commit/Welcome を生成
       const res = await createCommitAndWelcomes(state, [kpInput]);
-      // Handshake として送信（commit と welcome）
-      const commitContent = encodeCommit(res.commit);
       const deviceMap: Record<string, string> = {};
       if (kpInput.deviceId) {
         const normalized = normalizeHandle(ident.user) ?? ident.user;
@@ -426,15 +424,17 @@ export function ChatSettingsOverlay(props: ChatSettingsOverlayProps) {
       const toList = Array.from(
         new Set([...(props.room?.members ?? []), self]),
       );
-      const ok = await sendHandshake(
-        props.room.id,
-        `${user.userName}@${getDomain()}`,
-        commitContent,
-        toList,
-        { deviceMap },
-      );
-      if (!ok) throw new Error("Commitの送信に失敗しました");
-      for (const w of res.welcomes) {
+      for (let i = 0; i < res.commits.length; i++) {
+        const commitContent = encodeCommit(res.commits[i]);
+        const ok = await sendHandshake(
+          props.room.id,
+          `${user.userName}@${getDomain()}`,
+          commitContent,
+          toList,
+          { deviceMap },
+        );
+        if (!ok) throw new Error("Commitの送信に失敗しました");
+        const w = res.welcomes[i];
         const wContent = encodeWelcome(w.data);
         const wk = await sendHandshake(
           props.room.id,
