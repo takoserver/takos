@@ -75,8 +75,8 @@ interface WasmModule {
   peek_wire(data: Uint8Array): number;
   free_group(handle: number): void;
   verify_key_package(data: Uint8Array, expected?: string): boolean;
-  verify_commit(data: Uint8Array): boolean;
-  verify_private_message(data: Uint8Array): boolean;
+  verify_commit(handle: number, data: Uint8Array): boolean;
+  verify_private_message(handle: number, data: Uint8Array): boolean;
   verify_group_info(data: Uint8Array): boolean;
   verify_welcome(data: Uint8Array): boolean;
 }
@@ -442,10 +442,13 @@ export async function verifyKeyPackage(
   }
 }
 
-export async function verifyCommit(data: Uint8Array): Promise<boolean> {
+export async function verifyCommit(
+  handle: number,
+  data: Uint8Array,
+): Promise<boolean> {
   try {
     const wasm = await loadWasm();
-    return wasm.verify_commit(data);
+    return wasm.verify_commit(handle, data);
   } catch (err) {
     console.warn("verifyCommit failed", err);
     return false;
@@ -453,11 +456,12 @@ export async function verifyCommit(data: Uint8Array): Promise<boolean> {
 }
 
 export async function verifyPrivateMessage(
+  handle: number,
   data: Uint8Array,
 ): Promise<boolean> {
   try {
     const wasm = await loadWasm();
-    return wasm.verify_private_message(data);
+    return wasm.verify_private_message(handle, data);
   } catch (err) {
     console.warn("verifyPrivateMessage failed", err);
     return false;
@@ -687,7 +691,7 @@ export async function decryptMessage(
   data: Uint8Array,
 ): Promise<{ plaintext: Uint8Array; state: StoredGroupState } | null> {
   const wasm = await loadWasm();
-  if (!wasm.verify_private_message(data)) {
+  if (!wasm.verify_private_message(state.handle, data)) {
     console.warn("verifyPrivateMessage failed");
     return null;
   }

@@ -656,29 +656,50 @@ pub fn verify_key_package(data: &[u8], expected_identity: Option<String>) -> boo
 }
 
 #[wasm_bindgen]
-pub fn verify_commit(data: &[u8]) -> bool {
+pub fn verify_commit(handle: u32, data: &[u8]) -> bool {
     let provider = &OpenMlsRustCrypto::default();
+    let mut guard = GROUPS.lock().unwrap();
+    let h = match guard.get_mut(&handle) {
+        Some(h) => h,
+        None => return false,
+    };
+
     let mut buf = data.to_vec();
     let msg = match MlsMessageIn::tls_deserialize(&mut buf.as_slice()) {
         Ok(m) => m,
         Err(_) => return false,
     };
-    match msg {
-        MlsMessageIn::Plaintext(pt) => pt.verify(provider).is_ok(),
-        _ => false,
+
+    let processed = match h.group.process_message(provider, msg) {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
+
+    if matches!(processed, ProcessedMessage::CommitMessage(_)) {
+        let _ = h.group.clear_pending_commit(provider.storage());
+        true
+    } else {
+        false
     }
 }
 
 #[wasm_bindgen]
-pub fn verify_private_message(data: &[u8]) -> bool {
+pub fn verify_private_message(handle: u32, data: &[u8]) -> bool {
     let provider = &OpenMlsRustCrypto::default();
+    let mut guard = GROUPS.lock().unwrap();
+    let h = match guard.get_mut(&handle) {
+        Some(h) => h,
+        None => return false,
+    };
+
     let mut buf = data.to_vec();
     let msg = match MlsMessageIn::tls_deserialize(&mut buf.as_slice()) {
         Ok(m) => m,
         Err(_) => return false,
     };
-    match msg {
-        MlsMessageIn::Ciphertext(ct) => ct.decrypt(provider).is_ok(),
+
+    match h.group.process_message(provider, msg) {
+        Ok(ProcessedMessage::ApplicationMessage(_)) => true,
         _ => false,
     }
 }

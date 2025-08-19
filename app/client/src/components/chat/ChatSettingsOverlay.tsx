@@ -274,10 +274,13 @@ export function ChatSettingsOverlay(props: ChatSettingsOverlayProps) {
 
   const loadMembersFromMessages = async (roomId: string) => {
     const user = accountValue();
-    if (!user) return setMembers([]);
+    const handle = props.groupState?.handle;
+    if (!user || handle === undefined) return setMembers([]);
     try {
       const self = `${user.userName}@${getDomain()}`;
-      const msgs = await fetchEncryptedMessages(roomId, self, { limit: 100 });
+      const msgs = await fetchEncryptedMessages(roomId, self, handle, {
+        limit: 100,
+      });
       const set = new Set<string>();
       for (const m of msgs) {
         if (typeof m.from === "string") {
