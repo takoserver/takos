@@ -39,8 +39,6 @@ import {
   encryptMessage,
   generateKeyPair,
   joinWithWelcome,
-  processCommit,
-  processProposal,
   removeMembers,
   type RosterEvidence,
   type StoredGroupState,
@@ -52,7 +50,6 @@ import {
 } from "./e2ee/mls_message.ts";
 // ts-mls 排除: openmls wasm 移行中。ワイヤ判定は暫定 peekWire に委譲。
 import { peekWire } from "./e2ee/mls_wire.ts";
-import { decodeGroupMetadata } from "./e2ee/group_metadata.ts";
 import {
   appendRosterEvidence,
   getCacheItem,
@@ -801,19 +798,20 @@ export function Chat() {
     const ordered = [...hs].sort((a, b) =>
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
+    // deno-lint-ignore prefer-const
     let updated = false;
     for (const h of ordered) {
       const body = decodePublicMessage(h.message);
       if (!body) continue;
       try {
         try {
-          const dec = peekWire(bufToB64(body));
+          peekWire(bufToB64(body));
           // TODO: openmls wasm の public message decode 実装後に commit 判定を追加
         } catch {
           /* not a commit */
         }
         try {
-          const dec = peekWire(bufToB64(body));
+          peekWire(bufToB64(body));
           // TODO: openmls wasm の public message decode 実装後に proposal 判定を追加
         } catch {
           /* not a proposal */
@@ -1225,7 +1223,9 @@ export function Chat() {
       const g = groups()[room.id];
       if (g && user) {
         const selfHandle = `${user.userName}@${getDomain()}`;
-        const members = (await extractMembers(g)).map((x) => normalizeHandle(x) ?? x)
+        const members = (await extractMembers(g)).map((x) =>
+          normalizeHandle(x) ?? x
+        )
           .filter((v): v is string => !!v);
         setPartnerHasKey(members.includes(selfHandle));
       }
@@ -1290,8 +1290,8 @@ export function Chat() {
       const state = groups()[item.id];
       const meta = state
         // 拡張の型適合 - openmls移行のため一時的に無効化
-        ? { name: "", icon: undefined }
-        /*
+        ? { name: "", icon: undefined } ||
+          /*
         // 拡張の型適合 (extensionType を number に) ※ ts-mls の型差異吸収
         ? decodeGroupMetadata(
           (() => {
@@ -1323,10 +1323,10 @@ export function Chat() {
             });
           })(),
         )
-        */ || {
-          name: "",
-          icon: undefined,
-        }
+        */ {
+            name: "",
+            icon: undefined,
+          }
         : { name: "", icon: undefined };
       const name = meta.name ?? "";
       const icon = meta.icon ?? "";
@@ -1586,6 +1586,18 @@ export function Chat() {
             // 招待中として登録（Join後に設定画面で自動的にメンバー側へ移動）
             await addPendingInvites(user.id, room.id, others);
           }
+        } else {
+          // KeyPackage が存在しない相手には招待できないため通知
+          globalThis.dispatchEvent(
+            new CustomEvent("app:toast", {
+              detail: {
+                type: "error",
+                title: "招待できません",
+                description:
+                  "相手がKeyPackageを公開していないため招待できません",
+              },
+            }),
+          );
         }
         // UI上は常に招待中として表示（Joinしたら自動的にメンバーへ移動）
         await addPendingInvites(user.id, room.id, others);
@@ -2545,8 +2557,8 @@ export function Chat() {
           }
           return { room: r, hasChanged: false };
         }));
-        const nextA = results.map(result => result.room);
-        changed = results.some(result => result.hasChanged);
+        const nextA = results.map((result) => result.room);
+        changed = results.some((result) => result.hasChanged);
         if (changed) setChatRooms(nextA);
 
         // 1対1・未命名の表示名補完（変更がある場合のみ更新）
@@ -2953,6 +2965,7 @@ export function Chat() {
                     </div>
                     <div class="flex gap-2">
                       <button
+                        type="button"
                         class="px-3 py-1 rounded bg-amber-600/80 hover:bg-amber-600 text-white text-sm"
                         onClick={async () => {
                           const id = selectedRoom();
@@ -3038,6 +3051,7 @@ export function Chat() {
                         参加する
                       </button>
                       <button
+                        type="button"
                         class="px-3 py-1 rounded bg-transparent border border-amber-500/60 text-amber-100 text-sm hover:bg-amber-500/20"
                         onClick={() => {
                           const id = selectedRoom();
