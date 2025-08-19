@@ -486,7 +486,7 @@ async function handleHandshake(
           mediaType: "message/mls",
           encoding: "base64",
           summary:
-            "This is an encrypted private message. See https://swicg.github.io/activitypub-e2ee/ …",
+            "This is an encrypted private message. See https://swicg.github.io/activitypub-e2ee/ for information about how to read messages like these.",
         };
 
         if (hsObj.mediaType !== "message/mls" || hsObj.encoding !== "base64") {
@@ -639,7 +639,7 @@ app.get(
         mediaType: doc.mediaType,
         encoding: doc.encoding,
         summary:
-          "This is binary-encoded cryptographic key package. See https://swicg.github.io/activitypub-e2ee/ …",
+          "This is binary-encoded cryptographic key package. See https://swicg.github.io/activitypub-e2ee/ for information about how to read messages like these.",
         groupInfo: doc.groupInfo,
         expiresAt: doc.expiresAt,
         version: doc.version,
@@ -691,7 +691,7 @@ app.get(
         }
         if (typeof out.summary !== "string") {
           out.summary =
-            "This is binary-encoded cryptographic key package. See https://swicg.github.io/activitypub-e2ee/ …";
+            "This is binary-encoded cryptographic key package. See https://swicg.github.io/activitypub-e2ee/ for information about how to read messages like these.";
         }
         return out;
       });
@@ -724,7 +724,7 @@ app.get("/users/:user/keyPackages/:keyId", async (c) => {
     mediaType: doc.mediaType,
     encoding: doc.encoding,
     summary:
-      "This is binary-encoded cryptographic key package. See https://swicg.github.io/activitypub-e2ee/ …",
+      "This is binary-encoded cryptographic key package. See https://swicg.github.io/activitypub-e2ee/ for information about how to read messages like these.",
     content: doc.content,
     groupInfo: doc.groupInfo,
     expiresAt: doc.expiresAt,
@@ -823,7 +823,7 @@ app.post("/users/:user/keyPackages", authRequired, async (c) => {
     mediaType: pkg.mediaType,
     encoding: pkg.encoding,
     summary:
-      "This is binary-encoded cryptographic key package. See https://swicg.github.io/activitypub-e2ee/ …",
+      "This is binary-encoded cryptographic key package. See https://swicg.github.io/activitypub-e2ee/ for information about how to read messages like these.",
     content: pkg.content,
     groupInfo: pkg.groupInfo,
     expiresAt: pkg.expiresAt,
