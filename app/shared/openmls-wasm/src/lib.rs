@@ -12,7 +12,7 @@ use openmls::{
 use openmls_basic_credential::SignatureKeyPair;
 use openmls_rust_crypto::OpenMlsRustCrypto;
 use openmls_traits::{types::Ciphersuite, OpenMlsProvider};
-use tls_codec::{Deserialize, Serialize, TlsDeserializeBytes};
+use tls_codec::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -368,9 +368,54 @@ impl KeyPackage {
 
     /// バイト配列から KeyPackage を TLS 形式でデシリアライズする
     pub fn tls_deserialize(data: &[u8]) -> Result<KeyPackage, JsError> {
+        // デバッグ情報を追加
+        log(&format!("KeyPackage::tls_deserialize: data length = {}", data.len()));
+        if data.len() > 0 {
+            log(&format!("First 16 bytes: {:?}", &data[..std::cmp::min(16, data.len())]));
+        }
+        
         // 1) 未検証 KeyPackage にデシリアライズ
         let kp_in: KeyPackageIn = KeyPackageIn::tls_deserialize_exact(data)
-            .map_err(|e| JsError::new(&format!("KeyPackage parse error: {e}")))?;
+            .map_err(|e| {
+                let error_msg = format!("KeyPackage parse error: {e} (data length: {}, first bytes: {:?})", 
+                    data.len(), 
+                    &data[..std::cmp::min(8, data.len())]);
+                log(&error_msg);
+                JsError::new(&error_msg)
+            })?;
+
+        // 2) 検証して本物の KeyPackage を得る（MLS 1.0 を想定）
+        let provider = OpenMlsRustCrypto::default();
+        let key_package: OpenMlsKeyPackage = kp_in
+            .validate(provider.crypto(), ProtocolVersion::Mls10)
+            .map_err(|e| JsError::new(&format!("KeyPackage validate error: {e}")))?;
+
+        Ok(KeyPackage(key_package))
+    }
+
+    /// より柔軟なデシリアライゼーション（バックアップ）
+    pub fn tls_deserialize_fallback(data: &[u8]) -> Result<KeyPackage, JsError> {
+        log(&format!("KeyPackage::tls_deserialize_fallback: data length = {}", data.len()));
+        
+        // バイトレベルでの検証を追加
+        if data.is_empty() {
+            return Err(JsError::new("Empty data provided to KeyPackage deserializer"));
+        }
+        
+        // 基本的なバイト検査
+        if data.len() < 4 {
+            return Err(JsError::new("Data too short for KeyPackage"));
+        }
+        
+        // 1) 未検証 KeyPackage にデシリアライズ（exactのみを使用）
+        let kp_in: KeyPackageIn = KeyPackageIn::tls_deserialize_exact(data)
+            .map_err(|e| {
+                let error_msg = format!("KeyPackage fallback parse error: {e} (data length: {}, first bytes: {:?})", 
+                    data.len(), 
+                    &data[..std::cmp::min(8, data.len())]);
+                log(&error_msg);
+                JsError::new(&error_msg)
+            })?;
 
         // 2) 検証して本物の KeyPackage を得る（MLS 1.0 を想定）
         let provider = OpenMlsRustCrypto::default();

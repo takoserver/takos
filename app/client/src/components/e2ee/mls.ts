@@ -505,7 +505,15 @@ export function addMembers(
       const kpBytes = b64ToBuf(pkg.content);
       try {
         // OpenMLS WASM バインディングの KeyPackage.tls_deserialize を使用
-        const keyPackage = KeyPackage.tls_deserialize(kpBytes);
+        let keyPackage;
+        try {
+          keyPackage = KeyPackage.tls_deserialize(kpBytes);
+        } catch (primaryError) {
+          console.warn("Primary KeyPackage.tls_deserialize failed, trying fallback:", primaryError);
+          // フォールバック方法を試す
+          keyPackage = KeyPackage.tls_deserialize_fallback(kpBytes);
+        }
+        
         const messages = state.handle.propose_and_commit_add(
           provider,
           identityObj,
