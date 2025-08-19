@@ -261,13 +261,14 @@ async function handleHandshake(
   | { ok: true; id: string }
   | { ok: false; status: number; error: string }
 > {
-  const { from, to, content, mediaType, encoding, attachments } = body as {
+  const { from, to, content, mediaType, encoding, attachments, deviceMap } = body as {
     from?: unknown;
     to?: unknown;
     content?: unknown;
     mediaType?: unknown;
     encoding?: unknown;
     attachments?: unknown;
+    deviceMap?: unknown;
   };
   console.info("[handleHandshake] incoming", {
     roomId,
@@ -493,10 +494,14 @@ async function handleHandshake(
 
   if (localTargets.length > 0) {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const dm = (deviceMap && typeof deviceMap === "object") ? deviceMap as Record<string, unknown> : {};
     for (const lm of localTargets) {
       const uname = lm.split("@")[0];
-      await db.savePendingInvite(roomId, uname, "", expiresAt);
-  console.info("[handshake] savePendingInvite", { roomId, to: lm });
+      const handleLike = lm.startsWith("@") ? lm.slice(1) : lm;
+      const devIdRaw = dm[lm] ?? dm[handleLike] ?? dm[uname];
+      const deviceId = typeof devIdRaw === "string" && devIdRaw.length > 0 ? devIdRaw : `unknown:${uname}`;
+      await db.savePendingInvite(roomId, uname, deviceId, expiresAt);
+  console.info("[handshake] savePendingInvite", { roomId, to: lm, deviceId });
       sendToUser(lm, { type: "pendingInvite", payload: { roomId, from } });
       try {
         // ローカルユーザー向けにサーバー側で通知を作成

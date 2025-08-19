@@ -1621,6 +1621,7 @@ export function Chat() {
           actor?: string;
           deviceId?: string;
         }[] = [];
+        const deviceMap: Record<string, string> = {};
         for (const h of need) {
           const [uname, dom] = splitActor(h as ActorID);
           const kps = await fetchKeyPackages(uname, dom);
@@ -1640,6 +1641,10 @@ export function Chat() {
               actor,
               deviceId: kp.deviceId,
             });
+            if (kp.deviceId) {
+              // ハンドル形式 (@user@domain) と deviceId を紐づけ
+              deviceMap[h] = kp.deviceId;
+            }
           }
         }
         if (kpInputs.length > 0) {
@@ -1657,6 +1662,7 @@ export function Chat() {
             `${user.userName}@${getDomain()}`,
             commitContent,
             toList,
+            { deviceMap },
           );
           if (!ok) throw new Error("Commit送信に失敗しました");
           for (const w of resAdd.welcomes) {
@@ -1666,6 +1672,7 @@ export function Chat() {
               `${user.userName}@${getDomain()}`,
               wContent,
               toList,
+              { deviceMap },
             );
             if (!wk) throw new Error("Welcome送信に失敗しました");
           }

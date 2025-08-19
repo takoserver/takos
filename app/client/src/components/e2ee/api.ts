@@ -506,6 +506,7 @@ export const sendHandshake = async (
   from: string,
   content: string,
   to?: string[],
+  opts?: { deviceMap?: Record<string, string> },
 ): Promise<boolean> => {
   try {
     const payload: Record<string, unknown> = {
@@ -517,6 +518,9 @@ export const sendHandshake = async (
     if (Array.isArray(to)) {
       // 送信先（MLS ロスター由来）を明示し、サーバー側の検証/配送に使用する
       payload.to = to;
+    }
+    if (opts?.deviceMap && typeof opts.deviceMap === "object") {
+      payload.deviceMap = opts.deviceMap;
     }
     const res = await apiFetch(
       `/api/rooms/${encodeURIComponent(roomId)}/handshakes`,

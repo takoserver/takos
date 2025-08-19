@@ -214,7 +214,7 @@ export const activityHandlers: Record<string, ActivityHandler> = {
           if (objTypes.includes("Welcome")) {
             if (roomId) {
               const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-              await db.savePendingInvite(roomId, username, "", expiresAt);
+              await db.savePendingInvite(roomId, username, `unknown:${username}`, expiresAt);
               sendToUser(selfHandle, {
                 type: "pendingInvite",
                 payload: { roomId, from },

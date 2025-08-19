@@ -410,6 +410,11 @@ export function ChatSettingsOverlay(props: ChatSettingsOverlayProps) {
   const res = await createCommitAndWelcomes(state, [kpInput]);
   // Handshake として送信（commit と welcome）
   const commitContent = encodeCommit(res.commit);
+      const deviceMap: Record<string, string> = {};
+      if (kpInput.deviceId) {
+        const normalized = normalizeHandle(ident.user) ?? ident.user;
+        deviceMap[normalized] = kpInput.deviceId;
+      }
       // 既知のメンバー（UIが持つ room.members）と自分を宛先に含める
       const self = `${user.userName}@${getDomain()}`;
       const toList = Array.from(
@@ -420,6 +425,7 @@ export function ChatSettingsOverlay(props: ChatSettingsOverlayProps) {
         `${user.userName}@${getDomain()}`,
         commitContent,
         toList,
+        { deviceMap },
       );
       if (!ok) throw new Error("Commitの送信に失敗しました");
       for (const w of res.welcomes) {
@@ -429,6 +435,7 @@ export function ChatSettingsOverlay(props: ChatSettingsOverlayProps) {
           `${user.userName}@${getDomain()}`,
           wContent,
           toList,
+          { deviceMap },
         );
         if (!wk) throw new Error("Welcomeの送信に失敗しました");
       }
