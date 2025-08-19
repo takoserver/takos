@@ -119,7 +119,6 @@ export function ChatRoomList(props: ChatRoomListProps) {
     if (!me) return room.name;
     if (room.type === "memo") return room.name;
     const selfHandle = `${me.userName}@${getDomain()}`;
-    const members = room.members ?? [];
     // グループ（1:1以外）はそのまま（後段の補完で名前が入る想定）
     if (!isFriendRoom(room)) return room.name;
     if (isFriendRoom(room)) {
@@ -400,7 +399,11 @@ export function ChatRoomList(props: ChatRoomListProps) {
                         </span>
                       </span>
                       <span class="text-[12px] text-[#aaaaaa] font-normal flex justify-between items-center">
-                        <p class="truncate">{room.lastMessage}</p>
+                        <p class="truncate">
+                          {room.status === "invited"
+                            ? "招待中"
+                            : room.lastMessage}
+                        </p>
                       </span>
                     </span>
                   </div>
@@ -511,7 +514,11 @@ export function ChatRoomList(props: ChatRoomListProps) {
                         </span>
                       </span>
                       <span class="text-[12px] text-[#aaaaaa] font-normal flex justify-between items-center">
-                        <p class="truncate">{room.lastMessage}</p>
+                        <p class="truncate">
+                          {room.status === "invited"
+                            ? "招待中"
+                            : room.lastMessage}
+                        </p>
                       </span>
                     </span>
                   </div>

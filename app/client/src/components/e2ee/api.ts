@@ -268,7 +268,7 @@ export const fetchVerifiedKeyPackage = async (
     //   leafNode?: { signaturePublicKey?: Uint8Array };
     // })?.leafNode?.signaturePublicKey;
     // if (key) fpr = `p256:${toHex(key)}`;
-    
+
     // 暫定的に空のfprを設定
     const result: RawKeyPackageInput = {
       content: kp.content,
@@ -361,9 +361,11 @@ export const importRosterEvidence = async (
     // if (!key || `p256:${toHex(key)}` !== evidence.leafSignatureKeyFpr) {
     //   return false;
     // }
-    
+
     // 暫定的にスキップ
-    console.warn("Key package verification temporarily disabled pending WASM implementation");
+    console.warn(
+      "Key package verification temporarily disabled pending WASM implementation",
+    );
     if (!await verifyKeyPackage(kp.content, evidence.actor)) return false;
     await appendKeyPackageRecords(accountId, roomId, [{
       kpUrl: evidence.keyPackageUrl,
@@ -794,11 +796,12 @@ export interface Room {
 
 export interface RoomsSearchItem {
   id: string;
+  status: "joined" | "invited";
   // 他フィールドはサーバーから提供されない
 }
 
 export const searchRooms = async (
-  owner: string,
+  userName: string,
   params?: {
     participants?: string[];
     match?: "all" | "any" | "none";
@@ -811,7 +814,7 @@ export const searchRooms = async (
 ): Promise<RoomsSearchItem[]> => {
   try {
     const search = new URLSearchParams();
-    search.set("owner", owner);
+    search.set("userName", userName);
     if (params?.participants?.length) {
       search.set("participants", params.participants.join(","));
     }
@@ -831,9 +834,11 @@ export const searchRooms = async (
       ? data.rooms.map((r: unknown) => {
         if (r && typeof r === "object" && "id" in r) {
           // deno-lint-ignore no-explicit-any
-          return { id: String((r as any).id) };
+          const obj = r as any;
+          const status = obj.status === "invited" ? "invited" : "joined";
+          return { id: String(obj.id), status };
         }
-        return { id: "" };
+        return { id: "", status: "joined" };
       }).filter((r: RoomsSearchItem) => r.id !== "")
       : [];
   } catch (err) {
@@ -843,7 +848,7 @@ export const searchRooms = async (
 };
 
 export const addRoom = async (
-  id: string,
+  userName: string,
   room: Room,
   handshake?: {
     from: string;
@@ -854,7 +859,7 @@ export const addRoom = async (
   },
 ): Promise<boolean> => {
   try {
-    const body: Record<string, unknown> = { owner: id, id: room.id };
+    const body: Record<string, unknown> = { userName, id: room.id };
     if (handshake) {
       body.handshake = {
         from: handshake.from,

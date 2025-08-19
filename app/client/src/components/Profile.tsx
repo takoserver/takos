@@ -247,7 +247,7 @@ export default function Profile() {
     const handle = normalizeActor(name);
     const me = `${user.userName}@${getDomain()}`;
     await addRoom(
-      user.id,
+      user.userName,
       { id: handle, name: handle, members: [handle, me] },
       { from: me, content: "hi", to: [handle, me] },
     );
