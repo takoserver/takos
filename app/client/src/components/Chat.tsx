@@ -1525,86 +1525,85 @@ export function Chat() {
       await addRoom(
         user.id,
         { id: room.id, name: room.name, members },
-        { from: me, content: "hi", to: members },
       );
     } catch (e) {
       console.error("ルーム作成に失敗しました", e);
     }
+    // 招待中として登録し、Commit/Welcome 生成後にハンドシェイクを送信
+    await addPendingInvites(user.id, room.id, others);
     // MLS 即時開始: 可能なら相手の KeyPackage を取得して Add→Commit→Welcome を送信
-    try {
-      const group = groups()[room.id];
-      if (group) {
-        const kpInputs: {
-          content: string;
-          actor?: string;
-          deviceId?: string;
-        }[] = [];
-        for (const h of others) {
-          const [uname, dom] = splitActor(h as ActorID);
-          const kps = await fetchKeyPackages(uname, dom);
-          if (kps && kps.length > 0) {
-            const kp = pickUsableKeyPackage(
-              kps as unknown as {
-                content: string;
-                expiresAt?: string;
-                used?: boolean;
-                deviceId?: string;
-              }[],
-            );
-            if (!kp) continue;
-            const actor = dom ? `https://${dom}/users/${uname}` : undefined;
-            kpInputs.push({
-              content: kp.content,
-              actor,
-              deviceId: kp.deviceId,
-            });
-          }
-        }
-        if (kpInputs.length > 0) {
-          const resAdd = await createCommitAndWelcomes(group, kpInputs);
-          const commitContent = encodePublicMessage(resAdd.commit);
-          const ok = await sendHandshake(
-            room.id,
-            `${user.userName}@${getDomain()}`,
-            commitContent,
-            // ルーム作成時は members が最新のロスター
-            members,
-          );
-          if (ok) {
-            for (const w of resAdd.welcomes) {
-              const wContent = encodePublicMessage(w.data);
-              const wk = await sendHandshake(
-                room.id,
-                `${user.userName}@${getDomain()}`,
-                wContent,
-                members,
+    void (async () => {
+      try {
+        const group = groups()[room.id];
+        if (group) {
+          const kpInputs: {
+            content: string;
+            actor?: string;
+            deviceId?: string;
+          }[] = [];
+          for (const h of others) {
+            const [uname, dom] = splitActor(h as ActorID);
+            const kps = await fetchKeyPackages(uname, dom);
+            if (kps && kps.length > 0) {
+              const kp = pickUsableKeyPackage(
+                kps as unknown as {
+                  content: string;
+                  expiresAt?: string;
+                  used?: boolean;
+                  deviceId?: string;
+                }[],
               );
-              if (!wk) break;
+              if (!kp) continue;
+              const actor = dom ? `https://${dom}/users/${uname}` : undefined;
+              kpInputs.push({
+                content: kp.content,
+                actor,
+                deviceId: kp.deviceId,
+              });
             }
-            setGroups({ ...groups(), [room.id]: resAdd.state });
-            saveGroupStates();
-            // 招待中として登録（Join後に設定画面で自動的にメンバー側へ移動）
-            await addPendingInvites(user.id, room.id, others);
           }
-        } else {
-          // KeyPackage が存在しない相手には招待できないため通知
-          globalThis.dispatchEvent(
-            new CustomEvent("app:toast", {
-              detail: {
-                type: "error",
-                title: "招待できません",
-                description:
-                  "相手がKeyPackageを公開していないため招待できません",
-              },
-            }),
-          );
+          if (kpInputs.length > 0) {
+            const resAdd = await createCommitAndWelcomes(group, kpInputs);
+            const commitContent = encodePublicMessage(resAdd.commit);
+            const ok = await sendHandshake(
+              room.id,
+              `${user.userName}@${getDomain()}`,
+              commitContent,
+              // ルーム作成時は members が最新のロスター
+              members,
+            );
+            if (ok) {
+              for (const w of resAdd.welcomes) {
+                const wContent = encodePublicMessage(w.data);
+                const wk = await sendHandshake(
+                  room.id,
+                  `${user.userName}@${getDomain()}`,
+                  wContent,
+                  members,
+                );
+                if (!wk) break;
+              }
+              setGroups({ ...groups(), [room.id]: resAdd.state });
+              saveGroupStates();
+            }
+          } else {
+            // KeyPackage が存在しない相手には招待できないため通知
+            globalThis.dispatchEvent(
+              new CustomEvent("app:toast", {
+                detail: {
+                  type: "error",
+                  title: "招待できません",
+                  description:
+                    "相手がKeyPackageを公開していないため招待できません",
+                },
+              }),
+            );
+          }
         }
-        // UI上は常に招待中として表示（Joinしたら自動的にメンバーへ移動）
-        await addPendingInvites(user.id, room.id, others);
+      } catch (e) {
+        console.warn("作成時のAdd/Welcome送信に失敗しました", e);
       }
-    } catch (e) {
-      console.warn("作成時のAdd/Welcome送信に失敗しました", e);
-    }
+    })();
     if (autoOpen) setSelectedRoom(room.id);
     setShowGroupDialog(false);
   };
