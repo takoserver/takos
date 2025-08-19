@@ -3,6 +3,7 @@ import solid from "vite-plugin-solid";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import process from "node:process";
+import path from "node:path";
 
 export default defineConfig({
   plugins: [
@@ -28,13 +29,14 @@ export default defineConfig({
     port: 1420,
     strictPort: true,
     fs: {
+      // use absolute resolved paths so Vite accepts requests on Windows and other platforms
       allow: [
         // 現在のプロジェクトディレクトリ
-        ".",
-        // 共有のmls-wasmディレクトリ
-        "../shared/mls-wasm",
-        // ルートディレクトリからの相対パス
-        "../../app/shared/mls-wasm"
+        path.resolve(__dirname, "."),
+        // openmls-wasm 配下の .wasm ファイルを許可するためのパス
+        path.resolve(__dirname, "../shared/openmls-wasm"),
+        // ルートから見た相対パスの保険
+        path.resolve(__dirname, "../../app/shared/mls-wasm")
       ]
     }
   },
