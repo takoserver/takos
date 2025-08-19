@@ -13,7 +13,8 @@ export interface ListOpts {
 export interface ChatroomInfo {
   id: string;
   status: "joined" | "invited";
-  // name, icon, members はサーバーでは保持しない
+  name?: string;
+  icon?: string;
 }
 
 /** DB 抽象インターフェース */

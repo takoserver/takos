@@ -899,6 +899,7 @@ dependencies = [
  "base64",
  "console_error_panic_hook",
  "hex",
+ "js-sys",
  "once_cell",
  "openmls",
  "openmls_basic_credential",

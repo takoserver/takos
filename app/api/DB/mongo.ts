@@ -5,6 +5,7 @@ import FollowEdge from "../models/takos/follow_edge.ts";
 import { createObjectId } from "../utils/activitypub.ts";
 import Account from "../models/takos/account.ts";
 import Chatroom from "../models/takos/chatroom.ts";
+import ChatroomMember from "../models/takos/chatroom_member.ts";
 import EncryptedKeyPair from "../models/takos/encrypted_keypair.ts";
 import EncryptedMessage from "../models/takos/encrypted_message.ts";
 import KeyPackage from "../models/takos/key_package.ts";
@@ -251,12 +252,18 @@ export class MongoDB implements DB {
 
   async listChatrooms(userName: string) {
     const query = this.withTenant(Chatroom.find({ userName }));
-    const rooms = await query.lean<{ userName: string; id: string }[]>();
+    const rooms = await query
+      .lean<{ userName: string; id: string; name?: string; icon?: string }[]>();
     const invites = await this.findPendingInvites({
       userName,
       acked: false,
     }) as { roomId: string }[];
-    const joined = rooms.map(({ id }) => ({ id, status: "joined" as const }));
+    const joined = rooms.map(({ id, name, icon }) => ({
+      id,
+      status: "joined" as const,
+      name,
+      icon,
+    }));
     const invited = invites.map((i) => ({
       id: i.roomId,
       status: "invited" as const,
@@ -264,10 +271,21 @@ export class MongoDB implements DB {
     return [...joined, ...invited];
   }
 
-  async listChatroomsByMember(_member: string) {
-    // 現状未実装: 空配列。lint 対策のため await を挿入。
-    await Promise.resolve();
-    return [] as ChatroomInfo[];
+  async listChatroomsByMember(member: string) {
+    const query = this.withTenant(ChatroomMember.find({ member }));
+    const docs = await query
+      .lean<{ roomId: string; status: "joined" | "invited" }[]>();
+    const roomIds = docs.map((d) => d.roomId);
+    const metaQuery = this.withTenant(Chatroom.find({ id: { $in: roomIds } }));
+    const metas = await metaQuery
+      .lean<{ id: string; name?: string; icon?: string }[]>();
+    const metaMap = new Map(metas.map((m) => [m.id, m]));
+    return docs.map(({ roomId, status }) => {
+      const meta = metaMap.get(roomId);
+      return meta
+        ? { id: roomId, status, name: meta.name, icon: meta.icon }
+        : { id: roomId, status };
+    });
   }
 
   async addChatroom(
@@ -277,6 +295,8 @@ export class MongoDB implements DB {
     const doc = new Chatroom({
       userName,
       id: room.id,
+      name: room.name ?? "",
+      icon: room.icon ?? "",
     });
     if (this.env["DB_MODE"] === "host") {
       (doc as unknown as { $locals?: { env?: Record<string, string> } })
@@ -295,10 +315,13 @@ export class MongoDB implements DB {
 
   async findChatroom(roomId: string) {
     const query = this.withTenant(Chatroom.findOne({ id: roomId }));
-    const doc = await query.lean<{ userName: string; id: string } | null>();
+    const doc = await query
+      .lean<
+        { userName: string; id: string; name?: string; icon?: string } | null
+      >();
     if (doc) {
-      const { userName, id } = doc;
-      return { userName, room: { id, status: "joined" } };
+      const { userName, id, name, icon } = doc;
+      return { userName, room: { id, status: "joined", name, icon } };
     }
     // 履歴からの補完は行わない
     return null;
@@ -308,8 +331,12 @@ export class MongoDB implements DB {
     userName: string,
     room: ChatroomInfo,
   ) {
-    // もはや更新対象フィールドが無いので no-op
-    const query = Chatroom.updateOne({ userName, id: room.id }, { $set: {} });
+    const update: Record<string, unknown> = {};
+    if (typeof room.name === "string") update.name = room.name;
+    if (typeof room.icon === "string") update.icon = room.icon;
+    const query = Chatroom.updateOne({ userName, id: room.id }, {
+      $set: update,
+    });
     this.withTenant(query);
     await query;
   }

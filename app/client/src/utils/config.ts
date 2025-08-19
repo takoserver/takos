@@ -93,6 +93,13 @@ export function setKpPoolSize(n: number) {
   }
 }
 
+// アカウント統計キャッシュの有効期限（ミリ秒）
+const DEFAULT_STATS_TTL = 5 * 60 * 1000; // 5分
+export function getAccountStatsTtl(): number {
+  const v = Number(import.meta.env.VITE_ACCOUNT_STATS_TTL);
+  return Number.isFinite(v) && v > 0 ? Math.floor(v) : DEFAULT_STATS_TTL;
+}
+
 // --- 複数サーバー管理 ---
 
 const SERVERS_KEY = "takos-servers";

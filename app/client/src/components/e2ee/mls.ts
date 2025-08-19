@@ -19,8 +19,32 @@ interface OpenMlsGeneratedKeyPackage {
 
 interface OpenMlsCreatedGroup {
   handle: number;
-  group_id: string;
+  groupIdB64: string;
+}
+
+interface AddMembersResult {
+  commit: Uint8Array;
+  welcome: Uint8Array;
+}
+
+interface JoinWithWelcomeResult {
+  handle: number;
+  group_info: string;
+}
+
+interface JoinWithGroupInfoResult {
+  handle: number;
+  commit: Uint8Array;
+  group_info: string;
+}
+
+interface UpdateKeyResult {
+  commit: Uint8Array;
   key_package: string;
+}
+
+interface RemoveMembersResult {
+  commit: Uint8Array;
 }
 
 interface WasmModule {
@@ -30,6 +54,27 @@ interface WasmModule {
   decrypt(handle: number, messageB64: string): DecryptResult;
   export_group_info(handle: number): string;
   get_group_members(handle: number): MembersResult;
+  add_members(handle: number, keyPackages: string[]): AddMembersResult;
+  join_with_welcome(
+    identity: string,
+    welcome: Uint8Array,
+  ): JoinWithWelcomeResult;
+  remove_members(handle: number, indices: number[]): RemoveMembersResult;
+  update_key(handle: number): UpdateKeyResult;
+  join_with_group_info(
+    identity: string,
+    groupInfo: Uint8Array,
+  ): JoinWithGroupInfoResult;
+  process_commit(handle: number, commit: Uint8Array): MembersResult;
+  process_proposal(handle: number, proposal: Uint8Array): MembersResult;
+  decode_key_package(data: Uint8Array): Uint8Array;
+  peek_wire(data: Uint8Array): number;
+  free_group(handle: number): void;
+  verify_key_package(data: Uint8Array, expected?: string): boolean;
+  verify_commit(data: Uint8Array): boolean;
+  verify_private_message(data: Uint8Array): boolean;
+  verify_group_info(data: Uint8Array): boolean;
+  verify_welcome(data: Uint8Array): boolean;
 }
 
 let wasmModule: WasmModule | null = null;
@@ -41,6 +86,14 @@ async function loadWasm(): Promise<WasmModule> {
     wasmModule = module as unknown as WasmModule;
   }
   return wasmModule;
+}
+
+function groupInfoToGroupIdB64(groupInfoB64: string): string {
+  const bytes = b64ToBuf(groupInfoB64);
+  if (bytes.length === 0) return "";
+  const len = bytes[0];
+  const gid = bytes.slice(1, 1 + len);
+  return bufToB64(gid);
 }
 
 async function om_generateKeyPackage(
@@ -64,8 +117,7 @@ async function om_createGroup(identity: string): Promise<OpenMlsCreatedGroup> {
   const result = wasm.create_group(identity);
   return {
     handle: result.handle,
-    group_id: result.group_info,
-    key_package: result.group_info,
+    groupIdB64: groupInfoToGroupIdB64(result.group_info),
   };
 }
 
@@ -79,15 +131,6 @@ async function om_encrypt(
     : data;
   const result = wasm.encrypt(handle, plaintext);
   return result.message;
-}
-
-async function om_decrypt(
-  handle: number,
-  messageB64: string,
-): Promise<Uint8Array> {
-  const wasm = await loadWasm();
-  const result = wasm.decrypt(handle, messageB64);
-  return result.plaintext;
 }
 
 async function om_exportGroupInfo(handle: number): Promise<string> {
@@ -104,7 +147,7 @@ async function om_getGroupMembers(handle: number): Promise<string[]> {
 export interface GeneratedKeyPair {
   encoded: string;
   public: { encoded: string };
-  private: { dummy: true };
+  identity: string;
 }
 
 export interface RawKeyPackageInput {
@@ -308,6 +351,21 @@ export function parseMLSMessage(
   }
 }
 
+export async function decodeMlsMessage(
+  data: Uint8Array,
+  _wireFormat = 0,
+): Promise<unknown[]> {
+  const wasm = await loadWasm();
+  try {
+    const key = wasm.decode_key_package(data);
+    return [
+      { keyPackage: { leafNode: { signaturePublicKey: key } } },
+    ];
+  } catch {
+    return [];
+  }
+}
+
 export type WireKind =
   | "unknown"
   | "mls_key_package"
@@ -321,17 +379,23 @@ export interface DecodedWirePeek {
   raw: Uint8Array;
 }
 
-// --- MLS ワイヤ形式の簡易判定 ---
-// 暫定: openmls の tls framing を厳密に解釈せず先頭種別バイトをヒューリスティック判定
-// 必要に応じて Rust 側で decode API を追加し差し替える
-export function peekWire(b64: string): DecodedWirePeek | null {
+// --- MLS ワイヤ形式の判定 ---
+export async function peekWire(
+  b64: string,
+): Promise<DecodedWirePeek | null> {
   try {
     const raw = b64ToBuf(b64);
-    if (raw.length < 2) return { kind: "unknown", raw };
-    // 簡易: 仕様で wireformat enum を参照できないため長さなどから分類は避ける
-    // ここでは利用箇所が "private_message か? welcome か? group_info か?" 程度なので
-    // プレーンに unknown を返し、呼び出し側で fallback する方式
-    return { kind: "unknown", raw };
+    const wasm = await loadWasm();
+    const idx = wasm.peek_wire(raw);
+    const kinds: WireKind[] = [
+      "unknown",
+      "mls_key_package",
+      "mls_welcome",
+      "mls_group_info",
+      "mls_public_message",
+      "mls_private_message",
+    ];
+    return { kind: kinds[idx] ?? "unknown", raw };
   } catch {
     return null;
   }
@@ -344,23 +408,44 @@ export async function generateKeyPair(
   return {
     encoded: kp.key_package,
     public: { encoded: kp.key_package },
-    private: { dummy: true },
+    identity,
   };
 }
 
-export function verifyKeyPackage(
-  _pkg: unknown,
-  _expectedIdentity?: string,
+export async function verifyKeyPackage(
+  pkg: string | Uint8Array,
+  expectedIdentity?: string,
 ): Promise<boolean> {
-  return Promise.resolve(true);
+  try {
+    const wasm = await loadWasm();
+    const bytes = typeof pkg === "string" ? b64ToBuf(pkg) : pkg;
+    return wasm.verify_key_package(bytes, expectedIdentity);
+  } catch (err) {
+    console.warn("verifyKeyPackage failed", err);
+    return false;
+  }
 }
 
-export function verifyCommit(): Promise<boolean> {
-  return Promise.resolve(true);
+export async function verifyCommit(data: Uint8Array): Promise<boolean> {
+  try {
+    const wasm = await loadWasm();
+    return wasm.verify_commit(data);
+  } catch (err) {
+    console.warn("verifyCommit failed", err);
+    return false;
+  }
 }
 
-export function verifyPrivateMessage(): Promise<boolean> {
-  return Promise.resolve(true);
+export async function verifyPrivateMessage(
+  data: Uint8Array,
+): Promise<boolean> {
+  try {
+    const wasm = await loadWasm();
+    return wasm.verify_private_message(data);
+  } catch (err) {
+    console.warn("verifyPrivateMessage failed", err);
+    return false;
+  }
 }
 
 export async function getGroupMembers(
@@ -372,12 +457,24 @@ export async function getGroupMembers(
   return await om_getGroupMembers(state.handle);
 }
 
-export function verifyGroupInfo(): Promise<boolean> {
-  return Promise.resolve(true);
+export async function verifyGroupInfo(data: Uint8Array): Promise<boolean> {
+  try {
+    const wasm = await loadWasm();
+    return wasm.verify_group_info(data);
+  } catch (err) {
+    console.warn("verifyGroupInfo failed", err);
+    return false;
+  }
 }
 
-export function verifyWelcome(_data: Uint8Array): Promise<boolean> {
-  return Promise.resolve(true);
+export async function verifyWelcome(data: Uint8Array): Promise<boolean> {
+  try {
+    const wasm = await loadWasm();
+    return wasm.verify_welcome(data);
+  } catch (err) {
+    console.warn("verifyWelcome failed", err);
+    return false;
+  }
 }
 
 export async function createMLSGroup(
@@ -391,81 +488,131 @@ export async function createMLSGroup(
   const state: StoredGroupState = {
     handle: created.handle,
     identity,
-    groupIdB64: created.group_id,
+    groupIdB64: created.groupIdB64,
     members,
   };
   return {
     state,
     keyPair,
-    gid: Uint8Array.from(atob(created.group_id), (c) => c.charCodeAt(0)),
+    gid: b64ToBuf(created.groupIdB64),
   };
 }
 
 export function addMembers(
   state: StoredGroupState,
-  _addKeyPackages: RawKeyPackageInput[],
-): Promise<
-  {
-    commit: Uint8Array;
-    welcomes: WelcomeEntry[];
-    state: StoredGroupState;
-    evidences: RosterEvidence[];
-  }
-> {
-  return Promise.resolve({
-    commit: new Uint8Array(),
-    welcomes: [],
-    state,
-    evidences: [],
-  });
+  addKeyPackages: RawKeyPackageInput[],
+): Promise<{
+  commit: Uint8Array;
+  welcomes: WelcomeEntry[];
+  state: StoredGroupState;
+  evidences: RosterEvidence[];
+}> {
+  return (async () => {
+    const wasm = await loadWasm();
+    const pkgs = addKeyPackages.map((p) => p.content);
+    const res = wasm.add_members(state.handle, pkgs);
+    const members = await om_getGroupMembers(state.handle);
+    const welcomes = addKeyPackages.map((p) => ({
+      actor: p.actor,
+      deviceId: p.deviceId,
+      data: res.welcome,
+    }));
+    return {
+      commit: res.commit,
+      welcomes,
+      state: { ...state, members },
+      evidences: [],
+    };
+  })();
 }
 export const createCommitAndWelcomes = addMembers;
 
 export function removeMembers(
   state: StoredGroupState,
-  _removeIndices: number[],
+  removeIndices: number[],
 ): Promise<{ commit: Uint8Array; state: StoredGroupState }> {
-  return Promise.resolve({ commit: new Uint8Array(), state });
+  return (async () => {
+    const wasm = await loadWasm();
+    const res = wasm.remove_members(state.handle, removeIndices);
+    const members = await om_getGroupMembers(state.handle);
+    return { commit: res.commit, state: { ...state, members } };
+  })();
 }
 
 export async function updateKey(
   state: StoredGroupState,
-  _identity: string,
+  identity: string,
 ): Promise<
   { commit: Uint8Array; state: StoredGroupState; keyPair: GeneratedKeyPair }
 > {
-  const kp = await generateKeyPair(state.identity);
-  return { commit: new Uint8Array(), state, keyPair: kp };
+  const wasm = await loadWasm();
+  const res = wasm.update_key(state.handle);
+  const members = await om_getGroupMembers(state.handle);
+  const kp: GeneratedKeyPair = {
+    encoded: res.key_package,
+    public: { encoded: res.key_package },
+    identity,
+  };
+  return { commit: res.commit, state: { ...state, members }, keyPair: kp };
 }
 
 export function joinWithWelcome(
-  _welcome: Uint8Array,
-  _keyPair: GeneratedKeyPair,
+  welcome: Uint8Array,
+  keyPair: GeneratedKeyPair,
 ): Promise<StoredGroupState> {
-  return Promise.reject(
-    new Error("joinWithWelcome 未実装 (openmls wasm 拡張待ち)"),
-  );
+  return (async () => {
+    const wasm = await loadWasm();
+    const res = wasm.join_with_welcome(keyPair.identity, welcome);
+    const members = await om_getGroupMembers(res.handle);
+    return {
+      handle: res.handle,
+      identity: keyPair.identity,
+      groupIdB64: groupInfoToGroupIdB64(res.group_info),
+      members,
+    };
+  })();
 }
 
 export function joinWithGroupInfo(
-  _groupInfo: Uint8Array,
-  _keyPair: GeneratedKeyPair,
+  groupInfo: Uint8Array,
+  keyPair: GeneratedKeyPair,
 ): Promise<{ commit: string; state: StoredGroupState }> {
-  return Promise.reject(new Error("joinWithGroupInfo 未実装"));
+  return (async () => {
+    const wasm = await loadWasm();
+    const res = wasm.join_with_group_info(keyPair.identity, groupInfo);
+    const members = await om_getGroupMembers(res.handle);
+    return {
+      commit: bufToB64(res.commit),
+      state: {
+        handle: res.handle,
+        identity: keyPair.identity,
+        groupIdB64: groupInfoToGroupIdB64(res.group_info),
+        members,
+      },
+    };
+  })();
 }
 
 export function processCommit(
   state: StoredGroupState,
-  _message: unknown,
+  message: Uint8Array,
 ): Promise<StoredGroupState> {
-  return Promise.resolve(state);
+  return (async () => {
+    const wasm = await loadWasm();
+    const res = wasm.process_commit(state.handle, message);
+    return { ...state, members: res.members };
+  })();
 }
 
 export function processProposal(
   state: StoredGroupState,
-  _message: unknown,
+  message: Uint8Array,
 ): Promise<StoredGroupState> {
-  return Promise.resolve(state);
+  return (async () => {
+    const wasm = await loadWasm();
+    const res = wasm.process_proposal(state.handle, message);
+    return { ...state, members: res.members };
+  })();
 }
 
 export async function exportGroupInfo(
@@ -514,11 +661,21 @@ export async function decryptMessage(
   state: StoredGroupState,
   data: Uint8Array,
 ): Promise<{ plaintext: Uint8Array; state: StoredGroupState } | null> {
+  const wasm = await loadWasm();
+  if (!wasm.verify_private_message(data)) {
+    console.warn("verifyPrivateMessage failed");
+    return null;
+  }
   try {
     const b64 = btoa(String.fromCharCode(...data));
-    const pt = await om_decrypt(state.handle, b64);
-    return { plaintext: pt, state };
+    const res = wasm.decrypt(state.handle, b64);
+    return { plaintext: res.plaintext, state };
   } catch {
     return null;
   }
+}
+
+export async function freeGroup(handle: number): Promise<void> {
+  const wasm = await loadWasm();
+  wasm.free_group(handle);
 }

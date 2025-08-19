@@ -15,6 +15,8 @@ export function ChatSendForm(props: ChatSendFormProps) {
   let textareaRef: HTMLTextAreaElement | undefined;
   let fileInputImage: HTMLInputElement | undefined;
   let fileInputFile: HTMLInputElement | undefined;
+  let recorder: MediaRecorder | undefined;
+  let chunks: Blob[] = [];
   const adjustHeight = (el?: HTMLTextAreaElement) => {
     if (el) {
       el.style.height = "auto";
@@ -23,11 +25,52 @@ export function ChatSendForm(props: ChatSendFormProps) {
   };
 
   const [showMenu, setShowMenu] = createSignal(false);
+  const [isRecording, setIsRecording] = createSignal(false);
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recorder = new MediaRecorder(stream);
+      chunks = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: recorder?.mimeType });
+        const file = new File([blob], `recording-${Date.now()}.webm`, {
+          type: blob.type,
+        });
+        props.setMediaFile(file);
+        props.setMediaPreview(URL.createObjectURL(file));
+        stream.getTracks().forEach((t) => t.stop());
+        setIsRecording(false);
+      };
+      recorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      const message = err instanceof Error
+        ? err.message
+        : "マイクへのアクセスに失敗しました";
+      globalThis.dispatchEvent(
+        new CustomEvent("app:toast", {
+          detail: {
+            type: "error",
+            title: "録音エラー",
+            description: message,
+          },
+        }),
+      );
+      setIsRecording(false);
+    }
+  };
+  const stopRecording = () => {
+    recorder?.stop();
+  };
   const canSend = () => {
     const hasText = props.newMessage.trim().length > 0;
     const hasMedia = props.allowMedia !== false && !!props.mediaFile;
     return hasText || hasMedia;
   };
+  const actionable = () => canSend() || isRecording();
 
   return (
     <div class="relative bg-[#1e1e1e]">
@@ -191,7 +234,7 @@ export function ChatSendForm(props: ChatSendFormProps) {
           </div>
         </div>
         <div
-          class={canSend()
+          class={actionable()
             ? "h-11 w-11 p-[6px] flex-shrink-0 rounded-full bg-[#e63535] cursor-pointer hover:bg-[#c52d2d] text-white"
             : "h-11 w-11 p-[6px] flex-shrink-0 rounded-full bg-transparent cursor-default text-white"}
           style="min-height:28px;opacity:1;color:#ffffff;position:relative;z-index:10;display:flex;align-items:center;justify-content:center;"
@@ -199,22 +242,44 @@ export function ChatSendForm(props: ChatSendFormProps) {
           onClick={() => {
             if (canSend()) {
               props.sendMessage();
+            } else if (isRecording()) {
+              stopRecording();
             } else {
-              globalThis.dispatchEvent(
-                new CustomEvent("app:toast", {
-                  detail: {
-                    type: "info",
-                    title: "お知らせ",
-                    description: "録音機能は未実装です",
-                  },
-                }),
-              );
+              startRecording();
             }
           }}
         >
-          <Show
-            when={canSend()}
-            fallback={
+          <Switch>
+            <Match when={canSend()}>
+              <svg
+                class="h-7 w-7"
+                viewBox="0 0 28 28"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+                style="color:#ffffff;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6));display:block"
+              >
+                <g stroke="none" stroke-width="1" fill="none" style="fill:none">
+                  <g>
+                    <path
+                      fill="#ffffff"
+                      d="M3.78963301,2.77233335 L24.8609339,12.8499121 C25.4837277,13.1477699 25.7471402,13.8941055 25.4492823,14.5168992 C25.326107,14.7744476 25.1184823,14.9820723 24.8609339,15.1052476 L3.78963301,25.1828263 C3.16683929,25.4806842 2.42050372,25.2172716 2.12264586,24.5944779 C1.99321184,24.3238431 1.96542524,24.015685 2.04435886,23.7262618 L4.15190935,15.9983421 C4.204709,15.8047375 4.36814355,15.6614577 4.56699265,15.634447 L14.7775879,14.2474874 C14.8655834,14.2349166 14.938494,14.177091 14.9721837,14.0981464 L14.9897199,14.0353553 C15.0064567,13.9181981 14.9390703,13.8084248 14.8334007,13.7671556 L14.7775879,13.7525126 L4.57894108,12.3655968 C4.38011873,12.3385589 4.21671819,12.1952832 4.16392965,12.0016992 L2.04435886,4.22889788 C1.8627142,3.56286745 2.25538645,2.87569101 2.92141688,2.69404635 C3.21084015,2.61511273 3.51899823,2.64289932 3.78963301,2.77233335 Z"
+                    />
+                  </g>
+                </g>
+              </svg>
+            </Match>
+            <Match when={isRecording()}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-7 w-7"
+                viewBox="0 0 512 512"
+                style="color:#ffffff;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6));display:block"
+                fill="currentColor"
+              >
+                <rect x="96" y="96" width="320" height="320" rx="16" ry="16" />
+              </svg>
+            </Match>
+            <Match when>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 class="h-7 w-7"
@@ -223,37 +288,12 @@ export function ChatSendForm(props: ChatSendFormProps) {
                 fill="currentColor"
               >
                 <g>
-                  <path d="M397.749,224.857v26.108c-0.01,39.105-15.863,74.438-41.566,100.174
-		c-25.73,25.702-61.068,41.561-100.18,41.572c-39.111-0.011-74.449-15.87-100.18-41.572
-		c-25.708-25.736-41.567-61.069-41.572-100.174v-26.108h-34.6v26.108c0.028,89.441,66.897,163.282,153.286,174.657V512h46.134
-		v-86.378c86.388-11.375,153.246-85.216,153.28-174.657v-26.108H397.749z" />
-                  <path d="M256.003,340.811c49.592-0.033,89.818-40.254,89.851-89.846V89.857C345.821,40.266,305.6,0.034,256.003,0
-		c-49.597,0.034-89.818,40.266-89.852,89.857v161.108C166.185,300.557,206.411,340.778,256.003,340.811z M200.752,89.857
-		c0.006-15.261,6.166-28.98,16.208-39.049c10.069-10.047,23.782-16.196,39.044-16.22c15.262,0.023,28.974,6.173,39.044,16.22
-		c10.041,10.069,16.202,23.788,16.208,39.049v161.108c-0.006,15.261-6.166,28.98-16.208,39.037
-		c-10.064,10.036-23.782,16.196-39.044,16.208c-15.262-0.012-28.98-6.172-39.044-16.208c-10.041-10.057-16.202-23.776-16.208-39.037
-		V89.857z" />
+                  <path d="M397.749,224.857v26.108c-0.01,39.105-15.863,74.438-41.566,100.174 c-25.73,25.702-61.068,41.561-100.18,41.572c-39.111-0.011-74.449-15.87-100.18-41.572 c-25.708-25.736-41.567-61.069-41.572-100.174v-26.108h-34.6v26.108c0.028,89.441,66.897,163.282,153.286,174.657V512h46.134 v-86.378c86.388-11.375,153.246-85.216,153.28-174.657v-26.108H397.749z" />
+                  <path d="M256.003,340.811c49.592-0.033,89.818-40.254,89.851-89.846V89.857C345.821,40.266,305.6,0.034,256.003,0 c-49.597,0.034-89.818,40.266-89.852,89.857v161.108C166.185,300.557,206.411,340.778,256.003,340.811z M200.752,89.857 c0.006-15.261,6.166-28.98,16.208-39.049c10.069-10.047,23.782-16.196,39.044-16.22c15.262,0.023,28.974,6.173,39.044,16.22 c10.041,10.069,16.202,23.788,16.208,39.049v161.108c-0.006,15.261-6.166,28.98-16.208,39.037 c-10.064,10.036-23.782,16.196-39.044,16.208c-15.262-0.012-28.98-6.172-39.044-16.208c-10.041-10.057-16.202-23.776-16.208-39.037 V89.857z" />
                 </g>
               </svg>
-            }
-          >
-            <svg
-              class="h-7 w-7"
-              viewBox="0 0 28 28"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="currentColor"
-              style="color:#ffffff;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6));display:block"
-            >
-              <g stroke="none" stroke-width="1" fill="none" style="fill:none">
-                <g>
-                  <path
-                    fill="#ffffff"
-                    d="M3.78963301,2.77233335 L24.8609339,12.8499121 C25.4837277,13.1477699 25.7471402,13.8941055 25.4492823,14.5168992 C25.326107,14.7744476 25.1184823,14.9820723 24.8609339,15.1052476 L3.78963301,25.1828263 C3.16683929,25.4806842 2.42050372,25.2172716 2.12264586,24.5944779 C1.99321184,24.3238431 1.96542524,24.015685 2.04435886,23.7262618 L4.15190935,15.9983421 C4.204709,15.8047375 4.36814355,15.6614577 4.56699265,15.634447 L14.7775879,14.2474874 C14.8655834,14.2349166 14.938494,14.177091 14.9721837,14.0981464 L14.9897199,14.0353553 C15.0064567,13.9181981 14.9390703,13.8084248 14.8334007,13.7671556 L14.7775879,13.7525126 L4.57894108,12.3655968 C4.38011873,12.3385589 4.21671819,12.1952832 4.16392965,12.0016992 L2.04435886,4.22889788 C1.8627142,3.56286745 2.25538645,2.87569101 2.92141688,2.69404635 C3.21084015,2.61511273 3.51899823,2.64289932 3.78963301,2.77233335 Z"
-                  />
-                </g>
-              </g>
-            </svg>
-          </Show>
+            </Match>
+          </Switch>
         </div>
         <input
           ref={(el) => (fileInputFile = el)}

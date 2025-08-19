@@ -1,6 +1,7 @@
 import { apiFetch } from "../../utils/config.ts";
 import {
   decodeGroupInfo,
+  decodeMlsMessage,
   encodeCommit,
   encodeProposal,
   encodePublicMessage,
@@ -13,6 +14,7 @@ import {
   updateKey,
   verifyGroupInfo,
   verifyKeyPackage,
+  verifyPrivateMessage,
 } from "./mls.ts";
 import {
   appendKeyPackageRecords,
@@ -26,6 +28,16 @@ const bindingErrorMessages: Record<string, string> = {
   "ap_mls.binding.policy_violation": "KeyPackageの形式が不正です",
 };
 
+const b64ToBytes = (b64: string): Uint8Array => {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+};
+
+const toHex = (arr: Uint8Array): string =>
+  Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
+
 export interface KeyPackage {
   id: string;
   type: "KeyPackage";
@@ -38,6 +50,7 @@ export interface KeyPackage {
   createdAt: string;
   attributedTo?: string;
   deviceId?: string;
+  leafSignatureKeyFpr?: string;
   keyPackageRef?: string;
   lastResort?: boolean;
 }
@@ -77,7 +90,7 @@ export const fetchKeyPackages = async (
     for (const item of items) {
       if (typeof item.groupInfo === "string") {
         const bytes = decodeGroupInfo(item.groupInfo);
-        if (!bytes || !(await verifyGroupInfo())) {
+        if (!bytes || !(await verifyGroupInfo(bytes))) {
           delete item.groupInfo;
         }
       }
@@ -136,7 +149,7 @@ export const addKeyPackage = async (
     let gi = typeof data.groupInfo === "string" ? data.groupInfo : undefined;
     if (gi) {
       const bytes = decodeGroupInfo(gi);
-      if (!bytes || !(await verifyGroupInfo())) {
+      if (!bytes || !(await verifyGroupInfo(bytes))) {
         gi = undefined;
       }
     }
@@ -168,7 +181,7 @@ export const fetchKeyPackage = async (
     const data = await res.json();
     if (typeof data.groupInfo === "string") {
       const bytes = decodeGroupInfo(data.groupInfo);
-      if (!bytes || !(await verifyGroupInfo())) {
+      if (!bytes || !(await verifyGroupInfo(bytes))) {
         delete data.groupInfo;
       }
     }
@@ -177,6 +190,14 @@ export const fetchKeyPackage = async (
       : new URL(`/users/${user}`, globalThis.location.origin).href;
     if (!await verifyKeyPackage(data.content, expected)) {
       return null;
+    }
+    const bytes = b64ToBytes(data.content);
+    const decoded = await decodeMlsMessage(bytes, 0);
+    const key = (decoded?.[0] as unknown as {
+      keyPackage?: { leafNode?: { signaturePublicKey?: Uint8Array } };
+    })?.keyPackage?.leafNode?.signaturePublicKey;
+    if (key) {
+      data.leafSignatureKeyFpr = `ed25519:${toHex(key)}`;
     }
     return data as KeyPackage;
   } catch (err) {
@@ -239,16 +260,8 @@ export const fetchVerifiedKeyPackage = async (
     }
     if (!listed) return null;
     if (!await verifyKeyPackage(kp.content, actorId)) return null;
-    const b64ToBytes = (b64: string) => {
-      const bin = atob(b64);
-      const out = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-      return out;
-    };
     const bytes = b64ToBytes(kp.content);
     const hashBuffer = await crypto.subtle.digest("SHA-256", bytes);
-    const toHex = (arr: Uint8Array) =>
-      Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
     const hashHex = toHex(new Uint8Array(hashBuffer));
     let ktIncluded = false;
     try {
@@ -263,17 +276,13 @@ export const fetchVerifiedKeyPackage = async (
     } catch {
       // KT 検証に失敗しても致命的ではない
     }
-    const fpr: string | undefined = undefined;
-    // TODO: openmls WASMでMLSメッセージデコード機能を実装
-    // const decoded = decodeMlsMessage(bytes, 0)?.[0] as unknown as {
-    //   keyPackage?: unknown;
-    // };
-    // const key = (decoded?.keyPackage as {
-    //   leafNode?: { signaturePublicKey?: Uint8Array };
-    // })?.leafNode?.signaturePublicKey;
-    // if (key) fpr = `p256:${toHex(key)}`;
+    let fpr: string | undefined = undefined;
+    const decoded = await decodeMlsMessage(bytes, 0);
+    const key = (decoded?.[0] as unknown as {
+      keyPackage?: { leafNode?: { signaturePublicKey?: Uint8Array } };
+    })?.keyPackage?.leafNode?.signaturePublicKey;
+    if (key) fpr = `ed25519:${toHex(key)}`;
 
-    // 暫定的に空のfprを設定
     const result: RawKeyPackageInput = {
       content: kp.content,
       actor: actorId,
@@ -316,7 +325,7 @@ export const fetchGroupInfo = async (
     const data = await res.json();
     if (typeof data.groupInfo === "string") {
       const bytes = decodeGroupInfo(data.groupInfo);
-      if (bytes && (await verifyGroupInfo())) {
+      if (bytes && (await verifyGroupInfo(bytes))) {
         return data.groupInfo;
       }
     }
@@ -343,33 +352,17 @@ export const importRosterEvidence = async (
     if (typeof kp.content !== "string" || kp.attributedTo !== evidence.actor) {
       return false;
     }
-    const b64ToBytes = (b64: string) => {
-      const bin = atob(b64);
-      const out = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-      return out;
-    };
     const bytes = b64ToBytes(kp.content);
     const hashBuffer = await crypto.subtle.digest("SHA-256", bytes);
-    const toHex = (arr: Uint8Array) =>
-      Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
     const hashHex = toHex(new Uint8Array(hashBuffer));
     if (`sha256:${hashHex}` !== evidence.keyPackageHash) return false;
-    // TODO: openmls WASMでMLSメッセージデコード機能を実装
-    // const decoded = decodeMlsMessage(bytes, 0)?.[0] as unknown as {
-    //   keyPackage?: unknown;
-    // };
-    // const key = (decoded?.keyPackage as {
-    //   leafNode?: { signaturePublicKey?: Uint8Array };
-    // })?.leafNode?.signaturePublicKey;
-    // if (!key || `p256:${toHex(key)}` !== evidence.leafSignatureKeyFpr) {
-    //   return false;
-    // }
-
-    // 暫定的にスキップ
-    console.warn(
-      "Key package verification temporarily disabled pending WASM implementation",
-    );
+    const decoded = await decodeMlsMessage(bytes, 0);
+    const key = (decoded?.[0] as unknown as {
+      keyPackage?: { leafNode?: { signaturePublicKey?: Uint8Array } };
+    })?.keyPackage?.leafNode?.signaturePublicKey;
+    if (!key || `ed25519:${toHex(key)}` !== evidence.leafSignatureKeyFpr) {
+      return false;
+    }
     if (!await verifyKeyPackage(kp.content, evidence.actor)) return false;
     await appendKeyPackageRecords(accountId, roomId, [{
       kpUrl: evidence.keyPackageUrl,
@@ -475,6 +468,14 @@ export const fetchEncryptedMessages = async (
         (msg as { mediaType?: unknown }).mediaType === "message/mls" &&
         (msg as { encoding?: unknown }).encoding === "base64"
       ) {
+        const raw = b64ToBytes((msg as { content: string }).content);
+        if (!await verifyPrivateMessage(raw)) {
+          console.warn(
+            "[fetchEncryptedMessages] 署名検証に失敗しました",
+            msg,
+          );
+          continue;
+        }
         result.push(msg as EncryptedMessage);
       } else {
         console.warn(
@@ -830,15 +831,17 @@ export const resetKeyData = async (user: string): Promise<boolean> => {
 
 export interface Room {
   id: string;
-  // name や members はサーバ保存対象外（必要ならクライアント内のみで使用）
+  // サーバーへ送信するメタデータ
   name?: string;
+  icon?: string;
   members?: string[];
 }
 
 export interface RoomsSearchItem {
   id: string;
   status: "joined" | "invited";
-  // 他フィールドはサーバーから提供されない
+  name?: string;
+  icon?: string;
 }
 
 export const searchRooms = async (
@@ -877,7 +880,9 @@ export const searchRooms = async (
           // deno-lint-ignore no-explicit-any
           const obj = r as any;
           const status = obj.status === "invited" ? "invited" : "joined";
-          return { id: String(obj.id), status };
+          const name = typeof obj.name === "string" ? obj.name : undefined;
+          const icon = typeof obj.icon === "string" ? obj.icon : undefined;
+          return { id: String(obj.id), status, name, icon };
         }
         return { id: "", status: "joined" };
       }).filter((r: RoomsSearchItem) => r.id !== "")
@@ -901,6 +906,8 @@ export const addRoom = async (
 ): Promise<boolean> => {
   try {
     const body: Record<string, unknown> = { userName, id: room.id };
+    if (room.name) body.name = room.name;
+    if (room.icon) body.icon = room.icon;
     if (handshake) {
       body.handshake = {
         from: handshake.from,

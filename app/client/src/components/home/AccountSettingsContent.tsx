@@ -7,6 +7,7 @@ import { getDomain } from "../../utils/config.ts";
 import { useAtom } from "solid-jotai";
 import {
   followersListMap,
+  type FollowInfo,
   followingListMap,
   setFollowersList,
   setFollowingList,
@@ -45,7 +46,18 @@ const AccountSettingsContent: Component<{
   const [showFollowingModal, setShowFollowingModal] = createSignal(false);
   const [showFollowersModal, setShowFollowersModal] = createSignal(false);
 
-  const [posts, setPosts] = createSignal<Array<any>>([]);
+  interface TimelinePost {
+    id: string;
+    content: string;
+    userName: string;
+    displayName: string;
+    authorAvatar: string;
+    createdAt: string;
+    likes: number;
+    retweets: number;
+    replies: number;
+  }
+  const [posts, setPosts] = createSignal<TimelinePost[]>([]);
 
   // グローバル: フォロー/フォロワー一覧（アカウントIDごと）
   const [followingMap] = useAtom(followingListMap);
@@ -54,15 +66,15 @@ const AccountSettingsContent: Component<{
   const [, saveFollowers] = useAtom(setFollowersList);
 
   // 選択アカウントのフォロー/フォロワー配列（グローバル state 参照）
-  const followingList = () => {
+  const followingList = (): FollowInfo[] => {
     const acc = selectedAccount();
-    if (!acc) return [] as any[];
-    return (followingMap()[acc.id] as any[]) || [];
+    if (!acc) return [];
+    return followingMap()[acc.id] || [];
   };
-  const followers = () => {
+  const followers = (): FollowInfo[] => {
     const acc = selectedAccount();
-    if (!acc) return [] as any[];
-    return (followersMap()[acc.id] as any[]) || [];
+    if (!acc) return [];
+    return followersMap()[acc.id] || [];
   };
 
   // アカウント変更時：投稿取得 + フォロー/フォロワーはグローバルキャッシュを確認し、なければ取得

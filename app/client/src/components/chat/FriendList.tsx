@@ -52,49 +52,18 @@ export function FriendList(props: FriendListProps) {
       } catch { /* ignore */ }
       return false;
     };
-    const isUuid = (v?: string) =>
-      !!v &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-        .test(v);
     const friendMap = new Map<string, Friend>();
-    // フレンド候補: 自分以外の候補がちょうど1名のルーム（名前の有無は問わない）
+    // フレンド候補: 自分以外の参加者がちょうど1名のルーム
     const candidateRooms = props.rooms.filter((r) => {
       if (r.type === "memo") return false;
-      const base = [
-        ...((r.members ?? []).filter((m: unknown): m is string =>
-          typeof m === "string" && !!m
-        )),
-        ...((r.pendingInvites ?? []).filter((m: unknown): m is string =>
-          typeof m === "string" && !!m
-        )),
-      ];
-      let normalized = base.map((m) => normalizeHandle(m) || m);
-      normalized = normalized.filter((m) => !!m && !isSelf(m));
-      // members/pending が空なら room.id を候補に（1:1の actor id ルーム想定）
-      if (normalized.length === 0) {
-        const rid = normalizeHandle(r.id) || r.id;
-        if (rid && !isSelf(rid) && !isUuid(rid)) normalized = [rid];
-      }
-      const uniqueOthers = Array.from(new Set(normalized));
-      return uniqueOthers.length === 1;
+      const members = r.members.map((m) => normalizeHandle(m) || m)
+        .filter((m) => !!m && !isSelf(m));
+      return members.length === 1;
     });
     for (const room of candidateRooms) {
-      const base = [
-        ...((room.members ?? []).filter((m: unknown): m is string =>
-          typeof m === "string" && !!m
-        )),
-        ...((room.pendingInvites ?? []).filter((m: unknown): m is string =>
-          typeof m === "string" && !!m
-        )),
-      ];
-      let normalized = base.map((m) => normalizeHandle(m) || m);
-      normalized = normalized.filter((m) => !!m && !isSelf(m));
-      // 自分以外が見つからない場合は room.id を使用（1:1の actor id ルーム想定）
-      if (normalized.length === 0) {
-        const rid = normalizeHandle(room.id) || room.id;
-        if (rid && !isSelf(rid) && !isUuid(rid)) normalized = [rid];
-      }
-      const raw = normalized[0];
+      const members = room.members.map((m) => normalizeHandle(m) || m)
+        .filter((m) => !!m && !isSelf(m));
+      const raw = members[0];
       if (!raw) continue;
       const friendId = raw;
       if (selfHandle && friendId === selfHandle) continue;
@@ -123,16 +92,13 @@ export function FriendList(props: FriendListProps) {
     const unreadSum = (fid: string) =>
       props.rooms
         .filter((r) => r.type !== "memo" && !(r.hasName || r.hasIcon))
-        .filter((r) =>
-          (r.members?.includes(fid)) || (r.pendingInvites?.includes(fid))
-        )
+        .filter((r) => r.members.includes(fid))
         .reduce((a, r) => a + (r.unreadCount || 0), 0);
     const lastTime = (fid: string) => {
       let t = 0;
       for (const r of props.rooms) {
         if (r.type === "memo") continue;
-        const match = (r.members?.includes(fid)) ||
-          (r.pendingInvites?.includes(fid));
+        const match = r.members.includes(fid);
         if (!match) continue;
         const ts = r.lastMessageTime ? r.lastMessageTime.getTime() : 0;
         if (ts > t) t = ts;
