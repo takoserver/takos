@@ -358,6 +358,16 @@ impl std::error::Error for NoWelcomeError {}
 pub struct KeyPackage(OpenMlsKeyPackage);
 
 #[wasm_bindgen]
+impl KeyPackage {
+    /// KeyPackage を TLS 形式でシリアライズして返す
+    pub fn tls_serialize(&self) -> Uint8Array {
+        let mut serialized = vec![];
+        self.0.tls_serialize(&mut serialized).unwrap();
+        unsafe { Uint8Array::new(&Uint8Array::view(&serialized)) }
+    }
+}
+
+#[wasm_bindgen]
 pub struct RatchetTree(RatchetTreeIn);
 
 fn mls_message_to_uint8array(msg: &MlsMessageOut) -> Uint8Array {
