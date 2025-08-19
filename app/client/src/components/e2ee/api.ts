@@ -192,8 +192,8 @@ export const fetchKeyPackage = async (
       return null;
     }
     const bytes = b64ToBytes(data.content);
-    const decoded = await decodeMlsMessage(bytes, 0);
-    const key = (decoded?.[0] as unknown as {
+    const decoded = await decodeMlsMessage(bytes, 1);
+    const key = (decoded as unknown as {
       keyPackage?: { leafNode?: { signaturePublicKey?: Uint8Array } };
     })?.keyPackage?.leafNode?.signaturePublicKey;
     if (key) {
@@ -277,8 +277,8 @@ export const fetchVerifiedKeyPackage = async (
       // KT 検証に失敗しても致命的ではない
     }
     let fpr: string | undefined = undefined;
-    const decoded = await decodeMlsMessage(bytes, 0);
-    const key = (decoded?.[0] as unknown as {
+    const decoded = await decodeMlsMessage(bytes, 1);
+    const key = (decoded as unknown as {
       keyPackage?: { leafNode?: { signaturePublicKey?: Uint8Array } };
     })?.keyPackage?.leafNode?.signaturePublicKey;
     if (key) fpr = `ed25519:${toHex(key)}`;
@@ -356,8 +356,8 @@ export const importRosterEvidence = async (
     const hashBuffer = await crypto.subtle.digest("SHA-256", bytes);
     const hashHex = toHex(new Uint8Array(hashBuffer));
     if (`sha256:${hashHex}` !== evidence.keyPackageHash) return false;
-    const decoded = await decodeMlsMessage(bytes, 0);
-    const key = (decoded?.[0] as unknown as {
+    const decoded = await decodeMlsMessage(bytes, 1);
+    const key = (decoded as unknown as {
       keyPackage?: { leafNode?: { signaturePublicKey?: Uint8Array } };
     })?.keyPackage?.leafNode?.signaturePublicKey;
     if (!key || `ed25519:${toHex(key)}` !== evidence.leafSignatureKeyFpr) {

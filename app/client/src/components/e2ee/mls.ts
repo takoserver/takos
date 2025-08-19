@@ -68,6 +68,10 @@ interface WasmModule {
   process_commit(handle: number, commit: Uint8Array): MembersResult;
   process_proposal(handle: number, proposal: Uint8Array): MembersResult;
   decode_key_package(data: Uint8Array): Uint8Array;
+  decode_welcome(data: Uint8Array): unknown;
+  decode_group_info(data: Uint8Array): unknown;
+  decode_public_message(data: Uint8Array): unknown;
+  decode_private_message(data: Uint8Array): unknown;
   peek_wire(data: Uint8Array): number;
   free_group(handle: number): void;
   verify_key_package(data: Uint8Array, expected?: string): boolean;
@@ -353,16 +357,28 @@ export function parseMLSMessage(
 
 export async function decodeMlsMessage(
   data: Uint8Array,
-  _wireFormat = 0,
-): Promise<unknown[]> {
+  wireFormat = 0,
+): Promise<unknown> {
   const wasm = await loadWasm();
   try {
-    const key = wasm.decode_key_package(data);
-    return [
-      { keyPackage: { leafNode: { signaturePublicKey: key } } },
-    ];
+    switch (wireFormat) {
+      case 1: {
+        const key = wasm.decode_key_package(data);
+        return { keyPackage: { leafNode: { signaturePublicKey: key } } };
+      }
+      case 2:
+        return { welcome: wasm.decode_welcome(data) };
+      case 3:
+        return { groupInfo: wasm.decode_group_info(data) };
+      case 4:
+        return { publicMessage: wasm.decode_public_message(data) };
+      case 5:
+        return { privateMessage: wasm.decode_private_message(data) };
+      default:
+        return {};
+    }
   } catch {
-    return [];
+    return {};
   }
 }
 

@@ -525,6 +525,74 @@ pub fn decode_key_package(data: &[u8]) -> Result<Vec<u8>, JsValue> {
 }
 
 #[wasm_bindgen]
+pub fn decode_welcome(data: &[u8]) -> Result<JsValue, JsValue> {
+    let mut buf = data.to_vec();
+    let welcome = Welcome::tls_deserialize(&mut buf.as_slice())
+        .map_err(|e| JsValue::from_str(&format!("parse welcome: {:?}", e)))?;
+    let obj = js_sys::Object::new();
+    let egi = welcome.encrypted_group_info().to_vec();
+    js_sys::Reflect::set(
+        &obj,
+        &JsValue::from_str("encrypted_group_info"),
+        &js_sys::Uint8Array::from(egi.as_slice()).into(),
+    )
+    .unwrap();
+    Ok(obj.into())
+}
+
+#[wasm_bindgen]
+pub fn decode_group_info(data: &[u8]) -> Result<JsValue, JsValue> {
+    let mut buf = data.to_vec();
+    let gi = GroupInfo::tls_deserialize(&mut buf.as_slice())
+        .map_err(|e| JsValue::from_str(&format!("parse group info: {:?}", e)))?;
+    let obj = js_sys::Object::new();
+    let gid = gi.group_context().group_id().as_slice().to_vec();
+    js_sys::Reflect::set(
+        &obj,
+        &JsValue::from_str("group_id"),
+        &js_sys::Uint8Array::from(gid.as_slice()).into(),
+    )
+    .unwrap();
+    Ok(obj.into())
+}
+
+#[wasm_bindgen]
+pub fn decode_public_message(data: &[u8]) -> Result<JsValue, JsValue> {
+    let mut buf = data.to_vec();
+    let msg = MlsMessageIn::tls_deserialize(&mut buf.as_slice())
+        .map_err(|e| JsValue::from_str(&format!("parse public message: {:?}", e)))?;
+    if let MlsMessageIn::Plaintext(pt) = msg {
+        let obj = js_sys::Object::new();
+        js_sys::Reflect::set(
+            &obj,
+            &JsValue::from_str("epoch"),
+            &JsValue::from_f64(pt.epoch() as f64),
+        )
+        .unwrap();
+        return Ok(obj.into());
+    }
+    Err(JsValue::from_str("not a public message"))
+}
+
+#[wasm_bindgen]
+pub fn decode_private_message(data: &[u8]) -> Result<JsValue, JsValue> {
+    let mut buf = data.to_vec();
+    let msg = MlsMessageIn::tls_deserialize(&mut buf.as_slice())
+        .map_err(|e| JsValue::from_str(&format!("parse private message: {:?}", e)))?;
+    if let MlsMessageIn::Ciphertext(ct) = msg {
+        let obj = js_sys::Object::new();
+        js_sys::Reflect::set(
+            &obj,
+            &JsValue::from_str("epoch"),
+            &JsValue::from_f64(ct.epoch() as f64),
+        )
+        .unwrap();
+        return Ok(obj.into());
+    }
+    Err(JsValue::from_str("not a private message"))
+}
+
+#[wasm_bindgen]
 pub enum WireFormat {
     Unknown,
     KeyPackage,
