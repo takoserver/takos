@@ -1998,11 +1998,14 @@ export function Chat() {
                 let members: string[] = [];
                 try {
                   const state = groups()[payload.roomId];
-                  members = state
-                    ? (await extractMembers(state)).map((m) =>
-                      normalizeHandle(m as ActorID) ?? m
-                    ).filter((m) => m !== self)
-                    : [];
+                  if (state) {
+                    const raw = await extractMembers(state);
+                    members = raw.map((m) => normalizeHandle(m as ActorID) ?? m);
+                    // 自分が含まれていなければ追加
+                    if (!members.includes(self)) members.push(self);
+                  } else {
+                    members = [self];
+                  }
                 } catch (err) {
                   console.warn("メンバー取得に失敗しました", err);
                 }
