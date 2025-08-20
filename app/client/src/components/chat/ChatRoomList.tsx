@@ -85,6 +85,10 @@ export function ChatRoomList(props: ChatRoomListProps) {
   const [query, setQuery] = createSignal("");
   const [selectedFriend, setSelectedFriend] = createSignal<string | null>(null);
   const [account] = useAtom(activeAccount);
+  const selfHandle = () => {
+    const me = account();
+    return me ? `${me.userName}@${getDomain()}` : undefined;
+  };
   // リストが空のときだけ、遅延してスケルトンを表示する（点滅防止）
   const showAllSkeleton = useDelayedVisibility(
     () => getFilteredRoomsFor("all").length === 0 && query().trim() === "",
@@ -119,17 +123,17 @@ export function ChatRoomList(props: ChatRoomListProps) {
     if (!me) return room.name;
     if (room.type === "memo") return room.name;
     if (room.members.length === 0) return "メンバー同期中";
-    const selfHandle = `${me.userName}@${getDomain()}`;
+    const self = selfHandle();
     // グループ（1:1以外）はそのまま（後段の補完で名前が入る想定）
-    if (!isFriendRoom(room)) return room.name;
-    const rawOther = room.members.find((m) => m !== selfHandle) ??
+    if (!isFriendRoom(room, self)) return room.name;
+    const rawOther = room.members.find((m) => m !== self) ??
       room.members[0];
     const other = normalizeHandle(rawOther);
     if (
       room.name === "" || room.name === me.displayName ||
-      room.name === me.userName || room.name === selfHandle
+      room.name === me.userName || room.name === self
     ) {
-      if (other && other !== selfHandle) return other;
+      if (other && other !== self) return other;
       return "メンバー同期中";
     }
     return room.name;
@@ -157,10 +161,10 @@ export function ChatRoomList(props: ChatRoomListProps) {
     let base = props.rooms;
 
     if (seg === "people") {
-      base = base.filter((r) => isFriendRoom(r));
+      base = base.filter((r) => isFriendRoom(r, selfHandle()));
     } else if (seg === "groups") {
       const memoRoom = base.find((r) => r.type === "memo");
-      const rest = base.filter((r) => isGroupRoom(r));
+      const rest = base.filter((r) => isGroupRoom(r, selfHandle()));
       base = memoRoom ? [memoRoom, ...rest] : rest;
     }
 
@@ -192,7 +196,7 @@ export function ChatRoomList(props: ChatRoomListProps) {
 
   const segUnread = createMemo(() => {
     const all = props.rooms.reduce((a, r) => a + (r.unreadCount || 0), 0);
-    const people = props.rooms.filter((r) => isFriendRoom(r))
+    const people = props.rooms.filter((r) => isFriendRoom(r, selfHandle()))
       .reduce((a, r) => a + (r.unreadCount || 0), 0);
     const groups = all - people;
     return { all, people, groups };
@@ -200,7 +204,7 @@ export function ChatRoomList(props: ChatRoomListProps) {
 
   const getFriendName = (friendId: string) => {
     const room = props.rooms.find((r) =>
-      isFriendRoom(r) && r.members.includes(friendId)
+      isFriendRoom(r, selfHandle()) && r.members.includes(friendId)
     );
     return room?.displayName || room?.name || friendId.split("@")[0] ||
       friendId;

@@ -40,16 +40,19 @@ export interface Room {
 }
 
 // トークルームの種類を判定するユーティリティ関数
-export function isFriendRoom(room: Room): boolean {
+export function isFriendRoom(room: Room, selfHandle?: string): boolean {
   // メモは除外
   if (room.type === "memo") return false;
-  const count = room.members.length; // 自分を除いた他参加者数（Chat 側で self を除去して格納）
-  // 1 名（自分以外）がいる＝1:1 ルームとみなす（名称/アイコン有無に依らず友だち扱い）
+  // 自分を含む場合は除外して数える
+  const count = selfHandle
+    ? room.members.filter((m) => m !== selfHandle).length
+    : Math.max(0, room.members.length - 1);
+  // 自分以外の参加者が 1 名なら 1:1 ルーム
   return count === 1;
 }
 
-export function isGroupRoom(room: Room): boolean {
-  return room.type !== "memo" && !isFriendRoom(room);
+export function isGroupRoom(room: Room, selfHandle?: string): boolean {
+  return room.type !== "memo" && !isFriendRoom(room, selfHandle);
 }
 
 export function isMemoRoom(room: Room): boolean {

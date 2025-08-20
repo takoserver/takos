@@ -692,7 +692,12 @@ export function Chat() {
         const actor =
           new URL(`/users/${user.userName}`, globalThis.location.origin).href;
         const kp = await generateKeyPair(actor);
-  pair = { public: kp.public, private: kp.private, encoded: kp.encoded, identity: actor };
+        pair = {
+          public: kp.public,
+          private: kp.private,
+          encoded: kp.encoded,
+          identity: actor,
+        };
         try {
           if (pair) await saveMLSKeyPair(user.id, pair);
           await addKeyPackage(user.userName, { content: kp.encoded });
@@ -1431,7 +1436,7 @@ export function Chat() {
       unreadCount: 0,
       type: "group",
       // UI表示用に招待先を入れておく（MLS同期後は state 由来に上書きされる）
-      members: others,
+      members,
       hasName: Boolean(finalName),
       hasIcon: false,
       lastMessage: "...",
@@ -2000,7 +2005,9 @@ export function Chat() {
                   const state = groups()[payload.roomId];
                   if (state) {
                     const raw = await extractMembers(state);
-                    members = raw.map((m) => normalizeHandle(m as ActorID) ?? m);
+                    members = raw.map((m) =>
+                      normalizeHandle(m as ActorID) ?? m
+                    );
                     // 自分が含まれていなければ追加
                     if (!members.includes(self)) members.push(self);
                   } else {
