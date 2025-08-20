@@ -32,10 +32,39 @@ app.get("/session/status", async (c) => {
             const domain = getDomain(c);
             sendToUser(`${pair.userName}@${domain}`, {
               type: "keyPackageLow",
-              payload: { remaining: available, threshold },
+              payload: { remaining: available, threshold, userName: pair.userName },
             });
           }
-          return c.json({ login: true, userName: pair.userName, keyPackageInventory: { available, threshold } });
+          
+          // マルチアカウント対応：全アカウント情報も含める
+          const allAccounts = await db.listAccounts();
+          const accounts = [];
+          for (const acc of allAccounts) {
+            const accAvailable = await db.countAvailableKeyPackages(acc.userName);
+            accounts.push({
+              id: String(acc._id),
+              userName: acc.userName,
+              displayName: acc.displayName,
+              keyPackageInventory: { available: accAvailable, threshold },
+            });
+            
+            // セッション内の全アカウントで在庫不足の場合は通知
+            if (accAvailable <= threshold) {
+              const domain = getDomain(c);
+              sendToUser(`${acc.userName}@${domain}`, {
+                type: "keyPackageLow",
+                payload: { remaining: accAvailable, threshold, userName: acc.userName },
+              });
+            }
+          }
+          
+          return c.json({ 
+            login: true, 
+            userName: pair.userName, 
+            keyPackageInventory: { available, threshold },
+            accounts, // 全アカウント情報
+            currentDevice: session.sessionId
+          });
         }
       } catch (err) {
         console.error("session inventory check failed", err);

@@ -815,9 +815,14 @@ app.get("/users/:user/keyPackages/:keyId", async (c) => {
     if (remaining <= threshold) {
       // notify all connected devices for this user
       const domain = getDomain(c);
+      try {
+        console.log("[keyPackages] low inventory after GET consume", { user, remaining, threshold });
+      } catch (_) {
+        // ignore
+      }
       sendToUser(`${user}@${domain}`, {
         type: "keyPackageLow",
-        payload: { remaining, threshold },
+        payload: { remaining, threshold, userName: user },
       });
     }
   } catch (err) {
@@ -864,17 +869,14 @@ app.post("/users/:user/keyPackages", authRequired, async (c) => {
   if (typeof content !== "string") {
     return c.json({ error: "content is required" }, 400);
   }
-  const mt = typeof mediaType === "string" && mediaType === "message/mls"
-    ? mediaType
-    : null;
-  if (!mt) {
-    return c.json({ error: 'mediaType must be "message/mls"' }, 400);
+  // 後方互換: mediaType / encoding が省略された場合は既定値を補う
+  let mt: string | null = "message/mls";
+  if (typeof mediaType === "string") {
+    if (mediaType === "message/mls") mt = mediaType; else return c.json({ error: 'mediaType must be "message/mls"' }, 400);
   }
-  const enc = typeof encoding === "string" && encoding === "base64"
-    ? encoding
-    : null;
-  if (!enc) {
-    return c.json({ error: 'encoding must be "base64"' }, 400);
+  let enc: string | null = "base64";
+  if (typeof encoding === "string") {
+    if (encoding === "base64") enc = encoding; else return c.json({ error: 'encoding must be "base64"' }, 400);
   }
   const domain = getDomain(c);
   const actorId = `https://${domain}/users/${user}`;
@@ -882,16 +884,18 @@ app.post("/users/:user/keyPackages", authRequired, async (c) => {
   try {
     const id = extractBasicCredentialIdentity(b64ToBytes(content));
     if (!id) {
+      console.error("KeyPackage identity extraction failed", { user, actorId });
       return c.json(
         { error: "ap_mls.binding.policy_violation" },
         400,
       );
     }
     if (id !== actorId) {
+      console.error("KeyPackage identity mismatch", { user, actorId, extracted: id });
       return c.json({ error: "ap_mls.binding.identity_mismatch" }, 400);
     }
   } catch (err) {
-    console.error("KeyPackage verification failed", err);
+    console.error("KeyPackage verification failed", { user, actorId, error: err });
     return c.json({ error: "ap_mls.binding.policy_violation" }, 400);
   }
   const db = createDB(getEnv(c));
@@ -1004,9 +1008,14 @@ app.post("/users/:user/keyPackages/markUsed", authRequired, async (c) => {
     const threshold = parseInt(env["KP_LOW_THRESHOLD"] ?? "3", 10) || 3;
     if (remaining <= threshold) {
       const domain = getDomain(c);
+      try {
+        console.log("[keyPackages] low inventory after markUsed", { user, remaining, threshold });
+      } catch (_) {
+        // ignore
+      }
       sendToUser(`${user}@${domain}`, {
         type: "keyPackageLow",
-        payload: { remaining, threshold },
+        payload: { remaining, threshold, userName: user },
       });
     }
   } catch (err) {
@@ -1035,6 +1044,24 @@ app.delete("/users/:user/keyPackages/:keyId", authRequired, async (c) => {
   );
   await deliverToFollowers(getEnv(c), user, removeActivity, domain);
   await deliverToFollowers(getEnv(c), user, deleteActivity, domain);
+  try {
+    const remaining = await db.countAvailableKeyPackages(user);
+    const env = getEnv(c);
+    const threshold = parseInt(env["KP_LOW_THRESHOLD"] ?? "3", 10) || 3;
+    if (remaining <= threshold) {
+      sendToUser(`${user}@${domain}`, {
+        type: "keyPackageLow",
+        payload: { remaining, threshold, userName: user },
+      });
+      try {
+        console.log("[keyPackages] low inventory after deleteKeyPackage", { user, remaining, threshold });
+      } catch (_) {
+        // ignore
+      }
+    }
+  } catch (err) {
+    console.error("failed to notify after deleteKeyPackage", err);
+  }
   return c.json({ result: "removed" });
 });
 
@@ -1104,6 +1131,25 @@ app.post("/users/:user/resetKeys", authRequired, async (c) => {
   }
   await db.deleteKeyPackagesByUser(user);
   await db.deleteEncryptedKeyPairsByUser(user);
+  try {
+    const remaining = await db.countAvailableKeyPackages(user);
+    const env = getEnv(c);
+    const threshold = parseInt(env["KP_LOW_THRESHOLD"] ?? "3", 10) || 3;
+    if (remaining <= threshold) {
+      const domain = getDomain(c);
+      sendToUser(`${user}@${domain}`, {
+        type: "keyPackageLow",
+        payload: { remaining, threshold, userName: user },
+      });
+      try {
+        console.log("[keyPackages] low inventory after resetKeys", { user, remaining, threshold });
+      } catch (_) {
+        // ignore
+      }
+    }
+  } catch (err) {
+    console.error("failed to notify after resetKeys", err);
+  }
   return c.json({ result: "reset" });
 });
 

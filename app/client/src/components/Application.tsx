@@ -45,6 +45,27 @@ export function Application() {
       try {
         const m = msg as { type?: string; payload?: unknown };
         if (m.type === "keyPackageLow") {
+          try {
+            console.log("[keyPackages] client received keyPackageLow ws", m.payload);
+          } catch (_) {
+            // ignore
+          }
+          
+          // セッションベース管理：通知されたユーザーを直接補充
+          const payload = m.payload as { userName?: string; remaining?: number; threshold?: number } | undefined;
+          if (payload?.userName) {
+            // 非同期で topUpSelfKeyPackages を呼び出し（accountId は userName で代用）
+            void (async () => {
+              try {
+                const { topUpSelfKeyPackages } = await import("./e2ee/api.ts");
+                await topUpSelfKeyPackages(payload.userName!, payload.userName!);
+                console.log("[keyPackages] auto top-up completed for session user", payload.userName);
+              } catch (e) {
+                console.warn("[keyPackages] auto top-up failed for session user", payload.userName, e);
+              }
+            })();
+          }
+          
           const ev = new CustomEvent("keyPackageLow", { detail: m.payload });
           globalThis.dispatchEvent(ev as unknown as Event);
         }

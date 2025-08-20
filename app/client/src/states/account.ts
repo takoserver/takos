@@ -9,6 +9,7 @@ export interface Account {
   publicKey: string;
   followers: string[];
   following: string[];
+  keyPackageInventory?: { available: number; threshold: number; low?: boolean };
 }
 
 const STORAGE_KEY = "takos-active-account-id";

@@ -30,7 +30,8 @@ import {
   sendKeepMessage,
   uploadFile,
 } from "./e2ee/api.ts";
-import { apiFetch, getDomain, getKpPoolSize } from "../utils/config.ts";
+import { topUpSelfKeyPackages } from "./e2ee/api.ts";
+import { apiFetch, getDomain } from "../utils/config.ts";
 import { addMessageHandler, removeMessageHandler } from "../utils/ws.ts";
 import {
   createCommitAndWelcomes,
@@ -394,25 +395,6 @@ export function Chat() {
   onMount(async () => {
     await loadAdsenseConfig();
     setShowAds(isAdsenseEnabled());
-    const handler = (ev: Event) => {
-      try {
-        const _detail = (ev as CustomEvent).detail as {
-          remaining?: number;
-          threshold?: number;
-        } | undefined;
-        const acc = account();
-        if (acc) {
-          // トップアップを非同期で起動
-          void topUpSelfKeyPackages(acc.userName, acc.id);
-        }
-      } catch (_e) {
-        // noop
-      }
-    };
-    globalThis.addEventListener("keyPackageLow", handler as EventListener);
-    onCleanup(() => {
-      globalThis.removeEventListener("keyPackageLow", handler as EventListener);
-    });
   });
   const [cursor, setCursor] = createSignal<string | null>(null);
   const [hasMore, setHasMore] = createSignal(true);
@@ -710,9 +692,9 @@ export function Chat() {
         const actor =
           new URL(`/users/${user.userName}`, globalThis.location.origin).href;
         const kp = await generateKeyPair(actor);
-        pair = { public: kp.public, private: kp.private, encoded: kp.encoded };
+  pair = { public: kp.public, private: kp.private, encoded: kp.encoded, identity: actor };
         try {
-          await saveMLSKeyPair(user.id, pair);
+          if (pair) await saveMLSKeyPair(user.id, pair);
           await addKeyPackage(user.userName, { content: kp.encoded });
           // 目標プール数まで補充
           await topUpSelfKeyPackages(user.userName, user.id);
@@ -3104,60 +3086,7 @@ function pickUsableKeyPackage(
   return list[0] ?? null;
 }
 
-async function topUpSelfKeyPackages(userName: string, accountId: string) {
-  try {
-    const target = getKpPoolSize();
-    if (!target || target <= 1) return;
-    const selfKps = await fetchKeyPackages(userName);
-    const now = Date.now();
-    const usable = (selfKps ?? []).filter((k) =>
-      !k.used && (!k.expiresAt || Date.parse(k.expiresAt) > now) &&
-      !k.lastResort
-    );
-    // lastResort が存在しない場合は 1 個だけ作る（target にはカウントしない）
-    const hasLastResort = (selfKps ?? []).some((k) => k.lastResort);
-    if (!hasLastResort) {
-      try {
-        const actor =
-          new URL(`/users/${userName}`, globalThis.location.origin).href;
-        const kp = await generateKeyPair(actor);
-        await saveMLSKeyPair(accountId, {
-          public: kp.public,
-          private: kp.private,
-          encoded: kp.encoded,
-        });
-        await addKeyPackage(userName, {
-          content: kp.encoded,
-          lastResort: true,
-        });
-      } catch (e) {
-        console.warn("lastResort KeyPackage 生成に失敗", e);
-      }
-    }
-    const need = target - usable.length;
-    if (need <= 0) return;
-    // actor URL for identity
-    const actor =
-      new URL(`/users/${userName}`, globalThis.location.origin).href;
-    for (let i = 0; i < need; i++) {
-      try {
-        const kp = await generateKeyPair(actor);
-        // 保存（複数保存可能: KEY_STORE は autoIncrement）
-        await saveMLSKeyPair(accountId, {
-          public: kp.public,
-          private: kp.private,
-          encoded: kp.encoded,
-        });
-        await addKeyPackage(userName, { content: kp.encoded });
-      } catch (e) {
-        console.warn("KeyPackage 補充に失敗しました", e);
-        break;
-      }
-    }
-  } catch (e) {
-    console.warn("KeyPackage プール確認に失敗しました", e);
-  }
-}
+// use exported topUpSelfKeyPackages from e2ee/api.ts
 
 // ...existing code...
 

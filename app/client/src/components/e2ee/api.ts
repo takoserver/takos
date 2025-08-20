@@ -20,7 +20,10 @@ import {
   appendKeyPackageRecords,
   appendRosterEvidence,
   loadKeyPackageRecords,
+  saveMLSKeyPair,
 } from "./storage.ts";
+import { generateKeyPair } from "./mls.ts";
+import { getKpPoolSize } from "../../utils/config.ts";
 
 const bindingErrorMessages: Record<string, string> = {
   "ap_mls.binding.identity_mismatch":
@@ -120,11 +123,15 @@ export const addKeyPackage = async (
     groupInfo?: string;
     expiresAt?: string;
     lastResort?: boolean;
+    deviceId?: string; // マルチアカウント対応
   },
 ): Promise<
   { keyId: string | null; groupInfo?: string; keyPackageRef?: string }
 > => {
   try {
+  // サーバー側は mediaType="message/mls" encoding="base64" を要求するので不足時は埋める
+  if (!pkg.mediaType) pkg.mediaType = "message/mls";
+  if (!pkg.encoding) pkg.encoding = "base64";
     const res = await apiFetch(
       `/api/users/${encodeURIComponent(user)}/keyPackages`,
       {
@@ -396,6 +403,69 @@ export const deleteKeyPackage = async (
     return false;
   }
 };
+
+// Client-side helper: ensure the user's KeyPackage pool is filled to the configured size.
+export async function topUpSelfKeyPackages(userName: string, accountId: string) {
+  try {
+    const target = getKpPoolSize();
+    if (!target || target <= 1) return;
+    const selfKps = await fetchKeyPackages(userName);
+    const now = Date.now();
+    const usable = (selfKps ?? []).filter((k) =>
+      !k.used && (!k.expiresAt || Date.parse(k.expiresAt) > now) &&
+      !k.lastResort
+    );
+    // lastResort が存在しない場合は 1 個だけ作る（target にはカウントしない）
+    const hasLastResort = (selfKps ?? []).some((k) => k.lastResort);
+    if (!hasLastResort) {
+      try {
+        const actor =
+          new URL(`/users/${userName}`, globalThis.location.origin).href;
+        const kp = await generateKeyPair(actor);
+        await saveMLSKeyPair(accountId, {
+          public: kp.public,
+            private: kp.private,
+            encoded: kp.encoded,
+            identity: actor,
+        });
+        await addKeyPackage(userName, {
+          content: kp.encoded,
+          lastResort: true,
+          deviceId: accountId, // マルチアカウント対応：デバイス識別子追加
+        });
+      } catch (e) {
+        console.warn("lastResort KeyPackage 生成に失敗", e);
+      }
+    }
+    const need = target - usable.length;
+    if (need <= 0) return;
+    // actor URL for identity
+    const actor =
+      new URL(`/users/${userName}`, globalThis.location.origin).href;
+    for (let i = 0; i < need; i++) {
+      try {
+        const kp = await generateKeyPair(actor);
+        // 保存（複数保存可能: KEY_STORE は autoIncrement）
+        await saveMLSKeyPair(accountId, {
+          public: kp.public,
+            private: kp.private,
+            encoded: kp.encoded,
+            identity: actor,
+        });
+        console.log("[KeyPackage] generated with identity", { actor, userName });
+        await addKeyPackage(userName, { 
+          content: kp.encoded,
+          deviceId: accountId, // マルチアカウント対応：デバイス識別子追加
+        });
+      } catch (e) {
+        console.warn("KeyPackage 補充に失敗しました", e);
+        break;
+      }
+    }
+  } catch (e) {
+    console.warn("KeyPackage プール確認に失敗しました", e);
+  }
+}
 
 export const sendEncryptedMessage = async (
   roomId: string,

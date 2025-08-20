@@ -128,6 +128,7 @@ async function om_exportGroupInfo(group: Group): Promise<Uint8Array> {
 export interface GeneratedKeyPair {
   encoded: string;
   public: { encoded: string };
+  private?: { encoded: string };
   identity: string;
 }
 

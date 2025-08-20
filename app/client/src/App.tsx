@@ -41,9 +41,27 @@ function App() {
     }
 
     try {
-      const res = await apiFetch("/api/session/status");
-      const result = await res.json();
-      setIsLoggedIn(result.login ?? false);
+        const res = await apiFetch("/api/session/status");
+        const result = await res.json();
+        setIsLoggedIn(result.login ?? false);
+        try {
+          if (result && result.keyPackageInventory) {
+            const inv = result.keyPackageInventory as { available?: number; threshold?: number };
+            const userName = result.userName as string | undefined;
+            if (userName && typeof inv.available === "number" && typeof inv.threshold === "number") {
+              if (inv.available <= inv.threshold) {
+                // trigger client-side top-up
+                // import dynamically to avoid circular import at module top-level
+                const mod = await import("./components/e2ee/api.ts");
+                if (mod && typeof mod.topUpSelfKeyPackages === "function") {
+                  void mod.topUpSelfKeyPackages(userName, result.id ?? "");
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error("failed to auto top-up key packages on session load", e);
+        }
     } catch (err) {
       console.error("Failed to fetch login status:", err);
       setIsLoggedIn(false);

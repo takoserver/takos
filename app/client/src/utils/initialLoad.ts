@@ -6,6 +6,8 @@ import {
   setAccounts,
 } from "../states/account.ts";
 import { getAccountStatsTtl, getDomain } from "./config.ts";
+// KeyPackage 自動補充
+import { topUpSelfKeyPackages } from "../components/e2ee/api.ts";
 import {
   fetchFollowers,
   fetchFollowing,
@@ -32,6 +34,14 @@ export function useInitialLoad() {
       const exists = results.some((acc) => acc.id === currentId);
       if (!exists && results.length > 0) {
         setActId(results[0].id);
+      }
+      // セッション内の全アカウントの在庫チェック・一括補充
+      for (const acc of results) {
+        const inv = acc.keyPackageInventory;
+        if (inv && typeof inv.available === "number" && typeof inv.threshold === "number" && inv.available <= inv.threshold) {
+          console.log("[KeyPackage] auto top-up for account in session", { userName: acc.userName, available: inv.available, threshold: inv.threshold });
+          void topUpSelfKeyPackages(acc.userName, acc.id);
+        }
       }
     } catch (err) {
       console.error("アカウント情報の取得に失敗しました", err);

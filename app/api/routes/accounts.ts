@@ -10,7 +10,19 @@ import { isUrl } from "../../shared/url.ts";
 import { saveFile } from "../services/file.ts";
 import { announceIfPublicAndDiscoverable } from "../services/fasp.ts";
 
-function formatAccount(doc: AccountDoc) {
+async function enrichInventory(env: Record<string, string>, userName: string) {
+  try {
+    const db = createDB(env);
+    const available = await db.countAvailableKeyPackages(userName);
+    const threshold = parseInt(env["KP_LOW_THRESHOLD"] ?? "3", 10) || 3;
+    return { available, threshold, low: available <= threshold };
+  } catch (_e) {
+    return undefined;
+  }
+}
+
+async function formatAccount(doc: AccountDoc, env: Record<string, string>) {
+  const inv = await enrichInventory(env, doc.userName);
   return {
     id: String(doc._id),
     userName: doc.userName,
@@ -19,6 +31,7 @@ function formatAccount(doc: AccountDoc) {
     publicKey: doc.publicKey,
     followers: doc.followers,
     following: doc.following,
+    keyPackageInventory: inv,
   };
 }
 
@@ -57,7 +70,10 @@ app.get("/accounts", async (c) => {
   const env = getEnv(c);
   const db = createDB(env);
   const list = await db.listAccounts();
-  const formatted = list.map((doc) => formatAccount(doc));
+  const formatted = [] as unknown[];
+  for (const doc of list) {
+    formatted.push(await formatAccount(doc, env));
+  }
   return jsonResponse(c, formatted);
 });
 
@@ -105,7 +121,7 @@ app.post("/accounts", async (c) => {
     eventType: "new",
     objectUris: [`https://${domain}/users/${account.userName}`],
   }, account as unknown as Record<string, unknown>);
-  return jsonResponse(c, formatAccount(account));
+  return jsonResponse(c, await formatAccount(account, env));
 });
 
 app.get("/accounts/:id", async (c) => {
@@ -115,7 +131,7 @@ app.get("/accounts/:id", async (c) => {
   const account = await db.findAccountById(id);
   if (!account) return jsonResponse(c, { error: "Account not found" }, 404);
   return jsonResponse(c, {
-    ...formatAccount(account),
+    ...(await formatAccount(account, env)),
     privateKey: account.privateKey,
   });
 });
@@ -156,7 +172,7 @@ app.put("/accounts/:id", async (c) => {
     eventType: "update",
     objectUris: [`https://${domain}/users/${account.userName}`],
   }, account as unknown as Record<string, unknown>);
-  return jsonResponse(c, formatAccount(account));
+  return jsonResponse(c, await formatAccount(account, env));
 });
 
 app.delete("/accounts/:id", async (c) => {
