@@ -108,7 +108,17 @@ export const saveMLSGroupStates = async (
     await store.save();
     return;
   }
-  return;
+  const db = await openDB(accountId);
+  const tx = db.transaction(STORE_NAME, "readwrite");
+  const store = tx.objectStore(STORE_NAME);
+  store.clear();
+  for (const [id, state] of Object.entries(states)) {
+    store.put(state, id);
+  }
+  await new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve(undefined);
+    tx.onerror = () => reject(tx.error);
+  });
 };
 
 export const loadMLSKeyPair = async (
