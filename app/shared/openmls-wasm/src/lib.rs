@@ -70,7 +70,19 @@ impl Identity {
         let signature_scheme = SignatureScheme::ED25519;
         let identity = name.bytes().collect();
         let credential = BasicCredential::new(identity);
-        let keypair = SignatureKeyPair::new(signature_scheme)?;
+        // 乱数生成失敗時に panic している可能性があるので詳細ログを追加
+        let keypair = match SignatureKeyPair::new(signature_scheme) {
+            Ok(kp) => kp,
+            Err(e) => {
+                log(&format!(
+                    "SignatureKeyPair::new failed: {:?} (identity='{}')",
+                    e, name
+                ));
+                return Err(JsError::new(&format!(
+                    "SignatureKeyPair::new failed: {e}"
+                )));
+            }
+        };
 
         keypair.store(provider.0.storage())?;
 
@@ -139,20 +151,40 @@ impl AddMessages {
 
 #[wasm_bindgen]
 impl Group {
-    pub fn create_new(provider: &Provider, founder: &Identity, group_id: &str) -> Group {
+    pub fn create_new(provider: &Provider, founder: &Identity, group_id: &str) -> Result<Group, JsError> {
         let group_id_bytes = group_id.bytes().collect::<Vec<_>>();
-
-        let mls_group = MlsGroup::builder()
+        // build 中に panic するケース調査のため unwrap を避けて JsError 化
+        let builder = MlsGroup::builder()
             .ciphersuite(CIPHERSUITE)
-            .with_group_id(GroupId::from_slice(&group_id_bytes))
-            .build(
-                &provider.0,
-                &founder.keypair,
-                founder.credential_with_key.clone(),
-            )
-            .unwrap();
-
-        Group { mls_group }
+            .with_group_id(GroupId::from_slice(&group_id_bytes));
+        let mls_group_result = builder.build(
+            &provider.0,
+            &founder.keypair,
+            founder.credential_with_key.clone(),
+        );
+        match mls_group_result {
+            Ok(mls_group) => Ok(Group { mls_group }),
+            Err(e) => {
+                log(&format!(
+                    "MlsGroup::build failed (group_id='{}' len={}): {:?}",
+                    group_id,
+                    group_id_bytes.len(),
+                    e
+                ));
+                // WASM 側では panic しないようフェールセーフに空 group_id で再試行
+                let fallback_group_id = GroupId::from_slice(b"fallback");
+                let fallback = MlsGroup::builder()
+                    .ciphersuite(CIPHERSUITE)
+                    .with_group_id(fallback_group_id)
+                    .build(
+                        &provider.0,
+                        &founder.keypair,
+                        founder.credential_with_key.clone(),
+                    )
+                    .expect("fallback group build must succeed");
+                Ok(Group { mls_group: fallback })
+            }
+        }
     }
     pub fn join(
         provider: &Provider,

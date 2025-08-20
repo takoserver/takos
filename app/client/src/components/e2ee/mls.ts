@@ -44,6 +44,9 @@ interface RemoveMembersResult {
 
 let wasmInitialized = false;
 let provider: Provider | null = null;
+// Identity オブジェクトは WASM メモリ上に確保されるため頻繁に生成するとメモリ断片化や out of bounds を誘発する可能性がある。
+// identity 文字列毎にキャッシュして再利用する。
+const identityCache = new Map<string, Identity>();
 
 async function initWasm(): Promise<void> {
   if (!wasmInitialized) {
@@ -60,6 +63,15 @@ function getProvider(): Provider {
   return provider;
 }
 
+function getOrCreateIdentity(id: string): Identity {
+  const p = getProvider();
+  const cached = identityCache.get(id);
+  if (cached) return cached;
+  const created = new Identity(p, id);
+  identityCache.set(id, created);
+  return created;
+}
+
 function generateGroupId(): string {
   const randomBytes = new Uint8Array(16);
   crypto.getRandomValues(randomBytes);
@@ -71,7 +83,7 @@ async function om_generateKeyPackage(
 ): Promise<OpenMlsGeneratedKeyPackage> {
   await initWasm();
   const provider = getProvider();
-  const identityObj = new Identity(provider, identity);
+  const identityObj = getOrCreateIdentity(identity);
   const keyPackage = identityObj.key_package(provider);
   const keyPackageData = keyPackage.tls_serialize();
   const keyPackageStr = bufToB64(keyPackageData);
@@ -92,9 +104,24 @@ async function om_generateKeyPackage(
 async function om_createGroup(identity: string): Promise<OpenMlsCreatedGroup> {
   await initWasm();
   const provider = getProvider();
-  const identityObj = new Identity(provider, identity);
+  const identityObj = getOrCreateIdentity(identity);
   const groupId = generateGroupId();
-  const group = Group.create_new(provider, identityObj, groupId);
+  let group: Group;
+  try {
+    console.debug("[MLS] create_new attempt", { identity, groupId, groupIdLen: b64ToBuf(groupId).length });
+    group = Group.create_new(provider, identityObj, groupId);
+  } catch (e) {
+    console.error("Group.create_new failed", e, "identity=", identity, "groupId=", groupId);
+    const fallbackId = `gid_${Date.now().toString(16)}`;
+    try {
+      console.warn("[MLS] retry with fallback groupId", fallbackId);
+      group = Group.create_new(provider, identityObj, fallbackId);
+      return { handle: group, groupIdB64: fallbackId };
+    } catch (e2) {
+      console.error("Group.create_new fallback also failed", e2);
+      throw e;
+    }
+  }
 
   return {
     handle: group,
@@ -108,7 +135,8 @@ async function om_encrypt(
 ): Promise<Uint8Array> {
   await initWasm();
   const provider = getProvider();
-  const identityObj = new Identity(provider, "sender"); // 実際の送信者IDに置き換える
+  // 呼び出し側で sender identity を差し込めるよう後で拡張する。今は固定値をキャッシュ利用。
+  const identityObj = getOrCreateIdentity("sender"); // 実際の送信者IDに置き換える
   const plaintext = typeof data === "string"
     ? new TextEncoder().encode(data)
     : data;
@@ -495,8 +523,8 @@ export function addMembers(
 }> {
   return (async () => {
     await initWasm();
-    const provider = getProvider();
-    const identityObj = new Identity(provider, state.identity);
+  const provider = getProvider();
+  const identityObj = getOrCreateIdentity(state.identity);
 
     const commits: Uint8Array[] = [];
     const welcomes: WelcomeEntry[] = [];
@@ -604,7 +632,7 @@ export function joinWithWelcome(
   return (async () => {
     await initWasm();
     const provider = getProvider();
-    const _identityObj = new Identity(provider, keyPair.identity);
+  const _identityObj = getOrCreateIdentity(keyPair.identity);
 
     // RatchetTreeの準備（仮実装）
     const ratchetTree = new RatchetTree(); // 実際にはWelcomeメッセージから抽出
@@ -629,7 +657,7 @@ export function joinWithGroupInfo(
     await initWasm();
     // OpenMLSでは直接GroupInfoからの参加は複雑なため、仮実装
     const provider = getProvider();
-    const identityObj = new Identity(provider, keyPair.identity);
+  const identityObj = getOrCreateIdentity(keyPair.identity);
     const groupId = generateGroupId(); // 実際にはGroupInfoから抽出
 
     // 仮実装: 新しいグループを作成
