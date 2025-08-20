@@ -122,8 +122,10 @@ export function ChatRoomList(props: ChatRoomListProps) {
     const me = account();
     if (!me) return room.name;
     if (room.type === "memo") return room.name;
-    if (room.members.length === 0) return "メンバー同期中";
     const self = selfHandle();
+    if (room.members.filter((m) => m !== self).length === 0) {
+      return "メンバー同期中";
+    }
     // グループ（1:1以外）はそのまま（後段の補完で名前が入る想定）
     if (!isFriendRoom(room, self)) return room.name;
     const rawOther = room.members.find((m) => m !== self) ??
@@ -392,7 +394,8 @@ export function ChatRoomList(props: ChatRoomListProps) {
                       </span>
                       <span class="text-[12px] text-[#aaaaaa] font-normal flex justify-between items-center">
                         <p class="truncate">
-                          {room.members.length === 0
+                          {room.members.filter((m) => m !== selfHandle())
+                              .length === 0
                             ? "メンバー同期中"
                             : room.status === "invited"
                             ? "招待中"
@@ -509,7 +512,8 @@ export function ChatRoomList(props: ChatRoomListProps) {
                       </span>
                       <span class="text-[12px] text-[#aaaaaa] font-normal flex justify-between items-center">
                         <p class="truncate">
-                          {room.members.length === 0
+                          {room.members.filter((m) => m !== selfHandle())
+                              .length === 0
                             ? "メンバー同期中"
                             : room.status === "invited"
                             ? "招待中"

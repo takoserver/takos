@@ -25,7 +25,7 @@ export function FriendRoomList(props: FriendRoomListProps) {
     });
   });
   const loadingMembers = createMemo(() =>
-    props.rooms.some((r) => r.members.length === 0)
+    props.rooms.some((r) => r.members.length <= 1)
   );
 
   function normalizeHandle(id?: string): string | undefined {

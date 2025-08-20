@@ -522,7 +522,7 @@ export function Chat() {
           return m;
         });
         // 1対1・未命名のとき、タイトルがローカル名等に上書きされていたらハンドルに補正
-        const isDm = r.type !== "memo" && (r.members?.length ?? 0) === 1 &&
+        const isDm = r.type !== "memo" && (r.members?.length ?? 0) === 2 &&
           !(r.hasName || r.hasIcon);
         let displayName = r.displayName;
         if (
@@ -578,8 +578,12 @@ export function Chat() {
         const cur = r.members ?? [];
         const norm = normalizeHandle(partner as string) as string | undefined;
         if (!norm) return r;
-        if (cur.length === 1 && cur[0] === norm) return r;
-        return { ...r, members: [norm] };
+        if (
+          cur.length === 2 && cur.includes(norm) && cur.includes(selfHandle)
+        ) {
+          return r;
+        }
+        return { ...r, members: [norm, selfHandle] };
       })
     );
 
@@ -1234,7 +1238,6 @@ export function Chat() {
         lastMessageTime: undefined,
       },
     ];
-    const handle = `${user.userName}@${getDomain()}` as ActorID;
     // 暗黙のルーム（メッセージ由来）は除外して、明示的に作成されたもののみ取得
     const serverRooms = await searchRooms(user.userName, {
       implicit: "include",
@@ -1247,7 +1250,6 @@ export function Chat() {
       const members = state
         ? (await extractMembers(state))
           .map((m) => normalizeHandle(m as ActorID) ?? m)
-          .filter((m) => (normalizeHandle(m as ActorID) ?? m) !== handle)
         : [] as string[];
       rooms.push({
         id: item.id,
@@ -1516,7 +1518,7 @@ export function Chat() {
       const room = chatRooms().find((r) => r.id === roomId);
       const toList = participantsFromStateSync(roomId).length > 0
         ? participantsFromStateSync(roomId)
-        : (room?.members ?? []).filter((m) => !!m);
+        : (room?.members ?? []).filter((m) => m && m !== selfHandle);
       const ok = await sendHandshake(
         roomId,
         `${user.userName}@${getDomain()}`,
@@ -2165,7 +2167,7 @@ export function Chat() {
       // 名前付き1:1ルームなど、IDがパートナーと一致しない場合のフォールバック
       if (!room) {
         room = chatRooms().find((r) =>
-          (r.members?.length ?? 0) === 1 &&
+          (r.members?.length ?? 0) === 2 &&
           r.members.includes(normalizedPartner)
         );
       }
@@ -2575,13 +2577,14 @@ export function Chat() {
         const base = changed ? nextA : list;
         const uuidRe =
           /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        const selfHandle = `${user.userName}@${getDomain()}`;
         const candidates = base.filter((r) =>
-          r.type !== "memo" && (r.members?.length ?? 0) === 1 &&
+          r.type !== "memo" && (r.members?.length ?? 0) === 2 &&
           !(r.hasName || r.hasIcon) && !uuidRe.test(r.id)
         );
-        const ids = candidates.map((r) => r.members[0]).filter((
-          v,
-        ): v is string => !!v);
+        const ids = candidates.map((r) =>
+          r.members.find((m) => m !== selfHandle)
+        ).filter((v): v is string => !!v);
         if (ids.length === 0) return;
         try {
           const infos = await fetchUserInfoBatch(ids, user.id);
@@ -2590,10 +2593,11 @@ export function Chat() {
           let nameChanged = false;
           const nextB = base.map((r) => {
             if (
-              r.type === "memo" || !(r.members?.length === 1) ||
+              r.type === "memo" || r.members?.length !== 2 ||
               (r.hasName || r.hasIcon)
             ) return r;
-            const info = map.get(r.members[0]);
+            const other = r.members.find((m) => m !== selfHandle);
+            const info = other ? map.get(other) : undefined;
             if (!info) return r;
             const newName = info.displayName || info.userName;
             const newAvatar = info.authorAvatar || r.avatar;
@@ -2791,7 +2795,7 @@ export function Chat() {
                     const rawOther = r.members.find((m) => m !== selfHandle) ??
                       r.members[0];
                     const isDm = r.type !== "memo" &&
-                      (r.members?.length ?? 0) === 1 &&
+                      (r.members?.length ?? 0) === 2 &&
                       !(r.hasName || r.hasIcon);
                     const looksLikeSelf = me &&
                       (r.name === me.displayName || r.name === me.userName);

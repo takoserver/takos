@@ -44,7 +44,9 @@ export function ChatTitleBar(props: ChatTitleBarProps) {
       return room.displayName;
     }
     const selfHandle = `${me.userName}@${getDomain()}`;
-    if (room.members.length === 0) return "メンバー同期中";
+    if (room.members.filter((m) => m !== selfHandle).length === 0) {
+      return "メンバー同期中";
+    }
     if (isFriendRoom(room, selfHandle)) {
       const other = room.members.find((m) => m !== selfHandle) ??
         room.members[0];
