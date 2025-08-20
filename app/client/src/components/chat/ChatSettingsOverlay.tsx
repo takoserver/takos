@@ -320,14 +320,77 @@ export function ChatSettingsOverlay(props: ChatSettingsOverlayProps) {
 
   const extractIdentities = (state: StoredGroupState): string[] => {
     const out: string[] = [];
-    const tree = state.ratchetTree as unknown as {
-      nodeType: string;
-      leaf?: { credential?: { identity?: Uint8Array } };
-    }[];
-    for (const node of tree) {
-      if (node?.nodeType === "leaf") {
-        const id = node.leaf?.credential?.identity;
-        if (id) out.push(new TextDecoder().decode(id));
+  const treeRaw: unknown = (state as unknown as { ratchetTree?: unknown }).ratchetTree;
+    if (!treeRaw) return out;
+
+    // Normalize various possible shapes of ratchetTree saved in storage or coming
+    // from different implementations. We try to extract an array of nodes.
+    type NodeLike = {
+      nodeType?: string;
+      leaf?: { credential?: { identity?: Uint8Array | string } };
+      identity?: Uint8Array | string;
+      credential?: { identity?: Uint8Array | string };
+      credential_id?: string;
+      toArray?: () => NodeLike[];
+    };
+
+    let nodes: NodeLike[] | undefined;
+    try {
+      if (typeof treeRaw === "string") {
+        // maybe JSON-serialized
+        try {
+          const parsed = JSON.parse(treeRaw);
+          if (Array.isArray(parsed)) nodes = parsed;
+          else if (parsed && Array.isArray((parsed as unknown as { nodes?: unknown }).nodes)) nodes = (parsed as unknown as { nodes: NodeLike[] }).nodes;
+        } catch {
+          // not JSON - skip
+        }
+      } else if (Array.isArray(treeRaw)) {
+        nodes = treeRaw as NodeLike[];
+      } else if (typeof treeRaw === "object" && treeRaw !== null) {
+        const tr = treeRaw as Record<string, unknown>;
+        if (Array.isArray(tr.nodes)) nodes = tr.nodes as NodeLike[];
+        else if (Array.isArray(tr.tree)) nodes = tr.tree as NodeLike[];
+        else if (typeof tr.toArray === "function") {
+          try {
+            const maybe = (tr as unknown as { toArray: () => unknown }).toArray();
+            if (Array.isArray(maybe)) nodes = maybe as NodeLike[];
+          } catch {
+            // ignore
+          }
+        } else {
+          // last resort: object values that look like nodes
+          const vals = Object.values(tr || {});
+          if (vals.some((v) => typeof v === "object" && v !== null && ("nodeType" in v || "leaf" in v || "identity" in v))) {
+            nodes = vals as NodeLike[];
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("extractIdentities: failed to normalize ratchetTree", e, treeRaw);
+      return out;
+    }
+
+    if (!nodes) {
+      // Unsupported format - avoid throwing in UI
+      console.warn("extractIdentities: unsupported ratchetTree format", treeRaw);
+      return out;
+    }
+
+    for (const node of nodes) {
+      if (!node) continue;
+      try {
+        if (node.nodeType === "leaf") {
+          const id = node.leaf?.credential?.identity;
+          if (!id) continue;
+          out.push(typeof id === "string" ? id : new TextDecoder().decode(id));
+          continue;
+        }
+        // fallback checks for other shapes
+        const maybe = node.leaf?.credential?.identity ?? node.identity ?? node.credential?.identity ?? node.credential_id;
+        if (maybe) out.push(typeof maybe === "string" ? maybe : new TextDecoder().decode(maybe));
+      } catch (e) {
+        console.warn("extractIdentities: node parse error", e, node);
       }
     }
     return out;
