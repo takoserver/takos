@@ -882,21 +882,27 @@ app.post("/users/:user/keyPackages", authRequired, async (c) => {
   const actorId = `https://${domain}/users/${user}`;
   // BasicCredential.identity と Actor の URL を照合
   try {
-    const id = extractBasicCredentialIdentity(b64ToBytes(content));
+    const rawBytes = b64ToBytes(content);
+    const id = extractBasicCredentialIdentity(rawBytes, { debug: true });
     if (!id) {
-      console.error("KeyPackage identity extraction failed", { user, actorId });
+      console.error("KeyPackage identity extraction failed", {
+        user,
+        actorId,
+        contentLen: content.length,
+        firstBytes: Array.from(rawBytes.slice(0, 12)).map((b) => b.toString(16).padStart(2, "0")).join(" "),
+      });
       return c.json(
-        { error: "ap_mls.binding.policy_violation" },
+        { error: "ap_mls.binding.policy_violation", detail: "identity_not_found" },
         400,
       );
     }
     if (id !== actorId) {
       console.error("KeyPackage identity mismatch", { user, actorId, extracted: id });
-      return c.json({ error: "ap_mls.binding.identity_mismatch" }, 400);
+      return c.json({ error: "ap_mls.binding.identity_mismatch", expected: actorId, extracted: id }, 400);
     }
   } catch (err) {
     console.error("KeyPackage verification failed", { user, actorId, error: err });
-    return c.json({ error: "ap_mls.binding.policy_violation" }, 400);
+    return c.json({ error: "ap_mls.binding.policy_violation", detail: "exception" }, 400);
   }
   const db = createDB(getEnv(c));
   const gi = typeof groupInfo === "string" ? groupInfo : undefined;
