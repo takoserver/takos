@@ -174,6 +174,62 @@ export const addKeyPackage = async (
   }
 };
 
+// 一括登録: 部分成功対応。失敗要素は errors 配列で返す。
+export const addKeyPackagesBatch = async (
+  user: string,
+  pkgs: Array<{
+    content: string;
+    mediaType?: string;
+    encoding?: string;
+    groupInfo?: string;
+    expiresAt?: string;
+    lastResort?: boolean;
+    deviceId?: string;
+  }>,
+): Promise<{
+  results: { keyId: string | null; keyPackageRef?: string; lastResort?: boolean }[];
+  errors: { index: number; error: string }[];
+}> => {
+  if (pkgs.length === 0) return { results: [], errors: [] };
+  for (const p of pkgs) {
+    if (!p.mediaType) p.mediaType = "message/mls";
+    if (!p.encoding) p.encoding = "base64";
+  }
+  const res = await apiFetch(
+    `/api/users/${encodeURIComponent(user)}/keyPackages/batch`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: pkgs }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error("KeyPackageバッチ登録に失敗しました");
+  }
+  const data: unknown = await res.json();
+  interface BatchResultRaw { keyId?: unknown; keyPackageRef?: unknown; lastResort?: unknown }
+  interface BatchErrorRaw { index?: unknown; error?: unknown }
+  const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object";
+  const rawResults: BatchResultRaw[] = isObj(data) && Array.isArray(data.results)
+    ? data.results.filter((r): r is BatchResultRaw => isObj(r))
+    : [];
+  const rawErrors: BatchErrorRaw[] = isObj(data) && Array.isArray(data.errors)
+    ? data.errors.filter((e): e is BatchErrorRaw => isObj(e))
+    : [];
+  return {
+    results: rawResults.map((r) => ({
+      keyId: typeof r.keyId === "string" ? r.keyId : null,
+      keyPackageRef: typeof r.keyPackageRef === "string"
+        ? r.keyPackageRef
+        : undefined,
+      lastResort: typeof r.lastResort === "boolean" ? r.lastResort : undefined,
+    })),
+    errors: rawErrors
+      .filter((e) => typeof e.index === "number" && typeof e.error === "string")
+      .map((e) => ({ index: e.index as number, error: e.error as string })),
+  };
+};
+
 export const fetchKeyPackage = async (
   user: string,
   keyId: string,
@@ -406,6 +462,27 @@ export const deleteKeyPackage = async (
 
 // Client-side helper: ensure the user's KeyPackage pool is filled to the configured size.
 export async function topUpSelfKeyPackages(userName: string, accountId: string) {
+  // Reentrancy / spam guard per account
+  const guardKey = `__kp_topup_${accountId}` as const;
+  // @ts-ignore: dynamic property bag on globalThis for simple per-account guard
+  if (globalThis[guardKey] && Date.now() - globalThis[guardKey].ts < 10_000) {
+    return; // cooldown 10s
+  }
+  // Persistent cooldown (localStorage) to avoid multi-tab storms
+  try {
+    const cdKey = `kp_topup_cd_${accountId}`;
+    const last = parseInt(localStorage.getItem(cdKey) || "0", 10) || 0;
+    const nowTs = Date.now();
+    const COOLDOWN_MS = 30_000; // 30s
+    if (nowTs - last < COOLDOWN_MS) {
+      return;
+    }
+    localStorage.setItem(cdKey, String(nowTs));
+  } catch (_) {
+    /* ignore storage errors */
+  }
+  // @ts-ignore: store guard metadata
+  globalThis[guardKey] = { ts: Date.now(), running: true };
   try {
     const target = getKpPoolSize();
     if (!target || target <= 1) return;
@@ -417,53 +494,67 @@ export async function topUpSelfKeyPackages(userName: string, accountId: string) 
     );
     // lastResort が存在しない場合は 1 個だけ作る（target にはカウントしない）
     const hasLastResort = (selfKps ?? []).some((k) => k.lastResort);
+    const actor = new URL(`/users/${userName}`, globalThis.location.origin).href;
+    const batchPayload: { content: string; deviceId: string; lastResort?: boolean }[] = [];
+
     if (!hasLastResort) {
       try {
-        const actor =
-          new URL(`/users/${userName}`, globalThis.location.origin).href;
         const kp = await generateKeyPair(actor);
         await saveMLSKeyPair(accountId, {
           public: kp.public,
-            private: kp.private,
-            encoded: kp.encoded,
-            identity: actor,
+          private: kp.private,
+          encoded: kp.encoded,
+          identity: actor,
         });
-        await addKeyPackage(userName, {
-          content: kp.encoded,
-          lastResort: true,
-          deviceId: accountId, // マルチアカウント対応：デバイス識別子追加
-        });
+        batchPayload.push({ content: kp.encoded, deviceId: accountId, lastResort: true });
       } catch (e) {
         console.warn("lastResort KeyPackage 生成に失敗", e);
       }
     }
+
     const need = target - usable.length;
-    if (need <= 0) return;
-    // actor URL for identity
-    const actor =
-      new URL(`/users/${userName}`, globalThis.location.origin).href;
-    for (let i = 0; i < need; i++) {
-      try {
-        const kp = await generateKeyPair(actor);
-        // 保存（複数保存可能: KEY_STORE は autoIncrement）
-        await saveMLSKeyPair(accountId, {
-          public: kp.public,
+    if (need > 0) {
+      for (let i = 0; i < need; i++) {
+        try {
+          const kp = await generateKeyPair(actor);
+          await saveMLSKeyPair(accountId, {
+            public: kp.public,
             private: kp.private,
             encoded: kp.encoded,
             identity: actor,
-        });
-        console.log("[KeyPackage] generated with identity", { actor, userName });
-        await addKeyPackage(userName, { 
-          content: kp.encoded,
-          deviceId: accountId, // マルチアカウント対応：デバイス識別子追加
-        });
-      } catch (e) {
-        console.warn("KeyPackage 補充に失敗しました", e);
-        break;
+          });
+            batchPayload.push({ content: kp.encoded, deviceId: accountId });
+        } catch (e) {
+          console.warn("KeyPackage 生成に失敗しました", e);
+          break;
+        }
       }
+    }
+
+    if (batchPayload.length === 0) return; // 生成不要
+    // Safety: fetch again just before send to avoid race overfill
+    try {
+      const latest = await fetchKeyPackages(userName);
+      const now2 = Date.now();
+      const usable2 = (latest ?? []).filter((k) => !k.used && (!k.expiresAt || Date.parse(k.expiresAt) > now2) && !k.lastResort);
+      if (usable2.length >= target && batchPayload.every(p => !p.lastResort)) {
+        return; // Already satisfied by another tab/process
+      }
+    } catch (_) { /* ignore */ }
+    try {
+      const { results, errors } = await addKeyPackagesBatch(userName, batchPayload);
+      console.log("[KeyPackage] batch submitted", { userName, generated: batchPayload.length, stored: results.length, errors });
+    } catch (e) {
+      console.warn("KeyPackage バッチ送信に失敗", e);
     }
   } catch (e) {
     console.warn("KeyPackage プール確認に失敗しました", e);
+  } finally {
+    // small delay to avoid immediate subsequent triggers resetting guard window incorrectly
+    setTimeout(() => {
+  // @ts-ignore: clear running flag but keep timestamp for cooldown window
+      if (globalThis[guardKey]) globalThis[guardKey].running = false;
+    }, 100);
   }
 }
 

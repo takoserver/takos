@@ -743,6 +743,8 @@ app.get(
         generator: normalizeGenerator(doc.generator),
         createdAt: doc.createdAt,
         keyPackageRef: (doc as { keyPackageRef?: string }).keyPackageRef,
+  used: (doc as { used?: boolean }).used,
+  lastResort: (doc as { lastResort?: boolean }).lastResort,
       }));
       return c.json({ type: "Collection", items });
     }
@@ -812,7 +814,7 @@ app.get("/users/:user/keyPackages/:keyId", async (c) => {
     const remaining = await db.countAvailableKeyPackages(user);
     const env = getEnv(c);
     const threshold = parseInt(env["KP_LOW_THRESHOLD"] ?? "3", 10) || 3;
-    if (remaining <= threshold) {
+  if (remaining < threshold) {
       // notify all connected devices for this user
       const domain = getDomain(c);
       try {
@@ -848,6 +850,8 @@ app.get("/users/:user/keyPackages/:keyId", async (c) => {
     cipherSuite: doc.cipherSuite,
     generator: normalizeGenerator(doc.generator),
     keyPackageRef: (doc as { keyPackageRef?: string }).keyPackageRef,
+  used: (doc as { used?: boolean }).used,
+  lastResort: (doc as { lastResort?: boolean }).lastResort,
   };
   return c.json(object);
 });
@@ -993,6 +997,146 @@ app.post("/users/:user/keyPackages", authRequired, async (c) => {
   });
 });
 
+// Batch create KeyPackages: { items: [ { content, mediaType?, encoding?, groupInfo?, expiresAt?, deviceId?, version?, cipherSuite?, generator?, lastResort? }, ... ] }
+app.post("/users/:user/keyPackages/batch", authRequired, async (c) => {
+  const user = c.req.param("user");
+  const body = await c.req.json().catch(() => ({}));
+  const items = Array.isArray(body.items) ? body.items : [];
+  if (items.length === 0) return c.json({ error: "items required" }, 400);
+  const domain = getDomain(c);
+  const actorId = `https://${domain}/users/${user}`;
+  const env = getEnv(c);
+  const db = createDB(env);
+  const results: unknown[] = [];
+  const errors: { index: number; error: string }[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i] || {};
+    try {
+      const {
+        content,
+        mediaType,
+        encoding,
+        groupInfo,
+        expiresAt,
+        deviceId,
+        version,
+        cipherSuite,
+        generator,
+        lastResort,
+      } = it as Record<string, unknown>;
+      if (typeof content !== "string") {
+        errors.push({ index: i, error: "content required" });
+        continue;
+      }
+      // fill defaults
+      let mt: string | null = "message/mls";
+      if (typeof mediaType === "string") {
+        if (mediaType === "message/mls") mt = mediaType; else {
+          errors.push({ index: i, error: 'mediaType must be "message/mls"' });
+          continue;
+        }
+      }
+      let enc: string | null = "base64";
+      if (typeof encoding === "string") {
+        if (encoding === "base64") enc = encoding; else {
+          errors.push({ index: i, error: 'encoding must be "base64"' });
+          continue;
+        }
+      }
+      // Identity check
+      try {
+        const rawBytes = b64ToBytes(content);
+        const id = extractBasicCredentialIdentity(rawBytes, { debug: false });
+        if (!id) {
+          errors.push({ index: i, error: "ap_mls.binding.policy_violation" });
+          continue;
+        }
+        if (id !== actorId) {
+          errors.push({ index: i, error: "ap_mls.binding.identity_mismatch" });
+          continue;
+        }
+      } catch (_e) {
+        errors.push({ index: i, error: "ap_mls.binding.policy_violation" });
+        continue;
+      }
+      const gi = typeof groupInfo === "string" ? groupInfo : undefined;
+      let genObj: GeneratorInfo | undefined;
+      if (
+        typeof generator === "object" && generator &&
+        typeof (generator as { id?: unknown }).id === "string" &&
+        typeof (generator as { type?: unknown }).type === "string" &&
+        typeof (generator as { name?: unknown }).name === "string"
+      ) {
+        const g = generator as { id: string; type: string; name: string };
+        genObj = { id: g.id, type: g.type, name: g.name };
+      } else if (typeof generator === "string") {
+        genObj = { id: generator, type: "Application", name: generator };
+      }
+      const pkg = await db.createKeyPackage(
+        user,
+        content,
+        mt,
+        enc,
+        gi,
+        expiresAt ? new Date(expiresAt as string) : undefined,
+        typeof deviceId === "string" ? deviceId : undefined,
+        typeof version === "string" ? version : undefined,
+        typeof cipherSuite === "number" ? cipherSuite : undefined,
+        genObj,
+        undefined,
+        typeof lastResort === "boolean" ? lastResort : undefined,
+      ) as KeyPackageDoc;
+      results.push({
+        keyId: String(pkg._id),
+        keyPackageRef: (pkg as { keyPackageRef?: string }).keyPackageRef,
+        lastResort: (pkg as { lastResort?: boolean }).lastResort,
+      });
+      // ActivityPub fan-out (simplified per item)
+      try {
+        const keyObj = {
+          "@context": [
+            "https://www.w3.org/ns/activitystreams",
+            "https://purl.archive.org/socialweb/mls",
+          ],
+          id: `https://${domain}/users/${user}/keyPackages/${pkg._id}`,
+          type: ["Object", "KeyPackage"],
+          attributedTo: actorId,
+          to: ["https://www.w3.org/ns/activitystreams#Public"],
+          mediaType: pkg.mediaType,
+          encoding: pkg.encoding,
+          summary:
+            "This is binary-encoded cryptographic key package. See https://swicg.github.io/activitypub-e2ee/ for information about how to read messages like these.",
+          content: pkg.content,
+          groupInfo: pkg.groupInfo,
+          expiresAt: pkg.expiresAt,
+          version: pkg.version,
+          cipherSuite: pkg.cipherSuite,
+          generator: normalizeGenerator(pkg.generator),
+          keyPackageRef: (pkg as { keyPackageRef?: string }).keyPackageRef,
+          lastResort: (pkg as { lastResort?: boolean }).lastResort,
+        };
+        const createActivity = createCreateActivity(domain, actorId, keyObj);
+        (createActivity as ActivityPubActivity).cc = [];
+        await deliverToFollowers(env, user, createActivity, domain);
+        const addActivity = createAddActivity(
+          domain,
+          actorId,
+          createActivity.id,
+          `https://${domain}/users/${user}/keyPackages`,
+        );
+        await deliverToFollowers(env, user, addActivity, domain);
+      } catch (actErr) {
+        console.error("batch activity fan-out failed", actErr);
+      }
+    } catch (err) {
+      console.error("batch keyPackage create failed", err);
+      errors.push({ index: i, error: "internal" });
+    }
+  }
+  try { await db.cleanupKeyPackages(user); } catch (_) { /* ignore cleanup errors */ }
+  return c.json({ result: "ok", results, errors });
+});
+
 // KeyPackageRef で使用済みにマーキング: Welcome 消費後にクライアントがまとめて通知
 app.post("/users/:user/keyPackages/markUsed", authRequired, async (c) => {
   const user = c.req.param("user");
@@ -1012,7 +1156,7 @@ app.post("/users/:user/keyPackages/markUsed", authRequired, async (c) => {
     const remaining = await db.countAvailableKeyPackages(user);
     const env = getEnv(c);
     const threshold = parseInt(env["KP_LOW_THRESHOLD"] ?? "3", 10) || 3;
-    if (remaining <= threshold) {
+  if (remaining < threshold) {
       const domain = getDomain(c);
       try {
         console.log("[keyPackages] low inventory after markUsed", { user, remaining, threshold });
@@ -1054,7 +1198,7 @@ app.delete("/users/:user/keyPackages/:keyId", authRequired, async (c) => {
     const remaining = await db.countAvailableKeyPackages(user);
     const env = getEnv(c);
     const threshold = parseInt(env["KP_LOW_THRESHOLD"] ?? "3", 10) || 3;
-    if (remaining <= threshold) {
+  if (remaining < threshold) {
       sendToUser(`${user}@${domain}`, {
         type: "keyPackageLow",
         payload: { remaining, threshold, userName: user },
@@ -1141,7 +1285,7 @@ app.post("/users/:user/resetKeys", authRequired, async (c) => {
     const remaining = await db.countAvailableKeyPackages(user);
     const env = getEnv(c);
     const threshold = parseInt(env["KP_LOW_THRESHOLD"] ?? "3", 10) || 3;
-    if (remaining <= threshold) {
+  if (remaining < threshold) {
       const domain = getDomain(c);
       sendToUser(`${user}@${domain}`, {
         type: "keyPackageLow",
