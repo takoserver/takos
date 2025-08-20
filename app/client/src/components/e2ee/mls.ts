@@ -1,6 +1,6 @@
 // OpenMLS WASM ブリッジと基本的なラッパー API を統合したモジュール
 
-import { b64ToBuf, bufToB64 } from "../../../../shared/buffer.ts";
+import { b64ToBuf, bufToB64, hexToBuf } from "../../../../shared/buffer.ts";
 
 // OpenMLS WASM モジュールのインポート
 import wasmInit, {
@@ -73,9 +73,11 @@ function getOrCreateIdentity(id: string): Identity {
 }
 
 function generateGroupId(): string {
+  // 16バイトの乱数を16進32文字に変換
   const randomBytes = new Uint8Array(16);
   crypto.getRandomValues(randomBytes);
-  return bufToB64(randomBytes);
+  return Array.from(randomBytes).map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 async function om_generateKeyPackage(
@@ -105,21 +107,42 @@ async function om_createGroup(identity: string): Promise<OpenMlsCreatedGroup> {
   await initWasm();
   const provider = getProvider();
   const identityObj = getOrCreateIdentity(identity);
-  const groupId = generateGroupId();
+  let groupId = generateGroupId();
+  while (groupId.length !== 32) {
+    groupId = generateGroupId();
+  }
   let group: Group;
   try {
-    console.debug("[MLS] create_new attempt", { identity, groupId, groupIdLen: b64ToBuf(groupId).length });
+    console.debug("[MLS] create_new attempt", {
+      identity,
+      groupId,
+      groupIdLen: groupId.length,
+    });
     group = Group.create_new(provider, identityObj, groupId);
   } catch (e) {
-    console.error("Group.create_new failed", e, "identity=", identity, "groupId=", groupId);
-    const fallbackId = `gid_${Date.now().toString(16)}`;
+    console.error(
+      "Group.create_new failed",
+      e,
+      "identity=",
+      identity,
+      "groupId=",
+      groupId,
+    );
+    let fallbackId = generateGroupId();
+    while (fallbackId.length !== 32) {
+      fallbackId = generateGroupId();
+    }
     try {
       console.warn("[MLS] retry with fallback groupId", fallbackId);
       group = Group.create_new(provider, identityObj, fallbackId);
       return { handle: group, groupIdB64: fallbackId };
     } catch (e2) {
       console.error("Group.create_new fallback also failed", e2);
-      throw e;
+      const msg1 = e instanceof Error ? e.message : String(e);
+      const msg2 = e2 instanceof Error ? e2.message : String(e2);
+      throw new Error(
+        `Group.create_new failed: ${msg1}; retry failed: ${msg2}`,
+      );
     }
   }
 
@@ -508,7 +531,7 @@ export async function createMLSGroup(
   return {
     state,
     keyPair,
-    gid: b64ToBuf(created.groupIdB64),
+    gid: hexToBuf(created.groupIdB64),
   };
 }
 
@@ -523,8 +546,8 @@ export function addMembers(
 }> {
   return (async () => {
     await initWasm();
-  const provider = getProvider();
-  const identityObj = getOrCreateIdentity(state.identity);
+    const provider = getProvider();
+    const identityObj = getOrCreateIdentity(state.identity);
 
     const commits: Uint8Array[] = [];
     const welcomes: WelcomeEntry[] = [];
@@ -538,11 +561,14 @@ export function addMembers(
         try {
           keyPackage = KeyPackage.tls_deserialize(kpBytes);
         } catch (primaryError) {
-          console.warn("Primary KeyPackage.tls_deserialize failed, trying fallback:", primaryError);
+          console.warn(
+            "Primary KeyPackage.tls_deserialize failed, trying fallback:",
+            primaryError,
+          );
           // フォールバック方法を試す
           keyPackage = KeyPackage.tls_deserialize_fallback(kpBytes);
         }
-        
+
         const messages = state.handle.propose_and_commit_add(
           provider,
           identityObj,
@@ -632,7 +658,7 @@ export function joinWithWelcome(
   return (async () => {
     await initWasm();
     const provider = getProvider();
-  const _identityObj = getOrCreateIdentity(keyPair.identity);
+    const _identityObj = getOrCreateIdentity(keyPair.identity);
 
     // RatchetTreeの準備（仮実装）
     const ratchetTree = new RatchetTree(); // 実際にはWelcomeメッセージから抽出
@@ -657,7 +683,7 @@ export function joinWithGroupInfo(
     await initWasm();
     // OpenMLSでは直接GroupInfoからの参加は複雑なため、仮実装
     const provider = getProvider();
-  const identityObj = getOrCreateIdentity(keyPair.identity);
+    const identityObj = getOrCreateIdentity(keyPair.identity);
     const groupId = generateGroupId(); // 実際にはGroupInfoから抽出
 
     // 仮実装: 新しいグループを作成

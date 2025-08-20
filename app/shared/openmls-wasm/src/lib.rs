@@ -6,7 +6,7 @@ use openmls::{
     framing::{MlsMessageBodyIn, MlsMessageIn, MlsMessageOut},
     group::{GroupId, MlsGroup, MlsGroupJoinConfig, StagedWelcome},
     key_packages::{KeyPackage as OpenMlsKeyPackage, KeyPackageIn},
-    prelude::{SignatureScheme, ProtocolVersion},
+    prelude::{ProtocolVersion, SignatureScheme},
     treesync::RatchetTreeIn,
 };
 use openmls_basic_credential::SignatureKeyPair;
@@ -78,9 +78,7 @@ impl Identity {
                     "SignatureKeyPair::new failed: {:?} (identity='{}')",
                     e, name
                 ));
-                return Err(JsError::new(&format!(
-                    "SignatureKeyPair::new failed: {e}"
-                )));
+                return Err(JsError::new(&format!("SignatureKeyPair::new failed: {e}")));
             }
         };
 
@@ -151,38 +149,51 @@ impl AddMessages {
 
 #[wasm_bindgen]
 impl Group {
-    pub fn create_new(provider: &Provider, founder: &Identity, group_id: &str) -> Result<Group, JsError> {
+    pub fn create_new(
+        provider: &Provider,
+        founder: &Identity,
+        group_id: &str,
+    ) -> Result<Group, JsError> {
         let group_id_bytes = group_id.bytes().collect::<Vec<_>>();
-        // build 中に panic するケース調査のため unwrap を避けて JsError 化
+        // build 中に panic するケース調査のため unwrap を避け、panic も捕捉して JsError 化
         let builder = MlsGroup::builder()
             .ciphersuite(CIPHERSUITE)
             .with_group_id(GroupId::from_slice(&group_id_bytes));
-        let mls_group_result = builder.build(
-            &provider.0,
-            &founder.keypair,
-            founder.credential_with_key.clone(),
-        );
-        match mls_group_result {
-            Ok(mls_group) => Ok(Group { mls_group }),
-            Err(e) => {
+        let build_result = std::panic::catch_unwind(|| {
+            builder.build(
+                &provider.0,
+                &founder.keypair,
+                founder.credential_with_key.clone(),
+            )
+        });
+        match build_result {
+            Ok(Ok(mls_group)) => Ok(Group { mls_group }),
+            Ok(Err(e)) => {
                 log(&format!(
                     "MlsGroup::build failed (group_id='{}' len={}): {:?}",
                     group_id,
                     group_id_bytes.len(),
                     e
                 ));
-                // WASM 側では panic しないようフェールセーフに空 group_id で再試行
-                let fallback_group_id = GroupId::from_slice(b"fallback");
-                let fallback = MlsGroup::builder()
-                    .ciphersuite(CIPHERSUITE)
-                    .with_group_id(fallback_group_id)
-                    .build(
-                        &provider.0,
-                        &founder.keypair,
-                        founder.credential_with_key.clone(),
-                    )
-                    .expect("fallback group build must succeed");
-                Ok(Group { mls_group: fallback })
+                Err(JsError::new(&format!("MlsGroup::build failed: {e}")))
+            }
+            Err(panic) => {
+                let panic_msg = if let Some(s) = panic.downcast_ref::<&str>() {
+                    (*s).to_string()
+                } else if let Some(s) = panic.downcast_ref::<String>() {
+                    s.clone()
+                } else {
+                    "unknown panic".to_string()
+                };
+                log(&format!(
+                    "MlsGroup::build panicked (group_id='{}' len={}): {}",
+                    group_id,
+                    group_id_bytes.len(),
+                    panic_msg
+                ));
+                Err(JsError::new(&format!(
+                    "MlsGroup::build panicked: {panic_msg}"
+                )))
             }
         }
     }
@@ -401,20 +412,27 @@ impl KeyPackage {
     /// バイト配列から KeyPackage を TLS 形式でデシリアライズする
     pub fn tls_deserialize(data: &[u8]) -> Result<KeyPackage, JsError> {
         // デバッグ情報を追加
-        log(&format!("KeyPackage::tls_deserialize: data length = {}", data.len()));
+        log(&format!(
+            "KeyPackage::tls_deserialize: data length = {}",
+            data.len()
+        ));
         if data.len() > 0 {
-            log(&format!("First 16 bytes: {:?}", &data[..std::cmp::min(16, data.len())]));
+            log(&format!(
+                "First 16 bytes: {:?}",
+                &data[..std::cmp::min(16, data.len())]
+            ));
         }
-        
+
         // 1) 未検証 KeyPackage にデシリアライズ
-        let kp_in: KeyPackageIn = KeyPackageIn::tls_deserialize_exact(data)
-            .map_err(|e| {
-                let error_msg = format!("KeyPackage parse error: {e} (data length: {}, first bytes: {:?})", 
-                    data.len(), 
-                    &data[..std::cmp::min(8, data.len())]);
-                log(&error_msg);
-                JsError::new(&error_msg)
-            })?;
+        let kp_in: KeyPackageIn = KeyPackageIn::tls_deserialize_exact(data).map_err(|e| {
+            let error_msg = format!(
+                "KeyPackage parse error: {e} (data length: {}, first bytes: {:?})",
+                data.len(),
+                &data[..std::cmp::min(8, data.len())]
+            );
+            log(&error_msg);
+            JsError::new(&error_msg)
+        })?;
 
         // 2) 検証して本物の KeyPackage を得る（MLS 1.0 を想定）
         let provider = OpenMlsRustCrypto::default();
@@ -427,27 +445,33 @@ impl KeyPackage {
 
     /// より柔軟なデシリアライゼーション（バックアップ）
     pub fn tls_deserialize_fallback(data: &[u8]) -> Result<KeyPackage, JsError> {
-        log(&format!("KeyPackage::tls_deserialize_fallback: data length = {}", data.len()));
-        
+        log(&format!(
+            "KeyPackage::tls_deserialize_fallback: data length = {}",
+            data.len()
+        ));
+
         // バイトレベルでの検証を追加
         if data.is_empty() {
-            return Err(JsError::new("Empty data provided to KeyPackage deserializer"));
+            return Err(JsError::new(
+                "Empty data provided to KeyPackage deserializer",
+            ));
         }
-        
+
         // 基本的なバイト検査
         if data.len() < 4 {
             return Err(JsError::new("Data too short for KeyPackage"));
         }
-        
+
         // 1) 未検証 KeyPackage にデシリアライズ（exactのみを使用）
-        let kp_in: KeyPackageIn = KeyPackageIn::tls_deserialize_exact(data)
-            .map_err(|e| {
-                let error_msg = format!("KeyPackage fallback parse error: {e} (data length: {}, first bytes: {:?})", 
-                    data.len(), 
-                    &data[..std::cmp::min(8, data.len())]);
-                log(&error_msg);
-                JsError::new(&error_msg)
-            })?;
+        let kp_in: KeyPackageIn = KeyPackageIn::tls_deserialize_exact(data).map_err(|e| {
+            let error_msg = format!(
+                "KeyPackage fallback parse error: {e} (data length: {}, first bytes: {:?})",
+                data.len(),
+                &data[..std::cmp::min(8, data.len())]
+            );
+            log(&error_msg);
+            JsError::new(&error_msg)
+        })?;
 
         // 2) 検証して本物の KeyPackage を得る（MLS 1.0 を想定）
         let provider = OpenMlsRustCrypto::default();
