@@ -8,7 +8,6 @@ import {
 } from "./microblog/api.ts";
 import { PostList } from "./microblog/Post.tsx";
 import { UserAvatar } from "./microblog/UserAvatar.tsx";
-import { addRoom } from "./e2ee/api.ts";
 import {
   accounts as accountsAtom,
   activeAccount,
@@ -240,17 +239,11 @@ export default function Profile() {
     return actor;
   };
 
-  const openChat = async () => {
+  const openChat = () => {
     const name = username();
     const user = account();
     if (!name || !user) return;
     const handle = normalizeActor(name);
-    const me = `${user.userName}@${getDomain()}`;
-    await addRoom(
-      user.id,
-      { id: handle, name: handle, members: [handle, me] },
-      { from: me, content: "hi", to: [handle, me] },
-    );
     setRoom(handle);
     setApp("chat");
   };
