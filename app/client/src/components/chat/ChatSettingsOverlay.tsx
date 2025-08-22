@@ -8,6 +8,7 @@ import { useMLS } from "../e2ee/useMLS.ts";
 import {
   getCacheItem,
   loadMLSGroupStates,
+  reviveGroupState,
   setCacheItem,
 } from "../e2ee/storage.ts";
 import type { StoredGroupState } from "../e2ee/mls_wrapper.ts";
@@ -408,7 +409,10 @@ export function ChatSettingsOverlay(props: ChatSettingsOverlayProps) {
       const state = props.groupState;
       if (!state) throw new Error("ルームの暗号状態が未初期化です");
       // 追加用の Commit/Welcome を生成
-      const res = await createCommitAndWelcomes(state, [kpInput]);
+      const res = await createCommitAndWelcomes(
+        reviveGroupState(state),
+        [kpInput],
+      );
       // Handshake として送信（commit と welcome）
       const commitContent = encodePublicMessage(res.commit);
       // 既知のメンバー（UIが持つ room.members）と自分を宛先に含める
@@ -581,62 +585,62 @@ export function ChatSettingsOverlay(props: ChatSettingsOverlayProps) {
               </div>
             </Show>
             <div class="flex-1 flex flex-col p-6 gap-6">
-                <Show when={tab() === "general"}>
-                  <section class="space-y-6">
+              <Show when={tab() === "general"}>
+                <section class="space-y-6">
                   <div>
                     <label class="block text-sm text-gray-400 mb-1">
-                    ルーム名
+                      ルーム名
                     </label>
                     <input
-                    value={roomName()}
-                    onInput={(e) => setRoomName(e.currentTarget.value)}
-                    class="w-full bg-[#2b2b2b] border border-[#3a3a3a] rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-                    placeholder="ルーム名"
+                      value={roomName()}
+                      onInput={(e) => setRoomName(e.currentTarget.value)}
+                      class="w-full bg-[#2b2b2b] border border-[#3a3a3a] rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                      placeholder="ルーム名"
                     />
                   </div>
                   <div>
                     <label class="block text-sm text-gray-400 mb-1">
-                    アイコン
+                      アイコン
                     </label>
                     <div class="flex items-center gap-4">
-                    <div class="w-16 h-16 rounded-lg bg-[#2b2b2b] flex items-center justify-center overflow-hidden border border-[#3a3a3a]">
-                      {roomIcon()
-                      ? (
-                        <img
-                        src={roomIcon()!}
-                        alt="room icon"
-                        class="w-full h-full object-cover"
+                      <div class="w-16 h-16 rounded-lg bg-[#2b2b2b] flex items-center justify-center overflow-hidden border border-[#3a3a3a]">
+                        {roomIcon()
+                          ? (
+                            <img
+                              src={roomIcon()!}
+                              alt="room icon"
+                              class="w-full h-full object-cover"
+                            />
+                          )
+                          : <span class="text-gray-500 text-xs">なし</span>}
+                      </div>
+                      <label class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded cursor-pointer text-sm">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          class="hidden"
+                          style={{ display: "none" }}
+                          onChange={(e) => {
+                            const f = e.currentTarget.files?.[0];
+                            if (f) handleIconChange(f);
+                          }}
                         />
-                      )
-                      : <span class="text-gray-500 text-xs">なし</span>}
-                    </div>
-                    <label class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded cursor-pointer text-sm">
-                      <input
-                      type="file"
-                      accept="image/*"
-                      class="hidden"
-                      style={{ display: "none" }}
-                      onChange={(e) => {
-                        const f = e.currentTarget.files?.[0];
-                        if (f) handleIconChange(f);
-                      }}
-                      />
-                      {uploading() ? "アップロード中..." : "画像を選択"}
-                    </label>
+                        {uploading() ? "アップロード中..." : "画像を選択"}
+                      </label>
                     </div>
                   </div>
                   <div>
                     <button
-                    type="button"
-                    disabled={saving()}
-                    onClick={handleSaveGeneral}
-                    class="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded text-sm font-medium"
+                      type="button"
+                      disabled={saving()}
+                      onClick={handleSaveGeneral}
+                      class="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded text-sm font-medium"
                     >
-                    保存
+                      保存
                     </button>
                   </div>
-                  </section>
-                </Show>
+                </section>
+              </Show>
               <Show when={tab() === "members"}>
                 <section class="space-y-6">
                   <Show when={props.bindingInfo}>
