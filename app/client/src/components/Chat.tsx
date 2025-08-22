@@ -16,7 +16,8 @@ import { getDomain } from "../utils/config.ts";
 
 export function Chat() {
   const [account] = useAtom(activeAccount);
-  const [selectedRoom, setSelectedRoom] = useAtom(selectedRoomState);
+  // selectedRoomState を友だち ID として扱う
+  const [selectedFriend, setSelectedFriend] = useAtom(selectedRoomState);
   const [rooms, setRooms] = createSignal<Room[]>([]);
   const [messages, setMessages] = createSignal<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = createSignal("");
@@ -28,7 +29,6 @@ export function Chat() {
     const user = account();
     if (!user) return;
     const list = await searchRooms(user.userName);
-    const self = `${user.userName}@${getDomain()}`;
     const roomList: Room[] = list.map((r) => ({
       id: r.id,
       name: r.id,
@@ -36,7 +36,7 @@ export function Chat() {
       domain: getDomain(),
       unreadCount: 0,
       type: "group",
-      members: [self],
+      members: [r.id],
     }));
     setRooms(roomList);
   };
@@ -46,14 +46,14 @@ export function Chat() {
   });
 
   createEffect(() => {
-    const roomId = selectedRoom();
-    if (roomId) {
-      void loadMessages(roomId);
+    const fid = selectedFriend();
+    if (fid) {
+      void loadMessages(fid);
     }
   });
 
-  const loadMessages = async (roomId: string) => {
-    const list = await fetchMessages(roomId);
+  const loadMessages = async (friendId: string) => {
+    const list = await fetchMessages(friendId);
     const me = account();
     const self = me ? `${me.userName}@${getDomain()}` : "";
     const msgs: ChatMessage[] = list.map((m) => ({
@@ -71,11 +71,11 @@ export function Chat() {
 
   const handleSend = async () => {
     const text = newMessage().trim();
-    const roomId = selectedRoom();
+    const fid = selectedFriend();
     const user = account();
-    if (!text || !roomId || !user) return;
+    if (!text || !fid || !user) return;
     const me = `${user.userName}@${getDomain()}`;
-    const ok = await sendPlainMessage(roomId, me, [me], text);
+    const ok = await sendPlainMessage(me, fid, text);
     if (ok) {
       setMessages((prev) => [
         ...prev,
@@ -99,20 +99,21 @@ export function Chat() {
       <div class="w-72 border-r border-[#333]">
         <ChatRoomList
           rooms={rooms()}
-          selectedRoom={selectedRoom()}
-          onSelect={(id) => setSelectedRoom(id)}
+          selectedFriend={selectedFriend()}
+          onSelect={(id) => setSelectedFriend(id)}
           showAds={false}
           onCreateRoom={() => {}}
           segment={segment()}
           onSegmentChange={setSegment}
         />
       </div>
-      <Show when={selectedRoom()}>
+      <Show when={selectedFriend()}>
         <div class="flex flex-col flex-1">
           <ChatTitleBar
             isMobile={false}
-            selectedRoom={rooms().find((r) => r.id === selectedRoom()) ?? null}
-            onBack={() => setSelectedRoom(null)}
+            selectedRoom={rooms().find((r) => r.id === selectedFriend()) ??
+              null}
+            onBack={() => setSelectedFriend(null)}
             onOpenSettings={() => {}}
           />
           <ChatMessageList

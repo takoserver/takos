@@ -43,11 +43,11 @@ export const addRoom = async (
 };
 
 export const fetchMessages = async (
-  roomId: string,
+  friendId: string,
 ): Promise<PlainMessage[]> => {
   try {
     const res = await apiFetch(
-      `/api/rooms/${encodeURIComponent(roomId)}/messages`,
+      `/api/messages/${encodeURIComponent(friendId)}`,
     );
     if (!res.ok) return [];
     const data = await res.json();
@@ -59,15 +59,14 @@ export const fetchMessages = async (
 };
 
 export const sendMessage = async (
-  roomId: string,
   from: string,
-  to: string[],
+  to: string,
   content: string,
 ): Promise<boolean> => {
   try {
-    const payload = { from, to, content, mediaType: "text/plain" };
+    const payload = { from, to: [to], content, mediaType: "text/plain" };
     const res = await apiFetch(
-      `/api/rooms/${encodeURIComponent(roomId)}/messages`,
+      `/api/messages`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
