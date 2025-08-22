@@ -1,6 +1,6 @@
-import { Component, For, Show } from "solid-js";
+import { Component, For, onMount, Show } from "solid-js";
 import { useAtom } from "solid-jotai";
-import { loggedInState } from "../state.ts";
+import { loggedInState, rootDomainState, userNameState } from "../state.ts";
 
 // ------------------------------
 // Enhanced Icons with better accessibility
@@ -195,10 +195,9 @@ const FEATURES = [
   },
   {
     icon: Lock,
-    title: "ac",
-    desc:
-      "activitypub-e2eeを利用したエンドツーエンド暗号化。プライバシーを最優先に考えた設計。",
-    highlight: "セキュア",
+    title: "プライベートDM",
+    desc: "シンプルなダイレクトメッセージで気軽にやり取りできます。",
+    highlight: "プライベート",
   },
   {
     icon: Smartphone,
@@ -268,6 +267,22 @@ const COMPARISON = [
 // ------------------------------
 const LandingPage: Component = () => {
   const [loggedIn] = useAtom(loggedInState);
+  const [userName] = useAtom(userNameState);
+  const [rootDomain] = useAtom(rootDomainState);
+
+  onMount(async () => {
+    if (!loggedIn()) return;
+    const actor = `${userName()}@${rootDomain()}`;
+    try {
+      await fetch(
+        `/api/dm?user1=${encodeURIComponent(actor)}&user2=${
+          encodeURIComponent(actor)
+        }`,
+      );
+    } catch {
+      // 失敗しても無視
+    }
+  });
 
   return (
     <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-slate-100 font-sans antialiased">
