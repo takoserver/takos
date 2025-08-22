@@ -15,6 +15,7 @@ const messageSchema = new mongoose.Schema({
     to: { type: [String], default: [] },
     cc: { type: [String], default: [] },
   },
+  conv: { type: String, required: true, index: true },
 });
 
 messageSchema.plugin(tenantScope, { envKey: "ACTIVITYPUB_DOMAIN" });

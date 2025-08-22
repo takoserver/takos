@@ -47,10 +47,10 @@ export interface DB {
   ): Promise<ChatroomInfo[]>;
   removeChatroom(
     id: string,
-    roomId: string,
+    peerId: string,
   ): Promise<ChatroomInfo[]>;
   findChatroom(
-    roomId: string,
+    peerId: string,
   ): Promise<
     {
       owner: string;
@@ -88,6 +88,7 @@ export interface DB {
     content: string,
     extra: Record<string, unknown>,
     aud: { to: string[]; cc: string[] },
+    conversation: { from: string; to: string },
   ): Promise<unknown>;
   updateMessage(
     id: string,
@@ -95,6 +96,7 @@ export interface DB {
   ): Promise<unknown | null>;
   deleteMessage(id: string): Promise<boolean>;
   findMessages(
+    conversation: { from: string; to: string },
     filter: Record<string, unknown>,
     sort?: Record<string, SortOrder>,
   ): Promise<unknown[]>;
@@ -119,28 +121,6 @@ export interface DB {
   ): Promise<void>;
   findAccountsByUserNames(usernames: string[]): Promise<AccountDoc[]>;
   countAccounts(): Promise<number>;
-  createEncryptedMessage(data: {
-    roomId?: string;
-    from: string;
-    to: string[];
-    content: string;
-    mediaType?: string;
-    encoding?: string;
-  }): Promise<unknown>;
-  findEncryptedMessages(
-    condition: Record<string, unknown>,
-    opts?: { before?: string; after?: string; limit?: number },
-  ): Promise<unknown[]>;
-  createHandshakeMessage(data: {
-    roomId?: string;
-    sender: string;
-    recipients: string[];
-    message: string;
-  }): Promise<unknown>;
-  findHandshakeMessages(
-    condition: Record<string, unknown>,
-    opts?: { before?: string; after?: string; limit?: number },
-  ): Promise<unknown[]>;
   findEncryptedKeyPair(
     userName: string,
     deviceId: string,
@@ -152,41 +132,15 @@ export interface DB {
   ): Promise<void>;
   deleteEncryptedKeyPair(userName: string, deviceId: string): Promise<void>;
   deleteEncryptedKeyPairsByUser(userName: string): Promise<void>;
-  listKeyPackages(userName: string): Promise<unknown[]>;
-  // Summary of key packages (count excluding lastResort, and whether lastResort exists)
-  summaryKeyPackages(userName: string): Promise<{ count: number; hasLastResort: boolean }>;
-  findKeyPackage(userName: string, id: string): Promise<unknown | null>;
-  createKeyPackage(
-    userName: string,
-    content: string,
-    mediaType?: string,
-    encoding?: string,
-    groupInfo?: string,
-    expiresAt?: Date,
-    deviceId?: string,
-    version?: string,
-    cipherSuite?: number,
-    generator?: string | { id: string; type: string; name: string },
-    id?: string,
-    lastResort?: boolean,
-  ): Promise<unknown>;
-  markKeyPackageUsed(userName: string, id: string): Promise<void>;
-  markKeyPackageUsedByRef(
-    userName: string,
-    keyPackageRef: string,
-  ): Promise<void>;
-  cleanupKeyPackages(userName: string): Promise<void>;
-  deleteKeyPackage(userName: string, id: string): Promise<void>;
-  deleteKeyPackagesByUser(userName: string): Promise<void>;
   savePendingInvite(
-    roomId: string,
+    peerId: string,
     userName: string,
     deviceId: string,
     expiresAt: Date,
   ): Promise<void>;
   findPendingInvites(condition: Record<string, unknown>): Promise<unknown[]>;
   markInviteAcked(
-    roomId: string,
+    peerId: string,
     userName: string,
     deviceId: string,
   ): Promise<void>;
