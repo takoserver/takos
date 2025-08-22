@@ -2,7 +2,7 @@ import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { useAtom } from "solid-jotai";
 import { selectedRoomState } from "../states/chat.ts";
 import { activeAccount } from "../states/account.ts";
-import { fetchFollowing, fetchUserInfoBatch } from "./microblog/api.ts";
+import { fetchFollowing } from "./microblog/api.ts";
 import { ChatRoomList } from "./chat/ChatRoomList.tsx";
 import { ChatTitleBar } from "./chat/ChatTitleBar.tsx";
 import { ChatSettingsOverlay } from "./chat/ChatSettingsOverlay.tsx";
@@ -23,18 +23,25 @@ export function Chat() {
   const loadRooms = async () => {
     const me = account();
     if (!me) return;
-    const following: string[] = await fetchFollowing(me.userName);
-    const infos = await fetchUserInfoBatch(following);
-    const list: Room[] = following.map((id, i) => ({
-      id,
-      name: infos[i]?.displayName || infos[i]?.userName || id,
-      userName: infos[i]?.userName || id,
-      domain: infos[i]?.domain || new URL(id).hostname,
-      lastMessage: "",
-      unreadCount: 0,
-      type: "group",
-      members: [id],
-    }));
+    const following = await fetchFollowing(me.userName) as {
+      userName: string;
+      displayName: string;
+      avatarInitial: string;
+      domain: string;
+    }[];
+    const list: Room[] = following.map((info) => {
+      const actor = `https://${info.domain}/users/${info.userName}`;
+      return {
+        id: actor,
+        name: info.displayName || info.userName,
+        userName: info.userName,
+        domain: info.domain,
+        lastMessage: "",
+        unreadCount: 0,
+        type: "group",
+        members: [actor],
+      };
+    });
     setRooms(list);
   };
 
