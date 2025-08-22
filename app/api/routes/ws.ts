@@ -14,7 +14,6 @@ export type LifecycleHandler = (
 ) => void | Promise<void>;
 
 const messageHandlers = new Map<string, MessageHandler>();
-let binaryHandler: MessageHandler | null = null;
 const openHandlers: LifecycleHandler[] = [];
 const closeHandlers: LifecycleHandler[] = [];
 const errorHandlers: LifecycleHandler[] = [];
@@ -30,24 +29,11 @@ export function sendToUser(user: string, data: unknown) {
   }
 }
 
-export function broadcast(data: unknown) {
-  const message = typeof data === "string" ? data : JSON.stringify(data);
-  for (const set of userSockets.values()) {
-    for (const s of set) {
-      s.send(message);
-    }
-  }
-}
-
 export function registerMessageHandler(
   type: string,
   handler: MessageHandler,
 ) {
   messageHandlers.set(type, handler);
-}
-
-export function registerBinaryHandler(handler: MessageHandler) {
-  binaryHandler = handler;
 }
 
 export function registerOpenHandler(handler: LifecycleHandler) {
@@ -108,8 +94,13 @@ app.get(
                 const user = state.user as string | undefined;
                 console.warn("websocket: rejected handshake message", {
                   user: user ?? "unknown",
-                  origin: (ws as any)?.context?.req?.headers?.get?.("origin") ??
-                    null,
+                  origin: (ws as unknown as {
+                    context?: {
+                      req?: {
+                        headers?: { get?: (name: string) => string | null };
+                      };
+                    };
+                  }).context?.req?.headers?.get?.("origin") ?? null,
                 });
               } catch (e) {
                 console.warn(

@@ -195,9 +195,8 @@ const FEATURES = [
   },
   {
     icon: Lock,
-    title: "ac",
-    desc:
-      "activitypub-e2eeを利用したエンドツーエンド暗号化。プライバシーを最優先に考えた設計。",
+    title: "DM",
+    desc: "シンプルなダイレクトメッセージ機能。プライバシーを重視した設計。",
     highlight: "セキュア",
   },
   {

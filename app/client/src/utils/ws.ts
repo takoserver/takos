@@ -1,7 +1,7 @@
 import { apiUrl } from "./config.ts";
 
 let socket: WebSocket | null = null;
-const handlers: ((data: unknown) => void)[] = [];
+const dmHandlers: (() => void)[] = [];
 let currentUser: string | null = null;
 
 export function connectWebSocket(): WebSocket {
@@ -18,7 +18,9 @@ export function connectWebSocket(): WebSocket {
   socket.onmessage = (evt) => {
     try {
       const msg = JSON.parse(evt.data);
-      for (const h of handlers) h(msg);
+      if (msg.type === "hasUpdate" && msg.payload?.kind === "dm") {
+        for (const h of dmHandlers) h();
+      }
     } catch (err) {
       console.error("ws message error", err);
     }
@@ -39,13 +41,13 @@ export function registerUser(user: string) {
   }
 }
 
-export function addMessageHandler(handler: (data: unknown) => void) {
-  handlers.push(handler);
+export function addDMUpdateHandler(handler: () => void) {
+  dmHandlers.push(handler);
 }
 
-export function removeMessageHandler(handler: (data: unknown) => void) {
-  const idx = handlers.indexOf(handler);
-  if (idx >= 0) handlers.splice(idx, 1);
+export function removeDMUpdateHandler(handler: () => void) {
+  const idx = dmHandlers.indexOf(handler);
+  if (idx >= 0) dmHandlers.splice(idx, 1);
 }
 
 export function getWebSocket(): WebSocket | null {

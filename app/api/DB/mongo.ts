@@ -5,18 +5,13 @@ import FollowEdge from "../models/takos/follow_edge.ts";
 import { createObjectId } from "../utils/activitypub.ts";
 import Account from "../models/takos/account.ts";
 import Chatroom from "../models/takos/chatroom.ts";
-import EncryptedKeyPair from "../models/takos/encrypted_keypair.ts";
-import EncryptedMessage from "../models/takos/encrypted_message.ts";
-import KeyPackage from "../models/takos/key_package.ts";
 import Notification from "../models/takos/notification.ts";
 import SystemKey from "../models/takos/system_key.ts";
 import RemoteActor from "../models/takos/remote_actor.ts";
 import Session from "../models/takos/session.ts";
 import FcmToken from "../models/takos/fcm_token.ts";
 import HostFcmToken from "../models/takos_host/fcm_token.ts";
-import HandshakeMessage from "../models/takos/handshake_message.ts";
-import HostHandshakeMessage from "../models/takos_host/handshake_message.ts";
-import PendingInvite from "../models/takos/pending_invite.ts";
+import DMMessage from "../models/takos/dm_message.ts";
 import Instance from "../../takos_host/models/instance.ts";
 import OAuthClient from "../../takos_host/models/oauth_client.ts";
 import HostDomain from "../../takos_host/models/domain.ts";
@@ -267,15 +262,20 @@ export class MongoDB implements DB {
     id: string,
     room: ChatroomInfo,
   ) {
-    const doc = new Chatroom({
-      owner: id,
-      ...room,
-    });
-    if (this.env["DB_MODE"] === "host") {
-      (doc as unknown as { $locals?: { env?: Record<string, string> } })
-        .$locals = { env: this.env };
+    const exists = await this.withTenant(
+      Chatroom.findOne({ owner: id, id: room.id }),
+    );
+    if (!exists) {
+      const doc = new Chatroom({
+        owner: id,
+        ...room,
+      });
+      if (this.env["DB_MODE"] === "host") {
+        (doc as unknown as { $locals?: { env?: Record<string, string> } })
+          .$locals = { env: this.env };
+      }
+      await doc.save();
     }
-    await doc.save();
     return await this.listChatrooms(id);
   }
 
@@ -286,13 +286,15 @@ export class MongoDB implements DB {
     return await this.listChatrooms(id);
   }
 
-  async findChatroom(roomId: string) {
-    const query = this.withTenant(Chatroom.findOne({ id: roomId }));
+  async findChatroom(owner: string, roomId: string) {
+    const query = this.withTenant(
+      Chatroom.findOne({ owner, id: roomId }),
+    );
     const doc = await query.lean<
       (ChatroomInfo & { owner: string }) | null
     >();
     if (doc) {
-      const { owner, ...room } = doc;
+      const { owner: _o, ...room } = doc;
       return { owner, room };
     }
     // 履歴からの補完は行わない
@@ -422,6 +424,32 @@ export class MongoDB implements DB {
     return await query.sort(sort ?? {}).lean();
   }
 
+  async createDMMessage(from: string, to: string, content: string) {
+    const doc = new DMMessage({ from, to, content });
+    if (this.env["DB_MODE"] === "host") {
+      (doc as unknown as { $locals?: { env?: Record<string, string> } })
+        .$locals = { env: this.env };
+    }
+    await doc.save();
+    return doc.toObject();
+  }
+
+  async listDMMessages(
+    userA: string,
+    userB: string,
+    limit = 50,
+    before?: Date,
+  ) {
+    const query = this.withTenant(DMMessage.find({
+      $or: [
+        { from: userA, to: userB },
+        { from: userB, to: userA },
+      ],
+    }));
+    if (before) query.where("createdAt").lt(before);
+    return await query.sort({ createdAt: -1 }).limit(limit).lean();
+  }
+
   async findObjects(
     filter: Record<string, unknown>,
     sort?: Record<string, SortOrder>,
@@ -529,330 +557,6 @@ export class MongoDB implements DB {
   async countAccounts() {
     const query = this.withTenant(Account.countDocuments({}));
     return await query;
-  }
-
-  async createEncryptedMessage(data: {
-    roomId?: string;
-    from: string;
-    to: string[];
-    content: string;
-    mediaType?: string;
-    encoding?: string;
-  }) {
-    const doc = new EncryptedMessage({
-      roomId: data.roomId,
-      from: data.from,
-      to: data.to,
-      content: data.content,
-      mediaType: data.mediaType ?? "message/mls",
-      encoding: data.encoding ?? "base64",
-    });
-    if (this.env["DB_MODE"] === "host") {
-      (doc as unknown as { $locals?: { env?: Record<string, string> } })
-        .$locals = { env: this.env };
-    }
-    await doc.save();
-    return doc.toObject();
-  }
-
-  async findEncryptedMessages(
-    condition: Record<string, unknown>,
-    opts: { before?: string; after?: string; limit?: number } = {},
-  ) {
-    const query = this.withTenant(EncryptedMessage.find(condition));
-    if (opts.before) {
-      query.where("createdAt").lt(new Date(opts.before) as unknown as number);
-    }
-    if (opts.after) {
-      query.where("createdAt").gt(new Date(opts.after) as unknown as number);
-    }
-    const list = await query
-      .sort({ createdAt: -1 })
-      .limit(opts.limit ?? 50)
-      .lean();
-    return list;
-  }
-
-  async findEncryptedKeyPair(userName: string, deviceId: string) {
-    const query = this.withTenant(
-      EncryptedKeyPair.findOne({ userName, deviceId }),
-    );
-    return await query.lean();
-  }
-
-  async upsertEncryptedKeyPair(
-    userName: string,
-    deviceId: string,
-    content: string,
-  ) {
-    const query = EncryptedKeyPair.findOneAndUpdate(
-      { userName, deviceId },
-      { content },
-      { upsert: true },
-    );
-    this.withTenant(query);
-    await query;
-  }
-
-  async deleteEncryptedKeyPair(userName: string, deviceId: string) {
-    const query = EncryptedKeyPair.deleteOne({ userName, deviceId });
-    this.withTenant(query);
-    await query;
-  }
-
-  async deleteEncryptedKeyPairsByUser(userName: string) {
-    const query = EncryptedKeyPair.deleteMany({ userName });
-    this.withTenant(query);
-    await query;
-  }
-
-  async listKeyPackages(userName: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const query = this.withTenant(KeyPackage.find({
-      userName,
-      tenant_id: tenantId,
-      used: false,
-    }));
-    return await query.lean();
-  }
-
-  // KeyPackage の残数と lastResort の有無を取得
-  async summaryKeyPackages(userName: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const base = { userName, tenant_id: tenantId, used: false };
-    const countQuery = this.withTenant(
-      KeyPackage.countDocuments({ ...base, lastResort: { $ne: true } }),
-    );
-    const count = await countQuery;
-    const lastResortQuery = this.withTenant(
-      KeyPackage.exists({ ...base, lastResort: true }),
-    );
-    const hasLastResort = await lastResortQuery;
-    return { count, hasLastResort: !!hasLastResort };
-  }
-
-  async findKeyPackage(userName: string, id: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const query = this.withTenant(
-      KeyPackage.findOne({ _id: id, userName, tenant_id: tenantId }),
-    );
-    return await query.lean();
-  }
-
-  async createKeyPackage(
-    userName: string,
-    content: string,
-    mediaType = "message/mls",
-    encoding = "base64",
-    groupInfo?: string,
-    expiresAt?: Date,
-    deviceId?: string,
-    version?: string,
-    cipherSuite?: number,
-    generator?: string | { id: string; type: string; name: string },
-    id?: string,
-    lastResort?: boolean,
-  ) {
-    // keyPackageRef: sha256 of decoded content (raw KeyPackage bytes)
-    let keyPackageRef: string | undefined;
-    try {
-      const bin = atob(content);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const hashBuf = await crypto.subtle.digest("SHA-256", bytes);
-      keyPackageRef = Array.from(new Uint8Array(hashBuf)).map((b) =>
-        b.toString(16).padStart(2, "0")
-      ).join("");
-    } catch (_e) {
-      // ignore hash errors (content may be invalid base64) – validation happens elsewhere
-    }
-    const doc = new KeyPackage({
-      _id: id,
-      userName,
-      deviceId,
-      content,
-      mediaType,
-      encoding,
-      groupInfo,
-      expiresAt,
-      version,
-      cipherSuite,
-      generator,
-      keyPackageRef,
-      lastResort: lastResort ?? false,
-      tenant_id: this.env["ACTIVITYPUB_DOMAIN"] ?? "",
-    });
-    if (this.env["DB_MODE"] === "host") {
-      (doc as unknown as { $locals?: { env?: Record<string, string> } })
-        .$locals = {
-          env: this.env,
-        };
-    }
-    await doc.save();
-    return doc.toObject();
-  }
-
-  async markKeyPackageUsed(userName: string, id: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const query = KeyPackage.updateOne({
-      _id: id,
-      userName,
-      tenant_id: tenantId,
-    }, {
-      used: true,
-    });
-    this.withTenant(query);
-    await query;
-  }
-
-  async markKeyPackageUsedByRef(userName: string, keyPackageRef: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const query = KeyPackage.updateOne({
-      userName,
-      keyPackageRef,
-      tenant_id: tenantId,
-      used: false,
-    }, { used: true });
-    this.withTenant(query as unknown as mongoose.Query<unknown, unknown>);
-    await query;
-  }
-
-  async cleanupKeyPackages(userName: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const deviceQuery = EncryptedKeyPair.find({
-      userName,
-      tenant_id: tenantId,
-    }).distinct("deviceId");
-    this.withTenant(deviceQuery as unknown as mongoose.Query<unknown, unknown>);
-    const devices = await deviceQuery as unknown as string[];
-    const query = KeyPackage.deleteMany({
-      userName,
-      tenant_id: tenantId,
-      $or: [
-        { used: true },
-        { expiresAt: { $lt: new Date() } },
-        // lastResort かつ未使用は保持
-        {
-          $and: [{ deviceId: { $nin: devices } }, {
-            $or: [{ lastResort: { $ne: true } }, { used: true }],
-          }],
-        },
-      ],
-    });
-    this.withTenant(query);
-    await query;
-  }
-
-  async deleteKeyPackage(userName: string, id: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const query = KeyPackage.deleteOne({
-      _id: id,
-      userName,
-      tenant_id: tenantId,
-    });
-    this.withTenant(query);
-    await query;
-  }
-
-  async deleteKeyPackagesByUser(userName: string) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const query = KeyPackage.deleteMany({ userName, tenant_id: tenantId });
-    this.withTenant(query);
-    await query;
-  }
-
-  async savePendingInvite(
-    roomId: string,
-    userName: string,
-    deviceId: string,
-    expiresAt: Date,
-  ) {
-    const doc = new PendingInvite({
-      roomId,
-      userName,
-      deviceId,
-      expiresAt,
-      tenant_id: this.env["ACTIVITYPUB_DOMAIN"] ?? "",
-    });
-    if (this.env["DB_MODE"] === "host") {
-      (doc as unknown as { $locals?: { env?: Record<string, string> } })
-        .$locals = { env: this.env };
-    }
-    await doc.save();
-  }
-
-  async findPendingInvites(condition: Record<string, unknown>) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const query = this.withTenant(
-      PendingInvite.find({ ...condition, tenant_id: tenantId }),
-    );
-    return await query.lean();
-  }
-
-  async markInviteAcked(
-    roomId: string,
-    userName: string,
-    deviceId: string,
-  ) {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const query = PendingInvite.updateOne({
-      roomId,
-      userName,
-      deviceId,
-      tenant_id: tenantId,
-    }, { acked: true });
-    this.withTenant(query);
-    await query;
-  }
-
-  async createHandshakeMessage(data: {
-    roomId?: string;
-    sender: string;
-    recipients: string[];
-    message: string;
-  }): Promise<unknown> {
-    const Model = this.env["DB_MODE"] === "host"
-      ? HostHandshakeMessage
-      : HandshakeMessage;
-    const doc = new Model({
-      roomId: data.roomId,
-      sender: data.sender,
-      recipients: data.recipients,
-      message: data.message,
-      tenant_id: this.env["ACTIVITYPUB_DOMAIN"] ?? "",
-    });
-    if (this.env["DB_MODE"] === "host") {
-      (doc as unknown as { $locals?: { env?: Record<string, string> } })
-        .$locals = {
-          env: this.env,
-        };
-    }
-    await doc.save();
-    return doc.toObject() as unknown;
-  }
-
-  async findHandshakeMessages(
-    condition: Record<string, unknown>,
-    opts: { before?: string; after?: string; limit?: number } = {},
-  ): Promise<unknown[]> {
-    const tenantId = this.env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const Model = this.env["DB_MODE"] === "host"
-      ? HostHandshakeMessage
-      : HandshakeMessage;
-    const query = this.withTenant(
-      Model.find({ ...condition, tenant_id: tenantId }),
-    );
-    if (opts.before) {
-      query.where("createdAt").lt(new Date(opts.before) as unknown as number);
-    }
-    if (opts.after) {
-      query.where("createdAt").gt(new Date(opts.after) as unknown as number);
-    }
-    const list = await query
-      .sort({ createdAt: -1 })
-      .limit(opts.limit ?? 50)
-      .lean();
-    return list as unknown[];
   }
 
   async listNotifications(owner: string) {
@@ -1232,48 +936,6 @@ export class MongoDB implements DB {
 }
 
 /**
- * PendingInvite コレクションを定期的にチェックし、
- * 有効期限切れの招待を除外して再招待します。
- */
-export function startPendingInviteJob(env: Record<string, string>) {
-  // 期限切れの招待をクリーンアップするジョブ
-  async function job() {
-    const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const list = await PendingInvite.find({
-      tenant_id: tenantId,
-      acked: false,
-      expiresAt: { $lt: new Date() },
-    }).lean<
-      { _id: string; roomId: string; userName: string }[]
-    >();
-    for (const inv of list) {
-      await PendingInvite.deleteOne({ _id: inv._id });
-      // chatroom メンバー同期機能は廃止したため追加処理なし
-    }
-  }
-  setInterval(job, 60 * 60 * 1000);
-}
-
-/**
- * KeyPackage コレクションの expiresAt を監視し、
- * 有効期限切れのエントリを定期的に削除します。
- */
-export function startKeyPackageCleanupJob(env: Record<string, string>) {
-  async function job() {
-    const tenantId = env["ACTIVITYPUB_DOMAIN"] ?? "";
-    const query = KeyPackage.deleteMany({
-      tenant_id: tenantId,
-      expiresAt: { $lt: new Date() },
-    });
-    if (env["DB_MODE"] === "host") {
-      query.setOptions({ $locals: { env } });
-    }
-    await query.catch((err) => console.error("KeyPackage cleanup failed", err));
-  }
-  setInterval(job, 60 * 60 * 1000);
-}
-
-/**
  * セッションの最終利用日時を監視し、長期間活動のない端末を
  * チャットルームから除籍して再招待します。
  *
@@ -1294,16 +956,8 @@ export function startInactiveSessionJob(
         { lastDecryptAt: { $lt: threshold } },
         { lastDecryptAt: { $exists: false } },
       ],
-    }).lean<{ sessionId: string; deviceId: string }[]>();
+    }).lean<{ sessionId: string }[]>();
     for (const s of sessions) {
-      const pair = await EncryptedKeyPair.findOne({
-        deviceId: s.deviceId,
-        tenant_id: tenantId,
-      }).lean<{ userName: string } | null>();
-      const user = pair?.userName;
-      if (!user) continue;
-      // chatroom メンバー参照は廃止
-      await db.deleteEncryptedKeyPair(user, s.deviceId).catch(() => {});
       await db.deleteSessionById(s.sessionId).catch(() => {});
     }
   }

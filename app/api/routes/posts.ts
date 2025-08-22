@@ -27,7 +27,6 @@ import {
 } from "../services/user-info.ts";
 import { addNotification } from "../services/notification.ts";
 import { rateLimit } from "../utils/rate_limit.ts";
-import { broadcast, sendToUser } from "./ws.ts";
 import { announceIfPublicAndDiscoverable } from "../services/fasp.ts";
 
 interface PostDoc {
@@ -225,39 +224,6 @@ app.post(
       userInfo,
       post as Record<string, unknown>,
     );
-
-    // REST-first: WebSocket は本文を送らず存在通知のみ送る
-    // クライアントはこの通知を受けて REST API (/posts/:id や /posts?...) で本文を取得する
-    const objId = objectId || String((post as Record<string, unknown>)._id ?? "");
-    broadcast({
-      type: "hasUpdate",
-      payload: { kind: "newPost", id: objId },
-    });
-    
-    // ローカルのフォロワーへ個別に軽量通知
-    const account = await db.findAccountByUserName(author);
-    const followers = account?.followers ?? [];
-    const localFollowers = followers
-      .map((url) => {
-        try {
-          const u = new URL(url);
-          if (u.hostname !== domain || !u.pathname.startsWith("/users/")) {
-            return null;
-          }
-          return `${u.pathname.split("/")[2]}@${domain}`;
-        } catch {
-          return null;
-        }
-      })
-      .filter((v): v is string => !!v);
-    // 投稿者自身にも送信
-    localFollowers.push(`${author}@${domain}`);
-    for (const f of localFollowers) {
-      sendToUser(f, {
-        type: "hasUpdate",
-        payload: { kind: "newPost", id: objId },
-      });
-    }
 
     return c.json(formatted, 201);
   },

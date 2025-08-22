@@ -4,8 +4,6 @@ import { zValidator } from "@hono/zod-validator";
 import { createDB } from "../DB/mod.ts";
 import authRequired from "../utils/auth.ts";
 import { getEnv } from "../../shared/config.ts";
-import { getDomain } from "../utils/activitypub.ts";
-import { sendToUser } from "./ws.ts";
 
 interface NotificationDoc {
   _id?: string;
@@ -64,15 +62,6 @@ app.post(
       message,
       type,
     ) as NotificationDoc;
-    try {
-      const acc = await db.findAccountById(owner);
-      if (acc && acc.userName) {
-        const domain = getDomain(c);
-        sendToUser(`${acc.userName}@${domain}`, { type: "notification" });
-      }
-    } catch (_e) {
-      /* ignore */
-    }
     return c.json({
       id: notification._id!,
       owner: notification.owner,

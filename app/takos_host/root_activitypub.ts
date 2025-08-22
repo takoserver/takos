@@ -7,12 +7,6 @@ import {
 } from "../api/utils/activitypub.ts";
 import { getSystemKey } from "../api/services/system_actor.ts";
 import { createDB } from "../api/DB/mod.ts";
-import { broadcast, sendToUser } from "../api/routes/ws.ts";
-import {
-  formatUserInfoForPost,
-  getUserInfo,
-} from "../api/services/user-info.ts";
-import HostAccount from "../api/models/takos_host/account.ts";
 import {
   parseActivityRequest,
   storeCreateActivity,
@@ -62,26 +56,8 @@ export function createRootActivityPubApp(env: Record<string, string>) {
     const { activity } = result;
     const storedInfo = await storeCreateActivity(activity, env);
     if (storedInfo) {
-      const { stored, actorId } = storedInfo;
+      const { stored } = storedInfo;
       const domain = getDomain(c);
-      const userInfo = await getUserInfo(actorId, domain, env);
-      const formatted = formatUserInfoForPost(
-        userInfo,
-        stored,
-      );
-      broadcast({
-        type: "newPost",
-        payload: { timeline: "latest", post: formatted },
-      });
-      const followers = await HostAccount.find({
-        following: actorId,
-      }).lean<{ userName: string; tenant_id: string }[]>();
-      for (const acc of followers) {
-        sendToUser(`${acc.userName}@${acc.tenant_id}`, {
-          type: "newPost",
-          payload: { timeline: "following", post: formatted },
-        });
-      }
       const objectUrl = `https://${domain}/objects/${
         (stored as { _id?: unknown })._id
       }`;
