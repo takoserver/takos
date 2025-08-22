@@ -1,6 +1,32 @@
 import type { ActivityPubObject, MicroblogPost } from "./types.ts";
 import { apiFetch, getDomain } from "../../utils/config.ts";
-import { loadCacheEntry, saveCacheEntry } from "../e2ee/storage.ts";
+function loadCacheEntry<T>(
+  accountId: string,
+  key: string,
+): Promise<{ value: T; timestamp: number } | null> {
+  try {
+    const raw = globalThis.localStorage.getItem(`${accountId}:${key}`);
+    return raw ? JSON.parse(raw) as { value: T; timestamp: number } : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCacheEntry<T>(
+  accountId: string,
+  key: string,
+  value: T,
+) {
+  const data = { value, timestamp: Date.now() };
+  try {
+    globalThis.localStorage.setItem(
+      `${accountId}:${key}`,
+      JSON.stringify(data),
+    );
+  } catch {
+    /* ignore */
+  }
+}
 
 /**
  * ActivityPub Object を取得

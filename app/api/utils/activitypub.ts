@@ -260,6 +260,29 @@ export async function deliverActivityPubObject(
   await Promise.all(deliveryPromises);
 }
 
+export async function deliverDirectMessage(
+  to: string,
+  content: string,
+  actor: string,
+  domain: string,
+  env: Record<string, string> = {},
+): Promise<void> {
+  const activity = {
+    "@context": "https://www.w3.org/ns/activitystreams",
+    type: "Create",
+    actor: `https://${domain}/users/${actor}`,
+    to: [to],
+    object: {
+      type: "Message",
+      attributedTo: `https://${domain}/users/${actor}`,
+      content,
+      to: [to],
+      published: new Date().toISOString(),
+    },
+  } as Record<string, unknown>;
+  await deliverActivityPubObject([to], activity, actor, domain, env);
+}
+
 export function ensurePem(
   key: string,
   type: "PUBLIC KEY" | "PRIVATE KEY",
