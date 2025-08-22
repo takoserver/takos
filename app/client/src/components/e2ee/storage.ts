@@ -139,6 +139,11 @@ function deserializeGroupState(buf: ArrayBuffer): StoredGroupState {
   return { ...obj, clientConfig: defaultClientConfig } as StoredGroupState;
 }
 
+// JSON 化などで失われた TypedArray を復元するヘルパー
+export function reviveGroupState(state: StoredGroupState): StoredGroupState {
+  return deserializeGroupState(serializeGroupState(state));
+}
+
 export const loadMLSGroupStates = async (
   accountId: string,
 ): Promise<Record<string, StoredGroupState>> => {

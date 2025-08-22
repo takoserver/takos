@@ -60,6 +60,7 @@ import {
   loadKeyPackageRecords,
   loadMLSGroupStates,
   loadMLSKeyPair,
+  reviveGroupState,
   saveDecryptedMessages,
   saveMLSGroupStates,
   saveMLSKeyPair,
@@ -1535,7 +1536,10 @@ export function Chat() {
           }
         }
         if (kpInputs.length > 0) {
-          const resAdd = await createCommitAndWelcomes(group, kpInputs);
+          const resAdd = await createCommitAndWelcomes(
+            reviveGroupState(group),
+            kpInputs,
+          );
           const commitContent = encodePublicMessage(resAdd.commit);
           const ok = await sendHandshake(
             room.id,
@@ -1734,7 +1738,10 @@ export function Chat() {
           }
         }
         if (kpInputs.length > 0) {
-          const resAdd = await createCommitAndWelcomes(group, kpInputs);
+          const resAdd = await createCommitAndWelcomes(
+            reviveGroupState(group),
+            kpInputs,
+          );
           const commitContent = encodePublicMessage(resAdd.commit);
           const toList = Array.from(
             new Set([
