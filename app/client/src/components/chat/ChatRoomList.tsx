@@ -12,7 +12,6 @@ import { isUrl } from "../../utils/url.ts";
 import type { Room } from "./types.ts";
 import { isFriendRoom, isGroupRoom } from "./types.ts";
 import { FriendList } from "./FriendList.tsx";
-import { FriendRoomList } from "./FriendRoomList.tsx";
 import { Button, EmptyState, Input, Skeleton } from "../ui/index.ts";
 // ローディング表示の点滅を抑えるための簡易ディレイ表示フック
 // コンポーネント配下（createRoot/render配下）でのみ使うこと
@@ -28,7 +27,6 @@ interface ChatRoomListProps {
   onCreateRoom: () => void;
   segment: "all" | "people" | "groups";
   onSegmentChange: (seg: "all" | "people" | "groups") => void;
-  onCreateFriendRoom?: (friendId: string) => void;
 }
 
 export function ChatRoomList(props: ChatRoomListProps) {
@@ -83,7 +81,6 @@ export function ChatRoomList(props: ChatRoomListProps) {
     return shown;
   };
   const [query, setQuery] = createSignal("");
-  const [selectedFriend, setSelectedFriend] = createSignal<string | null>(null);
   const [account] = useAtom(activeAccount);
   // リストが空のときだけ、遅延してスケルトンを表示する（点滅防止）
   const showAllSkeleton = useDelayedVisibility(
@@ -119,7 +116,6 @@ export function ChatRoomList(props: ChatRoomListProps) {
     if (!me) return room.name;
     if (room.type === "memo") return room.name;
     const selfHandle = `${me.userName}@${getDomain()}`;
-    const members = room.members ?? [];
     // グループ（1:1以外）はそのまま（後段の補完で名前が入る想定）
     if (!isFriendRoom(room)) return room.name;
     if (isFriendRoom(room)) {
@@ -211,19 +207,7 @@ export function ChatRoomList(props: ChatRoomListProps) {
     return { all, people, groups };
   });
 
-  const getFriendName = (friendId: string) => {
-    const room = props.rooms.find((r) =>
-      isFriendRoom(r) && r.members.includes(friendId)
-    );
-    return room?.displayName || room?.name || friendId.split("@")[0] ||
-      friendId;
-  };
-
   const changeSeg = (seg: "all" | "people" | "groups") => {
-    if (seg === "people") {
-      // 友だちタブの場合は友達リストにリセット
-      setSelectedFriend(null);
-    }
     if (seg !== props.segment) props.onSegmentChange(seg);
   };
 
@@ -412,26 +396,13 @@ export function ChatRoomList(props: ChatRoomListProps) {
 
         {/* 友だち */}
         <div class="my-[10px] overflow-y-auto overflow-x-hidden w-full pb-14 scrollbar">
-          <Show when={selectedFriend()}>
-            <FriendRoomList
-              rooms={props.rooms}
-              friendId={selectedFriend()!}
-              friendName={getFriendName(selectedFriend()!)}
-              selectedRoom={props.selectedRoom}
-              onSelectRoom={props.onSelect}
-              onBack={() => setSelectedFriend(null)}
-              onCreateRoom={() => props.onCreateFriendRoom?.(selectedFriend()!)}
-            />
-          </Show>
-          <Show when={!selectedFriend()}>
-            <FriendList
-              rooms={props.rooms}
-              selectedFriend={selectedFriend()}
-              query={query()}
-              showSearch={false}
-              onSelectFriend={(id) => setSelectedFriend(id)}
-            />
-          </Show>
+          <FriendList
+            rooms={props.rooms}
+            selectedFriend={props.selectedRoom}
+            query={query()}
+            showSearch={false}
+            onSelectFriend={(id) => props.onSelect(id)}
+          />
         </div>
 
         {/* グループ */}

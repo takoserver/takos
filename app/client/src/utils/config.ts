@@ -79,20 +79,6 @@ export function getDomain(): string {
   return domain;
 }
 
-const DEFAULT_KP_POOL = 10;
-export function getKpPoolSize(): number {
-  const v = Number(
-    import.meta.env.VITE_MLS_KP_POOL ||
-      localStorage.getItem("takos-mls-kp-pool") || DEFAULT_KP_POOL,
-  );
-  return Number.isFinite(v) && v > 0 ? Math.floor(v) : DEFAULT_KP_POOL;
-}
-export function setKpPoolSize(n: number) {
-  if (Number.isFinite(n) && n > 0) {
-    localStorage.setItem("takos-mls-kp-pool", String(Math.floor(n)));
-  }
-}
-
 // --- 複数サーバー管理 ---
 
 const SERVERS_KEY = "takos-servers";
