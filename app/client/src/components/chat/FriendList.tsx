@@ -235,10 +235,7 @@ export function FriendList(props: FriendListProps) {
                     ? "bg-[#4a4a4a]"
                     : "hover:bg-[#3c3c3c]"
                 }`}
-                onClick={() => {
-                  console.log("Friend clicked:", friend.id); // デバッグ用
-                  props.onSelectFriend(friend.id);
-                }}
+                onClick={() => props.onSelectFriend(friend.id)}
               >
                 <div class="relative w-12 h-12 flex items-center justify-center">
                   {isUrl(friend.avatar) ||
