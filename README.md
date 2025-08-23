@@ -8,7 +8,9 @@ takosはActivityPubでweb自主するためのソフトウェアです。
 takosは、ActivityPubに追加で、以下の機能を提供します。
 
 このソフトウェアは、1人のユーザが、他のユーザとコミュニケーションを取るためのものです。
-基本的に同一ドメインのユーザーは同一人物です。(サブアカウントなど)
+基本的に同一ドメインのユーザーは同一人物です。(サブアカウントなど) ActivityPub
+の投稿に加え、暗号化を行わないシンプルなダイレクトメッセージ機能を備え
+ています。
 
 ## 🔧 技術スタック
 
@@ -165,29 +167,17 @@ ActivityPub 形式の一覧が必要な場合は、`/ap/users/:username/follower
 
 - `GET /api/accounts` – アカウント一覧取得
 - `POST /api/accounts` – アカウント作成
-- `GET /api/accounts/:id` – アカウント取得（鍵情報を含む）
+- `GET /api/accounts/:id` – アカウント取得
 - `PUT /api/accounts/:id` – アカウント更新
 - `DELETE /api/accounts/:id` – アカウント削除
 
 ## チャット API
 
-エンドツーエンド暗号化に対応したチャット機能の API です。 `/api/users/*`
-プレフィックスには公開ユーザー情報取得用のエンドポイントも含まれますが、
-アカウント管理機能は `/api/accounts/*` で提供されます。 MLS
-に関する暗号化・復号・状態管理はすべてクライアント側で行い、サーバーは
-暗号化済みデータの保存と配送だけを担います。
+ActivityPub を利用したシンプルなダイレクトメッセージ機能の API
+です。暗号化は行わ れません。 `/api/users/*`
+プレフィックスには公開ユーザー情報取得用のエンドポイン
+トも含まれますが、アカウント管理機能は `/api/accounts/*` で提供されます。
 
-- `GET /api/users/:user/keyPackages` – KeyPackage 一覧取得（`?summary=true`
-  で残数のみ取得）
-- `POST /api/users/:user/keyPackages` – KeyPackage 登録（GroupInfo
-  や有効期限を付与可能）
-- `POST /api/keyPackages/bulk` – 複数ユーザーの KeyPackage を一括登録
-- `GET /api/users/:user/keyPackages/:keyId` – KeyPackage 取得
-- `DELETE /api/users/:user/keyPackages/:keyId` – KeyPackage 削除
-- `GET /api/users/:user/encryptedKeyPair` – 暗号化鍵ペア取得
-- `POST /api/users/:user/encryptedKeyPair` – 暗号化鍵ペア保存
-- `DELETE /api/users/:user/encryptedKeyPair` – 暗号化鍵ペア削除
-- `POST /api/users/:user/resetKeys` – 鍵情報リセット
 - `GET /api/users/:user/messages` – メッセージ一覧取得
 - `POST /api/users/:user/messages` – メッセージ送信
 - `GET /api/users/:user/keep` – TAKO Keep に保存したメモ一覧を取得
@@ -213,15 +203,6 @@ ActivityPub 形式の一覧が必要な場合は、`/ap/users/:username/follower
   `FILE_MAX_SIZE*` を未設定の場合、サイズ制限はありません。
 
 .env の例は `app/api/.env.example` を参照してください。
-
-## クライアントでのデータ保存
-
-チャット機能で利用する MLS 関連データはブラウザの IndexedDB に保存されます。
-暗号化やグループ状態の更新もクライアント内で完結し、サーバーは暗号化済みデータを
-そのまま中継します。データベースはアカウントごとに分割され、別アカウントの情報が混在しないようになっています。
-
-鍵共有の仕組みについては [docs/key-sharing.md](docs/key-sharing.md)
-を参照してください。
 
 ## OpenAPI仕様
 

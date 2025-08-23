@@ -1,184 +1,50 @@
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { isUrl } from "../../utils/url.ts";
 import type { Room } from "./types.ts";
-import { useAtom } from "solid-jotai";
-import { activeAccount } from "../../states/account.ts";
-import { getDomain } from "../../utils/config.ts";
 
 interface Friend {
-  id: string; // actor ID
+  id: string;
   name: string;
   avatar?: string;
-  isOnline?: boolean;
-  domain?: string;
 }
 
 interface FriendListProps {
   rooms: Room[];
   onSelectFriend: (friendId: string) => void;
   selectedFriend?: string | null;
-  query?: string; // 親から検索語を受け取る場合に使用
-  onQueryChange?: (v: string) => void; // 親に検索語変更を通知する場合に使用
-  showSearch?: boolean; // 内部の検索バーを表示するか
+  query?: string;
+  onQueryChange?: (v: string) => void;
+  showSearch?: boolean;
 }
 
 export function FriendList(props: FriendListProps) {
-  const [account] = useAtom(activeAccount);
   const [localQuery, setLocalQuery] = createSignal("");
   const q = () => (props.query !== undefined ? props.query : localQuery());
   const setQuery = (v: string) =>
     props.onQueryChange ? props.onQueryChange(v) : setLocalQuery(v);
 
-  // ルームから友達リストを生成
   const friends = createMemo(() => {
-    const me = account();
-    const selfHandle = me ? `${me.userName}@${getDomain()}` : undefined;
-    const selfShort = me?.userName;
-    const isSelf = (id?: string) => {
-      if (!id) return false;
-      const h = normalizeHandle(id);
-      if (h && selfHandle && h === selfHandle) return true;
-      if (selfHandle && id === selfHandle) return true;
-      if (selfShort && id === selfShort) return true;
-      // 自分の actor URL 形式
-      try {
-        if (id.startsWith("http")) {
-          const u = new URL(id);
-          const name = u.pathname.split("/").pop() || "";
-          if (selfShort && name === selfShort && u.hostname === getDomain()) {
-            return true;
-          }
-        }
-      } catch { /* ignore */ }
-      return false;
-    };
-    const isUuid = (v?: string) =>
-      !!v &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-        .test(v);
-    const friendMap = new Map<string, Friend>();
-    // フレンド候補: 自分以外の候補がちょうど1名のルーム（名前の有無は問わない）
-    const candidateRooms = props.rooms.filter((r) => {
-      if (r.type === "memo") return false;
-      const base = [
-        ...((r.members ?? []).filter((m: unknown): m is string =>
-          typeof m === "string" && !!m
-        )),
-        ...((r.pendingInvites ?? []).filter((m: unknown): m is string =>
-          typeof m === "string" && !!m
-        )),
-      ];
-      let normalized = base.map((m) => normalizeHandle(m) || m);
-      normalized = normalized.filter((m) => !!m && !isSelf(m));
-      // members/pending が空なら room.id を候補に（1:1の actor id ルーム想定）
-      if (normalized.length === 0) {
-        const rid = normalizeHandle(r.id) || r.id;
-        if (rid && !isSelf(rid) && !isUuid(rid)) normalized = [rid];
-      }
-      const uniqueOthers = Array.from(new Set(normalized));
-      return uniqueOthers.length === 1;
-    });
-    for (const room of candidateRooms) {
-      const base = [
-        ...((room.members ?? []).filter((m: unknown): m is string =>
-          typeof m === "string" && !!m
-        )),
-        ...((room.pendingInvites ?? []).filter((m: unknown): m is string =>
-          typeof m === "string" && !!m
-        )),
-      ];
-      let normalized = base.map((m) => normalizeHandle(m) || m);
-      normalized = normalized.filter((m) => !!m && !isSelf(m));
-      // 自分以外が見つからない場合は room.id を使用（1:1の actor id ルーム想定）
-      if (normalized.length === 0) {
-        const rid = normalizeHandle(room.id) || room.id;
-        if (rid && !isSelf(rid) && !isUuid(rid)) normalized = [rid];
-      }
-      const raw = normalized[0];
-      if (!raw) continue;
-      const friendId = raw;
-      if (selfHandle && friendId === selfHandle) continue;
-      if (!friendMap.has(friendId)) {
-        const isSelfLikeName = me &&
-          (room.name === me.displayName || room.name === me.userName ||
-            room.name === selfHandle);
-        const short = friendId.includes("@")
-          ? friendId.split("@")[0]
-          : friendId;
-        const fallbackName = short || friendId;
-        friendMap.set(friendId, {
-          id: friendId,
-          name: (room.displayName && !isSelfLikeName)
-            ? room.displayName
-            : (room.name && !isSelfLikeName)
-            ? room.name
-            : fallbackName,
-          avatar: room.avatar,
-          domain: friendId.includes("@") ? friendId.split("@")[1] : undefined,
-        });
-      }
+    const map = new Map<string, Friend>();
+    for (const room of props.rooms) {
+      const id = room.members?.[0];
+      if (!id || map.has(id)) continue;
+      map.set(id, { id, name: room.name || id, avatar: room.avatar });
     }
-    // 並び順: 未読合計 → 最終アクティビティ → 名前
-    const items = Array.from(friendMap.values());
-    const unreadSum = (fid: string) =>
-      props.rooms
-        .filter((r) => r.type !== "memo" && !(r.hasName || r.hasIcon))
-        .filter((r) =>
-          (r.members?.includes(fid)) || (r.pendingInvites?.includes(fid))
-        )
-        .reduce((a, r) => a + (r.unreadCount || 0), 0);
-    const lastTime = (fid: string) => {
-      let t = 0;
-      for (const r of props.rooms) {
-        if (r.type === "memo") continue;
-        const match = (r.members?.includes(fid)) ||
-          (r.pendingInvites?.includes(fid));
-        if (!match) continue;
-        const ts = r.lastMessageTime ? r.lastMessageTime.getTime() : 0;
-        if (ts > t) t = ts;
-      }
-      return t;
-    };
-    items.sort((a, b) => {
-      const ua = unreadSum(a.id);
-      const ub = unreadSum(b.id);
-      if (ua !== ub) return ub - ua;
-      const ta = lastTime(a.id);
-      const tb = lastTime(b.id);
-      if (ta !== tb) return tb - ta;
-      return (a.name || a.id).localeCompare(b.name || b.id);
-    });
-    return items;
+    return Array.from(map.values()).sort((a, b) =>
+      (a.name || a.id).localeCompare(b.name || b.id)
+    );
   });
-
-  function normalizeHandle(id?: string): string | undefined {
-    if (!id) return undefined;
-    if (id.startsWith("http")) {
-      try {
-        const u = new URL(id);
-        const name = u.pathname.split("/").pop() || "";
-        if (!name) return undefined;
-        return `${name}@${u.hostname}`;
-      } catch {
-        return undefined;
-      }
-    }
-    if (id.includes("@")) return id;
-    // 裸の文字列はハンドルとみなさない
-    return undefined;
-  }
 
   const filteredFriends = createMemo(() => {
     const qq = q().toLowerCase().trim();
     if (!qq) return friends();
-    return friends().filter((f) =>
-      f.name.toLowerCase().includes(qq) || f.id.toLowerCase().includes(qq)
+    return friends().filter(
+      (f) =>
+        f.name.toLowerCase().includes(qq) || f.id.toLowerCase().includes(qq),
     );
   });
 
   return (
     <div class="h-full flex flex-col">
-      {/* 検索バー（必要に応じて非表示可） */}
       <Show when={props.showSearch !== false}>
         <div class="p-3 border-b border-[#333]">
           <input
@@ -190,92 +56,31 @@ export function FriendList(props: FriendListProps) {
           />
         </div>
       </Show>
-
-      {/* 友達リスト */}
       <div class="flex-1 overflow-y-auto p-3">
         <Show when={filteredFriends().length === 0}>
-          <div class="text-center py-8">
-            <div class="w-16 h-16 bg-[#2a2a2a] rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                class="w-8 h-8 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804"
-                />
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 11a3 3 0 10-6 0 3 3 0 006 0z"
-                />
-              </svg>
-            </div>
-            <h3 class="text-lg font-medium text-white mb-2">
-              友だちがいません
-            </h3>
-            <p class="text-gray-400 text-sm">
-              新しいトークを開始して友だちを増やしましょう
-            </p>
-          </div>
+          <div class="text-center text-gray-400">友だちが見つかりません</div>
         </Show>
-
-        <div class="space-y-2">
-          <For each={filteredFriends()}>
-            {(friend) => (
-              <div
-                class={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${
-                  props.selectedFriend === friend.id
-                    ? "bg-[#4a4a4a]"
-                    : "hover:bg-[#3c3c3c]"
-                }`}
-                onClick={() => {
-                  console.log("Friend clicked:", friend.id); // デバッグ用
-                  props.onSelectFriend(friend.id);
-                }}
-              >
-                <div class="relative w-12 h-12 flex items-center justify-center">
-                  {isUrl(friend.avatar) ||
-                      (typeof friend.avatar === "string" &&
-                        friend.avatar.startsWith("data:image/"))
-                    ? (
-                      <img
-                        src={friend.avatar}
-                        alt="avatar"
-                        class="w-12 h-12 object-cover rounded-full"
-                      />
-                    )
-                    : (
-                      <div class="w-12 h-12 flex items-center justify-center rounded-full text-white bg-[#444]">
-                        {friend.avatar || friend.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-
-                  {/* オンライン状態の表示（将来的に実装） */}
-                  <Show when={friend.isOnline}>
-                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#1e1e1e]">
-                    </div>
-                  </Show>
-                </div>
-
-                <div class="ml-3 flex-1 min-w-0">
-                  <p class="text-white text-sm font-medium truncate">
-                    {friend.name}
-                  </p>
-                  <p class="text-gray-400 text-xs truncate">
-                    {friend.id}
-                  </p>
-                </div>
-              </div>
-            )}
-          </For>
-        </div>
+        <For each={filteredFriends()}>
+          {(f) => (
+            <div
+              class={`flex items-center cursor-pointer p-2 rounded ${
+                props.selectedFriend === f.id
+                  ? "bg-[#4a4a4a]"
+                  : "hover:bg-[#3c3c3c]"
+              }`}
+              onClick={() => props.onSelectFriend(f.id)}
+            >
+              {f.avatar
+                ? <img src={f.avatar} alt="" class="w-8 h-8 rounded-full" />
+                : (
+                  <div class="w-8 h-8 rounded-full bg-[#444] flex items-center justify-center text-white">
+                    {f.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              <span class="ml-3 text-sm text-white">{f.name}</span>
+            </div>
+          )}
+        </For>
       </div>
     </div>
   );
