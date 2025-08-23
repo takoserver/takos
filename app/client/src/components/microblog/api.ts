@@ -1,6 +1,6 @@
 import type { ActivityPubObject, MicroblogPost } from "./types.ts";
 import { apiFetch, getDomain } from "../../utils/config.ts";
-import { loadCacheEntry, saveCacheEntry } from "../e2ee/storage.ts";
+import { getCache, setCache } from "../utils/cache.ts";
 
 /**
  * ActivityPub Object を取得
@@ -194,6 +194,38 @@ export const createPost = async (
   }
 };
 
+export const createPostWithTo = async (
+  content: string,
+  author: string,
+  to: string[],
+  attachments?: { url: string; type: "image" | "video" | "audio" }[],
+  parentId?: string,
+  quoteId?: string,
+  faspShare?: boolean,
+): Promise<boolean> => {
+  try {
+    const response = await apiFetch("/api/posts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        author,
+        content,
+        to,
+        attachments,
+        parentId,
+        quoteId,
+        faspShare,
+      }),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Error creating directed post:", error);
+    return false;
+  }
+};
+
 export const updatePost = async (
   id: string,
   content: string,
@@ -319,7 +351,7 @@ export interface UserInfo {
   isLocal: boolean;
 }
 
-// ユーザー情報キャッシュ（メモリ）
+// ユーザー情報キャッシュ
 const userInfoCache = new Map<string, {
   userInfo: UserInfo;
   timestamp: number;
@@ -327,26 +359,23 @@ const userInfoCache = new Map<string, {
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5分
 
+const cacheKey = (identifier: string, accountId?: string) =>
+  accountId ? `${accountId}:${identifier}` : identifier;
+
 export const getCachedUserInfo = async (
   identifier: string,
   accountId?: string,
 ): Promise<UserInfo | null> => {
-  const mem = userInfoCache.get(identifier);
+  const key = cacheKey(identifier, accountId);
+  const mem = userInfoCache.get(key);
   if (mem && Date.now() - mem.timestamp < CACHE_DURATION) {
     return mem.userInfo;
   }
-  if (accountId) {
-    const entry = await loadCacheEntry<UserInfo>(
-      accountId,
-      `userInfo:${identifier}`,
-    );
-    if (entry && Date.now() - entry.timestamp < CACHE_DURATION) {
-      userInfoCache.set(identifier, {
-        userInfo: entry.value,
-        timestamp: entry.timestamp,
-      });
-      return entry.value;
-    }
+
+  const stored = await getCache<UserInfo>(key);
+  if (stored) {
+    userInfoCache.set(key, { userInfo: stored, timestamp: Date.now() });
+    return stored;
   }
   return null;
 };
@@ -356,13 +385,9 @@ export const setCachedUserInfo = async (
   userInfo: UserInfo,
   accountId?: string,
 ) => {
-  userInfoCache.set(identifier, {
-    userInfo,
-    timestamp: Date.now(),
-  });
-  if (accountId) {
-    await saveCacheEntry(accountId, `userInfo:${identifier}`, userInfo);
-  }
+  const key = cacheKey(identifier, accountId);
+  userInfoCache.set(key, { userInfo, timestamp: Date.now() });
+  await setCache(key, userInfo);
 };
 
 // 新しい共通ユーザー情報取得API

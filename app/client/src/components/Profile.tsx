@@ -8,7 +8,6 @@ import {
 } from "./microblog/api.ts";
 import { PostList } from "./microblog/Post.tsx";
 import { UserAvatar } from "./microblog/UserAvatar.tsx";
-import { addRoom } from "./e2ee/api.ts";
 import {
   accounts as accountsAtom,
   activeAccount,
@@ -19,6 +18,7 @@ import { selectedAppState } from "../states/app.ts";
 import { selectedRoomState } from "../states/chat.ts";
 import { apiFetch, getDomain } from "../utils/config.ts";
 import { isDataUrl } from "./home/types.ts";
+import { sendDirectMessage } from "./chat/api.ts";
 
 export default function Profile() {
   const [username, setUsername] = useAtom(profileUserState);
@@ -245,12 +245,8 @@ export default function Profile() {
     const user = account();
     if (!name || !user) return;
     const handle = normalizeActor(name);
-    const me = `${user.userName}@${getDomain()}`;
-    await addRoom(
-      user.id,
-      { id: handle, name: handle, members: [handle, me] },
-      { from: me, content: "hi", to: [handle, me] },
-    );
+    const selfHandle = `${user.userName}@${getDomain()}`;
+    await sendDirectMessage(selfHandle, [handle], "");
     setRoom(handle);
     setApp("chat");
   };

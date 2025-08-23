@@ -195,10 +195,10 @@ const FEATURES = [
   },
   {
     icon: Lock,
-    title: "ac",
+    title: "ダイレクトメッセージ",
     desc:
-      "activitypub-e2eeを利用したエンドツーエンド暗号化。プライバシーを最優先に考えた設計。",
-    highlight: "セキュア",
+      "ActivityPub ベースのシンプルなDM機能を搭載。プライベートなやり取りを支援します。",
+    highlight: "プライベート",
   },
   {
     icon: Smartphone,
@@ -227,16 +227,6 @@ const COMPARISON = [
     others: {
       Mastodon: "○",
       Misskey: "○",
-      Twitter: "×",
-      Facebook: "×",
-    },
-  },
-  {
-    label: "E2EE (エンドツーエンド暗号化)",
-    takos: "○",
-    others: {
-      Mastodon: "×",
-      Misskey: "×",
       Twitter: "×",
       Facebook: "×",
     },

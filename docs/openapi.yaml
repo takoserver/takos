@@ -472,176 +472,6 @@ paths:
       responses:
         "200":
           description: OGPデータ
-  /api/users/{user}/keyPackages:
-    parameters:
-      - name: user
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: summary
-        in: query
-        schema:
-          type: boolean
-        description: true を指定すると残数のみを返します
-    get:
-      summary: KeyPackage一覧取得
-      description: チャット用MLSキーの公開情報を取得します。`summary=true` を指定した場合は残数と lastResort の有無のみを返します。
-      responses:
-        "200":
-          description: KeyPackageのコレクションまたはサマリー
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - type: object
-                    properties:
-                      type:
-                        type: string
-                      items:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: string
-                            type:
-                              type: string
-                            content:
-                              type: string
-                            mediaType:
-                              type: string
-                            encoding:
-                              type: string
-                            groupInfo:
-                              type: string
-                            expiresAt:
-                              type: string
-                            createdAt:
-                              type: string
-                  - type: object
-                    properties:
-                      count:
-                        type: number
-                      hasLastResort:
-                        type: boolean
-    post:
-      summary: KeyPackage登録
-      description: チャット用KeyPackageを登録します。
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                content:
-                  type: string
-                mediaType:
-                  type: string
-                encoding:
-                  type: string
-                groupInfo:
-                  type: string
-                expiresAt:
-                  type: string
-              required:
-                - content
-      responses:
-        "200":
-          description: 登録結果
-  /api/users/{user}/keyPackages/{keyId}:
-    parameters:
-      - name: user
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: keyId
-        in: path
-        required: true
-        schema:
-          type: string
-    get:
-      summary: KeyPackage取得
-      description: 指定IDのKeyPackageを取得します。
-      responses:
-        "200":
-          description: KeyPackage
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  type:
-                    type: string
-                  mediaType:
-                    type: string
-                  encoding:
-                    type: string
-                  content:
-                    type: string
-                  groupInfo:
-                    type: string
-                  expiresAt:
-                    type: string
-    delete:
-      summary: KeyPackage削除
-      description: KeyPackageを削除します。
-      responses:
-        "200":
-          description: 成功
-  /api/users/{user}/encryptedKeyPair:
-    parameters:
-      - name: user
-        in: path
-        required: true
-        schema:
-          type: string
-    get:
-      summary: 暗号化鍵ペア取得
-      description: クライアント側で復号するための鍵ペアを取得します。
-      responses:
-        "200":
-          description: 鍵ペア
-    post:
-      summary: 暗号化鍵ペア保存
-      description: 鍵ペアを保存します。
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                content:
-                  type: string
-              required:
-                - content
-      responses:
-        "200":
-          description: 保存結果
-    delete:
-      summary: 暗号化鍵ペア削除
-      description: 保存済みの鍵ペアを削除します。
-      responses:
-        "200":
-          description: 成功
-  /api/users/{user}/resetKeys:
-    parameters:
-      - name: user
-        in: path
-        required: true
-        schema:
-          type: string
-    post:
-      summary: 鍵情報リセット
-      description: 既存のKeyPackageと鍵ペアをすべて削除します。
-      responses:
-        "200":
-          description: リセット結果
   /api/users/{user}/messages:
     parameters:
       - name: user
@@ -650,7 +480,7 @@ paths:
         schema:
           type: string
     get:
-      summary: メッセージ一覧取得（公開・非公開共通）
+      summary: ダイレクトメッセージ一覧取得
       description: 2者間のメッセージ履歴を取得します。
       parameters:
         - name: limit
@@ -673,7 +503,7 @@ paths:
         "200":
           description: メッセージの配列
     post:
-      summary: メッセージ送信
+      summary: ダイレクトメッセージ送信
       description: メッセージを送信します。
       requestBody:
         required: true
@@ -711,12 +541,6 @@ paths:
                 file:
                   type: string
                   format: binary
-                key:
-                  type: string
-                  description: 暗号化鍵（Base64）
-                iv:
-                  type: string
-                  description: 暗号化 IV（Base64）
               required:
                 - file
       responses:
