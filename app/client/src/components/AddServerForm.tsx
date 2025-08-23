@@ -40,7 +40,8 @@ export function AddServerForm(props: AddServerFormProps) {
           label="サーバーURL"
           placeholder="http://example.com"
           value={url()}
-          onInput={(e: Event & { currentTarget: HTMLInputElement }) => setUrl(e.currentTarget.value)}
+          onInput={(e: Event & { currentTarget: HTMLInputElement }) =>
+            setUrl(e.currentTarget.value)}
           disabled={isLoading()}
           required
         />
@@ -50,7 +51,8 @@ export function AddServerForm(props: AddServerFormProps) {
           label="パスワード"
           placeholder="パスワード"
           value={password()}
-          onInput={(e: Event & { currentTarget: HTMLInputElement }) => setPassword(e.currentTarget.value)}
+          onInput={(e: Event & { currentTarget: HTMLInputElement }) =>
+            setPassword(e.currentTarget.value)}
           disabled={isLoading()}
           required
         />

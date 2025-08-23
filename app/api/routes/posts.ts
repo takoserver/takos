@@ -228,12 +228,13 @@ app.post(
 
     // REST-first: WebSocket は本文を送らず存在通知のみ送る
     // クライアントはこの通知を受けて REST API (/posts/:id や /posts?...) で本文を取得する
-    const objId = objectId || String((post as Record<string, unknown>)._id ?? "");
+    const objId = objectId ||
+      String((post as Record<string, unknown>)._id ?? "");
     broadcast({
       type: "hasUpdate",
       payload: { kind: "newPost", id: objId },
     });
-    
+
     // ローカルのフォロワーへ個別に軽量通知
     const account = await db.findAccountByUserName(author);
     const followers = account?.followers ?? [];
