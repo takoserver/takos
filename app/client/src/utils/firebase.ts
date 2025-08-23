@@ -54,7 +54,7 @@ async function ensureMessaging(): Promise<Messaging> {
   // some host/config setups (CORS, unknown content type). Skip registering
   // the service worker in dev to avoid that error. In Tauri or production
   // we register normally.
-  if (!import.meta.env.DEV && !isTauri && 'serviceWorker' in navigator) {
+  if (!import.meta.env.DEV && !isTauri && "serviceWorker" in navigator) {
     const reg = await navigator.serviceWorker.register(swUrl, {
       type: "module",
     });
