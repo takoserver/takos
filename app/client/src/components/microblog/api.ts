@@ -1,6 +1,5 @@
 import type { ActivityPubObject, MicroblogPost } from "./types.ts";
 import { apiFetch, getDomain } from "../../utils/config.ts";
-import { loadCacheEntry, saveCacheEntry } from "../e2ee/storage.ts";
 
 /**
  * ActivityPub Object を取得
@@ -327,42 +326,26 @@ const userInfoCache = new Map<string, {
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5分
 
-export const getCachedUserInfo = async (
+export const getCachedUserInfo = (
   identifier: string,
-  accountId?: string,
-): Promise<UserInfo | null> => {
+  _accountId?: string,
+): UserInfo | null => {
   const mem = userInfoCache.get(identifier);
   if (mem && Date.now() - mem.timestamp < CACHE_DURATION) {
     return mem.userInfo;
   }
-  if (accountId) {
-    const entry = await loadCacheEntry<UserInfo>(
-      accountId,
-      `userInfo:${identifier}`,
-    );
-    if (entry && Date.now() - entry.timestamp < CACHE_DURATION) {
-      userInfoCache.set(identifier, {
-        userInfo: entry.value,
-        timestamp: entry.timestamp,
-      });
-      return entry.value;
-    }
-  }
   return null;
 };
 
-export const setCachedUserInfo = async (
+export const setCachedUserInfo = (
   identifier: string,
   userInfo: UserInfo,
-  accountId?: string,
-) => {
+  _accountId?: string,
+): void => {
   userInfoCache.set(identifier, {
     userInfo,
     timestamp: Date.now(),
   });
-  if (accountId) {
-    await saveCacheEntry(accountId, `userInfo:${identifier}`, userInfo);
-  }
 };
 
 // 新しい共通ユーザー情報取得API
@@ -372,7 +355,7 @@ export const fetchUserInfo = async (
 ): Promise<UserInfo | null> => {
   try {
     // まずキャッシュから確認
-    const cached = await getCachedUserInfo(identifier, accountId);
+    const cached = getCachedUserInfo(identifier, accountId);
     if (cached) {
       return cached;
     }
@@ -406,7 +389,7 @@ export const fetchUserInfoBatch = async (
     const uncached: string[] = [];
 
     for (const identifier of identifiers) {
-      const cachedInfo = await getCachedUserInfo(identifier, accountId);
+      const cachedInfo = getCachedUserInfo(identifier, accountId);
       if (cachedInfo) {
         cachedMap[identifier] = cachedInfo;
       } else {
@@ -427,10 +410,8 @@ export const fetchUserInfoBatch = async (
       if (response.ok) {
         const fetchedInfos: UserInfo[] = await response.json();
 
-        await Promise.all(
-          fetchedInfos.map((info, index) =>
-            setCachedUserInfo(uncached[index], info, accountId)
-          ),
+        fetchedInfos.forEach((info, index) =>
+          setCachedUserInfo(uncached[index], info, accountId)
         );
 
         fetchedInfos.forEach((info, index) => {
