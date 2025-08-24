@@ -384,6 +384,10 @@ paths:
   /api/search:
     get:
       summary: 検索
+      description: |
+        クエリに基づきローカルまたは指定したサーバーを検索します。
+        `server` を指定した場合はそのサーバーの結果のみを返し、
+        結果がない場合は空配列を返します。
       parameters:
         - name: q
           in: query
@@ -399,6 +403,7 @@ paths:
           in: query
           schema:
             type: string
+          description: 検索対象のドメイン
       responses:
         "200":
           description: 検索結果の配列

@@ -145,7 +145,9 @@ ActivityPub 形式の一覧が必要な場合は、`/ap/users/:username/follower
 
 - `GET /api/search?q=QUERY&type=users|posts|all` –
   キーワードからユーザーや投稿を検索します。 `type`
-  を省略するとすべてが対象です。
+  を省略するとすべてが対象です。`server`
+  パラメータを指定するとリモートサーバーを検索し、結果がない
+  場合は空配列を返します。
 
 ## トレンド API
 

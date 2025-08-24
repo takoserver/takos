@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { createDB } from "../DB/mod.ts";
-import { getDomain, resolveActor } from "../utils/activitypub.ts";
+import { getDomain } from "../utils/activitypub.ts";
 import { getEnv } from "../../shared/config.ts";
 import authRequired from "../utils/auth.ts";
 import { faspFetch, getFaspBaseUrl } from "../services/fasp.ts";
@@ -273,9 +273,6 @@ app.get("/search", async (c) => {
 
         if (res.ok) {
           remoteResults = await res.json();
-          for (const r of remoteResults) {
-            results.push({ ...r, origin: server });
-          }
         }
       } finally {
         clearTimeout(timeout);
@@ -284,22 +281,12 @@ app.get("/search", async (c) => {
       /* ignore */
     }
 
-    if (
-      (type === "all" || type === "users") &&
-      !remoteResults.some((r) => r.type === "user")
-    ) {
-      const actor = await resolveActor(q, server);
-      if (actor) {
-        results.push({
-          type: "user",
-          id: actor.id,
-          title: actor.name ?? actor.preferredUsername ?? q,
-          subtitle: `@${actor.preferredUsername ?? q}`,
-          avatar: actor.icon?.url,
-          actor: actor.id,
-          origin: server,
-        });
-      }
+    if (remoteResults.length === 0) {
+      return c.json([]);
+    }
+
+    for (const r of remoteResults) {
+      results.push({ ...r, origin: server });
     }
   }
 
