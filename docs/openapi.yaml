@@ -499,10 +499,6 @@ paths:
                       type: string
                     icon:
                       type: string
-                    members:
-                      type: array
-                      items:
-                        type: string
     post:
       summary: DM作成
       requestBody:
@@ -682,10 +678,6 @@ paths:
                       type: string
                     icon:
                       type: string
-                    members:
-                      type: array
-                      items:
-                        type: string
     post:
       summary: グループ作成
       requestBody:
@@ -716,6 +708,11 @@ paths:
                 allowInvites:
                   type: boolean
                   description: メンバーによる招待の可否
+                invites:
+                  type: array
+                  description: 初期招待先（`user@domain` 形式）
+                  items:
+                    type: string
       responses:
         "201":
           description: 作成成功時はグループ ID を返します。
