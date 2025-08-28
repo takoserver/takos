@@ -5,6 +5,10 @@ export type {
   DomainsRepo,
   HostDataStore,
   HostRepo,
+  HostSession,
+  HostSessionRepo,
+  HostUser,
+  HostUserRepo,
   OAuthRepo,
   TenantRepo,
 } from "./types.ts";

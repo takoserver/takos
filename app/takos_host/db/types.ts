@@ -1,5 +1,23 @@
 import type { DataStore } from "../../core/db/types.ts";
 
+export interface HostUser {
+  _id: string;
+  userName: string;
+  email: string;
+  emailVerified: boolean;
+  verifyCode?: string;
+  verifyCodeExpires?: Date;
+  hashedPassword: string;
+  salt: string;
+  createdAt: Date;
+}
+
+export interface HostSession {
+  sessionId: string;
+  user: string;
+  expiresAt: Date;
+}
+
 export interface TenantRepo {
   ensure(id: string, domain: string): Promise<void>;
 }
@@ -44,6 +62,34 @@ export interface DomainsRepo {
   verify(id: string): Promise<void>;
 }
 
+export interface HostUserRepo {
+  findByUserName(userName: string): Promise<HostUser | null>;
+  findByUserNameOrEmail(
+    userName: string,
+    email: string,
+  ): Promise<HostUser | null>;
+  create(data: {
+    userName: string;
+    email: string;
+    hashedPassword: string;
+    salt: string;
+    verifyCode: string;
+    verifyCodeExpires: Date;
+  }): Promise<HostUser>;
+  update(id: string, update: Partial<HostUser>): Promise<void>;
+}
+
+export interface HostSessionRepo {
+  findById(sessionId: string): Promise<HostSession | null>;
+  create(
+    sessionId: string,
+    user: string,
+    expiresAt: Date,
+  ): Promise<HostSession>;
+  updateExpires(sessionId: string, expiresAt: Date): Promise<void>;
+  deleteById(sessionId: string): Promise<void>;
+}
+
 export interface HostDataStore extends DataStore {
   tenantId: string;
   multiTenant: boolean;
@@ -51,4 +97,6 @@ export interface HostDataStore extends DataStore {
   host: HostRepo;
   oauth: OAuthRepo;
   domains: DomainsRepo;
+  hostUsers: HostUserRepo;
+  hostSessions: HostSessionRepo;
 }

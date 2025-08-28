@@ -1,9 +1,11 @@
-import type { HostDataStore } from "./types.ts";
+import type { HostDataStore, HostUser } from "./types.ts";
 import { MongoDB } from "../../takos/db/mongo.ts";
 import Tenant from "../models/tenant.ts";
 import Instance from "../models/instance.ts";
 import OAuthClient from "../models/oauth_client.ts";
 import HostDomain from "../models/domain.ts";
+import HostUserModel from "../models/user.ts";
+import HostSessionModel from "../models/session.ts";
 import type mongoose from "mongoose";
 
 /**
@@ -239,6 +241,72 @@ export function createMongoDataStore(
       },
       verify: (id) =>
         HostDomain.updateOne({ _id: id }, { $set: { verified: true } }),
+    },
+    hostUsers: {
+      findByUserName: async (userName) => {
+        const doc = await HostUserModel.findOne({ userName })
+          .lean<HostUser & { _id: mongoose.Types.ObjectId } | null>();
+        return doc ? { ...doc, _id: String(doc._id) } : null;
+      },
+      findByUserNameOrEmail: async (userName, email) => {
+        const doc = await HostUserModel.findOne({
+          $or: [{ userName }, { email }],
+        })
+          .lean<HostUser & { _id: mongoose.Types.ObjectId } | null>();
+        return doc ? { ...doc, _id: String(doc._id) } : null;
+      },
+      create: async (data) => {
+        const doc = new HostUserModel({
+          userName: data.userName,
+          email: data.email,
+          hashedPassword: data.hashedPassword,
+          salt: data.salt,
+          verifyCode: data.verifyCode,
+          verifyCodeExpires: data.verifyCodeExpires,
+          emailVerified: false,
+          createdAt: new Date(),
+        });
+        await doc.save();
+        const obj = doc.toObject() as HostUser & {
+          _id: mongoose.Types.ObjectId;
+        };
+        return { ...obj, _id: String(obj._id) };
+      },
+      update: async (id, update) => {
+        await HostUserModel.updateOne({ _id: id }, { $set: update });
+      },
+    },
+    hostSessions: {
+      findById: async (sessionId) => {
+        const doc = await HostSessionModel.findOne({ sessionId })
+          .lean<
+            {
+              sessionId: string;
+              user: mongoose.Types.ObjectId;
+              expiresAt: Date;
+            } | null
+          >();
+        return doc
+          ? {
+            sessionId: doc.sessionId,
+            user: String(doc.user),
+            expiresAt: doc.expiresAt,
+          }
+          : null;
+      },
+      create: async (sessionId, user, expiresAt) => {
+        const doc = new HostSessionModel({
+          sessionId,
+          user,
+          expiresAt,
+          createdAt: new Date(),
+        });
+        await doc.save();
+        return { sessionId, user: String(user), expiresAt };
+      },
+      updateExpires: (sessionId, expiresAt) =>
+        HostSessionModel.updateOne({ sessionId }, { $set: { expiresAt } }),
+      deleteById: (sessionId) => HostSessionModel.deleteOne({ sessionId }),
     },
     raw: () => impl.getDatabase(),
     // 互換用: 旧 API で使用していた getDatabase を残す
