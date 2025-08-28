@@ -4,7 +4,9 @@ import Tenant from "../models/tenant.ts";
 import Instance from "../models/instance.ts";
 import OAuthClient from "../models/oauth_client.ts";
 import HostDomain from "../models/domain.ts";
-import type mongoose from "mongoose";
+import mongoose from "mongoose";
+
+const toObjectId = (id: string) => new mongoose.Types.ObjectId(id);
 
 /**
  * 既存の MongoDB 実装をホスト用 DataStore に束ねる実装。
@@ -135,11 +137,12 @@ export function createMongoDataStore(
     },
     host: {
       listInstances: async (owner) => {
-        const docs = await Instance.find({ owner })
+        const docs = await Instance.find({ owner: toObjectId(owner) })
           .lean<{ host: string }[]>();
         return docs.map((d) => ({ host: d.host }));
       },
-      countInstances: (owner) => Instance.countDocuments({ owner }),
+      countInstances: (owner) =>
+        Instance.countDocuments({ owner: toObjectId(owner) }),
       findInstanceByHost: async (host) => {
         const doc = await Instance.findOne({ host })
           .lean<
@@ -160,7 +163,10 @@ export function createMongoDataStore(
           : null;
       },
       findInstanceByHostAndOwner: async (host, owner) => {
-        const doc = await Instance.findOne({ host, owner })
+        const doc = await Instance.findOne({
+          host,
+          owner: toObjectId(owner),
+        })
           .lean<
             {
               _id: mongoose.Types.ObjectId;
@@ -175,15 +181,16 @@ export function createMongoDataStore(
       createInstance: async (data) => {
         const doc = new Instance({
           host: data.host,
-          owner: data.owner,
+          owner: toObjectId(data.owner),
           env: data.env ?? {},
           createdAt: new Date(),
         });
         await doc.save();
       },
       updateInstanceEnv: (id, env) =>
-        Instance.updateOne({ _id: id }, { $set: { env } }),
-      deleteInstance: (host, owner) => Instance.deleteOne({ host, owner }),
+        Instance.updateOne({ _id: toObjectId(id) }, { $set: { env } }),
+      deleteInstance: (host, owner) =>
+        Instance.deleteOne({ host, owner: toObjectId(owner) }),
     },
     oauth: {
       list: async () => {
@@ -211,13 +218,13 @@ export function createMongoDataStore(
     },
     domains: {
       list: async (user) => {
-        const docs = await HostDomain.find({ user })
+        const docs = await HostDomain.find({ user: toObjectId(user) })
           .lean<{ domain: string; verified: boolean }[]>();
         return docs.map((d) => ({ domain: d.domain, verified: d.verified }));
       },
       find: async (domain, user?) => {
         const cond: Record<string, unknown> = { domain };
-        if (user) cond.user = user;
+        if (user) cond.user = toObjectId(user);
         const doc = await HostDomain.findOne(cond)
           .lean<
             | { _id: mongoose.Types.ObjectId; token: string; verified: boolean }
@@ -230,7 +237,7 @@ export function createMongoDataStore(
       create: async (domain, user, token) => {
         const doc = new HostDomain({
           domain,
-          user,
+          user: toObjectId(user),
           token,
           verified: false,
           createdAt: new Date(),
@@ -238,7 +245,9 @@ export function createMongoDataStore(
         await doc.save();
       },
       verify: (id) =>
-        HostDomain.updateOne({ _id: id }, { $set: { verified: true } }),
+        HostDomain.updateOne({ _id: toObjectId(id) }, {
+          $set: { verified: true },
+        }),
     },
     raw: () => impl.getDatabase(),
     // 互換用: 旧 API で使用していた getDatabase を残す

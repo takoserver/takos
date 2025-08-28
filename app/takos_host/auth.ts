@@ -215,6 +215,7 @@ export const authRequired: MiddlewareHandler = createAuthMiddleware({
     await (session as unknown as { save: () => Promise<void> }).save();
   },
   attach: (c, session) => {
-    c.set("user", (session as unknown as { user: unknown }).user);
+    const id = String((session as unknown as { user: unknown }).user);
+    c.set("user", { _id: id });
   },
 });
